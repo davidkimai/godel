@@ -1,0 +1,36 @@
+<<<<<<< HEAD
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vercel
+.vercel
+=======
+node_modules/
+dist/
+*.log
+>>>>>>> 7ad0d81 (Clean up: remove non-Dash files)
