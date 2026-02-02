@@ -738,4 +738,148 @@ describe('Approval Workflow', () => {
       expect(config.timeout.standard).toBe(60);
     });
   });
+
+  // ==========================================================================
+  // CLI Command Tests
+  // ==========================================================================
+  
+  describe('CLI Commands', () => {
+    beforeEach(() => clearAllRequests());
+
+    describe('createApprovalCommand', () => {
+      // Import the CLI module
+      const { createApprovalCommand } = require('../../src/cli/commands/approve');
+      
+      it('should create approval command with all subcommands', () => {
+        const command = createApprovalCommand();
+        
+        expect(command.name()).toBe('approve');
+        expect(command.description()).toContain('approval workflows');
+        
+        // Check subcommands exist
+        const subcommands = command.commands.map((c: { name: () => string }) => c.name());
+        expect(subcommands).toContain('list');
+        expect(subcommands).toContain('get');
+        expect(subcommands).toContain('respond');
+        expect(subcommands).toContain('all');
+        expect(subcommands).toContain('audit');
+        expect(subcommands).toContain('escalate');
+        expect(subcommands).toContain('emergency-override');
+        expect(subcommands).toContain('monitor');
+        expect(subcommands).toContain('stats');
+      });
+
+      it('list command should have correct options', () => {
+        const command = createApprovalCommand();
+        const listCmd = command.commands.find((c: { name: () => string }) => c.name() === 'list');
+        
+        expect(listCmd).toBeDefined();
+        const optionNames = listCmd.options.map((o: { long: string }) => o.long);
+        expect(optionNames).toContain('--status');
+        expect(optionNames).toContain('--agent');
+        expect(optionNames).toContain('--type');
+        expect(optionNames).toContain('--risk');
+        expect(optionNames).toContain('--format');
+        expect(optionNames).toContain('--limit');
+      });
+
+      it('get command should require id argument', () => {
+        const command = createApprovalCommand();
+        const getCmd = command.commands.find((c: { name: () => string }) => c.name() === 'get');
+        
+        expect(getCmd).toBeDefined();
+        expect(getCmd._args).toHaveLength(1);
+        expect(getCmd._args[0].name()).toBe('id');
+        expect(getCmd._args[0].required).toBe(true);
+      });
+
+      it('respond command should have approve/deny options', () => {
+        const command = createApprovalCommand();
+        const respondCmd = command.commands.find((c: { name: () => string }) => c.name() === 'respond');
+        
+        expect(respondCmd).toBeDefined();
+        const optionNames = respondCmd.options.map((o: { long: string }) => o.long);
+        expect(optionNames).toContain('--approve');
+        expect(optionNames).toContain('--deny');
+        expect(optionNames).toContain('--notes');
+        expect(optionNames).toContain('--justification');
+      });
+
+      it('all command should require agent option', () => {
+        const command = createApprovalCommand();
+        const allCmd = command.commands.find((c: { name: () => string }) => c.name() === 'all');
+        
+        expect(allCmd).toBeDefined();
+        const agentOption = allCmd.options.find((o: { long: string }) => o.long === '--agent');
+        expect(agentOption).toBeDefined();
+        expect(agentOption.mandatory).toBe(true);
+      });
+
+      it('audit command should have since option for time filtering', () => {
+        const command = createApprovalCommand();
+        const auditCmd = command.commands.find((c: { name: () => string }) => c.name() === 'audit');
+        
+        expect(auditCmd).toBeDefined();
+        const optionNames = auditCmd.options.map((o: { long: string }) => o.long);
+        expect(optionNames).toContain('--agent');
+        expect(optionNames).toContain('--since');
+        expect(optionNames).toContain('--risk');
+        expect(optionNames).toContain('--format');
+        expect(optionNames).toContain('--limit');
+      });
+
+      it('escalate command should require id and reason', () => {
+        const command = createApprovalCommand();
+        const escalateCmd = command.commands.find((c: { name: () => string }) => c.name() === 'escalate');
+        
+        expect(escalateCmd).toBeDefined();
+        expect(escalateCmd._args).toHaveLength(1);
+        expect(escalateCmd._args[0].name()).toBe('id');
+        
+        const reasonOption = escalateCmd.options.find((o: { long: string }) => o.long === '--reason');
+        expect(reasonOption).toBeDefined();
+        expect(reasonOption.mandatory).toBe(true);
+      });
+
+      it('emergency-override command should require id, reason, and justification', () => {
+        const command = createApprovalCommand();
+        const emergencyCmd = command.commands.find((c: { name: () => string }) => c.name() === 'emergency-override');
+        
+        expect(emergencyCmd).toBeDefined();
+        expect(emergencyCmd._args).toHaveLength(1);
+        expect(emergencyCmd._args[0].name()).toBe('id');
+        
+        const reasonOption = emergencyCmd.options.find((o: { long: string }) => o.long === '--reason');
+        expect(reasonOption).toBeDefined();
+        expect(reasonOption.mandatory).toBe(true);
+        
+        const justificationOption = emergencyCmd.options.find((o: { long: string }) => o.long === '--justification');
+        expect(justificationOption).toBeDefined();
+        expect(justificationOption.mandatory).toBe(true);
+      });
+
+      it('monitor command should have start/stop/status options', () => {
+        const command = createApprovalCommand();
+        const monitorCmd = command.commands.find((c: { name: () => string }) => c.name() === 'monitor');
+        
+        expect(monitorCmd).toBeDefined();
+        const optionNames = monitorCmd.options.map((o: { long: string }) => o.long);
+        expect(optionNames).toContain('--start');
+        expect(optionNames).toContain('--stop');
+        expect(optionNames).toContain('--status');
+        expect(optionNames).toContain('--interval');
+      });
+
+      it('stats command should have format and period options', () => {
+        const command = createApprovalCommand();
+        const statsCmd = command.commands.find((c: { name: () => string }) => c.name() === 'stats');
+        
+        expect(statsCmd).toBeDefined();
+        const optionNames = statsCmd.options.map((o: { long: string }) => o.long);
+        expect(optionNames).toContain('--period');
+        expect(optionNames).toContain('--agent');
+        expect(optionNames).toContain('--format');
+      });
+    });
+  });
 });

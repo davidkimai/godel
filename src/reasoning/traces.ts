@@ -23,6 +23,16 @@ const agentTraces: Map<string, string[]> = new Map();
 const taskTraces: Map<string, string[]> = new Map();
 const typeTraces: Map<string, string[]> = new Map();
 
+/**
+ * Clear all traces - used for testing
+ */
+export function clearTraces(): void {
+  traceStore.clear();
+  agentTraces.clear();
+  taskTraces.clear();
+  typeTraces.clear();
+}
+
 // ============================================================================
 // Trace Recording
 // ============================================================================
@@ -95,7 +105,12 @@ export function getTracesByAgent(agentId: string, limit?: number): ReasoningTrac
   const traces = traceIds
     .map(id => traceStore.get(id))
     .filter((t): t is ReasoningTrace => t !== undefined)
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    .sort((a, b) => {
+      const timeDiff = b.timestamp.getTime() - a.timestamp.getTime();
+      if (timeDiff !== 0) return timeDiff;
+      // Secondary sort by ID descending (newer IDs first) for stable ordering
+      return b.id.localeCompare(a.id);
+    });
   
   return limit ? traces.slice(0, limit) : traces;
 }
@@ -130,10 +145,16 @@ export function getTracesByType(type: ReasoningType, limit?: number): ReasoningT
  * Query traces with filters
  */
 export function queryTraces(query: TraceQuery): ReasoningTrace[] {
-  let traces = Array.from(traceStore.values());
+  // Start with agent filter if provided (most restrictive)
+  let traces: ReasoningTrace[];
   
   if (query.agentId) {
-    traces = traces.filter(t => t.agentId === query.agentId);
+    const traceIds = agentTraces.get(query.agentId) || [];
+    traces = traceIds
+      .map(id => traceStore.get(id))
+      .filter((t): t is ReasoningTrace => t !== undefined);
+  } else {
+    traces = Array.from(traceStore.values());
   }
   
   if (query.taskId) {

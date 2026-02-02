@@ -21,6 +21,17 @@ const taskDecisions: Map<string, string[]> = new Map();
 const confidenceStore: Map<string, ConfidenceTracking> = new Map();
 const agentConfidenceHistory: Map<string, ConfidenceTracking['history']> = new Map();
 
+/**
+ * Clear all decisions and confidence data - used for testing
+ */
+export function clearDecisions(): void {
+  decisionStore.clear();
+  agentDecisions.clear();
+  taskDecisions.clear();
+  confidenceStore.clear();
+  agentConfidenceHistory.clear();
+}
+
 // ============================================================================
 // Decision Logging
 // ============================================================================
@@ -88,8 +99,13 @@ export function getDecisionsByAgent(agentId: string, limit?: number): DecisionLo
   const decisions = decisionIds
     .map(id => decisionStore.get(id))
     .filter((d): d is DecisionLog => d !== undefined)
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  
+    .sort((a, b) => {
+      const timeDiff = b.timestamp.getTime() - a.timestamp.getTime();
+      if (timeDiff !== 0) return timeDiff;
+      // Secondary sort by ID descending (newer IDs first) for stable ordering
+      return b.id.localeCompare(a.id);
+    });
+
   return limit ? decisions.slice(0, limit) : decisions;
 }
 
@@ -446,9 +462,9 @@ export function getConfidenceStats(agentId: string): {
   
   return {
     current,
-    average: Math.round(average * 100) / 100,
-    min: Math.round(min * 100) / 100,
-    max: Math.round(max * 100) / 100,
+    average: Math.round(average * 1000) / 1000,
+    min: Math.round(min * 1000) / 1000,
+    max: Math.round(max * 1000) / 1000,
     trend,
     warningCount: tracking?.warnings.length || 0
   };

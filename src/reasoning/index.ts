@@ -24,7 +24,8 @@ export {
   getTracesByType,
   queryTraces,
   deleteTrace,
-  getTraceStats
+  getTraceStats,
+  clearTraces
 } from './traces';
 
 // ============================================================================
@@ -39,7 +40,8 @@ export {
   queryDecisions,
   deleteDecision,
   compareDecisions,
-  analyzeDecisionQuality
+  analyzeDecisionQuality,
+  clearDecisions
 } from './decisions';
 
 // ============================================================================
