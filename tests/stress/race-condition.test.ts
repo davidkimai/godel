@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { SwarmManager, type SwarmConfig } from '../../src/core/swarm.js';
+import { SwarmManager, type SwarmConfig, type Swarm } from '../../src/core/swarm.js';
 import { AgentLifecycle } from '../../src/core/lifecycle.js';
 import { MessageBus } from '../../src/bus/index.js';
 import { AgentStorage } from '../../src/storage/memory.js';
@@ -18,10 +18,6 @@ import { SQLiteStorage } from '../../src/storage/sqlite.js';
 import { AgentStatus, createAgent, type Agent } from '../../src/models/agent.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 describe('Race Condition Stress Tests', () => {
   let swarmManager: SwarmManager;
@@ -33,7 +29,7 @@ describe('Race Condition Stress Tests', () => {
 
   beforeEach(async () => {
     // Create a temporary database for each test
-    dbPath = path.join(__dirname, `test-race-${Date.now()}.db`);
+    dbPath = path.join(process.cwd(), `test-race-${Date.now()}.db`);
     
     messageBus = new MessageBus();
     storage = new AgentStorage();
@@ -73,7 +69,7 @@ describe('Race Condition Stress Tests', () => {
       };
 
       // Create 10 swarms concurrently
-      const createPromises: Promise<ReturnType<typeof swarmManager.create>>[] = [];
+      const createPromises: Promise<Swarm>[] = [];
       for (let i = 0; i < 10; i++) {
         createPromises.push(swarmManager.create({ ...config, name: `swarm-${i}` }));
       }
