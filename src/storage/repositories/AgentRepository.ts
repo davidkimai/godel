@@ -1,10 +1,11 @@
 /**
- * Agent Repository
+ * Agent Repository with Caching
  * 
- * CRUD operations for agents in SQLite.
+ * CRUD operations for agents in SQLite with LRU caching.
  */
 
 import { getDb } from '../sqlite';
+import { LRUCache } from '../../utils/cache';
 
 export interface Agent {
   id: string;
@@ -32,6 +33,12 @@ export interface Agent {
 }
 
 export class AgentRepository {
+  // Cache for individual agents (30 second TTL)
+  private cache: LRUCache<Agent> = new LRUCache({ maxSize: 200, defaultTTL: 30000 });
+  
+  // Cache for agent lists by swarm (10 second TTL - more volatile)
+  private swarmCache: LRUCache<Agent[]> = new LRUCache({ maxSize: 50, defaultTTL: 10000 });
+
   async create(data: Partial<Agent>): Promise<Agent> {
     const db = await getDb();
     const id = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -56,20 +63,56 @@ export class AgentRepository {
        data.swarm_id || null, data.parent_id || null]
     );
 
+    // Cache the new agent
+    this.cache.set(agent.id, agent);
+    
+    // Invalidate swarm cache if agent belongs to a swarm
+    if (data.swarm_id) {
+      this.swarmCache.delete(data.swarm_id);
+    }
+
     return agent;
   }
 
   async findById(id: string): Promise<Agent | undefined> {
+    // Check cache first
+    const cached = this.cache.get(id);
+    if (cached) {
+      return cached;
+    }
+
     const db = await getDb();
     const row = await db.get('SELECT * FROM agents WHERE id = ?', [id]);
     if (!row) return undefined;
-    return this.mapRow(row);
+    
+    const agent = this.mapRow(row);
+    
+    // Cache the result
+    this.cache.set(id, agent);
+    
+    return agent;
   }
 
   async findBySwarmId(swarmId: string): Promise<Agent[]> {
+    // Check cache first
+    const cached = this.swarmCache.get(swarmId);
+    if (cached) {
+      return cached;
+    }
+
     const db = await getDb();
     const rows = await db.all('SELECT * FROM agents WHERE swarm_id = ?', [swarmId]);
-    return rows.map(row => this.mapRow(row));
+    const agents = rows.map(row => this.mapRow(row));
+    
+    // Cache the list
+    this.swarmCache.set(swarmId, agents);
+    
+    // Also cache individual agents
+    for (const agent of agents) {
+      this.cache.set(agent.id, agent);
+    }
+    
+    return agents;
   }
 
   async list(): Promise<Agent[]> {
@@ -94,6 +137,57 @@ export class AgentRepository {
     params.push(id);
 
     await db.run(query, params);
+    
+    // Invalidate cache
+    this.invalidateAgent(id);
+  }
+  
+  /**
+   * Update an agent with partial data
+   */
+  async update(id: string, data: Partial<Agent>): Promise<void> {
+    const db = await getDb();
+    
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        fields.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+    
+    if (fields.length === 0) return;
+    
+    values.push(id);
+    const query = `UPDATE agents SET ${fields.join(', ')} WHERE id = ?`;
+    
+    await db.run(query, values);
+    
+    // Invalidate cache
+    this.invalidateAgent(id);
+  }
+
+  /**
+   * Invalidate cache entries for an agent
+   */
+  private invalidateAgent(id: string): void {
+    const agent = this.cache.get(id);
+    this.cache.delete(id);
+    
+    // Invalidate swarm cache if we know the swarm
+    if (agent?.swarm_id) {
+      this.swarmCache.delete(agent.swarm_id);
+    }
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCache(): void {
+    this.cache.clear();
+    this.swarmCache.clear();
   }
 
   private mapRow(row: any): Agent {
@@ -123,3 +217,5 @@ export class AgentRepository {
     };
   }
 }
+
+export default AgentRepository;

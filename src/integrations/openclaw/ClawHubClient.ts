@@ -267,7 +267,7 @@ export class ClawHubClient {
       });
 
       if (response.status === 404) {
-        const versions = await this.fetchVersions(slug).catch(() => undefined);
+        const versions = await this.fetchVersions(slug).catch((): undefined => undefined);
         throw new VersionNotFoundError(slug, version, versions);
       }
 
@@ -478,7 +478,7 @@ export class ClawHubClient {
       for (const entry of lockfile.skills) {
         try {
           // Try to fetch current metadata from registry
-          const metadata = await this.fetchSkill(entry.slug).catch(() => null);
+          const metadata = await this.fetchSkill(entry.slug).catch((): null => null);
           
           installed.push({
             ...(metadata || {

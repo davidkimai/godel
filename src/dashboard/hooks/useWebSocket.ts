@@ -176,7 +176,7 @@ export function useAgentStatus(initialAgents: any[] = []) {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) return undefined;
 
     const unsubscribe = subscribe('agent_update', (data: any) => {
       setAgents((prev) => {
@@ -204,7 +204,7 @@ export function useBudget(initialBudget: any = null) {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) return undefined;
 
     const unsubscribe = subscribe('budget_update', (data: any) => {
       setBudget(data.budget);
@@ -224,7 +224,7 @@ export function useEventStream(maxEvents: number = 100) {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) return undefined;
 
     const unsubscribe = subscribe('*', (data: any) => {
       setEvents((prev) => {
@@ -255,7 +255,7 @@ export function useSwarmStatus(initialSwarm: any = null) {
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
-    if (!connected) return;
+    if (!connected) return undefined;
 
     const unsubscribe = subscribe('swarm_status', (data: any) => {
       setSwarm(data.swarm);

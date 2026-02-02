@@ -11,6 +11,7 @@
  */
 
 import type { Agent, AgentStatus } from '../models/agent';
+import type { Database } from 'better-sqlite3';
 
 // ============================================================================
 // Types
@@ -42,6 +43,8 @@ export class SQLiteStorage {
   private config: StorageConfig;
   private activeTransaction: Transaction | null = null;
   private readonly DEFAULT_BUSY_TIMEOUT = 5000; // 5 seconds
+  private statementCache: Map<string, any> = new Map();
+  private readonly MAX_CACHED_STATEMENTS = 100;
 
   constructor(config: StorageConfig) {
     this.config = {
@@ -73,18 +76,62 @@ export class SQLiteStorage {
   }
 
   /**
+   * Get or create a cached prepared statement
+   */
+  private getCachedStatement(sql: string): any {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    let stmt = this.statementCache.get(sql);
+    if (!stmt) {
+      // Evict oldest if at capacity (simple FIFO)
+      if (this.statementCache.size >= this.MAX_CACHED_STATEMENTS) {
+        const firstKey = this.statementCache.keys().next().value;
+        if (firstKey !== undefined) {
+          const oldStmt = this.statementCache.get(firstKey);
+          if (oldStmt) {
+            oldStmt.finalize();
+          }
+          this.statementCache.delete(firstKey);
+        }
+      }
+
+      stmt = this.getDb().prepare(sql);
+      this.statementCache.set(sql, stmt);
+    }
+    return stmt;
+  }
+
+  /**
+   * Clear the prepared statement cache
+   */
+  clearStatementCache(): void {
+    for (const stmt of this.statementCache.values()) {
+      stmt.finalize();
+    }
+    this.statementCache.clear();
+  }
+
+  /**
    * Execute a SQL statement (INSERT, UPDATE, DELETE)
    */
   async run(sql: string, ...params: unknown[]): Promise<{ changes: number; lastInsertRowid: number }> {
-    const stmt = this.db.prepare(sql);
-    return stmt.run(...params);
+    const stmt = this.getCachedStatement(sql);
+    const result = stmt.run(...params);
+    return {
+      changes: result.changes,
+      lastInsertRowid: typeof result.lastInsertRowid === 'bigint' 
+        ? Number(result.lastInsertRowid) 
+        : result.lastInsertRowid
+    };
   }
 
   /**
    * Get a single row from the database
    */
   async get(sql: string, ...params: unknown[]): Promise<any> {
-    const stmt = this.db.prepare(sql);
+    const stmt = this.getCachedStatement(sql);
     return stmt.get(...params);
   }
 
@@ -92,7 +139,7 @@ export class SQLiteStorage {
    * Get all rows from the database
    */
   async all(sql: string, ...params: unknown[]): Promise<any[]> {
-    const stmt = this.db.prepare(sql);
+    const stmt = this.getCachedStatement(sql);
     return stmt.all(...params);
   }
 
@@ -101,7 +148,7 @@ export class SQLiteStorage {
    */
   private createSchema(): void {
     // Agents table
-    this.db.exec(`
+    this.getDb().exec(`
       CREATE TABLE IF NOT EXISTS agents (
         id TEXT PRIMARY KEY,
         label TEXT,
@@ -129,7 +176,7 @@ export class SQLiteStorage {
     `);
 
     // Swarms table
-    this.db.exec(`
+    this.getDb().exec(`
       CREATE TABLE IF NOT EXISTS swarms (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -146,7 +193,7 @@ export class SQLiteStorage {
     `);
 
     // Events table
-    this.db.exec(`
+    this.getDb().exec(`
       CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
         timestamp TEXT NOT NULL,
@@ -159,12 +206,12 @@ export class SQLiteStorage {
     `);
 
     // Create indexes for better query performance
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(swarm_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(swarm_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_events_time ON events(timestamp)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(swarm_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(swarm_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_time ON events(timestamp)`);
   }
 
   // ============================================================================
@@ -180,7 +227,7 @@ export class SQLiteStorage {
       throw new Error('Transaction already in progress');
     }
 
-    this.db.exec('BEGIN');
+    this.getDb().exec('BEGIN');
     
     const transaction: Transaction = {
       isActive: true,
@@ -188,7 +235,7 @@ export class SQLiteStorage {
         if (!transaction.isActive) {
           throw new Error('Transaction is not active');
         }
-        this.db.exec('COMMIT');
+        this.getDb().exec('COMMIT');
         transaction.isActive = false;
         this.activeTransaction = null;
       },
@@ -196,7 +243,7 @@ export class SQLiteStorage {
         if (!transaction.isActive) {
           throw new Error('Transaction is not active');
         }
-        this.db.exec('ROLLBACK');
+        this.getDb().exec('ROLLBACK');
         transaction.isActive = false;
         this.activeTransaction = null;
       },
@@ -237,7 +284,7 @@ export class SQLiteStorage {
    * Create an agent (with optional transaction)
    */
   createAgent(agent: Agent): void {
-    const stmt = this.db.prepare(`
+    const stmt = this.getDb().prepare(`
       INSERT INTO agents (
         id, label, status, model, task, spawned_at, completed_at, runtime,
         pause_time, paused_by, swarm_id, parent_id, child_ids, context,
@@ -273,6 +320,16 @@ export class SQLiteStorage {
   }
 
   /**
+   * Get database instance or throw error if not initialized
+   */
+  private getDb(): any {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    return this.db;
+  }
+
+  /**
    * Update an agent (with optional transaction)
    */
   updateAgent(id: string, updates: Partial<Agent> & Record<string, unknown>): void {
@@ -300,7 +357,7 @@ export class SQLiteStorage {
     values.push(id);
 
     const query = `UPDATE agents SET ${setClauses.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
+    const stmt = this.getDb().prepare(query);
     stmt.run(...values);
   }
 
@@ -308,7 +365,7 @@ export class SQLiteStorage {
    * Get an agent by ID
    */
   getAgent(id: string): Agent | null {
-    const stmt = this.db.prepare('SELECT * FROM agents WHERE id = ?');
+    const stmt = this.getDb().prepare('SELECT * FROM agents WHERE id = ?');
     const row = stmt.get(id) as QueryResult | undefined;
     
     if (!row) return null;
@@ -319,7 +376,7 @@ export class SQLiteStorage {
    * Get agents by status
    */
   getAgentsByStatus(status: AgentStatus): Agent[] {
-    const stmt = this.db.prepare('SELECT * FROM agents WHERE status = ?');
+    const stmt = this.getDb().prepare('SELECT * FROM agents WHERE status = ?');
     const rows = stmt.all(status) as QueryResult[];
     return rows.map(row => this.rowToAgent(row));
   }
@@ -328,7 +385,7 @@ export class SQLiteStorage {
    * Get agents by swarm
    */
   getAgentsBySwarm(swarmId: string): Agent[] {
-    const stmt = this.db.prepare('SELECT * FROM agents WHERE swarm_id = ?');
+    const stmt = this.getDb().prepare('SELECT * FROM agents WHERE swarm_id = ?');
     const rows = stmt.all(swarmId) as QueryResult[];
     return rows.map(row => this.rowToAgent(row));
   }
@@ -337,7 +394,7 @@ export class SQLiteStorage {
    * Delete an agent
    */
   deleteAgent(id: string): void {
-    const stmt = this.db.prepare('DELETE FROM agents WHERE id = ?');
+    const stmt = this.getDb().prepare('DELETE FROM agents WHERE id = ?');
     stmt.run(id);
   }
 
@@ -382,7 +439,7 @@ export class SQLiteStorage {
     budget: { allocated: number; consumed: number; remaining: number };
     metrics: Record<string, unknown>;
   }): void {
-    const stmt = this.db.prepare(`
+    const stmt = this.getDb().prepare(`
       INSERT INTO swarms (
         id, name, status, config, agents, created_at,
         budget_allocated, budget_consumed, budget_remaining, metrics
@@ -428,7 +485,7 @@ export class SQLiteStorage {
     values.push(id);
 
     const query = `UPDATE swarms SET ${setClauses.join(', ')} WHERE id = ?`;
-    const stmt = this.db.prepare(query);
+    const stmt = this.getDb().prepare(query);
     stmt.run(...values);
   }
 
@@ -436,7 +493,7 @@ export class SQLiteStorage {
    * Get a swarm by ID
    */
   getSwarm(id: string): Record<string, unknown> | null {
-    const stmt = this.db.prepare('SELECT * FROM swarms WHERE id = ?');
+    const stmt = this.getDb().prepare('SELECT * FROM swarms WHERE id = ?');
     const row = stmt.get(id) as QueryResult | undefined;
     
     if (!row) return null;
@@ -447,7 +504,7 @@ export class SQLiteStorage {
    * Get all swarms
    */
   getAllSwarms(): Array<Record<string, unknown>> {
-    const stmt = this.db.prepare('SELECT * FROM swarms ORDER BY created_at DESC');
+    const stmt = this.getDb().prepare('SELECT * FROM swarms ORDER BY created_at DESC');
     const rows = stmt.all() as QueryResult[];
     return rows.map(row => this.rowToSwarm(row));
   }
@@ -459,11 +516,11 @@ export class SQLiteStorage {
   deleteSwarm(id: string): void {
     this.withTransaction(() => {
       // Delete associated agents first
-      const deleteAgents = this.db.prepare('DELETE FROM agents WHERE swarm_id = ?');
+      const deleteAgents = this.getDb().prepare('DELETE FROM agents WHERE swarm_id = ?');
       deleteAgents.run(id);
 
       // Delete the swarm
-      const deleteSwarm = this.db.prepare('DELETE FROM swarms WHERE id = ?');
+      const deleteSwarm = this.getDb().prepare('DELETE FROM swarms WHERE id = ?');
       deleteSwarm.run(id);
     });
   }
@@ -484,7 +541,7 @@ export class SQLiteStorage {
     agentId?: string;
     swarmId?: string;
   }): void {
-    const stmt = this.db.prepare(`
+    const stmt = this.getDb().prepare(`
       INSERT INTO events (id, timestamp, event_type, source, payload, agent_id, swarm_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
@@ -504,7 +561,7 @@ export class SQLiteStorage {
    * Get events by agent
    */
   getEventsByAgent(agentId: string, limit: number = 100): Array<Record<string, unknown>> {
-    const stmt = this.db.prepare(
+    const stmt = this.getDb().prepare(
       'SELECT * FROM events WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?'
     );
     const rows = stmt.all(agentId, limit) as QueryResult[];
@@ -515,7 +572,7 @@ export class SQLiteStorage {
    * Get events by swarm
    */
   getEventsBySwarm(swarmId: string, limit: number = 100): Array<Record<string, unknown>> {
-    const stmt = this.db.prepare(
+    const stmt = this.getDb().prepare(
       'SELECT * FROM events WHERE swarm_id = ? ORDER BY timestamp DESC LIMIT ?'
     );
     const rows = stmt.all(swarmId, limit) as QueryResult[];
@@ -530,6 +587,7 @@ export class SQLiteStorage {
    * Close the database connection
    */
   close(): void {
+    this.clearStatementCache();
     if (this.db) {
       this.db.close();
     }

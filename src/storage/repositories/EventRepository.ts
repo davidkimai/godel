@@ -1,10 +1,11 @@
 /**
- * Event Repository
+ * Event Repository with Caching
  * 
- * CRUD operations for events in SQLite.
+ * CRUD operations for events in SQLite with LRU caching.
  */
 
 import { getDb } from '../sqlite';
+import { LRUCache } from '../../utils/cache';
 
 export interface Event {
   id: string;
@@ -26,6 +27,12 @@ export interface EventFilter {
 }
 
 export class EventRepository {
+  // Cache for individual events (short TTL as events are immutable)
+  private cache: LRUCache<Event> = new LRUCache({ maxSize: 100, defaultTTL: 60000 });
+  
+  // Cache for event lists by agent (very short TTL as events change frequently)
+  private agentCache: LRUCache<Event[]> = new LRUCache({ maxSize: 30, defaultTTL: 5000 });
+
   async create(data: Omit<Event, 'id' | 'timestamp'>): Promise<Event> {
     const db = await getDb();
     const id = `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -44,23 +51,59 @@ export class EventRepository {
        event.agent_id || null, event.swarm_id || null]
     );
 
+    // Cache the new event
+    this.cache.set(event.id, event);
+    
+    // Invalidate agent cache if event belongs to an agent
+    if (data.agent_id) {
+      this.agentCache.delete(data.agent_id);
+    }
+
     return event;
   }
 
   async findById(id: string): Promise<Event | undefined> {
+    // Check cache first
+    const cached = this.cache.get(id);
+    if (cached) {
+      return cached;
+    }
+
     const db = await getDb();
     const row = await db.get('SELECT * FROM events WHERE id = ?', [id]);
     if (!row) return undefined;
-    return this.mapRow(row);
+    
+    const event = this.mapRow(row);
+    this.cache.set(id, event);
+    
+    return event;
   }
 
   async findByAgentId(agentId: string, limit = 100): Promise<Event[]> {
+    // Check cache first
+    const cacheKey = `${agentId}:${limit}`;
+    const cached = this.agentCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const db = await getDb();
+    // Use the composite index (agent_id, timestamp DESC)
     const rows = await db.all(
       'SELECT * FROM events WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?',
       [agentId, limit]
     );
-    return rows.map(row => this.mapRow(row));
+    const events = rows.map(row => this.mapRow(row));
+    
+    // Cache the result (short TTL since events are frequently added)
+    this.agentCache.set(cacheKey, events);
+    
+    // Also cache individual events
+    for (const event of events) {
+      this.cache.set(event.id, event);
+    }
+    
+    return events;
   }
 
   async findByFilter(filter: EventFilter, options: { limit?: number } = {}): Promise<Event[]> {
@@ -77,12 +120,8 @@ export class EventRepository {
       params.push(filter.swarmId);
     }
     if (filter.types?.length) {
-      conditions.push(`type IN (${filter.types.map(() => '?').join(', ')})`);
+      conditions.push(`event_type IN (${filter.types.map(() => '?').join(', ')})`);
       params.push(...filter.types);
-    }
-    if (filter.severity) {
-      conditions.push('severity = ?');
-      params.push(filter.severity);
     }
     if (filter.since) {
       conditions.push('timestamp >= ?');
@@ -111,37 +150,49 @@ export class EventRepository {
   async getStats(timeWindowHours = 24): Promise<{
     total: number;
     byType: Record<string, number>;
-    bySeverity: Record<string, number>;
   }> {
     const db = await getDb();
     const since = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000).toISOString();
     
     const rows = await db.all(
-      'SELECT type, severity, COUNT(*) as count FROM events WHERE timestamp >= ? GROUP BY type, severity',
+      'SELECT event_type as type, COUNT(*) as count FROM events WHERE timestamp >= ? GROUP BY event_type',
       [since]
     );
 
     const byType: Record<string, number> = {};
-    const bySeverity: Record<string, number> = {};
     let total = 0;
 
     for (const row of rows) {
-      byType[row.type] = (byType[row.type] || 0) + row.count;
-      bySeverity[row.severity] = (bySeverity[row.severity] || 0) + row.count;
+      byType[row.type] = row.count;
       total += row.count;
     }
 
-    return { total, byType, bySeverity };
+    return { total, byType };
   }
 
   async list(options: { limit?: number; offset?: number } = {}): Promise<Event[]> {
     return this.findByFilter({}, options);
   }
 
+  /**
+   * Clear all caches
+   */
+  clearCache(): void {
+    this.cache.clear();
+    this.agentCache.clear();
+  }
+
   private mapRow(row: any): Event {
     return {
-      ...row,
-      metadata: JSON.parse(row.metadata || '{}')
+      id: row.id,
+      timestamp: row.timestamp,
+      type: row.event_type,
+      source: row.source,
+      payload: row.payload,
+      agent_id: row.agent_id,
+      swarm_id: row.swarm_id
     };
   }
 }
+
+export default EventRepository;

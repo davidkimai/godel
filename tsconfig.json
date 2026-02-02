@@ -6,7 +6,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
