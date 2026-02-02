@@ -3,9 +3,15 @@
  * 
  * Manages swarms of agents including creation, destruction, scaling,
  * and lifecycle management of swarms.
+ * 
+ * RACE CONDITION FIXES v3:
+ * - Mutex protection for all swarm operations (create, scale, destroy)
+ * - One mutex per swarm to prevent concurrent modifications
+ * - Uses async-mutex library for exclusive access
  */
 
 import { EventEmitter } from 'events';
+import { Mutex } from 'async-mutex';
 import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agent.js';
 import { AgentLifecycle, type AgentState } from './lifecycle.js';
 import { MessageBus } from '../bus/index.js';
@@ -94,6 +100,11 @@ export class SwarmManager extends EventEmitter {
   private messageBus: MessageBus;
   private storage: AgentStorage;
   private active: boolean = false;
+  
+  // RACE CONDITION FIX: One mutex per swarm for exclusive access
+  private mutexes: Map<string, Mutex> = new Map();
+  // Global mutex for swarm creation (to prevent ID collisions)
+  private creationMutex: Mutex = new Mutex();
 
   constructor(
     agentLifecycle: AgentLifecycle,
@@ -104,6 +115,23 @@ export class SwarmManager extends EventEmitter {
     this.agentLifecycle = agentLifecycle;
     this.messageBus = messageBus;
     this.storage = storage;
+  }
+  
+  /**
+   * RACE CONDITION FIX: Get or create a mutex for a specific swarm
+   */
+  private getMutex(swarmId: string): Mutex {
+    if (!this.mutexes.has(swarmId)) {
+      this.mutexes.set(swarmId, new Mutex());
+    }
+    return this.mutexes.get(swarmId)!;
+  }
+  
+  /**
+   * RACE CONDITION FIX: Clean up mutex for destroyed swarm
+   */
+  private cleanupMutex(swarmId: string): void {
+    this.mutexes.delete(swarmId);
   }
 
   /**
@@ -124,145 +152,162 @@ export class SwarmManager extends EventEmitter {
 
   /**
    * Create a new swarm
+   * RACE CONDITION FIX: Protected by creationMutex to prevent ID collisions
    */
   async create(config: SwarmConfig): Promise<Swarm> {
-    const id = `swarm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date();
+    return this.creationMutex.runExclusive(async () => {
+      const id = `swarm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date();
 
-    const swarm: Swarm = {
-      id,
-      name: config.name,
-      status: 'creating',
-      config,
-      agents: [],
-      createdAt: now,
-      budget: {
-        allocated: config.budget?.amount || 0,
-        consumed: 0,
-        remaining: config.budget?.amount || 0,
-      },
-      metrics: {
-        totalAgents: 0,
-        completedAgents: 0,
-        failedAgents: 0,
-      },
-    };
+      const swarm: Swarm = {
+        id,
+        name: config.name,
+        status: 'creating',
+        config,
+        agents: [],
+        createdAt: now,
+        budget: {
+          allocated: config.budget?.amount || 0,
+          consumed: 0,
+          remaining: config.budget?.amount || 0,
+        },
+        metrics: {
+          totalAgents: 0,
+          completedAgents: 0,
+          failedAgents: 0,
+        },
+      };
 
-    this.swarms.set(id, swarm);
+      this.swarms.set(id, swarm);
+      
+      // Create the mutex for this swarm immediately
+      this.getMutex(id);
 
-    // Subscribe to swarm broadcast topic
-    this.messageBus.subscribe(
-      MessageBus.swarmBroadcast(id),
-      (message) => this.handleSwarmMessage(id, message)
-    );
+      // Subscribe to swarm broadcast topic
+      this.messageBus.subscribe(
+        MessageBus.swarmBroadcast(id),
+        (message) => this.handleSwarmMessage(id, message)
+      );
 
-    // Create initial agents
-    await this.initializeAgents(swarm);
+      // Create initial agents
+      await this.initializeAgents(swarm);
 
-    swarm.status = 'active';
-    this.emit('swarm.created', swarm);
-    this.messageBus.publish(
-      MessageBus.swarmBroadcast(id),
-      {
-        eventType: 'swarm.created',
-        source: { orchestrator: 'swarm-manager' },
-        payload: { swarmId: id, name: config.name },
-      },
-      { priority: 'high' }
-    );
+      swarm.status = 'active';
+      this.emit('swarm.created', swarm);
+      this.messageBus.publish(
+        MessageBus.swarmBroadcast(id),
+        {
+          eventType: 'swarm.created',
+          source: { orchestrator: 'swarm-manager' },
+          payload: { swarmId: id, name: config.name },
+        },
+        { priority: 'high' }
+      );
 
-    return swarm;
+      return swarm;
+    });
   }
 
   /**
    * Destroy a swarm and all its agents
+   * RACE CONDITION FIX: Protected by per-swarm mutex
    */
   async destroy(swarmId: string, force: boolean = false): Promise<void> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new Error(`Swarm ${swarmId} not found`);
-    }
-
-    swarm.status = 'destroyed';
-
-    // Kill all agents in the swarm
-    for (const agentId of swarm.agents) {
-      try {
-        await this.agentLifecycle.kill(agentId, force);
-      } catch (error) {
-        console.warn(`Failed to kill agent ${agentId}:`, error);
+    const mutex = this.getMutex(swarmId);
+    await mutex.runExclusive(async () => {
+      const swarm = this.swarms.get(swarmId);
+      if (!swarm) {
+        throw new Error(`Swarm ${swarmId} not found`);
       }
-    }
 
-    swarm.agents = [];
-    swarm.completedAt = new Date();
+      swarm.status = 'destroyed';
 
-    this.emit('swarm.destroyed', swarm);
-    this.messageBus.publish(
-      MessageBus.swarmBroadcast(swarmId),
-      {
-        eventType: 'system.emergency_stop',
-        source: { orchestrator: 'swarm-manager' },
-        payload: { swarmId, reason: 'swarm_destroyed' },
-      },
-      { priority: 'critical' }
-    );
+      // Kill all agents in the swarm
+      for (const agentId of swarm.agents) {
+        try {
+          await this.agentLifecycle.kill(agentId, force);
+        } catch (error) {
+          console.warn(`Failed to kill agent ${agentId}:`, error);
+        }
+      }
 
-    // Keep the swarm record but mark as destroyed
-    this.swarms.set(swarmId, swarm);
+      swarm.agents = [];
+      swarm.completedAt = new Date();
+
+      this.emit('swarm.destroyed', swarm);
+      this.messageBus.publish(
+        MessageBus.swarmBroadcast(swarmId),
+        {
+          eventType: 'system.emergency_stop',
+          source: { orchestrator: 'swarm-manager' },
+          payload: { swarmId, reason: 'swarm_destroyed' },
+        },
+        { priority: 'critical' }
+      );
+
+      // Keep the swarm record but mark as destroyed
+      this.swarms.set(swarmId, swarm);
+      
+      // Clean up the mutex
+      this.cleanupMutex(swarmId);
+    });
   }
 
   /**
    * Scale a swarm to a target number of agents
+   * RACE CONDITION FIX: Protected by per-swarm mutex
    */
   async scale(swarmId: string, targetSize: number): Promise<void> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new Error(`Swarm ${swarmId} not found`);
-    }
-
-    if (swarm.status === 'destroyed') {
-      throw new Error(`Cannot scale destroyed swarm ${swarmId}`);
-    }
-
-    const currentSize = swarm.agents.length;
-    const maxAgents = swarm.config.maxAgents;
-
-    if (targetSize > maxAgents) {
-      throw new Error(`Target size ${targetSize} exceeds max agents ${maxAgents}`);
-    }
-
-    swarm.status = 'scaling';
-
-    if (targetSize > currentSize) {
-      // Scale up - spawn new agents
-      const toAdd = targetSize - currentSize;
-      for (let i = 0; i < toAdd; i++) {
-        await this.spawnAgentForSwarm(swarm);
+    const mutex = this.getMutex(swarmId);
+    await mutex.runExclusive(async () => {
+      const swarm = this.swarms.get(swarmId);
+      if (!swarm) {
+        throw new Error(`Swarm ${swarmId} not found`);
       }
-    } else if (targetSize < currentSize) {
-      // Scale down - kill excess agents
-      const toRemove = currentSize - targetSize;
-      const agentsToRemove = swarm.agents.slice(-toRemove);
-      for (const agentId of agentsToRemove) {
-        await this.agentLifecycle.kill(agentId);
-        swarm.agents = swarm.agents.filter(id => id !== agentId);
+
+      if (swarm.status === 'destroyed') {
+        throw new Error(`Cannot scale destroyed swarm ${swarmId}`);
       }
-    }
 
-    swarm.status = 'active';
-    swarm.metrics.totalAgents = swarm.agents.length;
+      const currentSize = swarm.agents.length;
+      const maxAgents = swarm.config.maxAgents;
 
-    this.emit('swarm.scaled', { swarmId, previousSize: currentSize, newSize: targetSize });
-    this.messageBus.publish(
-      MessageBus.swarmBroadcast(swarmId),
-      {
-        eventType: 'swarm.scaled',
-        source: { orchestrator: 'swarm-manager' },
-        payload: { swarmId, previousSize: currentSize, newSize: targetSize },
-      },
-      { priority: 'medium' }
-    );
+      if (targetSize > maxAgents) {
+        throw new Error(`Target size ${targetSize} exceeds max agents ${maxAgents}`);
+      }
+
+      swarm.status = 'scaling';
+
+      if (targetSize > currentSize) {
+        // Scale up - spawn new agents
+        const toAdd = targetSize - currentSize;
+        for (let i = 0; i < toAdd; i++) {
+          await this.spawnAgentForSwarm(swarm);
+        }
+      } else if (targetSize < currentSize) {
+        // Scale down - kill excess agents
+        const toRemove = currentSize - targetSize;
+        const agentsToRemove = swarm.agents.slice(-toRemove);
+        for (const agentId of agentsToRemove) {
+          await this.agentLifecycle.kill(agentId);
+          swarm.agents = swarm.agents.filter(id => id !== agentId);
+        }
+      }
+
+      swarm.status = 'active';
+      swarm.metrics.totalAgents = swarm.agents.length;
+
+      this.emit('swarm.scaled', { swarmId, previousSize: currentSize, newSize: targetSize });
+      this.messageBus.publish(
+        MessageBus.swarmBroadcast(swarmId),
+        {
+          eventType: 'swarm.scaled',
+          source: { orchestrator: 'swarm-manager' },
+          payload: { swarmId, previousSize: currentSize, newSize: targetSize },
+        },
+        { priority: 'medium' }
+      );
+    });
   }
 
   /**
@@ -328,70 +373,95 @@ export class SwarmManager extends EventEmitter {
 
   /**
    * Consume budget for an agent
+   * RACE CONDITION FIX: Protected by per-swarm mutex
    */
-  consumeBudget(swarmId: string, agentId: string, tokens: number, cost: number): void {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) return;
+  async consumeBudget(swarmId: string, agentId: string, tokens: number, cost: number): Promise<void> {
+    const mutex = this.getMutex(swarmId);
+    await mutex.runExclusive(async () => {
+      const swarm = this.swarms.get(swarmId);
+      if (!swarm) return;
 
-    swarm.budget.consumed += cost;
-    swarm.budget.remaining = Math.max(0, swarm.budget.allocated - swarm.budget.consumed);
+      swarm.budget.consumed += cost;
+      swarm.budget.remaining = Math.max(0, swarm.budget.allocated - swarm.budget.consumed);
 
-    // Check budget thresholds
-    const warningThreshold = swarm.config.budget?.warningThreshold || 0.75;
-    const criticalThreshold = swarm.config.budget?.criticalThreshold || 0.90;
-    const consumedRatio = swarm.budget.consumed / swarm.budget.allocated;
+      // Check budget thresholds
+      const warningThreshold = swarm.config.budget?.warningThreshold || 0.75;
+      const criticalThreshold = swarm.config.budget?.criticalThreshold || 0.90;
+      const consumedRatio = swarm.budget.consumed / swarm.budget.allocated;
 
-    if (consumedRatio >= criticalThreshold && consumedRatio < 1) {
-      this.emit('swarm.budget.critical', { swarmId, remaining: swarm.budget.remaining });
-      this.messageBus.publish(
-        MessageBus.swarmBroadcast(swarmId),
-        {
-          eventType: 'system.emergency_stop',
-          source: { orchestrator: 'swarm-manager', agentId },
-          payload: { swarmId, reason: 'budget_critical', remaining: swarm.budget.remaining },
-        },
-        { priority: 'critical' }
-      );
-    } else if (consumedRatio >= warningThreshold) {
-      this.emit('swarm.budget.warning', { swarmId, remaining: swarm.budget.remaining });
-    }
+      if (consumedRatio >= criticalThreshold && consumedRatio < 1) {
+        this.emit('swarm.budget.critical', { swarmId, remaining: swarm.budget.remaining });
+        this.messageBus.publish(
+          MessageBus.swarmBroadcast(swarmId),
+          {
+            eventType: 'system.emergency_stop',
+            source: { orchestrator: 'swarm-manager', agentId },
+            payload: { swarmId, reason: 'budget_critical', remaining: swarm.budget.remaining },
+          },
+          { priority: 'critical' }
+        );
+      } else if (consumedRatio >= warningThreshold) {
+        this.emit('swarm.budget.warning', { swarmId, remaining: swarm.budget.remaining });
+      }
 
-    // Hard stop at 100%
-    if (swarm.budget.remaining <= 0) {
-      this.pauseSwarm(swarmId, 'budget_exhausted');
-    }
+      // Hard stop at 100%
+      if (swarm.budget.remaining <= 0) {
+        await this.pauseSwarmInternal(swarm, 'budget_exhausted');
+      }
+    });
   }
-
+  
   /**
-   * Pause a swarm
+   * Internal method to pause swarm (must be called inside mutex)
    */
-  async pauseSwarm(swarmId: string, reason?: string): Promise<void> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) return;
-
+  private async pauseSwarmInternal(swarm: Swarm, reason?: string): Promise<void> {
     swarm.status = 'paused';
 
     for (const agentId of swarm.agents) {
       await this.agentLifecycle.pause(agentId);
     }
 
-    this.emit('swarm.paused', { swarmId, reason });
+    this.emit('swarm.paused', { swarmId: swarm.id, reason });
+  }
+
+  /**
+   * Pause a swarm
+   * RACE CONDITION FIX: Protected by per-swarm mutex
+   */
+  async pauseSwarm(swarmId: string, reason?: string): Promise<void> {
+    const mutex = this.getMutex(swarmId);
+    await mutex.runExclusive(async () => {
+      const swarm = this.swarms.get(swarmId);
+      if (!swarm) return;
+
+      swarm.status = 'paused';
+
+      for (const agentId of swarm.agents) {
+        await this.agentLifecycle.pause(agentId);
+      }
+
+      this.emit('swarm.paused', { swarmId, reason });
+    });
   }
 
   /**
    * Resume a paused swarm
+   * RACE CONDITION FIX: Protected by per-swarm mutex
    */
   async resumeSwarm(swarmId: string): Promise<void> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) return;
+    const mutex = this.getMutex(swarmId);
+    await mutex.runExclusive(async () => {
+      const swarm = this.swarms.get(swarmId);
+      if (!swarm) return;
 
-    swarm.status = 'active';
+      swarm.status = 'active';
 
-    for (const agentId of swarm.agents) {
-      await this.agentLifecycle.resume(agentId);
-    }
+      for (const agentId of swarm.agents) {
+        await this.agentLifecycle.resume(agentId);
+      }
 
-    this.emit('swarm.resumed', { swarmId });
+      this.emit('swarm.resumed', { swarmId });
+    });
   }
 
   // ============================================================================

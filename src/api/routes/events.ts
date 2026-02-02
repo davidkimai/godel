@@ -1,0 +1,93 @@
+import { Router, type Request, type Response } from 'express';
+import type { Server as WebSocketServer } from 'ws';
+import { EventRepository, type EventFilter } from '../../storage/repositories/EventRepository';
+
+const router = Router();
+
+// GET /api/events - List events
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const repo = new EventRepository();
+    
+    const { 
+      agentId, 
+      swarmId, 
+      type, 
+      severity,
+      since,
+      limit = '100',
+    } = req.query;
+    
+    const filters: EventFilter = {};
+    if (agentId) filters.agentId = agentId as string;
+    if (swarmId) filters.swarmId = swarmId as string;
+    if (type) filters.types = [type as string];
+    if (severity) filters.severity = severity as EventFilter['severity'];
+    if (since) filters.since = new Date(since as string);
+    
+    const events = await repo.findByFilter(filters, {
+      limit: parseInt(limit as string, 10),
+    });
+    
+    res.json({ events });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+// GET /api/events/stream - SSE endpoint
+router.get('/stream', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  // Send initial connection message
+  res.write('data: {"type":"connected"}\n\n');
+  
+  // Keep connection alive
+  const keepAlive = setInterval(() => {
+    res.write(':keepalive\n\n');
+  }, 30000);
+  
+  // Clean up on close
+  req.on('close', () => {
+    clearInterval(keepAlive);
+  });
+});
+
+// WebSocket handler setup
+export function setupWebSocketEvents(wss: WebSocketServer): void {
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket client connected for events');
+    
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connected',
+      timestamp: new Date().toISOString(),
+    }));
+    
+    // Handle subscriptions
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        if (message.action === 'subscribe') {
+          // Client wants to subscribe to specific events
+          console.log('Client subscribed to:', message.events);
+        }
+      } catch {
+        // Invalid message, ignore
+      }
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+}
+
+export default router;
