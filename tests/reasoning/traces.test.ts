@@ -250,10 +250,10 @@ describe('queryTraces', () => {
 
   it('should filter by minConfidence', () => {
     const results = queryTraces({ minConfidence: 0.75 });
-    
+
     expect(results.every(t => t.confidence >= 0.75)).toBe(true);
-    // Should include traces with confidence 0.8, 0.9, 0.7 (but 0.7 is excluded)
-    expect(results.length).toBe(3);
+    // Should include traces with confidence 0.8, 0.9 (0.7 is excluded since 0.7 < 0.75)
+    expect(results.length).toBe(2);
   });
 
   it('should filter by maxConfidence', () => {

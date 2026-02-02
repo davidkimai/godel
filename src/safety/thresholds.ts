@@ -412,17 +412,19 @@ export function approveBlockedAgent(
   blocked.approvedAt = new Date();
 
   // Set expiration
-  const state = thresholdStates.get(blocked.budgetId);
-  if (state) {
-    const expiration = new Date();
-    expiration.setMinutes(expiration.getMinutes() + durationMinutes);
-    state.approvalExpiresAt = expiration;
-    state.approvedToContinue = true;
+  let state = thresholdStates.get(blocked.budgetId);
+  if (!state) {
+    state = { lastTriggeredAt: new Map() };
+    thresholdStates.set(blocked.budgetId, state);
   }
+  const expiration = new Date();
+  expiration.setMinutes(expiration.getMinutes() + durationMinutes);
+  state.approvalExpiresAt = expiration;
+  state.approvedToContinue = true;
 
   logger.info(`Agent ${agentId} approved to continue by ${approvedBy}`, {
     durationMinutes,
-    expiresAt: state?.approvalExpiresAt,
+    expiresAt: state.approvalExpiresAt,
   });
 
   return blocked;

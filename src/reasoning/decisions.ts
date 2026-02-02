@@ -368,14 +368,15 @@ export function trackConfidence(
   
   // Check thresholds and update warnings
   tracking.warnings = [];
-  
+
   if (clampedConfidence < tracking.thresholds.critical) {
     tracking.warnings.push(`CRITICAL: Confidence below ${tracking.thresholds.critical * 100}%`);
   } else if (clampedConfidence < tracking.thresholds.warning) {
     tracking.warnings.push(`WARNING: Confidence below ${tracking.thresholds.warning * 100}%`);
   }
-  
-  return tracking;
+
+  // Return a copy to prevent external mutation of the stored object
+  return { ...tracking };
 }
 
 /**

@@ -134,7 +134,7 @@ export function calculateCost(tokens: TokenCount, model: string): CostBreakdown 
     logger.warn(`Unknown model pricing: ${model}, using default pricing`);
   }
 
-  const effectivePricing = pricing || MODEL_PRICING.default;
+  const effectivePricing = pricing || MODEL_PRICING['default'];
 
   const promptCost = (tokens.prompt / 1000) * effectivePricing.promptPerThousand;
   const completionCost = (tokens.completion / 1000) * effectivePricing.completionPerThousand;
@@ -190,7 +190,7 @@ export function getPricing(model: string): ModelPricing | undefined {
   }
 
   // Check standard pricing
-  return MODEL_PRICING[model] || MODEL_PRICING.default;
+  return MODEL_PRICING[model];
 }
 
 /**
@@ -214,7 +214,7 @@ export function removePricing(model: string): boolean {
  * Get cost per thousand tokens for a model
  */
 export function getCostPerThousandTokens(model: string): ModelPricing {
-  return getPricing(model) || MODEL_PRICING.default;
+  return getPricing(model) || MODEL_PRICING['default'];
 }
 
 /**

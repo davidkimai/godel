@@ -102,16 +102,19 @@ export function getTraceById(id: string): ReasoningTrace | undefined {
  */
 export function getTracesByAgent(agentId: string, limit?: number): ReasoningTrace[] {
   const traceIds = agentTraces.get(agentId) || [];
+  const idToIndex = new Map(traceIds.map((id, idx) => [id, idx]));
   const traces = traceIds
     .map(id => traceStore.get(id))
     .filter((t): t is ReasoningTrace => t !== undefined)
     .sort((a, b) => {
       const timeDiff = b.timestamp.getTime() - a.timestamp.getTime();
       if (timeDiff !== 0) return timeDiff;
-      // Secondary sort by ID descending (newer IDs first) for stable ordering
-      return b.id.localeCompare(a.id);
+      // Secondary sort by creation order (higher index = newer)
+      const idxA = idToIndex.get(a.id) ?? 0;
+      const idxB = idToIndex.get(b.id) ?? 0;
+      return idxB - idxA;
     });
-  
+
   return limit ? traces.slice(0, limit) : traces;
 }
 
