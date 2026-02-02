@@ -12,7 +12,8 @@ import {
   startSelfImprovementSession,
   runImprovementCycle,
   getSelfImprovementReport,
-  SelfImprovementState
+  SelfImprovementState,
+  SelfImprovementSession
 } from '../../self-improvement/orchestrator';
 
 export function registerSelfImproveCommand(program: Command): void {
@@ -27,7 +28,8 @@ export function registerSelfImproveCommand(program: Command): void {
         .action(async (options) => {
           try {
             // Initialize and run self-improvement
-            const state = await startSelfImprovementSession();
+            const session = await startSelfImprovementSession();
+            const { state, budgetTracker } = session;
             
             const iterations = parseInt(options.iterations, 10);
             const targetArea = options.area;
@@ -40,13 +42,13 @@ export function registerSelfImproveCommand(program: Command): void {
                 : [targetArea as 'codeQuality' | 'documentation' | 'testing'];
               
               for (const area of areas) {
-                await runImprovementCycle(state, area);
+                await runImprovementCycle(state, area, budgetTracker);
               }
               
               state.iteration++;
             }
             
-            const report = await getSelfImprovementReport(state);
+            const report = await getSelfImprovementReport(state, budgetTracker);
             console.log(report);
             
           } catch (error) {

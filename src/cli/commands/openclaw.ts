@@ -1,0 +1,494 @@
+/**
+ * OpenClaw CLI Command - Manage OpenClaw Gateway integration
+ * 
+ * Commands:
+ * - dash openclaw connect [--host HOST] [--port PORT] [--token TOKEN]
+ * - dash openclaw status
+ * - dash openclaw sessions list [--active] [--kind main|group|thread]
+ * - dash openclaw sessions history <session-key> [--limit N]
+ * - dash openclaw spawn --task "..." [--model MODEL] [--budget AMOUNT]
+ * - dash openclaw send --session SESSION "message"
+ * - dash openclaw kill <session-key> [--force]
+ * 
+ * Per OPENCLAW_INTEGRATION_SPEC.md section 5.1
+ */
+
+import { Command } from 'commander';
+import { 
+  GatewayClient, 
+  SessionManager, 
+  AgentExecutor, 
+  createAgentExecutor,
+  getGlobalSessionManager,
+  GatewayConfig,
+  SessionInfo,
+  SessionsSpawnParams,
+} from '../../integrations/openclaw';
+import { MockOpenClawClient, type SessionSpawnOptions } from '../../core/openclaw';
+import { logger } from '../../utils/logger';
+
+// ============================================================================
+// Global State (for CLI session)
+// ============================================================================
+
+let globalGatewayClient: GatewayClient | null = null;
+let globalSessionManager: SessionManager | null = null;
+let globalAgentExecutor: AgentExecutor | null = null;
+let globalMockClient: MockOpenClawClient | null = null;
+
+function getGatewayClient(): GatewayClient {
+  if (!globalGatewayClient) {
+    throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+  }
+  return globalGatewayClient;
+}
+
+function getSessionManager(): SessionManager {
+  if (!globalSessionManager) {
+    throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+  }
+  return globalSessionManager;
+}
+
+function getAgentExecutor(): AgentExecutor {
+  if (!globalAgentExecutor) {
+    throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+  }
+  return globalAgentExecutor;
+}
+
+function getMockClient(): MockOpenClawClient {
+  if (!globalMockClient) {
+    globalMockClient = new MockOpenClawClient();
+  }
+  return globalMockClient;
+}
+
+function isMockMode(): boolean {
+  return globalMockClient !== null;
+}
+
+// ============================================================================
+// Command Registration
+// ============================================================================
+
+export function registerOpenClawCommand(program: Command): void {
+  const openclaw = program
+    .command('openclaw')
+    .description('Manage OpenClaw Gateway integration');
+
+  // ============================================================================
+  // openclaw connect
+  // ============================================================================
+  openclaw
+    .command('connect')
+    .description('Connect to OpenClaw Gateway')
+    .option('--host <host>', 'Gateway host', '127.0.0.1')
+    .option('--port <port>', 'Gateway port', '18789')
+    .option('--token <token>', 'Authentication token (or set OPENCLAW_GATEWAY_TOKEN)')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (options) => {
+      try {
+        console.log('🔌 Connecting to OpenClaw Gateway...\n');
+
+        const token = options.token || process.env['OPENCLAW_GATEWAY_TOKEN'];
+        
+        if (options.mock) {
+          // Use mock client for testing
+          globalMockClient = new MockOpenClawClient();
+          console.log('✓ Using mock OpenClaw client (testing mode)');
+          console.log('✓ Mock client initialized');
+          return;
+        }
+
+        // Create and connect using real GatewayClient
+        const config: Partial<GatewayConfig> = {
+          host: options.host,
+          port: parseInt(options.port, 10),
+          token,
+        };
+
+        globalGatewayClient = new GatewayClient(config, {
+          autoReconnect: true,
+          subscriptions: ['agent', 'chat', 'presence', 'tick'],
+        });
+
+        await globalGatewayClient.connect();
+
+        // Create SessionManager and AgentExecutor from the connected GatewayClient
+        globalSessionManager = getGlobalSessionManager(config);
+        await globalSessionManager.connect();
+        
+        globalAgentExecutor = createAgentExecutor(globalSessionManager);
+
+        console.log(`✓ Connected to OpenClaw Gateway at ws://${options.host}:${options.port}`);
+        if (token) {
+          console.log(`✓ Authenticated (token: ***${token.slice(-4)})`);
+        } else {
+          console.log('⚠ No token provided (unauthenticated connection)');
+        }
+        console.log('✓ Subscribed to events: agent, chat, presence, tick');
+      } catch (error) {
+        console.error('❌ Failed to connect to OpenClaw Gateway');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        console.error('\n💡 Troubleshooting:');
+        console.error('   - Ensure OpenClaw Gateway is running');
+        console.error('   - Check host and port are correct');
+        console.error('   - Verify authentication token');
+        console.error('   - Use --mock flag for testing without gateway');
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw status
+  // ============================================================================
+  openclaw
+    .command('status')
+    .description('Check OpenClaw Gateway status')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (options) => {
+      try {
+        if (options.mock) {
+          const mockClient = getMockClient();
+          console.log('🔌 OpenClaw Gateway Status (MOCK MODE)\n');
+          console.log('✓ Connected: Mock Client');
+          console.log('✓ Sessions: ' + mockClient.getAllSessions().length);
+          return;
+        }
+
+        const client = getGatewayClient();
+        
+        if (!client.connected) {
+          console.log('🔌 OpenClaw Gateway Status\n');
+          console.log('✗ Not connected');
+          console.log('\n💡 Run "dash openclaw connect" to connect');
+          process.exit(1);
+        }
+
+        // Get gateway statistics
+        const stats = client.statistics;
+        
+        console.log('🔌 OpenClaw Gateway Status\n');
+        console.log(`✓ Connected: ${client.connectionState}`);
+        console.log(`  Connection State: ${client.connectionState}`);
+        if (stats.connectedAt) {
+          console.log(`  Connected At: ${stats.connectedAt.toISOString()}`);
+        }
+        console.log(`  Requests Sent: ${stats.requestsSent}`);
+        console.log(`  Responses Received: ${stats.responsesReceived}`);
+        console.log(`  Events Received: ${stats.eventsReceived}`);
+        console.log(`  Reconnections: ${stats.reconnections}`);
+        if (stats.lastPing) {
+          console.log(`  Last Ping: ${new Date(stats.lastPing).toISOString()}`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to get gateway status');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw sessions (subcommand group)
+  // ============================================================================
+  const sessions = openclaw
+    .command('sessions')
+    .description('Manage OpenClaw sessions');
+
+  // ============================================================================
+  // openclaw sessions list
+  // ============================================================================
+  sessions
+    .command('list')
+    .description('List OpenClaw sessions')
+    .option('--active', 'Only show active sessions (last 60 min)')
+    .option('--kind <kind>', 'Filter by session kind (main|group|thread)')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (options) => {
+      try {
+        if (options.mock) {
+          const mockClient = getMockClient();
+          const sessions = mockClient.getAllSessions();
+          console.log(`SESSIONS (${sessions.length} total)\n`);
+          
+          for (const session of sessions) {
+            const status = session.status === 'running' ? 'active' : 
+                          session.status === 'pending' ? 'idle' : 'stale';
+            console.log(`├── ${session.sessionId} (${status}, mock session)`);
+          }
+          return;
+        }
+
+        const sessionManager = getSessionManager();
+        
+        const params: { activeMinutes?: number; kinds?: string[] } = {};
+        if (options.active) {
+          params.activeMinutes = 60;
+        }
+        if (options.kind) {
+          params.kinds = [options.kind];
+        }
+
+        const sessions = await sessionManager.sessionsList(params);
+        
+        if (!sessions || sessions.length === 0) {
+          console.log('📭 No sessions found');
+          console.log('💡 Use "dash openclaw spawn" to create a session');
+          return;
+        }
+
+        console.log(`SESSIONS (${sessions.length} total)\n`);
+        
+        for (const session of sessions) {
+          const tokens = ((session.inputTokens || 0) + (session.outputTokens || 0));
+          const tokensStr = tokens > 1000 ? `${(tokens / 1000).toFixed(1)}K` : `${tokens}`;
+          const timeAgo = formatTimeAgo(new Date(session.updatedAt));
+          
+          console.log(`├── ${session.key} (${session.status}, ${tokensStr} tokens, ${timeAgo})`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to list sessions');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw sessions history
+  // ============================================================================
+  sessions
+    .command('history <sessionKey>')
+    .description('View session history/transcript')
+    .option('-l, --limit <limit>', 'Number of messages to show', '50')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (sessionKey: string, options) => {
+      try {
+        if (options.mock) {
+          const mockClient = getMockClient();
+          const session = mockClient.getSession(sessionKey);
+          if (!session) {
+            console.error(`❌ Session not found: ${sessionKey}`);
+            process.exit(1);
+          }
+          
+          console.log(`📜 Session History: ${sessionKey}\n`);
+          console.log(`Agent: ${session.agentId}`);
+          console.log(`Status: ${session.status}`);
+          console.log(`Created: ${session.createdAt.toISOString()}`);
+          console.log('\n[Mock mode - no transcript available]');
+          return;
+        }
+
+        const sessionManager = getSessionManager();
+        
+        const messages = await sessionManager.sessionsHistory(sessionKey, parseInt(options.limit, 10));
+
+        if (!messages || messages.length === 0) {
+          console.log('📭 No messages found');
+          return;
+        }
+
+        console.log(`📜 Session History: ${sessionKey}\n`);
+        
+        for (const msg of messages) {
+          const role = msg.role === 'user' ? '👤' : msg.role === 'assistant' ? '🤖' : '📝';
+          const time = new Date(msg.timestamp).toLocaleTimeString();
+          const content = msg.content.length > 200 
+            ? msg.content.substring(0, 200) + '...' 
+            : msg.content;
+          
+          console.log(`${role} [${time}] ${content}\n`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to get session history');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw spawn
+  // ============================================================================
+  openclaw
+    .command('spawn')
+    .description('Spawn an agent via OpenClaw')
+    .requiredOption('-t, --task <task>', 'Task description')
+    .option('-m, --model <model>', 'Model to use', 'kimi-k2.5')
+    .option('-b, --budget <amount>', 'Max budget (USD)', '1.00')
+    .option('--sandbox', 'Enable sandbox', true)
+    .option('--skills <skills>', 'Additional skills (comma-separated)')
+    .option('--system-prompt <prompt>', 'System prompt override')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (options) => {
+      try {
+        console.log('🚀 Spawning agent via OpenClaw...\n');
+
+        if (options.mock) {
+          // Use mock client
+          const mockClient = getMockClient();
+          const spawnOptions: SessionSpawnOptions = {
+            agentId: `dash-agent-${Date.now()}`,
+            model: options.model,
+            task: options.task,
+            context: {
+              budget: parseFloat(options.budget),
+              sandbox: options.sandbox,
+              skills: options.skills ? options.skills.split(',') : undefined,
+              systemPrompt: options.systemPrompt,
+            },
+          };
+          
+          const { sessionId } = await mockClient.sessionsSpawn(spawnOptions);
+          
+          console.log(`✓ Spawned agent: sessionKey=${sessionId}`);
+          console.log(`✓ Model: ${options.model}`);
+          console.log(`✓ Budget: $${options.budget}`);
+          console.log(`✓ Status: idle (awaiting task)`);
+          console.log(`\n💡 Use "dash openclaw send --session ${sessionId} <message>" to send a task`);
+          return;
+        }
+
+        const executor = getAgentExecutor();
+
+        // Use AgentExecutor to spawn the agent
+        const execution = await executor.spawnAgent({
+          task: options.task,
+          model: options.model,
+          systemPrompt: options.systemPrompt,
+          skills: options.skills ? options.skills.split(',').map((s: string) => s.trim()) : [],
+          sandbox: options.sandbox ? { mode: 'non-main' } : undefined,
+          thinking: 'medium',
+        });
+
+        console.log(`✓ Spawned agent: sessionKey=${execution.sessionKey}`);
+        console.log(`✓ Model: ${options.model}`);
+        console.log(`✓ Budget: $${options.budget}`);
+        console.log(`✓ Status: ${execution.status} (awaiting task)`);
+        console.log(`\n💡 Use "dash openclaw send --session ${execution.sessionKey} <message>" to send a task`);
+      } catch (error) {
+        console.error('❌ Failed to spawn agent');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw send
+  // ============================================================================
+  openclaw
+    .command('send')
+    .description('Send task to agent')
+    .requiredOption('-s, --session <sessionKey>', 'Session key (required)')
+    .option('-a, --attach <file>', 'File attachment')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .argument('<message>', 'Message to send')
+    .action(async (message: string, options) => {
+      try {
+        console.log('📤 Sending message to agent...\n');
+
+        if (options.mock) {
+          const mockClient = getMockClient();
+          const result = await mockClient.sessionsSpawn({
+            agentId: `send-${Date.now()}`,
+            model: 'kimi-k2.5',
+            task: message,
+          });
+          
+          console.log(`✓ Message sent to ${options.session}`);
+          console.log(`✓ RunId: run_${Date.now()}`);
+          console.log(`✓ Status: running (mock mode)`);
+          return;
+        }
+
+        const sessionManager = getSessionManager();
+
+        const result = await sessionManager.sessionsSend({
+          sessionKey: options.session,
+          message,
+          attachments: options.attach ? [{ type: 'file', data: options.attach, filename: options.attach }] : undefined,
+        });
+
+        console.log(`✓ Message sent to ${options.session}`);
+        console.log(`✓ RunId: ${result.runId}`);
+        console.log(`✓ Status: ${result.status}`);
+      } catch (error) {
+        console.error('❌ Failed to send message');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // openclaw kill
+  // ============================================================================
+  openclaw
+    .command('kill <sessionKey>')
+    .description('Kill an OpenClaw session')
+    .option('-f, --force', 'Force kill (immediate termination)')
+    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .action(async (sessionKey: string, options) => {
+      try {
+        console.log(`💀 Killing session ${sessionKey}...\n`);
+
+        if (options.mock) {
+          const mockClient = getMockClient();
+          await mockClient.sessionKill(sessionKey, options.force);
+          console.log(`✓ Session ${sessionKey} killed`);
+          if (options.force) {
+            console.log('  (force mode)');
+          }
+          return;
+        }
+
+        const sessionManager = getSessionManager();
+
+        await sessionManager.sessionsKill(sessionKey);
+
+        console.log(`✓ Session ${sessionKey} killed`);
+        if (options.force) {
+          console.log('  (force mode)');
+        }
+      } catch (error) {
+        console.error('❌ Failed to kill session');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${Math.floor(ms / 1000)}s`;
+  if (ms < 3600000) return `${Math.floor(ms / 60000)}m`;
+  return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
+}
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+// Re-export for testing
+export { GatewayClient, SessionManager, AgentExecutor };
+
+/**
+ * Reset global state (for testing)
+ */
+export function resetOpenClawState(): void {
+  globalGatewayClient = null;
+  globalSessionManager = null;
+  globalAgentExecutor = null;
+  globalMockClient = null;
+}
+
+export default registerOpenClawCommand;

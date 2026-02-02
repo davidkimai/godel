@@ -22,6 +22,10 @@ import { registerSwarmCommand } from './commands/swarm';
 import { registerDashboardCommand } from './commands/dashboard';
 import { registerSelfImproveCommand } from './commands/self-improve';
 
+// OpenClaw Integration per OPENCLAW_INTEGRATION_SPEC.md
+import { registerOpenClawCommand } from './commands/openclaw';
+import { registerClawhubCommand } from './commands/clawhub';
+
 /**
  * Register all CLI commands with the program
  * per SPEC_v2.md requirements:
@@ -49,6 +53,12 @@ export function registerCommands(program: Command): void {
   
   // Self-improvement command
   registerSelfImproveCommand(program); // dash self-improve run/status/report
+  
+  // OpenClaw integration command
+  registerOpenClawCommand(program); // dash openclaw connect/sessions/spawn/send/kill/status
+  
+  // ClawHub skill registry commands per F4.1
+  registerClawhubCommand(program); // dash clawhub search/install/list/info/uninstall/update
 }
 
 // Re-export for testing
