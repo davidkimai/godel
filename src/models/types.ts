@@ -11,6 +11,9 @@
 // Enums are defined in agent.ts (AgentStatus) and task.ts (TaskStatus, Priority)
 // ============================================================================
 
+import { AgentStatus } from './agent';
+import { TaskStatus, TaskPriority as Priority } from './task';
+
 // ============================================================================
 // Agent Model
 // ============================================================================
