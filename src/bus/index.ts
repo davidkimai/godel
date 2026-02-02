@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { MissionEvent, EventType } from '../events/types.js';
+import { MissionEvent, EventType } from '../events/types';
 
 // Topic patterns:
 // - agent.{id}.commands    # Control messages to agent

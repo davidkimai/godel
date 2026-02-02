@@ -11,9 +11,13 @@ export interface Swarm {
   name: string;
   status: 'running' | 'paused' | 'completed' | 'failed';
   config: Record<string, unknown>;
-  budget_id?: string;
+  agents: string[];  // JSON array
   created_at: string;
-  updated_at: string;
+  completed_at?: string;
+  budget_allocated?: number;
+  budget_consumed?: number;
+  budget_remaining?: number;
+  metrics?: Record<string, unknown>;
 }
 
 export class SwarmRepository {
@@ -27,16 +31,19 @@ export class SwarmRepository {
       name: data.name || 'Unnamed Swarm',
       status: data.status || 'running',
       config: data.config || {},
-      budget_id: data.budget_id,
+      agents: data.agents || [],
       created_at: now,
-      updated_at: now
+      budget_allocated: data.budget_allocated,
+      budget_consumed: 0,
+      budget_remaining: data.budget_allocated
     };
 
     await db.run(
-      `INSERT INTO swarms (id, name, status, config, budget_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO swarms (id, name, status, config, agents, created_at, budget_allocated, budget_consumed, budget_remaining)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [swarm.id, swarm.name, swarm.status, JSON.stringify(swarm.config), 
-       swarm.budget_id, swarm.created_at, swarm.updated_at]
+       JSON.stringify(swarm.agents), swarm.created_at, 
+       swarm.budget_allocated, swarm.budget_consumed, swarm.budget_remaining]
     );
 
     return swarm;
@@ -75,9 +82,19 @@ export class SwarmRepository {
       updates.push('config = ?');
       values.push(JSON.stringify(data.config));
     }
-
-    updates.push('updated_at = ?');
-    values.push(new Date().toISOString());
+    if (data.agents !== undefined) {
+      updates.push('agents = ?');
+      values.push(JSON.stringify(data.agents));
+    }
+    if (data.budget_consumed !== undefined) {
+      updates.push('budget_consumed = ?');
+      values.push(data.budget_consumed);
+    }
+    if (data.budget_remaining !== undefined) {
+      updates.push('budget_remaining = ?');
+      values.push(data.budget_remaining);
+    }
+    
     values.push(id);
 
     await db.run(
@@ -114,8 +131,17 @@ export class SwarmRepository {
 
   private mapRow(row: any): Swarm {
     return {
-      ...row,
-      config: JSON.parse(row.config || '{}')
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      config: JSON.parse(row.config || '{}'),
+      agents: JSON.parse(row.agents || '[]'),
+      created_at: row.created_at,
+      completed_at: row.completed_at,
+      budget_allocated: row.budget_allocated,
+      budget_consumed: row.budget_consumed,
+      budget_remaining: row.budget_remaining,
+      metrics: row.metrics ? JSON.parse(row.metrics) : undefined
     };
   }
 }

@@ -6,9 +6,9 @@
  */
 
 import { EventEmitter } from 'events';
-import { AgentStatus } from '../models/agent.js';
-import { MessageBus } from '../bus/index.js';
-import { logger } from '../utils/logger.js';
+import { AgentStatus } from '../models/agent';
+import { MessageBus } from '../bus/index';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

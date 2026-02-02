@@ -24,11 +24,11 @@ import {
   type Agent,
   type CreateAgentOptions,
   createAgent,
-} from '../models/agent.js';
-import { AgentStorage } from '../storage/memory.js';
-import { MessageBus } from '../bus/index.js';
-import { generateEventId } from '../events/types.js';
-import { OpenClawIntegration, type SessionSpawnOptions } from './openclaw.js';
+} from '../models/agent';
+import { AgentStorage } from '../storage/memory';
+import { MessageBus } from '../bus/index';
+import { generateEventId } from '../events/types';
+import { OpenClawIntegration, type SessionSpawnOptions } from './openclaw';
 
 // ============================================================================
 // Types

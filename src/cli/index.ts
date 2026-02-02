@@ -20,6 +20,7 @@ import { createApprovalCommand } from './commands/approve';
 // v2 Commands per SPEC_v2.md
 import { registerSwarmCommand } from './commands/swarm';
 import { registerDashboardCommand } from './commands/dashboard';
+import { registerSelfImproveCommand } from './commands/self-improve';
 
 /**
  * Register all CLI commands with the program
@@ -45,6 +46,9 @@ export function registerCommands(program: Command): void {
   registerDashboardCommand(program);  // dash dashboard
   registerAgentsCommand(program);     // dash agents spawn/kill/pause/resume (v2)
   registerEventsCommand(program);     // dash events stream/list (v2)
+  
+  // Self-improvement command
+  registerSelfImproveCommand(program); // dash self-improve run/status/report
 }
 
 // Re-export for testing

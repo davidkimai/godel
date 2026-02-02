@@ -9,19 +9,18 @@ import { getDb } from '../sqlite';
 export interface Event {
   id: string;
   timestamp: string;
-  type: string;
+  type: string;           // Maps to event_type column
+  source?: string;        // JSON - who/what generated the event
+  payload?: string;       // JSON - event data
   agent_id?: string;
   swarm_id?: string;
-  severity: 'debug' | 'info' | 'warning' | 'error' | 'critical';
-  message: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface EventFilter {
   agentId?: string;
   swarmId?: string;
   types?: string[];
-  severity?: Event['severity'];
+  severity?: 'debug' | 'info' | 'warning' | 'error' | 'critical';
   since?: Date;
   until?: Date;
 }
@@ -39,10 +38,10 @@ export class EventRepository {
     };
 
     await db.run(
-      `INSERT INTO events (id, timestamp, type, agent_id, swarm_id, severity, message, metadata)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [event.id, event.timestamp, event.type, event.agent_id, event.swarm_id,
-       event.severity, event.message, JSON.stringify(event.metadata || {})]
+      `INSERT INTO events (id, timestamp, event_type, source, payload, agent_id, swarm_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [event.id, event.timestamp, event.type, event.source || null, event.payload || null,
+       event.agent_id || null, event.swarm_id || null]
     );
 
     return event;

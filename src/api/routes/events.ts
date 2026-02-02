@@ -35,6 +35,26 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/events - Create a new event
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const repo = new EventRepository();
+    const { eventType, payload, timestamp } = req.body;
+    
+    const event = await repo.create({
+      type: eventType,
+      source: 'api',
+      payload: JSON.stringify(payload || {}),
+      agent_id: payload?.agentId,
+      swarm_id: payload?.swarmId
+    });
+    
+    res.status(201).json(event);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
 // GET /api/events/stream - SSE endpoint
 router.get('/stream', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');

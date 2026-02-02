@@ -8,17 +8,27 @@ import { getDb } from '../sqlite';
 
 export interface Agent {
   id: string;
-  swarm_id: string;
-  parent_id?: string;
+  label?: string;
   status: 'idle' | 'spawning' | 'running' | 'paused' | 'completed' | 'failed' | 'killing';
+  model: string;
   task: string;
-  model?: string;
-  tokens_input: number;
-  tokens_output: number;
-  cost: number;
-  created_at: string;
-  started_at?: string;
+  spawned_at: string;
   completed_at?: string;
+  runtime?: number;
+  pause_time?: string;
+  paused_by?: string;
+  swarm_id?: string;
+  parent_id?: string;
+  child_ids?: string[];  // JSON
+  context?: Record<string, unknown>;  // JSON
+  code?: Record<string, unknown>;  // JSON
+  reasoning?: Record<string, unknown>;  // JSON
+  retry_count: number;
+  max_retries: number;
+  last_error?: string;
+  budget_limit?: number;
+  safety_boundaries?: Record<string, unknown>;  // JSON
+  metadata?: Record<string, unknown>;  // JSON
 }
 
 export class AgentRepository {
@@ -29,23 +39,21 @@ export class AgentRepository {
 
     const agent: Agent = {
       id,
-      swarm_id: data.swarm_id || '',
-      parent_id: data.parent_id,
+      label: data.label,
       status: data.status || 'idle',
+      model: data.model || 'unknown',
       task: data.task || '',
-      model: data.model,
-      tokens_input: 0,
-      tokens_output: 0,
-      cost: 0,
-      created_at: now
+      spawned_at: now,
+      retry_count: 0,
+      max_retries: data.max_retries || 3
     };
 
     await db.run(
-      `INSERT INTO agents (id, swarm_id, parent_id, status, task, model, 
-        tokens_input, tokens_output, cost, created_at)
+      `INSERT INTO agents (id, label, status, model, task, spawned_at, retry_count, max_retries, swarm_id, parent_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [agent.id, agent.swarm_id, agent.parent_id, agent.status, agent.task,
-       agent.model, agent.tokens_input, agent.tokens_output, agent.cost, agent.created_at]
+      [agent.id, agent.label, agent.status, agent.model, agent.task, 
+       agent.spawned_at, agent.retry_count, agent.max_retries, 
+       data.swarm_id || null, data.parent_id || null]
     );
 
     return agent;
@@ -54,12 +62,20 @@ export class AgentRepository {
   async findById(id: string): Promise<Agent | undefined> {
     const db = await getDb();
     const row = await db.get('SELECT * FROM agents WHERE id = ?', [id]);
-    return row;
+    if (!row) return undefined;
+    return this.mapRow(row);
   }
 
   async findBySwarmId(swarmId: string): Promise<Agent[]> {
     const db = await getDb();
-    return db.all('SELECT * FROM agents WHERE swarm_id = ?', [swarmId]);
+    const rows = await db.all('SELECT * FROM agents WHERE swarm_id = ?', [swarmId]);
+    return rows.map(row => this.mapRow(row));
+  }
+
+  async list(): Promise<Agent[]> {
+    const db = await getDb();
+    const rows = await db.all('SELECT * FROM agents ORDER BY spawned_at DESC');
+    return rows.map(row => this.mapRow(row));
   }
 
   async updateStatus(id: string, status: Agent['status']): Promise<void> {
@@ -69,10 +85,7 @@ export class AgentRepository {
     let query = 'UPDATE agents SET status = ?';
     const params: unknown[] = [status];
 
-    if (status === 'running') {
-      query += ', started_at = ?';
-      params.push(now);
-    } else if (status === 'completed' || status === 'failed') {
+    if (status === 'completed' || status === 'failed') {
       query += ', completed_at = ?';
       params.push(now);
     }
@@ -83,65 +96,30 @@ export class AgentRepository {
     await db.run(query, params);
   }
 
-  async addTokenUsage(id: string, input: number, output: number, cost: number): Promise<void> {
-    const db = await getDb();
-    await db.run(
-      `UPDATE agents 
-       SET tokens_input = tokens_input + ?,
-           tokens_output = tokens_output + ?,
-           cost = cost + ?
-       WHERE id = ?`,
-      [input, output, cost, id]
-    );
-  }
-
-  async getStatsBySwarm(swarmId: string): Promise<{
-    total: number;
-    byStatus: Record<string, number>;
-    totalCost: number;
-    totalTokens: number;
-  }> {
-    const db = await getDb();
-    const agents = await this.findBySwarmId(swarmId);
-    
-    const byStatus: Record<string, number> = {};
-    let totalCost = 0;
-    let totalTokens = 0;
-
-    for (const agent of agents) {
-      byStatus[agent.status] = (byStatus[agent.status] || 0) + 1;
-      totalCost += agent.cost;
-      totalTokens += agent.tokens_input + agent.tokens_output;
-    }
-
+  private mapRow(row: any): Agent {
     return {
-      total: agents.length,
-      byStatus,
-      totalCost,
-      totalTokens
+      id: row.id,
+      label: row.label,
+      status: row.status,
+      model: row.model,
+      task: row.task,
+      spawned_at: row.spawned_at,
+      completed_at: row.completed_at,
+      runtime: row.runtime,
+      pause_time: row.pause_time,
+      paused_by: row.paused_by,
+      swarm_id: row.swarm_id,
+      parent_id: row.parent_id,
+      child_ids: row.child_ids ? JSON.parse(row.child_ids) : undefined,
+      context: row.context ? JSON.parse(row.context) : undefined,
+      code: row.code ? JSON.parse(row.code) : undefined,
+      reasoning: row.reasoning ? JSON.parse(row.reasoning) : undefined,
+      retry_count: row.retry_count,
+      max_retries: row.max_retries,
+      last_error: row.last_error,
+      budget_limit: row.budget_limit,
+      safety_boundaries: row.safety_boundaries ? JSON.parse(row.safety_boundaries) : undefined,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined
     };
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const db = await getDb();
-    const result = await db.run('DELETE FROM agents WHERE id = ?', [id]);
-    return (result.changes || 0) > 0;
-  }
-
-  async list(options: { limit?: number; offset?: number } = {}): Promise<Agent[]> {
-    const db = await getDb();
-    let query = 'SELECT * FROM agents ORDER BY created_at DESC';
-    const params: unknown[] = [];
-
-    if (options.limit) {
-      query += ' LIMIT ?';
-      params.push(options.limit);
-    }
-    if (options.offset) {
-      query += ' OFFSET ?';
-      params.push(options.offset);
-    }
-
-    return db.all(query, params);
   }
 }

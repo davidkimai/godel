@@ -12,10 +12,10 @@
 
 import { EventEmitter } from 'events';
 import { Mutex } from 'async-mutex';
-import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agent.js';
-import { AgentLifecycle, type AgentState } from './lifecycle.js';
-import { MessageBus } from '../bus/index.js';
-import { AgentStorage } from '../storage/memory.js';
+import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agent';
+import { AgentLifecycle, type AgentState } from './lifecycle';
+import { MessageBus } from '../bus/index';
+import { AgentStorage } from '../storage/memory';
 
 // ============================================================================
 // Swarm Types

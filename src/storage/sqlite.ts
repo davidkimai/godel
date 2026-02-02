@@ -10,7 +10,7 @@
  * - Uses better-sqlite3 for synchronous, transactional operations
  */
 
-import type { Agent, AgentStatus } from '../models/agent.js';
+import type { Agent, AgentStatus } from '../models/agent';
 
 // ============================================================================
 // Types

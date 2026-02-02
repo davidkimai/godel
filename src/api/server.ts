@@ -81,9 +81,11 @@ function createApiRoutes() {
   router.post('/swarm', async (req: Request, res: Response) => {
     try {
       const { name, config } = req.body;
+      console.log('Creating swarm:', { name, config, body: req.body });
       const swarm = await swarmRepo.create({ name, config, status: 'running' });
       res.status(201).json(swarm);
     } catch (error) {
+      console.error('Swarm creation error:', error);
       res.status(400).json({ error: (error as Error).message });
     }
   });
@@ -179,11 +181,34 @@ function createApiRoutes() {
     });
   });
 
+  // POST /events - Create a new event
+  router.post('/events', async (req: Request, res: Response) => {
+    try {
+      const { eventType, payload } = req.body;
+      const event = await eventRepo.create({
+        type: eventType,
+        source: 'self-improvement',
+        payload: JSON.stringify(payload || {}),
+        agent_id: payload?.agentId,
+        swarm_id: payload?.swarmId
+      });
+      res.status(201).json(event);
+    } catch (error) {
+      console.error('Event creation error:', error);
+      res.status(500).json({ error: 'Failed to create event: ' + (error as Error).message });
+    }
+  });
+
   return router;
 }
 
 export async function startServer(config: Partial<ServerConfig> = {}): Promise<HttpServer> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
+  
+  // Initialize database first
+  const { getDb } = require('../storage/sqlite');
+  await getDb({ dbPath: './dash.db' });
+  
   const app = createApp(cfg);
   const server = createServer(app);
 
