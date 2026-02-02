@@ -546,6 +546,140 @@ Agent: "I'll use plan mode for this complex task.
 
 **Why it matters:** Better terminal experience → smoother Claude interactions → fewer context errors.
 
+### Terminal & Workflow Customization
+
+**Status bar customization:**
+- Use `/statusline` to show context usage and current git branch
+- Always visible state = better awareness during long sessions
+
+**Terminal organization:**
+- Color-code terminal tabs by task/worktree
+- One tab per worktree for focused context
+- Use tmux for advanced session management:
+  ```bash
+  # Example tmux workflow
+  tmux new-session -d -s worktree-a "cd ../dash-feature-a && claude"
+  tmux new-session -d -s worktree-b "cd ../dash-feature-b && claude"
+  tmux attach-session -t worktree-a  # Switch with Ctrl+b, then a/b
+  ```
+
+**Voice dictation (3x faster than typing!):**
+- Hit `fn` x2 on macOS to activate voice dictation
+- You speak 3x faster than you type
+- Prompts become significantly more detailed
+- Especially useful for complex specifications
+
+**Pattern:**
+```
+User: [fn x2] "Implement a comprehensive user authentication module with OAuth2 and JWT support, including refresh token rotation, rate limiting, and proper error handling. Also add comprehensive tests."
+
+Claude: "Got it. This is a complex task - let me use plan mode first to outline the implementation..."
+```
+
+### Subagent Usage Pattern
+
+**Append "use subagents" to any request** when you want Claude to throw more compute at the problem:
+
+```
+User: "Analyze this codebase and identify refactoring opportunities use subagents"
+
+Agent: [Spawns parallel subagents for:]
+- Subagent 1: Review models/ for pattern duplication
+- Subagent 2: Review context/ for complexity
+- Subagent 3: Review CLI for inconsistencies  
+- Subagent 4: Synthesize recommendations
+```
+
+**Benefits:**
+- Keeps main agent's context window clean and focused
+- Parallel execution for speed on multi-faceted tasks
+- Subagents can use different models if needed
+- Easier debugging (isolated sessions)
+- Each subagent is an expert in its domain
+
+**Pattern for subagent delegation:**
+```bash
+# In main session
+claude "Implement comprehensive test suite for the quality module use subagents"
+
+# Main agent spawns:
+# - Subagent A: Unit tests for gates
+# - Subagent B: Integration tests for CLI
+# - Subagent C: Coverage analysis and reporting
+```
+
+**Permission hooks:**
+- Route permission requests to Opus 4.5 via a hook
+- Let it scan for attacks and auto-approve safe ones
+- Reduces friction for routine operations
+- Reference: https://code.claude.com/docs/en/hooks#permissionrequest
+
+### Data & Analytics
+
+**Use Claude for data queries instead of writing SQL:**
+
+**Pattern:**
+```
+User: "Show me the error rate trend for the last 7 days"
+
+Agent: [Uses BigQuery skill or bq CLI]
+claude "Query BigQuery for error_rate_trend last 7 days"
+
+# Result: Analysis without writing SQL
+```
+
+**Benefits:**
+- Haven't written SQL in 6+ months using this pattern
+- Works for any database with CLI, MCP, or API
+- Natural language to query conversion
+- Immediate insights without context switching
+
+**Applicable tools:**
+- BigQuery (`bq` CLI)
+- PostgreSQL (`psql`)
+- MongoDB (`mongosh`)
+- Any database with MCP server
+
+### Learning with Claude
+
+**Enable explanatory output:**
+- Use `/config` to set "Explanatory" or "Learning" output style
+- Claude explains the *why* behind changes
+- Understanding compounds over time
+
+**Visual learning:**
+- Ask Claude to generate HTML presentations: "Make me slides about this architecture"
+- Surprisingly good at visual explanations
+- Great for team knowledge sharing
+
+**ASCII diagrams:**
+- "Draw an ASCII diagram of this protocol"
+- "Show me the data flow as a diagram"
+- "Visualize the agent coordination pattern"
+
+**Spaced-repetition learning skill:**
+1. You explain your understanding of a concept
+2. Claude asks targeted follow-up questions to fill gaps
+3. Claude stores the result for future reference
+4. Periodically review to reinforce learning
+
+**Pattern:**
+```
+User: "Let's do a learning session about dependency graphs"
+
+Agent: [Spaced repetition mode activated]
+- "What is a dependency graph?"
+- "How does topological sort work?"
+- "What are the implications for CI/CD?"
+- Stores key insights for future review
+```
+
+**Learning workflow:**
+```bash
+# After learning something new
+claude "Create a learning card for this pattern and add it to the knowledge base"
+```
+
 ## 💓 Heartbeats - Be Proactive!
 
 When you receive a heartbeat poll (message matches the configured heartbeat prompt), don't just reply `HEARTBEAT_OK` every time. Use heartbeats productively!

@@ -28,15 +28,31 @@ claude "Your task here"
 
 ---
 
+## 🎯 Subagent Pattern
+
+**Append "use subagents" to throw more compute at problems:**
+
+```bash
+claude "Analyze this codebase and identify refactoring opportunities use subagents"
+```
+
+**Benefits:**
+- Maintains clean context
+- Parallel execution
+- Focused expertise per subagent
+- Isolated debugging
+
+---
+
 ## 🧠 Plan Mode Discipline
 
 **For ANY complex task:**
 
-1. **Start in plan mode** - Pour energy into the plan
-2. **Write the plan** - Use `/interview` for full specs
-3. **Review the plan** - Spin up second Claude to critique it
-4. **Execute** - Only after plan is solid
-5. **Re-plan when stuck** - Don't keep pushing blindly
+1. Start in plan mode - Use `/interview` for full specs
+2. Write the plan - Pour energy into planning
+3. Review the plan - Spin up second Claude to critique
+4. Execute - Only after plan is solid
+5. Re-plan when stuck - Don't keep pushing blindly
 
 **Verification mode:**
 > "Enter plan mode to verify this works. Don't make a PR until tests pass."
@@ -54,7 +70,36 @@ claude "Your task here"
 3. Test: Does this rule prevent the mistake?
 4. Iterate until mistake rate drops
 
-**Claude is eerily good at writing rules for itself.**
+---
+
+## 🎤 Voice Dictation (3x Faster!)
+
+- Hit `fn` x2 on macOS for voice dictation
+- Speak 3x faster than typing
+- Prompts become way more detailed
+- Great for complex specifications
+
+**Example:**
+```
+User: [fn x2] "Implement comprehensive OAuth2 authentication with JWT tokens, refresh token rotation, rate limiting, and proper error handling. Add comprehensive tests."
+```
+
+---
+
+## 💻 Terminal Setup
+
+**Status bar:**
+- Use `/statusline` to show context usage + git branch
+
+**Tab organization:**
+- Color-code tabs by task
+- One tab per worktree
+- Use tmux for advanced management
+
+**Recommended terminal:** Ghostty
+- Synchronized rendering
+- 24-bit color
+- Proper unicode
 
 ---
 
@@ -62,33 +107,25 @@ claude "Your task here"
 
 **Threshold:** If you do something more than once a day → **Make it a skill.**
 
-**Common skills to build:**
-- `/techdebt` - Find and kill duplicated code
-- `/sync` - Sync context from Slack, GitHub, etc.
-- `/review` - Code review with criteria
-- `/test` - Run tests with coverage
-- `/analyze` - Deep worktree analysis
-
-**Lifecycle:**
-```
-Identify pattern → Create skill → Document → Git → Reuse
-```
+**Common skills:**
+- `/techdebt` - Find duplicated code
+- `/sync` - Sync context from Slack/GitHub
+- `/review` - Code review
+- `/test` - Tests with coverage
+- `/analyze` - Deep analysis
+- `/bq` - BigQuery analytics
+- `/learning` - Spaced repetition
 
 ---
 
 ## 🎯 Enhanced Prompting
 
-**Grill mode:**
-> "Grill me on these changes. Don't make a PR until I pass your test."
-
-**Elegant solution mode:**
-> "Knowing everything you know now, scrap this and implement the elegant solution."
-
-**Proof mode:**
-> "Prove to me this works. Show me the diff and test results."
-
-**Spec mode:**
-> "Write detailed specs before implementing. Reduce ambiguity."
+| Mode | Trigger |
+|------|---------|
+| Grill mode | "Grill me on these changes. Don't make a PR until I pass." |
+| Elegant solution | "Knowing everything, scrap this and implement the elegant solution." |
+| Proof mode | "Prove to me this works. Show the diff and test results." |
+| Spec mode | "Write detailed specs before implementing." |
 
 ---
 
@@ -102,59 +139,65 @@ claude "Go fix the failing CI tests"
 claude "Analyze these docker logs and find the root cause"
 
 # Fix from Slack
-claude "Fix this bug: [paste bug description]"
-```
+claude "Fix this bug: [paste description]"
 
-**Enable MCP servers** (Slack, GitHub) for zero-context-switch fixes.
+# With MCP servers enabled (Slack, GitHub)
+# Zero context switching required
+```
 
 ---
 
-## 💻 Claude Code CLI Commands
+## 📊 Data & Analytics
+
+**Use Claude for queries instead of SQL:**
 
 ```bash
-# Basic usage
-claude "Implement feature X"
+# Instead of writing SQL
+claude "Show me error rate trend last 7 days using bq"
 
-# With context file
-claude "Fix issues in SPEC.md"
+# Works with any database that has:
+# - CLI tool
+# - MCP server  
+# - API access
+```
 
-# Multi-turn
-claude
-> First task
-> Second task based on first result
-> Third task
+**Benefit:** "Haven't written SQL in 6+ months."
 
-# Pipe input
-cat bug_report.txt | claude "fix this"
+---
+
+## 📚 Learning Patterns
+
+**Explanatory mode:**
+- Use `/config` → "Explanatory" or "Learning" style
+- Claude explains the *why* behind changes
+
+**Visual learning:**
+```bash
+claude "Make me HTML slides about this architecture"
+claude "Draw an ASCII diagram of this protocol"
+```
+
+**Spaced repetition:**
+```bash
+claude "Let's do a learning session about [topic]"
+# Claude asks follow-ups, stores insights for future review
 ```
 
 ---
 
 ## ⚡ Quick Reference
 
-| Pattern | Command |
-|---------|---------|
+| Pattern | Command/Trigger |
+|---------|-----------------|
 | Parallel worktrees | `git worktree add -b name ../dash-name main` |
 | Plan mode | Use `/interview` before implementing |
+| Use subagents | Append "use subagents" to request |
 | Quick fix | `claude "Go fix the failing CI tests"` |
 | Create skill | Add to `/Users/jasontang/clawd/skills/[name]/SKILL.md` |
 | Update rules | End with "Update AGENTS.md..." |
 | Shell alias | `alias za='cd ../dash-feature-a'` |
-
----
-
-## 🎯 When to Use What
-
-| Situation | Approach |
-|-----------|----------|
-| Complex multi-step task | Plan mode first, then implement |
-| Bug in production | `claude "fix this"` with logs |
-| Code review | "Grill me on these changes" |
-| Repeated pattern | Create a skill |
-| Mistake made | Update AGENTS.md |
-| Unknown requirements | `/interview` to extract specs |
-| Quick fix needed | Claude Code CLI directly |
-| Large feature | Parallel worktrees + plan mode |
+| Voice dictation | Hit `fn` x2 on macOS |
+| Status bar | Use `/statusline` |
 
 ---
 
@@ -169,9 +212,26 @@ cat bug_report.txt | claude "fix this"
 
 ---
 
+## 🎯 When to Use What
+
+| Situation | Approach |
+|-----------|----------|
+| Complex multi-step task | Plan mode first, then subagents |
+| Bug in production | `claude "fix this"` with logs |
+| Code review | "Grill me on these changes" |
+| Repeated pattern | Create a skill |
+| Mistake made | Update AGENTS.md |
+| Unknown requirements | `/interview` to extract specs |
+| Quick fix needed | Claude Code CLI directly |
+| Large feature | Parallel worktrees + plan mode |
+| Data analysis | Claude with bq/MCP |
+| Learning | Explanatory mode + spaced repetition |
+
+---
+
 ## 📚 Key Files
 
-- `AGENTS.md` - Main operating rules
+- `AGENTS.md` - Main operating rules (READ THIS FIRST)
 - `HEARTBEAT_CLAUDE_CODE.md` - Orchestrator guide
 - `CLAUDE_CODE_QUICK_REF.md` - This file
 - `SOUL.md` - Your identity and persona
@@ -179,7 +239,7 @@ cat bug_report.txt | claude "fix this"
 
 ---
 
-:** There**Remember is no one right way. Experiment and find what works for you.
+**Remember:** There is no one right way. Experiment and find what works for you.
 
 **Core principle:** Claude is infrastructure. Use it liberally.
 
