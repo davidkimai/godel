@@ -382,6 +382,7 @@ export class DependencyGraphBuilder {
   /**
    * Set language for parsing
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setLanguage(_language: string): void {
     // TODO: Use language parameter to configure parser
     // For now, this is a placeholder for future parser configuration

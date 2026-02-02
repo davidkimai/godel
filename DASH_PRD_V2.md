@@ -1,9 +1,9 @@
-# Dash — Comprehensive PRD (Multi-Perspective Synthesis)
+# Dash - Comprehensive PRD (Multi-Perspective Synthesis)
 
-**Version:** 2.0  
-**Date:** 2026-02-01  
-**Status:** Final  
-**Sources:** 
+**Version:** 2.0
+**Date:** 2026-02-01
+**Status:** Final
+**Sources:**
 - Self-Interview (MiniMax M2.1)
 - SPEC_V3.md
 - PHASE2_PROGRESS.md
@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-**Dash** is a CLI-first agent orchestration platform designed to make multi-agent AI development as simple and reliable as single-agent development. The core value proposition is **speed**—reducing time-to-resolution for agent failures from 30+ minutes to under 5 minutes—while ensuring **predictable code quality** through automated quality gates.
+**Dash** is a CLI-first agent orchestration platform designed to make multi-agent AI development as simple and reliable as single-agent development. The core value proposition is **speed**-reducing time-to-resolution for agent failures from 30+ minutes to under 5 minutes-while ensuring **predictable code quality** through automated quality gates.
 
 ### Key Metrics
 
@@ -175,12 +175,12 @@ interface Agent {
   spawnedAt: Date;
   completedAt?: Date;
   runtime: number;
-  
+
   // Grouping & Hierarchy
   swarmId?: string;
   parentId?: string;
   childIds: string[];
-  
+
   // Context Management
   context: {
     inputContext: string[];
@@ -190,7 +190,7 @@ interface Agent {
     contextWindow: number;
     contextUsage: number;
   };
-  
+
   // Code-Specific
   code?: {
     language: string;
@@ -198,29 +198,29 @@ interface Agent {
     dependencies: DependencyGraph;
     symbolIndex: SymbolTable;
   };
-  
+
   // Reasoning-Specific
   reasoning?: {
     traces: ReasoningTrace[];
     decisions: DecisionLog[];
     confidence: number;
   };
-  
+
   // Retry & Failure Tracking
   retryCount: number;
   maxRetries: number;
   lastError?: string;
-  
+
   // Safety & Budget
   budgetLimit?: number;
   safetyBoundaries?: SafetyConfig;
-  
+
   metadata: Record<string, any>;
 }
 ```
 
-**Priority:** P0  
-**Status:** Partial (spawn, kill, list done; pause, resume, retry missing)  
+**Priority:** P0
+**Status:** Partial (spawn, kill, list done; pause, resume, retry missing)
 **Owner:** Phase 1
 
 ---
@@ -241,8 +241,8 @@ dash swarm remove <swarm-id> <agent-id>          # Remove from swarm
 - Sequential dependencies (parent spawns children)
 - Resource sharing (context, files, tools)
 
-**Priority:** P1  
-**Status:** Done  
+**Priority:** P1
+**Status:** Done
 **Owner:** Phase 1
 
 ---
@@ -270,11 +270,11 @@ interface Task {
   description: string;
   status: TaskStatus;
   assigneeId?: string;
-  
+
   // Dependencies
   dependsOn: string[];
   blocks: string[];
-  
+
   // Planning & Reasoning
   reasoning?: {
     hypothesis?: string;
@@ -283,7 +283,7 @@ interface Task {
     evaluation?: string;
     confidence: number;
   };
-  
+
   // Quality Gates
   qualityGate?: {
     type: 'critique' | 'test' | 'manual';
@@ -291,10 +291,10 @@ interface Task {
     passingThreshold: number;
     maxIterations: number;
   };
-  
+
   // Checkpoints
   checkpoints?: Checkpoint[];
-  
+
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -303,8 +303,8 @@ interface Task {
 }
 ```
 
-**Priority:** P0  
-**Status:** Done  
+**Priority:** P0
+**Status:** Done
 **Owner:** Phase 1
 
 ---
@@ -337,9 +337,9 @@ interface Context {
 }
 ```
 
-**Priority:** P0  
-**Status:** Done (get, add, remove, share, tree)  
-**Status:** Missing (analyze, optimize)  
+**Priority:** P0
+**Status:** Done (get, add, remove, share, tree)
+**Status:** Missing (analyze, optimize)
 **Owner:** Phase 1
 
 ---
@@ -357,7 +357,7 @@ dash events history [--limit 100]                 # Query event history
 
 **Event Types:**
 ```typescript
-type EventType = 
+type EventType =
   // Agent lifecycle
   | 'agent.spawned'
   | 'agent.status_changed'
@@ -367,7 +367,7 @@ type EventType =
   | 'agent.paused'
   | 'agent.resumed'
   | 'agent.killed'
-  
+
   // Task lifecycle
   | 'task.created'
   | 'task.status_changed'
@@ -376,37 +376,37 @@ type EventType =
   | 'task.blocked'
   | 'task.failed'
   | 'task.cancelled'
-  
+
   // Context
   | 'context.added'
   | 'context.removed'
   | 'context.changed'
   | 'context.snapshot'
-  
+
   // Quality
   | 'critique.requested'
   | 'critique.completed'
   | 'critique.failed'
   | 'quality.gate_passed'
   | 'quality.gate_failed'
-  
+
   // Testing
   | 'test.started'
   | 'test.completed'
   | 'test.failed'
   | 'test.coverage'
-  
+
   // Reasoning
   | 'reasoning.trace'
   | 'reasoning.decision'
   | 'reasoning.confidence_changed'
-  
+
   // Safety
   | 'safety.violation_attempted'
   | 'safety.boundary_crossed'
   | 'safety.escalation_required'
   | 'safety.human_approval'
-  
+
   // System
   | 'system.bottleneck_detected'
   | 'system.disconnected'
@@ -414,10 +414,10 @@ type EventType =
   | 'system.checkpoint'
 ```
 
-**Performance Target:** <50ms latency  
-**Buffer Size:** 100,000 events  
-**Priority:** P0  
-**Status:** Done  
+**Performance Target:** <50ms latency
+**Buffer Size:** 100,000 events
+**Priority:** P0
+**Status:** Done
 **Owner:** Phase 1
 
 ---
@@ -475,9 +475,9 @@ interface ConfidenceTracking {
 }
 ```
 
-**Priority:** P0  
-**Status:** Missing (Phase 3)  
-**Owner:** Phase 3  
+**Priority:** P0
+**Status:** Missing (Phase 3)
+**Owner:** Phase 3
 **Files to Create:** 6 files (types, traces, decisions, confidence, index, CLI)
 
 ---
@@ -520,8 +520,8 @@ interface QualityGate {
 }
 ```
 
-**Priority:** P0  
-**Status:** Partial (lint done; types, security, gate missing)  
+**Priority:** P0
+**Status:** Partial (lint done; types, security, gate missing)
 **Owner:** Phase 2 (gate), Phase 3 (critique)
 
 ---
@@ -553,14 +553,14 @@ interface SafetyConfig {
     noDeception: boolean;
     authorizedAccessOnly: boolean;
   };
-  
+
   dangerousActions: {
     dataDestruction: 'block' | 'confirm' | 'allow';
     agentTermination: 'confirm' | 'allow';
     externalPublishing: 'confirm' | 'block';
     resourceExhaustion: 'block' | 'confirm';
   };
-  
+
   escalationTriggers: {
     ethicsViolation: 'immediate';
     costExceeded: 'threshold';
@@ -571,8 +571,8 @@ interface SafetyConfig {
 }
 ```
 
-**Priority:** P0  
-**Status:** Missing (Phase 4)  
+**Priority:** P0
+**Status:** Missing (Phase 4)
 **Owner:** Phase 4
 
 ---
@@ -593,8 +593,8 @@ dash escalation respond <escalation-id> --decision approve|deny --notes <text>
 - `security`: Security vulnerability detected
 - `manual`: Human review requested
 
-**Priority:** P0  
-**Status:** Missing (Phase 4)  
+**Priority:** P0
+**Status:** Missing (Phase 4)
 **Owner:** Phase 4
 
 ---
@@ -621,8 +621,8 @@ dash tests list --framework jest
 | go test | Go | gcov |
 | cargo test | Rust | tarpaulin |
 
-**Priority:** P0  
-**Status:** Done  
+**Priority:** P0
+**Status:** Done
 **Owner:** Phase 2
 
 ---
@@ -644,8 +644,8 @@ dash ci deploy <run-id> --environment dev|staging|prod
 - CircleCI
 - Jenkins
 
-**Priority:** P1  
-**Status:** Missing (Phase 5)  
+**Priority:** P1
+**Status:** Missing (Phase 5)
 **Owner:** Phase 5
 
 ---
@@ -665,8 +665,8 @@ dash analytics performance <agent-id>
 dash analytics cascade-risk --swarm <swarm-id>
 ```
 
-**Priority:** P1  
-**Status:** Missing (Phase 5)  
+**Priority:** P1
+**Status:** Missing (Phase 5)
 **Owner:** Phase 5
 
 ---
@@ -1073,6 +1073,302 @@ The Codex agent asked deep technical questions across 9 categories:
 
 ---
 
-**Document Version:** 2.0  
-**Last Updated:** 2026-02-01  
+**Document Version:** 2.0
+**Last Updated:** 2026-02-01
 **Next Review:** After Phase 2 build passes
+
+---
+
+# Appendix: Self-Interview Strategic Additions (2026-02-01)
+
+## A1. Ideal vs. Current State Analysis
+
+### From Self-Interview (Claude Code CLI on itself)
+
+**Q1: Core Identity**
+- **Ideal:** "Bridge between human intent and AI execution"
+- **Current:** CLI-first agent orchestration platform
+- **Gap:** Goal translation from natural language
+
+**Q2: User Experience**
+- **Ideal:** `dash "Build me a REST API"` → automatic decomposition
+- **Current:** Manual task creation, explicit commands
+- **Gap:** Natural language intent parsing, auto-decomposition
+
+**Q3: Multi-Agent Orchestration**
+- **Ideal:** Protocol-based communication, conflict resolution, hierarchy
+- **Current:** Basic subagent spawning, ContextManager
+- **Gap:** Communication protocol, handoff, conflict resolution
+
+**Q4: Claude Code Integration**
+- **Ideal:** Bidirectional sync, quality enforcement, auto-commit
+- **Current:** Worktree spawning, output logging
+- **Gap:** Bidirectional sync, gate enforcement
+
+**Q5: Self-Improvement Loop**
+- **Ideal:** Analyze → Propose → Implement → A/B Test → Deploy → Measure
+- **Current:** Script exists, no measurement/A/B testing
+- **Gap:** Outcome measurement, A/B testing, pattern detection
+
+**Q6: CLI Experience**
+- **Ideal:** Natural language, explain, visualize, debug, metrics
+- **Current:** 15 commands, manual workflows
+- **Gap:** 35+ commands needed, interactive mode
+
+**Q7: Observability**
+- **Ideal:** Real-time feed, analytics, search, debugging
+- **Current:** Basic logging, reasoning traces
+- **Gap:** Streaming feed, dashboard, analytics
+
+**Q8: Safety**
+- **Ideal:** Budget limits, approval workflows, scope boundaries
+- **Current:** SafetyConfig interface exists, no enforcement
+- **Gap:** Budget enforcement, approval workflows
+
+**Q9: Learning**
+- **Ideal:** Pattern library, failure taxonomy, context optimization
+- **Current:** Reasoning traces stored, not analyzed
+- **Gap:** Pattern extraction, analysis, recommendation
+
+**Q10: Ecosystem**
+- **Ideal:** VS Code, MCP servers, CI/CD, Grafana
+- **Current:** Basic Git, Claude Code CLI
+- **Gap:** IDE plugins, MCP, monitoring
+
+---
+
+## A2. Priority Matrix (Updated)
+
+### P0 - Critical (Next Sprint)
+| Feature | Gap | Current | Target | Effort |
+|---------|-----|---------|--------|--------|
+| Natural language intent | Q2 | Manual task creation | `dash "Build API"` | High |
+| Auto-task decomposition | Q2 | Manual | Automatic | High |
+| Fix reasoning lint errors | - | 53 lint errors | 0 errors | Low |
+
+### P1 - High Priority (This Month)
+| Feature | Gap | Current | Target | Effort |
+|---------|-----|---------|--------|--------|
+| Claude Code bidirectional sync | Q4 | One-way logging | Full sync | High |
+| Approval workflows | Q8 | None | Human-in-loop | High |
+| Real-time observability | Q7 | Basic logging | Streaming feed | Medium |
+| Budget enforcement | Q8 | None | Per-task budgets | Medium |
+| Reasoning module tests | - | 0 tests | 10+ tests | Medium |
+
+### P2 - Medium Priority (This Quarter)
+| Feature | Gap | Current | Target | Effort |
+|---------|-----|---------|--------|--------|
+| `dash explain` | Q6 | None | Reasoning display | Medium |
+| Pattern library | Q9 | None | Reusable patterns | High |
+| Web dashboard | Q7 | None | Visual monitoring | High |
+| VS Code extension | Q10 | None | IDE integration | High |
+| MCP server support | Q10 | None | MCP integration | Medium |
+
+### P3 - Long-term Vision
+| Feature | Gap | Current | Target | Effort |
+|---------|-----|---------|--------|--------|
+| A/B testing | Q5 | None | Compare approaches | High |
+| Agent recommendation | Q9 | Manual selection | AI-powered | High |
+| Full autonomous self-improvement | Q5 | Script | Autonomous | Very High |
+
+---
+
+## A3. Strategic Recommendations
+
+### Immediate Actions (This Session)
+1. **Fix remaining lint errors** in reasoning types (interface parameters)
+2. **Add 5 reasoning module tests**
+3. **Update implementation roadmap** with P0/P1 gaps
+
+### Short-term Goals (This Week)
+1. **Implement approval workflows** for Phase 4 safety
+2. **Add budget tracking** to agent execution
+3. **Create pattern extraction** from reasoning traces
+4. **Add bidirectional Claude Code sync**
+
+### Medium-term Objectives (This Month)
+1. **Build web dashboard** for real-time monitoring
+2. **Implement Claude Code bidirectional sync**
+3. **Add MCP server support**
+4. **Reach 50+ CLI commands**
+
+### Quarterly Vision (Q1 2026)
+1. **Pattern library** with successful agent configurations
+2. **A/B testing infrastructure** for agent strategies
+3. **VS Code extension** for IDE integration
+4. **Full self-improvement loop** with outcome measurement
+
+---
+
+## A4. Updated Phase Status
+
+| Phase | Original Status | Updated Status | Notes |
+|-------|-----------------|----------------|-------|
+| Phase 1: Core Foundation | Complete | ✅ Complete | 114+ tests passing |
+| Phase 2: Code Features | Complete | ✅ Complete | Build: 0 errors |
+| Phase 3: Reasoning | In Progress | ~80% Complete | Types, traces, CLI done |
+| Phase 4: Safety | Not Started | 🔄 Starting | Approval workflows, budgets |
+| Phase 5: Integration | Not Started | Pending | MCP, IDE, monitoring |
+
+---
+
+## A5. Vision Statement Update
+
+> "Dash will become the nervous system of AI-assisted development - coordinating agents, enforcing quality, learning from outcomes, and continuously improving itself through recursive self-improvement powered by Claude Code CLI."
+
+### Core Pillars (Updated)
+1. **Orchestration** - Multi-agent coordination with protocols
+2. **Quality** - Automated gates with human escalation
+3. **Reasoning** - Full visibility into agent decision-making
+4. **Safety** - Hard boundaries with approval workflows
+5. **Self-Improvement** - Recursive loop with outcome measurement
+6. **Ecosystem** - IDE, MCP, CI/CD integrations
+
+---
+
+**Appendix Added:** 2026-02-01  
+**Source:** Self-Interview via Claude Code CLI (`claude -p`)  
+**Interview Document:** `INTERVIEW_SELF.md`
+
+---
+
+## A6. Detailed Specification Interviews (2026-02-01 Evening)
+
+Four parallel interviews launched using the Interview skill to extract deep requirements:
+
+| Spec File | Topic | Priority | Status |
+|-----------|-------|----------|--------|
+| `SPEC_NLP_INTENT.md` | Natural language intent parsing | P0 | 🔄 In Progress |
+| `SPEC_APPROVAL_WORKFLOW.md` | Human-in-loop approval workflows | P1 | 🔄 In Progress |
+| `SPEC_BUDGET_ENFORCEMENT.md` | Token/cost budget limits | P1 | 🔄 In Progress |
+| `SPEC_CLAUDE_CODE_SYNC.md` | Bidirectional Claude Code sync | P1 | 🔄 In Progress |
+
+### Interview Questions Coverage
+
+Each interview covers:
+1. **Core Questions** — Primary goals, users, problems solved
+2. **Functional Requirements** — Inputs, outputs, must-have features
+3. **UX/UI Deep Dive** — User journey, CLI interaction patterns
+4. **Edge Cases & Error States** — Unhappy paths, failure modes
+5. **Technical Constraints** — Performance, limits, integrations
+6. **Trade-offs** — Optimization priorities, sacrifices
+7. **Future Considerations** — Scalability, extensions
+8. **Open Concerns** — Unresolved questions, risks
+
+### Expected Output Format
+
+Each spec will include:
+- Executive summary
+- Problem statement
+- User personas
+- Functional requirements
+- Technical specifications
+- Edge case handling
+- Trade-offs documented
+- Implementation hints
+- Open questions flagged
+
+### Integration with Roadmap
+
+Once specs are complete:
+- `SPEC_NLP_INTENT.md` → New Phase 6 (Natural Language)
+- `SPEC_APPROVAL_WORKFLOW.md` → Phase 4.4 (Approval Workflows)
+- `SPEC_BUDGET_ENFORCEMENT.md` → Phase 4.5 (Budget Enforcement)
+- `SPEC_CLAUDE_CODE_SYNC.md` → Phase 5.x (Integration Enhancement)
+
+---
+
+**Interviews Spawned:** 2026-02-01 22:28 CST  
+**Expected Completion:** 5-10 minutes per interview  
+**Next Action:** Review generated specs and update implementation roadmap
+
+---
+
+## A7. Detailed Specification Interviews Complete (2026-02-01 Evening)
+
+All 4 parallel interviews completed with comprehensive specification documents:
+
+| Spec File | Topic | Size | Status |
+|-----------|-------|------|--------|
+| `SPEC_NLP_INTENT.md` | Natural language intent parsing | 17.4KB | ✅ Complete |
+| `SPEC_APPROVAL_WORKFLOW.md` | Human-in-loop approval workflows | 15.2KB | ✅ Complete |
+| `SPEC_BUDGET_ENFORCEMENT.md` | Token/cost budget limits | 14.3KB | ✅ Complete |
+| `SPEC_CLAUDE_CODE_SYNC.md` | Bidirectional Claude Code sync | 12.7KB | ✅ Complete |
+
+### Spec Coverage Summary
+
+**SPEC_NLP_INTENT.md** covers:
+- Intent classification taxonomy (8 categories: build, fix, refactor, research, test, deploy, document, analyze)
+- Entity extraction (target type, tech stack, operations, quality requirements)
+- Multi-stage parsing algorithm with confidence scoring
+- Task decomposition rules and task schema
+- Agent selection and matching
+- Quality gate configuration per category
+- Ambiguity detection and clarifying questions
+- Learning from user corrections (feedback loop)
+
+**SPEC_APPROVAL_WORKFLOW.md** covers:
+- Approval types taxonomy (file writes, deletes, external APIs, budget overruns)
+- Request/response flow with CLI blocking and async notification modes
+- Timeout and escalation logic (configurable per risk level)
+- Quality gate integration (approval as separate gate)
+- Batch approval support
+- Comprehensive audit trail schema and retention policy
+
+**SPEC_BUDGET_ENFORCEMENT.md** covers:
+- Budget model (task, agent, swarm, project, daily, monthly scopes)
+- Cost calculation with model pricing
+- Threshold-based enforcement (50% warn, 75% warn+notify, 90% block, 100% kill)
+- CLI commands for budget management and alerts
+- Integration with quality gates (cost-aware gates)
+- Audit trail for budget events
+
+**SPEC_CLAUDE_CODE_SYNC.md** covers:
+- Bidirectional data flow (Dash → Claude Code, Claude Code → Dash)
+- Sync triggers (auto and manual)
+- Data format (reasoning trace schema, quality result schema)
+- Conflict resolution (last-write-wins, merge strategies)
+- Security model (authentication, permissions, filtering)
+- Offline handling and reconnection strategy
+- Integration with Dash reasoning traces
+
+### Integration with Roadmap
+
+| Spec File | Maps To | Phase |
+|-----------|---------|-------|
+| SPEC_NLP_INTENT.md | Natural Language Interface | Phase 6 (new) |
+| SPEC_APPROVAL_WORKFLOW.md | Phase 4.4 | Phase 4 |
+| SPEC_BUDGET_ENFORCEMENT.md | Phase 4.5 | Phase 4 |
+| SPEC_CLAUDE_CODE_SYNC.md | Claude Code Integration | Phase 5.x |
+
+### Key Implementation Insights from Specs
+
+1. **NLP Intent Parsing** requires:
+   - Pattern-based parsing for determinism
+   - Confidence thresholds to guide user interaction
+   - Task decomposition into 3-10 tasks per intent
+   - Agent template matching
+
+2. **Approval Workflows** require:
+   - Risk classification per operation type
+   - Timeout and escalation logic
+   - Integration with quality gates (run BEFORE other gates)
+   - Audit trail with 90-day retention
+
+3. **Budget Enforcement** requires:
+   - Token usage tracking per agent/task
+   - Cost calculation with model pricing
+   - Threshold-based enforcement actions
+   - Alert routing (webhook, email)
+
+4. **Claude Code Sync** requires:
+   - Context format standardization (JSON)
+   - Conflict resolution strategy
+   - Offline queue with retry
+   - Authentication and permissions model
+
+---
+
+**Spec Documents Created:** 2026-02-01 22:35 CST  
+**Total Spec Content:** ~60KB of detailed specifications  
+**Next Step:** Update IMPLEMENTATION_ROADMAP.md with spec-derived tasks

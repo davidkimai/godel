@@ -8,7 +8,7 @@
 /**
  * Possible states for an agent
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export enum AgentStatus {
   /** Agent has been created but not yet started */
   PENDING = 'pending',
@@ -20,11 +20,12 @@ export enum AgentStatus {
   COMPLETED = 'completed',
   /** Agent has failed */
   FAILED = 'failed',
-  /** Agent is blocked by dependencies */
+  /** Agent is blocked by dependencies (reserved for future use) */
   BLOCKED = 'blocked',
   /** Agent has been killed manually */
   KILLED = 'killed'
 }
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */
 
 /**
  * Type of reasoning trace

@@ -10,16 +10,15 @@
 // ============================================================================
 
 // Note: All ReasoningType values are exported for use across the codebase
-// They are used in traces.ts, decisions.ts, and CLI commands
+// They are used in traces.ts, decisions.ts, and CLI commands (reasoning.ts)
+/* eslint-disable no-unused-vars */
 export enum ReasoningType {
   HYPOTHESIS = 'hypothesis',
   ANALYSIS = 'analysis',
   DECISION = 'decision',
   CORRECTION = 'correction'
 }
-
-// Export a type that includes all reasoning types for validation
-export type AnyReasoningType = ReasoningType.HYPOTHESIS | ReasoningType.ANALYSIS | ReasoningType.DECISION | ReasoningType.CORRECTION;
+/* eslint-enable no-unused-vars */
 
 export interface ReasoningTrace {
   id: string;
@@ -118,6 +117,9 @@ export interface DecisionQuery {
 // Storage Types
 // ============================================================================
 
+// Note: These are interface definitions for storage operations
+// The actual implementations will use these parameters
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export interface ReasoningStorage {
   // Trace operations
   recordTrace(trace: Omit<ReasoningTrace, 'id' | 'timestamp'>): ReasoningTrace;
@@ -146,3 +148,4 @@ export interface ReasoningStorage {
   analyzeReasoning(agentId: string, taskId?: string): ReasoningAnalysis;
   summarizeReasoning(agentId: string, taskId?: string): ReasoningSummary;
 }
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */

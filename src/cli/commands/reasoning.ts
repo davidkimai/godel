@@ -12,7 +12,6 @@ import {
   getTraceStats,
   logDecision,
   getDecisionsByAgent,
-  getConfidenceByAgent,
   warnLowConfidence,
   getConfidenceStats,
   getReasoningReport

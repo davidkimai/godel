@@ -411,6 +411,110 @@ dash audit log --agent <id> --since "1h ago"
 dash audit export --format json --output audit.json
 ```
 
+### 4.4 Workstream: Approval Workflows (NEW - P1 Priority)
+
+**Subagent:** `phase4-approval`  
+**Task:** Implement human-in-loop approval for critical operations  
+**Spec:** `SPEC_APPROVAL_WORKFLOW.md` (15.2KB)
+
+**Files to Create:**
+- `src/safety/approval.ts` — Approval request/response workflow
+- `src/safety/pending.ts` — Pending approval queue
+- `src/safety/escalation.ts` — Timeout and escalation logic
+- `src/cli/commands/approve.ts` — Approval commands
+- `src/cli/commands/approval.ts` — Alternative command structure
+
+**Approval Types (from spec):**
+| Type | Risk Level | Default Action | Examples |
+|------|------------|----------------|----------|
+| file_write | Pattern-based | confirm/block | `*.prod.*`, `config/` |
+| delete | Medium-Critical | confirm | Git-tracked files |
+| external_api | Low-High | allow/confirm | Non-GET to unknown domains |
+| budget_exceeded | Medium-Critical | block | >80% of budget |
+
+**Risk Assessment:**
+```typescript
+const RISK_MATRIX = {
+  '**/*.prod.*': { level: 'critical', action: 'confirm' },
+  '**/secrets/**': { level: 'critical', action: 'block' },
+  '**/config/**': { level: 'high', action: 'confirm' },
+  '**/*.test.*': { level: 'low', action: 'allow' },
+};
+```
+
+**Timeout Configuration (from spec):**
+| Risk Level | Default Timeout | Max Escalation Depth |
+|------------|-----------------|---------------------|
+| Low | 30 minutes | 1 |
+| Medium | 15 minutes | 2 |
+| High | 5 minutes | 3 |
+| Critical | 2 minutes | 5 |
+
+**Commands:**
+```bash
+# Approval management
+dash approval list                    # List pending approvals
+dash approval get <id>                # Get approval details
+dash approval respond <id> --approve|deny --notes "..."
+dash approval approve-all --agent <id>  # Batch approve
+
+# Notification management
+dash approval notify add --webhook <url>
+dash approval notify test --webhook <url>
+
+# Audit
+dash approval audit --agent <id> --since "1h ago"
+```
+
+### 4.5 Workstream: Budget Enforcement (NEW - P1 Priority)
+
+**Subagent:** `phase4-budget`  
+**Task:** Implement token/cost limits per task and project  
+**Spec:** `SPEC_BUDGET_ENFORCEMENT.md` (15.4KB)
+
+**Files to Create:**
+- `src/safety/budget.ts` — Budget tracking and enforcement
+- `src/safety/cost.ts` — Cost attribution and calculation
+- `src/safety/thresholds.ts` — Threshold-based actions
+- `src/cli/commands/budget.ts` — Budget management commands
+
+**Budget Types (from spec):**
+| Type | Scope | Typical Values |
+|------|-------|----------------|
+| Per-Task | Single task | 100K tokens / $5.00 |
+| Per-Agent | Single agent | 1M tokens / $50.00 |
+| Per-Swarm | Agent swarm | 5M tokens / $250.00 |
+| Per-Project | All work | Unlimited / $1000/day |
+
+**Threshold Actions (from spec):**
+| Threshold | Action | Description |
+|-----------|--------|-------------|
+| 50% | Warn | Log warning, continue |
+| 75% | Warn + Notify | Log, send webhook alert |
+| 90% | Block | Pause agent, request approval |
+| 100% | Kill | Immediately terminate |
+| 110% | Audit | Flag for compliance review |
+
+**Commands:**
+```bash
+# Set budgets
+dash budget set --task 100000 --cost 5.00
+dash budget set --daily 500000 --cost 100.00 --project myproject
+
+# Monitor
+dash budget status
+dash budget status --agent my-agent
+dash budget usage --project myproject --period week
+
+# Alerts
+dash budget alert add --threshold 75% --webhook <url>
+dash budget alert test --threshold 90%
+
+# History & reporting
+dash budget history --project myproject --since "30d"
+dash budget report --project myproject --period month --format json
+```
+
 ---
 
 ## Phase 5: Advanced Integration
@@ -819,6 +923,165 @@ dash agents list  # Check active workstreams
 
 ---
 
+## Phase 6: Natural Language Interface (NEW)
+
+**Goal:** Enable natural language intent parsing for agent orchestration  
+**Primary Model:** Kimi K2.5  
+**Target:** `dash "Build me a REST API with auth"` → automatic task decomposition  
+**Status:** 📋 Not Started  
+**Spec:** `SPEC_NLP_INTENT.md` (18.6KB)
+
+### 6.1 Workstream: Intent Classification
+
+**Subagent:** `phase6-intent-class`  
+**Task:** Implement 8-category intent classification system
+
+**Files to Create:**
+- `src/nlp/classifier.ts` — Intent category classification
+- `src/nlp/patterns.ts` — Pattern library for intent detection
+- `src/nlp/entities.ts` — Entity extraction (tech stack, operations, quality)
+- `src/cli/commands/intent.ts` — `dash "..."` command
+
+**Intent Categories:**
+| Category | Examples | Complexity |
+|----------|----------|------------|
+| Build | "Build a REST API", "Create React component" | Medium |
+| Fix | "Fix the login bug", "Repair the build" | Low |
+| Refactor | "Clean up codebase", "Optimize performance" | High |
+| Research | "Find auth libraries", "Investigate error" | Medium |
+| Test | "Write unit tests", "Add integration tests" | Low |
+| Deploy | "Deploy to production", "Ship update" | Medium |
+| Document | "Write API docs", "Create README" | Low |
+| Analyze | "Analyze performance", "Review code" | Medium |
+
+**Commands:**
+```bash
+# Natural language intent
+dash "Build a REST API for user management with auth"
+dash "Fix the login bug on the homepage"
+
+# With options
+dash "Build an API" --dry-run --confirm
+dash "Research auth libraries" --output json
+```
+
+### 6.2 Workstream: Task Decomposition
+
+**Subagent:** `phase6-task-decomp`  
+**Task:** Convert parsed intents into discrete tasks with dependencies
+
+**Files to Create:**
+- `src/nlp/decomposition.ts` — Task decomposition logic
+- `src/nlp/templates.ts` — Task templates per category
+- `src/nlp/confidence.ts` — Confidence scoring system
+
+**Decomposition Rules:**
+- 3-10 tasks per intent based on complexity
+- Automatic dependency resolution
+- Quality gate configuration per category
+
+### 6.3 Workstream: Agent Matching
+
+**Subagent:** `phase6-agent-match`  
+**Task:** Match decomposed tasks to appropriate agents
+
+**Files to Create:**
+- `src/nlp/agent-selector.ts` — Agent capability matching
+- `src/nlp/templates/agents.yaml` — Agent template registry
+
+**Agent Templates:**
+- `full-stack-developer` (default for build)
+- `bug-fixer` (default for fix)
+- `qa-engineer` (default for test)
+- `technical-writer` (default for document)
+- `research-analyst` (default for research)
+
+### 6.4 Workstream: Ambiguity Handling
+
+**Subagent:** `phase6-ambiguity`  
+**Task:** Detect and resolve ambiguous intents
+
+**Files to Create:**
+- `src/nlp/ambiguity.ts` — Ambiguity detection
+- `src/nlp/clarify.ts` — Clarifying question generation
+- `src/nlp/learning.ts` — Pattern learning from corrections
+
+**Confidence Thresholds:**
+| Level | Threshold | Action |
+|-------|-----------|--------|
+| HIGH | > 85% | Auto-execute |
+| MEDIUM | 60-85% | Confirm before execute |
+| LOW | < 60% | Ask clarifying questions |
+
+---
+
+## Phase 7: Claude Code Bidirectional Sync (NEW)
+
+**Goal:** Full bidirectional sync between Dash and Claude Code CLI  
+**Primary Model:** Kimi K2.5  
+**Target:** Real-time context exchange, unified reasoning traces  
+**Status:** 📋 Not Started  
+**Spec:** `SPEC_CLAUDE_CODE_SYNC.md` (43.8KB)
+
+### 7.1 Workstream: Claude Code Integration
+
+**Subagent:** `phase7-claude-sync`  
+**Task:** Implement bidirectional context sync
+
+**Files to Create:**
+- `src/sync/claude-code.ts` — Claude Code API integration
+- `src/sync/context.ts` — Context format conversion
+- `src/sync/conflict.ts` — Conflict resolution
+- `src/cli/commands/sync.ts` — `dash sync` commands
+
+**Data Flow:**
+```bash
+# Dash → Claude Code
+dash sync to-claude --session <id>
+
+# Claude Code → Dash  
+dash sync from-claude --session <id>
+
+# Bidirectional
+dash sync full --session <id>
+```
+
+### 7.2 Workstream: Reasoning Trace Sync
+
+**Subagent:** `phase7-reasoning-sync`  
+**Task:** Sync reasoning traces between Dash and Claude Code
+
+**Files to Create:**
+- `src/sync/reasoning.ts` — Reasoning trace conversion
+- `src/sync/quality.ts` — Quality gate result sync
+
+**Trace Schema:**
+```typescript
+interface SyncReasoningTrace {
+  id: string;
+  sessionId: string;
+  agentId: string;
+  content: string;
+  confidence: number;
+  tokenCount: { input: number; output: number };
+  timestamp: Date;
+  metadata: { model: string; toolsUsed: string[] };
+}
+```
+
+### 7.3 Workstream: Sync Reliability
+
+**Subagent:** `phase7-sync-reliable`  
+**Task:** Handle offline, conflicts, and retry logic
+
+**Features:**
+- Offline queue with max 100 items
+- Exponential backoff retry (5 attempts)
+- Conflict detection and resolution (last-write-wins)
+- Audit logging for all sync operations
+
+---
+
 ## 10. Quick Reference
 
 ### 10.1 Essential Commands
@@ -864,9 +1127,19 @@ dash tasks list
 **Document Version:** 1.0  
 **Last Updated:** 2026-02-01  
 **Primary Model:** moonshot/kimi-k2-5  
-**Next Review:** After Phase 1 build passes
+**Next Review:** After Phase 4.4 (Approval Workflows) implementation
 
-**Spawn the first workstream:**
+**Spawn Phase 4+ workstreams:**
 ```bash
-sessions_spawn --label "phase1-build-fix" --model moonshot/kimi-k2-5 --task "Fix the 24 TypeScript build errors..."
+# Phase 4.4: Approval Workflows
+sessions_spawn --label "phase4-approval" --model moonshot/kimi-k2-5 --task "Implement human-in-loop approval workflows per SPEC_APPROVAL_WORKFLOW.md. Create src/safety/approval.ts, src/safety/pending.ts, src/safety/escalation.ts, src/cli/commands/approve.ts. Implement risk assessment, timeout/escalation logic, CLI commands. Test with file_write and delete operations."
+
+# Phase 4.5: Budget Enforcement
+sessions_spawn --label "phase4-budget" --model moonshot/kimi-k2-5 --task "Implement budget enforcement per SPEC_BUDGET_ENFORCEMENT.md. Create src/safety/budget.ts, src/safety/cost.ts, src/safety/thresholds.ts, src/cli/commands/budget.ts. Implement token tracking, cost calculation, threshold-based enforcement. Test with 50/75/90/100% thresholds."
+
+# Phase 6.1: Intent Classification
+sessions_spawn --label "phase6-intent-class" --model moonshot/kimi-k2-5 --task "Implement intent classification per SPEC_NLP_INTENT.md. Create src/nlp/classifier.ts, src/nlp/patterns.ts, src/nlp/entities.ts. Implement 8-category classification, entity extraction, confidence scoring. Test with 10+ example intents."
+
+# Phase 7.1: Claude Code Sync
+sessions_spawn --label "phase7-claude-sync" --model moonshot/kimi-k2-5 --task "Implement Claude Code bidirectional sync per SPEC_CLAUDE_CODE_SYNC.md. Create src/sync/claude-code.ts, src/sync/context.ts, src/sync/conflict.ts, src/cli/commands/sync.ts. Implement bidirectional context sync, conflict resolution. Test with sample sessions."
 ```

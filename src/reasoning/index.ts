@@ -46,6 +46,8 @@ export {
 // Confidence
 // ============================================================================
 
+// Note: These functions are used by CLI commands (reasoning.ts)
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export {
   trackConfidence,
   getConfidenceByAgent,
@@ -53,6 +55,7 @@ export {
   warnLowConfidence,
   getConfidenceStats
 } from './decisions';
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */
 
 // ============================================================================
 // Analysis (re-export from types)
@@ -68,7 +71,7 @@ export {
 import { 
   getDecisionsByAgent, 
   warnLowConfidence, 
-  getConfidenceStats 
+  getConfidenceStats
 } from './decisions';
 import { getTraceStats } from './traces';
 
@@ -85,9 +88,9 @@ export function initReasoning(_agentId: string): void {
 /**
  * Get complete reasoning report for an agent
  */
-export function getReasoningReport(agentId: string, _taskId?: string) {
-  // _taskId is reserved for future task-scoped reasoning
-  console.log(`Generating reasoning report for agent: ${agentId}`);
+export function getReasoningReport(agentId: string, taskId?: string) {
+  // taskId is reserved for future task-scoped reasoning reports
+  console.log(`Generating reasoning report for agent: ${agentId}${taskId ? ` (task: ${taskId})` : ''}`);
   return {
     traceStats: getTraceStats(agentId),
     confidenceStats: getConfidenceStats(agentId),
