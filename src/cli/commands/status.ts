@@ -4,31 +4,28 @@
  * Displays overall system status and health
  */
 
+import { logger } from '../../utils';
 import { memoryStore } from '../storage';
 
 export async function statusCommand(): Promise<void> {
-  console.log('Mission Control System Status');
-  console.log('==============================');
-  console.log('');
+  logger.info('Mission Control System Status');
+  logger.info('==============================');
+  logger.info('');
   
   const stats = memoryStore.getStats();
   
-  console.log('Storage:');
-  console.log(`  Agents:   ${stats.agents}`);
-  console.log(`  Tasks:    ${stats.tasks}`);
-  console.log(`  Events:   ${stats.events}`);
-  console.log('');
+  logger.info('Storage:', { agents: stats.agents, tasks: stats.tasks, events: stats.events });
   
-  console.log('Commands:');
-  console.log('  agents   - Manage agents (list, status, spawn, kill, pause, resume)');
-  console.log('  tasks    - Manage tasks (list, create, update, assign, dependencies)');
-  console.log('  events   - Manage events (stream, replay, history, types)');
-  console.log('  context  - Manage context (get, add, remove, tree, analyze)');
-  console.log('  status   - Display this status');
-  console.log('  help     - Show help');
-  console.log('');
+  logger.info('Commands:');
+  logger.info('  agents   - Manage agents (list, status, spawn, kill, pause, resume)');
+  logger.info('  tasks    - Manage tasks (list, create, update, assign, dependencies)');
+  logger.info('  events   - Manage events (stream, replay, history, types)');
+  logger.info('  context  - Manage context (get, add, remove, tree, analyze)');
+  logger.info('  status   - Display this status');
+  logger.info('  help     - Show help');
+  logger.info('');
   
-  console.log('Status: OPERATIONAL');
+  logger.info('Status: OPERATIONAL');
 }
 
 export default statusCommand;

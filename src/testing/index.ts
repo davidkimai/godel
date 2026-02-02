@@ -36,6 +36,5 @@ export {
   getTemplate,
   listTemplateNames,
   generateTest,
-  type TestTemplate,
-  type GenerateTestResult
+  GenerateTestResult
 } from './templates';

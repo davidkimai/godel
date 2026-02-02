@@ -3,7 +3,7 @@
  * Supports JSON and Table output formats
  */
 
-import { Agent, Task, Event } from '../models';
+import type { Agent, Task, Event } from '../models';
 
 /**
  * Format agents for output
@@ -185,7 +185,7 @@ export function formatError(error: Error | string): string {
 /**
  * Format success response
  */
-export function formatSuccess(data: any, format: 'json' | 'table'): string {
+export function formatSuccess(data: Record<string, unknown>, format: 'json' | 'table'): string {
   if (format === 'json') {
     return JSON.stringify({
       status: 'success',
@@ -193,7 +193,7 @@ export function formatSuccess(data: any, format: 'json' | 'table'): string {
     }, null, 2);
   }
   
-  return `✓ ${data.message || 'Operation completed successfully'}`;
+  return `✓ ${data['message'] || 'Operation completed successfully'}`;
 }
 
 /**
@@ -207,9 +207,9 @@ export function formatStatus(status: object, format: 'json' | 'table'): string {
     }, null, 2);
   }
   
-  const statusObj = status as Record<string, any>;
+  const statusObj = status as Record<string, unknown>;
   const lines = [
-    `System Status: ${statusObj.status || 'healthy'}`,
+    `System Status: ${statusObj['status'] || 'healthy'}`,
     `Timestamp: ${new Date().toISOString()}`,
     ''
   ];
@@ -255,7 +255,8 @@ function formatTime(date: Date | string): string {
 function formatTable(headers: string[], rows: string[][]): string {
   // Calculate column widths
   const widths = headers.map((h, i) => {
-    const maxLen = Math.max(h.length, ...rows.map(r => (r[i] || '').length));
+    const lengths = rows.map(r => (r[i] ?? '').length);
+    const maxLen = Math.max(h.length, ...lengths);
     return Math.min(maxLen + 2, 40); // Cap at 40 chars
   });
   
@@ -265,7 +266,10 @@ function formatTable(headers: string[], rows: string[][]): string {
   
   // Build data rows
   const dataRows = rows.map(row => 
-    row.map((cell, i) => (cell || '').substring(0, widths[i] - 1).padEnd(widths[i])).join(' | ')
+    row.map((cell, i) => {
+      const width = widths[i] ?? 20;
+      return (cell ?? '').substring(0, width - 1).padEnd(width);
+    }).join(' | ')
   );
   
   return [headerRow, separator, ...dataRows].join('\n');

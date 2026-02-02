@@ -3,9 +3,10 @@
  */
 
 import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as fs from 'fs';
-import {
+import { promisify } from 'util';
+
+import type {
   LintIssue,
   LintResult,
   SeverityLevel,
@@ -69,7 +70,7 @@ export async function runESLint(cwd: string, patterns: string[] = ['**/*.{js,ts,
           });
         }
       }
-    } catch (eslintError: any) {
+    } catch (eslintError: unknown) {
       // ESLint returns non-zero when issues found
     }
     
@@ -159,7 +160,7 @@ export async function runMyPy(cwd: string, patterns: string[] = ['**/*.py']): Pr
   return { errors: issues.filter(i => i.severity === 'error').length, warnings: issues.filter(i => i.severity === 'warning').length, issues };
 }
 
-export async function runRustfmt(cwd: string, patterns: string[] = ['**/*.rs']): Promise<LintResult> {
+export async function runRustfmt(cwd: string): Promise<LintResult> {
   const startTime = new Date();
   
   try {
@@ -230,9 +231,10 @@ export async function runTypeScriptCheck(cwd: string): Promise<{ errors: number;
         issues.push({ file: match[1], line: parseInt(match[2]), column: parseInt(match[3]), code: match[5], message: match[6], severity: match[4] === 'error' ? 'error' : 'warning' });
       }
     }
-  } catch (tscError: any) {
-    if (tscError.stdout) {
-      const lines = tscError.stdout.split('\n');
+  } catch (tscError) {
+    const err = tscError as { stdout?: string };
+    if (err.stdout) {
+      const lines = err.stdout.split('\n');
       for (const line of lines) {
         const match = line.match(/^(.+)\((\d+),(\d+)\):\s*(error|warning)\s*(TS\d+):\s*(.+)$/);
         if (match) {
@@ -245,7 +247,9 @@ export async function runTypeScriptCheck(cwd: string): Promise<{ errors: number;
   return { errors: issues.filter(i => i.severity === 'error').length, warnings: issues.filter(i => i.severity === 'warning').length, issues };
 }
 
-export async function runSecurityScan(cwd: string, tool: 'trivy' | 'semgrep' | 'bandit' = 'bandit'): Promise<{ vulnerabilities: SecurityVulnerability[]; success: boolean }> {
+export async function runSecurityScan(cwd: string): Promise<{ vulnerabilities: SecurityVulnerability[]; success: boolean }> {
+  // Security scan implementation pending - cwd parameter reserved for future use
+  void cwd;
   return { vulnerabilities: [], success: true };
 }
 

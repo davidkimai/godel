@@ -15,12 +15,12 @@ import {
   generateLintSummary,
   parseCriteriaJson,
   createGateFromCriteria
-} from '../src/quality/gates';
+} from '../../src/quality/gates';
 import {
   LintResult,
   QualityGate,
   SeverityLevel
-} from '../src/quality/types';
+} from '../../src/quality/types';
 
 // ============================================================================
 // Score Calculation Tests
@@ -119,7 +119,8 @@ describe('Score Calculation', () => {
     });
 
     it('should score below 40% proportionally', () => {
-      expect(calculateCoverageScore(20)).toBe(0.08);
+      // 20% coverage / 100 * 0.4 = 0.08 (may have floating point precision)
+      expect(calculateCoverageScore(20)).toBeCloseTo(0.08, 5);
       expect(calculateCoverageScore(0)).toBe(0);
     });
   });

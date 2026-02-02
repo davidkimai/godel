@@ -4,16 +4,21 @@
  */
 
 import {
+  generateEventId
+} from './types';
+import { logger } from '../utils/logger';
+
+import type {
   EventType,
   MissionEvent,
   BaseEvent,
   EventFilter,
-  generateEventId,
+  AgentStatus,
   AgentStatusChangedPayload,
-  TaskStatusChangedPayload,
-} from './types';
+  TaskStatus,
+  TaskStatusChangedPayload} from './types';
 
-type EventListener = (event: MissionEvent) => void;
+type EventListener = (_event: MissionEvent) => void;
 
 export class EventEmitter {
   private listeners: Map<EventType, Set<EventListener>> = new Map();
@@ -25,7 +30,7 @@ export class EventEmitter {
   /**
    * Emit an event to all subscribers
    */
-  emit(eventType: EventType, payload: any, source: BaseEvent['source'], correlationId?: string): MissionEvent {
+  emit(eventType: EventType, payload: unknown, source: BaseEvent['source'], correlationId?: string): MissionEvent {
     const event: MissionEvent = {
       id: generateEventId(),
       timestamp: new Date(),
@@ -45,7 +50,7 @@ export class EventEmitter {
         try {
           listener(event);
         } catch (error) {
-          console.error(`Error in event listener for ${eventType}:`, error);
+          logger.error(`Error in event listener for ${eventType}:`, { error });
         }
       }
     }
@@ -58,7 +63,7 @@ export class EventEmitter {
           try {
             listener(event);
           } catch (error) {
-            console.error(`Error in filtered event listener for ${eventType}:`, error);
+            logger.error(`Error in filtered event listener for ${eventType}:`, { error });
           }
         }
       }
@@ -69,7 +74,7 @@ export class EventEmitter {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in all-listener:', error);
+        logger.error('Error in all-listener:', { error });
       }
     }
 
@@ -234,18 +239,48 @@ export class EventEmitter {
    */
   emitAgentStatusChange(
     agentId: string,
-    previousStatus: string,
-    newStatus: string,
+    previousStatus: AgentStatus,
+    newStatus: AgentStatus,
     reason?: string,
     correlationId?: string
   ): MissionEvent {
     const payload: AgentStatusChangedPayload = {
       agentId,
-      previousStatus: previousStatus as any,
-      newStatus: newStatus as any,
+      previousStatus,
+      newStatus,
       reason,
     };
     return this.emit('agent.status_changed', payload, { agentId }, correlationId);
+  }
+
+  /**
+   * Emit agent paused event
+   */
+  emitAgentPaused(
+    agentId: string,
+    reason?: string,
+    correlationId?: string
+  ): MissionEvent {
+    const payload = {
+      agentId,
+      reason: reason || 'manual',
+    };
+    return this.emit('agent.paused', payload, { agentId }, correlationId);
+  }
+
+  /**
+   * Emit agent resumed event
+   */
+  emitAgentResumed(
+    agentId: string,
+    reason?: string,
+    correlationId?: string
+  ): MissionEvent {
+    const payload = {
+      agentId,
+      reason: reason || 'manual',
+    };
+    return this.emit('agent.resumed', payload, { agentId }, correlationId);
   }
 
   /**
@@ -253,15 +288,15 @@ export class EventEmitter {
    */
   emitTaskStatusChange(
     taskId: string,
-    previousStatus: string,
-    newStatus: string,
+    previousStatus: TaskStatus,
+    newStatus: TaskStatus,
     assigneeId?: string,
     correlationId?: string
   ): MissionEvent {
     const payload: TaskStatusChangedPayload = {
       taskId,
-      previousStatus: previousStatus as any,
-      newStatus: newStatus as any,
+      previousStatus,
+      newStatus,
       assigneeId,
     };
     return this.emit('task.status_changed', payload, { taskId }, correlationId);

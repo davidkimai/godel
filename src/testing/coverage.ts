@@ -5,9 +5,10 @@
  * Supports Istanbul, coverage.py, gcov, and Jacoco formats
  */
 
-import * as path from 'path';
 import * as fs from 'fs';
-import {
+import * as path from 'path';
+
+import type {
   CoverageReport,
   CoverageMetrics,
   CoverageMetric,
@@ -111,7 +112,7 @@ async function parseIstanbulCoverage(
       const content = await fs.promises.readFile(jsonFile, 'utf-8');
       const data = JSON.parse(content);
       
-      for (const [filePath, coverage] of Object.entries(data as Record<string, any>)) {
+      for (const [filePath, coverage] of Object.entries(data as Record<string, Record<string, Record<string, number> | undefined>>)) {
         const absolutePath = path.isAbsolute(filePath) 
           ? filePath 
           : path.join(cwd, filePath);
@@ -154,13 +155,13 @@ async function parseIstanbulCoverage(
  * Parse a single Istanbul coverage entry
  */
 function parseIstanbulFileCoverage(
-  coverage: any,
+  coverage: Record<string, Record<string, number> | undefined>,
   filePath: string
 ): FileCoverage {
-  const s = coverage.s || coverage.statements || {};
-  const b = coverage.b || coverage.branches || {};
-  const f = coverage.f || coverage.functions || {};
-  const l = coverage.l || coverage.lines || {};
+  const s = coverage['s'] || coverage['statements'] || {};
+  const b = coverage['b'] || coverage['branches'] || {};
+  const f = coverage['f'] || coverage['functions'] || {};
+  const l = coverage['l'] || coverage['lines'] || {};
 
   return {
     path: filePath,
@@ -287,7 +288,6 @@ function parseCoverageXml(content: string, baseDir: string): FileCoverage[] {
   
   // Simple XML parsing for coverage data
   const packageRegex = /<package[^>]*name="([^"]*)"[^>]*>/g;
-  const classRegex = /<class[^>]*name="([^"]*)"[^>]*>/g;
   const lineRegex = /<line[^>]*number="(\d+)"[^>]*hits="(\d+)"[^>]*branch="(true|false)"[^>]*\/>/g;
   
   let match;

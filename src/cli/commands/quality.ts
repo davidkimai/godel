@@ -6,26 +6,30 @@
  * Matches SPEC_V3.md Part IV (Quality Gate Framework)
  */
 
-import { Command } from 'commander';
-import { lintAgentCodebase, runLinters, runTypeScriptCheck, runMyPy, runSecurityScan, evaluateQualityGate, generateLintSummary, DEFAULT_GATES, formatGateResult, parseCriteriaJson, createGateFromCriteria } from '../quality/index.js';
-import { SecurityVulnerability } from '../quality/types.js';
-import { formatError, formatSuccess } from '../formatters';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { Command } from 'commander';
+
+import { lintAgentCodebase, runTypeScriptCheck, runMyPy, runSecurityScan, evaluateQualityGate, generateLintSummary, DEFAULT_GATES, formatGateResult, createGateFromCriteria } from '../../quality/index';
+import { logger } from '../../utils/logger';
+
+import type { SecurityVulnerability, QualityGate } from '../../quality/types';
+
 // formatJson helper function
-function formatJson(obj: any): string {
+function formatJson<T>(obj: T): string {
   return JSON.stringify(obj, null, 2);
 }
 
 interface QualityOptions {
-  format: 'json' | 'table';
-  language?: string;
+  format: 'json' | 'table' | 'summary';
+  language?: 'javascript' | 'typescript' | 'python' | 'rust' | 'go' | 'auto';
   prettier?: boolean;
   types?: boolean;
   security?: boolean;
   strict?: boolean;
   criteria?: string;
+  tool?: 'bandit' | 'semgrep' | 'trivy';
 }
 
 interface AgentInfo {
@@ -89,19 +93,19 @@ export function qualityLintCommand(): Command {
         const agent = findAgent(agentId);
         
         if (!agent) {
-          console.error(`Agent not found: ${agentId}`);
-          console.log('Hint: Check the agents directory for available agents');
+          logger.error(`Agent not found: ${agentId}`);
+          logger.info('Hint: Check the agents directory for available agents');
           process.exit(1);
         }
-        
-        console.log(`Running linter on agent: ${agent.id}`);
-        console.log(`Path: ${agent.path}`);
-        console.log('');
+
+        logger.info(`Running linter on agent: ${agent.id}`);
+        logger.info(`Path: ${agent.path}`);
+        logger.debug('');
         
         const results = await lintAgentCodebase({
           agentId,
           agentPath: agent.path,
-          language: options.language as any,
+          language: options.language,
           includePrettier: options.prettier,
           includeTypes: options.types
         });
@@ -110,9 +114,9 @@ export function qualityLintCommand(): Command {
         const summary = generateLintSummary(results.results);
         
         if (options.format === 'json') {
-          console.log(formatJson({
+          logger.info(formatJson({
             agentId,
-            results: results.results.map((r: any) => ({
+            results: results.results.map((r: { tool: string; success: boolean; summary: { errors: number; warnings: number }; issues: unknown[] }) => ({
               tool: r.tool,
               success: r.success,
               summary: r.summary,
@@ -123,28 +127,28 @@ export function qualityLintCommand(): Command {
             passed: summary.passed
           }));
         } else {
-          console.log('=== Lint Results ===\n');
-          
+          logger.info('=== Lint Results ===\n');
+
           for (const result of results.results) {
             const status = result.success ? '✅' : '❌';
-            console.log(`${status} ${result.tool.toUpperCase()}`);
-            console.log(`   Errors: ${result.summary.errors}`);
-            console.log(`   Warnings: ${result.summary.warnings}`);
-            console.log(`   Score: ${calculateLintScoreFromResults(result)}%`);
-            console.log('');
+            logger.info(`${status} ${result.tool.toUpperCase()}`);
+            logger.info(`   Errors: ${result.summary.errors}`);
+            logger.info(`   Warnings: ${result.summary.warnings}`);
+            logger.info(`   Score: ${calculateLintScoreFromResults(result)}%`);
+            logger.debug('');
           }
-          
-          console.log('=== Summary ===');
-          console.log(`Total Errors: ${summary.aggregate.errors}`);
-          console.log(`Total Warnings: ${summary.aggregate.warnings}`);
-          console.log(`Files with Issues: ${summary.aggregate.filesWithIssues.size}`);
-          console.log(`Overall Score: ${(summary.score * 100).toFixed(1)}%`);
-          console.log(`Status: ${summary.passed ? '✅ PASSED' : '❌ FAILED'}`);
+
+          logger.info('=== Summary ===');
+          logger.info(`Total Errors: ${summary.aggregate.errors}`);
+          logger.info(`Total Warnings: ${summary.aggregate.warnings}`);
+          logger.info(`Files with Issues: ${summary.aggregate.filesWithIssues.size}`);
+          logger.info(`Overall Score: ${(summary.score * 100).toFixed(1)}%`);
+          logger.info(`Status: ${summary.passed ? '✅ PASSED' : '❌ FAILED'}`);
         }
-        
+
         process.exit(summary.passed ? 0 : 1);
       } catch (error) {
-        console.error('Lint failed:', error instanceof Error ? error.message : String(error));
+        logger.error('Lint failed:', { error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
       }
     });
@@ -169,32 +173,32 @@ export function qualityTypesCommand(): Command {
         const agent = findAgent(agentId);
         
         if (!agent) {
-          console.error(`Agent not found: ${agentId}`);
+          logger.error(`Agent not found: ${agentId}`);
           process.exit(1);
         }
-        
-        console.log(`Running type checker on agent: ${agent.id}`);
-        console.log('');
-        
+
+        logger.info(`Running type checker on agent: ${agent.id}`);
+        logger.debug('');
+
         const agentFiles = fs.readdirSync(agent.path);
         const isTypeScript = agentFiles.some(f => f.endsWith('.ts') && !f.endsWith('.d.ts'));
         const isPython = agentFiles.some(f => f.endsWith('.py'));
-        
+
         let typeResult;
-        
+
         if (isTypeScript) {
           typeResult = await runTypeScriptCheck(agent.path);
         } else if (isPython) {
           typeResult = await runMyPy(agent.path);
         } else {
-          console.log('No type-checkable files found (TypeScript or Python)');
+          logger.info('No type-checkable files found (TypeScript or Python)');
           process.exit(0);
         }
         
         const score = calculateTypeScore(typeResult.errors, typeResult.warnings);
         
         if (options.format === 'json') {
-          console.log(formatJson({
+          logger.info(formatJson({
             agentId,
             language: isTypeScript ? 'typescript' : 'python',
             errors: typeResult.errors,
@@ -204,27 +208,27 @@ export function qualityTypesCommand(): Command {
             passed: typeResult.errors === 0
           }));
         } else {
-          console.log('=== Type Check Results ===\n');
-          console.log(`Language: ${isTypeScript ? 'TypeScript' : 'Python'}`);
-          console.log(`Errors: ${typeResult.errors}`);
-          console.log(`Warnings: ${typeResult.warnings}`);
-          console.log(`Score: ${(score * 100).toFixed(1)}%`);
-          console.log(`Status: ${typeResult.errors === 0 ? '✅ PASSED' : '❌ FAILED'}`);
-          
+          logger.info('=== Type Check Results ===\n');
+          logger.info(`Language: ${isTypeScript ? 'TypeScript' : 'Python'}`);
+          logger.info(`Errors: ${typeResult.errors}`);
+          logger.info(`Warnings: ${typeResult.warnings}`);
+          logger.info(`Score: ${(score * 100).toFixed(1)}%`);
+          logger.info(`Status: ${typeResult.errors === 0 ? '✅ PASSED' : '❌ FAILED'}`);
+
           if (typeResult.issues.length > 0) {
-            console.log('\nIssues:');
+            logger.info('\nIssues:');
             for (const issue of typeResult.issues.slice(0, 10)) {
-              console.log(`  ${issue.file}:${issue.line} - ${issue.message}`);
+              logger.info(`  ${issue.file}:${issue.line} - ${issue.message}`);
             }
             if (typeResult.issues.length > 10) {
-              console.log(`  ... and ${typeResult.issues.length - 10} more`);
+              logger.info(`  ... and ${typeResult.issues.length - 10} more`);
             }
           }
         }
-        
+
         process.exit(typeResult.errors === 0 ? 0 : 1);
       } catch (error) {
-        console.error('Type check failed:', error instanceof Error ? error.message : String(error));
+        logger.error('Type check failed:', { error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
       }
     });
@@ -249,26 +253,26 @@ export function qualitySecurityCommand(): Command {
         const agent = findAgent(agentId);
         
         if (!agent) {
-          console.error(`Agent not found: ${agentId}`);
+          logger.error(`Agent not found: ${agentId}`);
           process.exit(1);
         }
-        
-        console.log(`Running security scan on agent: ${agent.id}`);
-        console.log(`Tool: ${options.tool || 'bandit'}`);
-        console.log('');
-        
-        const result = await runSecurityScan(agent.path, options.tool as any);
-        
+
+        logger.info(`Running security scan on agent: ${agent.id}`);
+        logger.info(`Tool: ${options.tool || 'bandit'}`);
+        logger.debug('');
+
+        const result = await runSecurityScan(agent.path);
+
         // Count by severity
         const critical = result.vulnerabilities.filter((v: SecurityVulnerability) => v.severity === 'critical').length;
         const high = result.vulnerabilities.filter((v: SecurityVulnerability) => v.severity === 'high').length;
         const medium = result.vulnerabilities.filter((v: SecurityVulnerability) => v.severity === 'medium').length;
         const low = result.vulnerabilities.filter((v: SecurityVulnerability) => v.severity === 'low').length;
-        
+
         const passed = critical === 0 && high === 0;
-        
+
         if (options.format === 'json') {
-          console.log(formatJson({
+          logger.info(formatJson({
             agentId,
             tool: options.tool,
             vulnerabilities: result.vulnerabilities,
@@ -276,36 +280,36 @@ export function qualitySecurityCommand(): Command {
             passed
           }));
         } else {
-          console.log('=== Security Scan Results ===\n');
-          
+          logger.info('=== Security Scan Results ===\n');
+
           if (result.vulnerabilities.length === 0) {
-            console.log('✅ No security vulnerabilities found!');
+            logger.info('✅ No security vulnerabilities found!');
           } else {
-            console.log('Vulnerabilities by Severity:');
-            console.log(`  Critical: ${critical}`);
-            console.log(`  High: ${high}`);
-            console.log(`  Medium: ${medium}`);
-            console.log(`  Low: ${low}`);
-            console.log('');
-            
+            logger.info('Vulnerabilities by Severity:');
+            logger.info(`  Critical: ${critical}`);
+            logger.info(`  High: ${high}`);
+            logger.info(`  Medium: ${medium}`);
+            logger.info(`  Low: ${low}`);
+            logger.debug('');
+
             // Show critical and high vulnerabilities
             const criticalVulns = result.vulnerabilities.filter((v: SecurityVulnerability) => v.severity === 'critical' || v.severity === 'high');
             if (criticalVulns.length > 0) {
-              console.log('Critical/High Vulnerabilities:');
+              logger.info('Critical/High Vulnerabilities:');
               for (const vuln of criticalVulns) {
-                console.log(`  [${vuln.severity.toUpperCase()}] ${vuln.id}`);
-                console.log(`    ${vuln.title}`);
-                console.log(`    ${vuln.file}${vuln.line ? `:${vuln.line}` : ''}`);
+                logger.info(`  [${vuln.severity.toUpperCase()}] ${vuln.id}`);
+                logger.info(`    ${vuln.title}`);
+                logger.info(`    ${vuln.file}${vuln.line ? `:${vuln.line}` : ''}`);
               }
             }
           }
-          
-          console.log(`\nStatus: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+
+          logger.info(`\nStatus: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
         }
-        
+
         process.exit(passed ? 0 : 1);
       } catch (error) {
-        console.error('Security scan failed:', error instanceof Error ? error.message : String(error));
+        logger.error('Security scan failed:', { error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
       }
     });
@@ -327,22 +331,22 @@ export function qualityGateCommand(): Command {
     .option('--gate-type <lint|types|security|full>', 'Predefined gate type')
     .action(async (taskId: string, options: QualityOptions & { gateType?: string }) => {
       try {
-        console.log(`Evaluating quality gate for task: ${taskId}`);
-        console.log('');
-        
+        logger.info(`Evaluating quality gate for task: ${taskId}`);
+        logger.debug('');
+
         // Determine gate
-        let gate;
+        let gate: QualityGate;
         if (options.gateType && DEFAULT_GATES[options.gateType]) {
           gate = DEFAULT_GATES[options.gateType];
-          console.log(`Using predefined gate: ${options.gateType}`);
+          logger.info(`Using predefined gate: ${options.gateType}`);
         } else if (options.criteria) {
           gate = createGateFromCriteria(options.criteria, { name: 'custom' });
-          console.log('Using custom criteria');
+          logger.info('Using custom criteria');
         } else {
-          gate = DEFAULT_GATES.full;
-          console.log('Using default full gate');
+          gate = DEFAULT_GATES['full'];
+          logger.info('Using default full gate');
         }
-        
+
         // For now, create a mock evaluation
         // In a real implementation, this would gather results from actual runs
         const mockInput = {
@@ -353,22 +357,22 @@ export function qualityGateCommand(): Command {
           testPassRate: 100,
           securityVulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 }
         };
-        
+
         const result = evaluateQualityGate({
           gate,
           ...mockInput
         });
-        
+
         const output = formatGateResult(result, {
-          format: options.format as any,
+          format: options.format,
           verbose: true
         });
-        
-        console.log(output);
-        
+
+        logger.info(output);
+
         process.exit(result.passed ? 0 : 1);
       } catch (error) {
-        console.error('Gate evaluation failed:', error instanceof Error ? error.message : String(error));
+        logger.error('Gate evaluation failed:', { error: error instanceof Error ? error.message : String(error) });
         process.exit(1);
       }
     });

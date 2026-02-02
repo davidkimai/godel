@@ -3,7 +3,7 @@
  * Tracks context size, calculates token/char counts, and provides optimization suggestions
  */
 
-import { 
+import type { 
   ContextFile, 
   ContextType, 
   ContextLimits, 
@@ -184,7 +184,6 @@ export class ContextSizeCalculator {
    */
   generateOptimizationSuggestions(files: ContextFile[]): OptimizationSuggestion[] {
     const suggestions: OptimizationSuggestion[] = [];
-    const sizeByType = this.calculateSizeByType(files);
     const usagePercentage = this.calculateUsagePercentage(files);
     const totalTokens = this.estimateTokens(files);
 

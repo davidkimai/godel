@@ -3,14 +3,16 @@
  * Builds and analyzes dependency graphs with circular dependency detection
  */
 
-import { DependencyGraph, FileNode, SymbolTable, LanguageType } from './types';
 import { parseImports, detectLanguage } from './parser';
+import { logger } from '../utils/logger';
+
+import type { DependencyGraph, LanguageType } from './types';
 
 /**
  * Simple language parser interface for dependency extraction
  */
 interface LanguageParser {
-  inferDependencies(filePath: string, content: string): string[];
+  inferDependencies(_filePath: string, _content: string): string[];
 }
 
 /**
@@ -18,19 +20,12 @@ interface LanguageParser {
  */
 function createParser(language: LanguageType): LanguageParser {
   return {
-    inferDependencies: (filePath: string, content: string): string[] => {
-      const detectedLang = language || detectLanguage(filePath);
-      const imports = parseImports(content, detectedLang);
+    inferDependencies: (_filePath: string, _content: string): string[] => {
+      const detectedLang = language || detectLanguage(_filePath);
+      const imports = parseImports(_content, detectedLang);
       return imports.map(i => i.module);
     }
   };
-}
-
-/**
- * Get parser for a specific language
- */
-function getParserForLanguage(language: string): LanguageParser {
-  return createParser(language as LanguageType);
 }
 
 /**
@@ -61,9 +56,9 @@ export interface DependencyAnalysis {
 export class DependencyAnalyzer {
   private graph: DependencyGraph;
   private contents: Map<string, string>;
-  private parser: any | null;
+  private parser: LanguageParser | null;
 
-  constructor(dependencies: DependencyGraph, contents?: Map<string, string>, parser?: any) {
+  constructor(dependencies: DependencyGraph, contents?: Map<string, string>, parser?: LanguageParser) {
     this.graph = dependencies;
     this.contents = contents || new Map();
     this.parser = parser || null;
@@ -164,19 +159,24 @@ export class DependencyAnalyzer {
     return {
       hasCycles: cycles.length > 0,
       cycles,
-      path: [],
+      path: [...path],
     };
   }
 
   /**
-   * Find files that have no dependencies (leaf nodes in dependency sense)
+   * Find files that have no dependencies and no dependents (true orphans)
    */
   findOrphanFiles(): string[] {
     const orphans: string[] = [];
     
     for (const [file, deps] of this.graph.nodes) {
+      // Check if file has no dependencies
       if (deps.length === 0) {
-        orphans.push(file);
+        // Also check if file has no dependents
+        const dependents = this.getDependents(file);
+        if (dependents.length === 0) {
+          orphans.push(file);
+        }
       }
     }
     
@@ -261,26 +261,36 @@ export class DependencyAnalyzer {
 
   /**
    * Topologically sort the dependency graph
+   * Returns nodes in dependency order (dependencies before dependents)
+   * For a graph where main -> a means "main depends on a", returns [a, b, main]
    */
   topologicalSort(): string[] {
     const inDegree = new Map<string, number>();
     const nodes = Array.from(this.graph.nodes.keys());
 
-    // Initialize in-degrees
+    // Initialize in-degrees to 0
     for (const node of nodes) {
       inDegree.set(node, 0);
     }
 
     // Calculate in-degrees
-    for (const [file, deps] of this.graph.nodes) {
-      for (const dep of deps) {
-        if (inDegree.has(dep)) {
-          inDegree.set(dep, (inDegree.get(dep) || 0) + 1);
-        }
+    // In a dependency graph, edge (from, to) means "from depends on to"
+    // So we count how many nodes depend on each node (reversed interpretation)
+    for (const edge of this.graph.edges) {
+      const from = edge[0];
+      const to = edge[1];
+      if (from === undefined || to === undefined) continue;
+      
+      // 'from' depends on 'to', so increment 'from's in-degree
+      inDegree.set(from, (inDegree.get(from) || 0) + 1);
+      
+      // Ensure 'to' exists in the graph
+      if (!inDegree.has(to)) {
+        inDegree.set(to, 0);
       }
     }
 
-    // Kahn's algorithm
+    // Start with nodes that have no dependencies (in-degree 0)
     const queue: string[] = [];
     for (const [node, degree] of inDegree) {
       if (degree === 0) {
@@ -289,22 +299,30 @@ export class DependencyAnalyzer {
     }
 
     const result: string[] = [];
+    const processed = new Set<string>();
+    
     while (queue.length > 0) {
       const node = queue.shift()!;
       result.push(node);
+      processed.add(node);
 
-      for (const [file, deps] of this.graph.nodes) {
-        if (deps.includes(node)) {
-          inDegree.set(file, (inDegree.get(file) || 0) - 1);
-          if (inDegree.get(file) === 0) {
-            queue.push(file);
+      // Find all nodes that depend on this node
+      for (const edge of this.graph.edges) {
+        const from = edge[0];
+        const to = edge[1];
+        if (from === undefined || to === undefined) continue;
+        if (to === node && !processed.has(from)) {
+          inDegree.set(from, (inDegree.get(from) || 0) - 1);
+          if (inDegree.get(from) === 0) {
+            queue.push(from);
           }
         }
       }
     }
 
     // Check for cycles (if result doesn't include all nodes)
-    if (result.length !== nodes.length) {
+    const allNodes = new Set([...nodes, ...Array.from(inDegree.keys())]);
+    if (result.length !== allNodes.size) {
       throw new Error('Graph contains cycles - topological sort not possible');
     }
 
@@ -343,26 +361,30 @@ export class DependencyGraphBuilder {
   private nodes: Map<string, string[]>;
   private edges: string[][];
   private contents: Map<string, string>;
-  private parser: any | null;
+  private parser: LanguageParser | null;
+  private builtGraph: DependencyGraph | null;
 
   constructor() {
     this.nodes = new Map();
     this.edges = [];
     this.contents = new Map();
     this.parser = null;
+    this.builtGraph = null;
   }
 
   /**
    * Set the language parser
    */
-  setParser(parser: any | null): void {
+  setParser(parser: LanguageParser | null): void {
     this.parser = parser;
   }
 
   /**
    * Set language for parsing
    */
-  setLanguage(language: string): void {
+  setLanguage(_language: string): void {
+    // TODO: Use language parameter to configure parser
+    // For now, this is a placeholder for future parser configuration
     this.parser = null;
   }
 
@@ -371,15 +393,27 @@ export class DependencyGraphBuilder {
    */
   addFile(filePath: string, content?: string, metadata?: { imports?: string[]; exports?: string[] }): void {
     const normalizedPath = this.normalizePath(filePath);
-    this.nodes.set(normalizedPath, []);
+    
+    // Invalidate cached graph
+    this.builtGraph = null;
     
     if (content) {
       this.contents.set(normalizedPath, content);
     }
     
-    // If metadata is provided with imports, use those instead of parsing
+    // If metadata is provided with imports, use those and populate edges
     if (metadata?.imports) {
+      // Store raw imports temporarily - they'll be resolved during build()
       this.nodes.set(normalizedPath, metadata.imports);
+      // Also populate edges for explicit imports
+      for (const dep of metadata.imports) {
+        this.edges.push([normalizedPath, dep]);
+      }
+    } else {
+      // Ensure node exists even with no dependencies
+      if (!this.nodes.has(normalizedPath)) {
+        this.nodes.set(normalizedPath, []);
+      }
     }
   }
 
@@ -408,7 +442,7 @@ export class DependencyGraphBuilder {
           this.edges.push([filePath, dep]);
         }
       } catch (error) {
-        console.warn(`Warning: Failed to parse dependencies for ${filePath}: ${error}`);
+        logger.warn(`Warning: Failed to parse dependencies for ${filePath}: ${error}`);
       }
     }
   }
@@ -442,22 +476,105 @@ export class DependencyGraphBuilder {
    * Build the dependency graph
    */
   build(): DependencyGraph {
+    // Return cached graph if available
+    if (this.builtGraph) {
+      return this.builtGraph;
+    }
+
     // Ensure all contents are parsed
     this.ensureParsed();
 
-    // Ensure all referenced dependencies are in the graph
-    for (const deps of this.nodes.values()) {
-      for (const dep of deps) {
-        if (!this.nodes.has(dep)) {
-          this.nodes.set(dep, []);
-        }
+    // Normalize all edges by resolving relative paths
+    const normalizedEdges: [string, string][] = [];
+    const normalizedNodes = new Map<string, string[]>();
+    
+    // First, ensure all nodes exist in the normalized graph (even without edges)
+    for (const nodeEntry of this.nodes) {
+      const node = nodeEntry[0];
+      if (node === undefined) continue;
+      if (!normalizedNodes.has(node)) {
+        normalizedNodes.set(node, []);
+      }
+    }
+    
+    // Then, collect all normalized edges
+    for (const edge of this.edges) {
+      const from = edge[0];
+      const to = edge[1];
+      if (from === undefined || to === undefined) continue;
+      const normalizedTo = this.resolveImportPath(from, to);
+      normalizedEdges.push([from, normalizedTo]);
+    }
+    
+    // Build normalized adjacency list
+    for (const [from, to] of normalizedEdges) {
+      if (!normalizedNodes.has(from)) {
+        normalizedNodes.set(from, []);
+      }
+      normalizedNodes.get(from)!.push(to);
+      
+      // Ensure the target node exists
+      if (!normalizedNodes.has(to)) {
+        normalizedNodes.set(to, []);
       }
     }
 
-    return {
-      nodes: new Map(this.nodes),
-      edges: [...this.edges],
+    this.builtGraph = {
+      nodes: normalizedNodes,
+      edges: normalizedEdges,
     };
+
+    return this.builtGraph;
+  }
+
+  /**
+   * Resolve an import path relative to the importing file
+   */
+  private resolveImportPath(fromPath: string, importPath: string): string {
+    // If it's already an absolute path, return as-is
+    if (importPath.startsWith('/')) {
+      return importPath;
+    }
+    
+    // If it doesn't look like a relative import, return as-is (e.g., node_modules)
+    if (!importPath.startsWith('.')) {
+      return importPath;
+    }
+    
+    const fromDir = fromPath.substring(0, fromPath.lastIndexOf('/'));
+    let resolved = importPath;
+    
+    // Handle ./foo imports
+    if (importPath.startsWith('./')) {
+      resolved = fromDir + importPath.substring(1);
+    } 
+    // Handle ../foo imports
+    else if (importPath.startsWith('../')) {
+      let parentCount = 0;
+      let relPath = importPath;
+      while (relPath.startsWith('../')) {
+        parentCount++;
+        relPath = relPath.substring(3);
+      }
+      const fromParts = fromDir.split('/').filter(p => p);
+      const resolvedDir = fromParts.slice(0, Math.max(0, fromParts.length - parentCount));
+      resolved = '/' + [...resolvedDir, relPath].join('/');
+    }
+    
+    // Add .ts extension if not present
+    if (!resolved.match(/\.(ts|tsx|js|jsx)$/)) {
+      // Check if .ts version exists in our nodes
+      const withTs = resolved + '.ts';
+      const withTsx = resolved + '.tsx';
+      if (this.nodes.has(withTs)) {
+        return withTs;
+      } else if (this.nodes.has(withTsx)) {
+        return withTsx;
+      }
+      return withTs; // Default to .ts
+    }
+    
+    return resolved;
   }
 
   /**
@@ -465,7 +582,7 @@ export class DependencyGraphBuilder {
    */
   getAnalyzer(): DependencyAnalyzer {
     const graph = this.build();
-    return new DependencyAnalyzer(graph, this.contents, this.parser);
+    return new DependencyAnalyzer(graph, this.contents, this.parser ?? undefined);
   }
 
   /**
@@ -473,7 +590,9 @@ export class DependencyGraphBuilder {
    */
   getDependencies(filePath: string): string[] {
     const normalizedPath = this.normalizePath(filePath);
-    return this.nodes.get(normalizedPath) || [];
+    // Build the graph to get normalized paths
+    const graph = this.build();
+    return graph.nodes.get(normalizedPath) || [];
   }
 
   /**
@@ -481,9 +600,11 @@ export class DependencyGraphBuilder {
    */
   getDependents(filePath: string): string[] {
     const normalizedPath = this.normalizePath(filePath);
+    // Build the graph to get normalized paths
+    const graph = this.build();
     const dependents: string[] = [];
 
-    for (const [file, deps] of this.nodes) {
+    for (const [file, deps] of graph.nodes) {
       if (deps.includes(normalizedPath)) {
         dependents.push(file);
       }
@@ -516,36 +637,44 @@ export class DependencyGraphBuilder {
    * Get the longest dependency chain
    */
   getLongestChain(): string[] {
-    const analyzer = this.getAnalyzer();
-    const maxDepth = analyzer.calculateMaxDepth();
+    const graph = this.build();
+    let longestChain: string[] = [];
     
-    // Find the file with max depth
-    let longestFile = '';
-    let maxFoundDepth = 0;
-    
-    for (const file of this.nodes.keys()) {
-      const depth = this.calculateDepth(file, new Set());
-      if (depth > maxFoundDepth) {
-        maxFoundDepth = depth;
-        longestFile = file;
+    // Try building a chain from each node
+    for (const startNode of graph.nodes.keys()) {
+      const chain = this.buildChainFrom(startNode, graph, new Set());
+      if (chain.length > longestChain.length) {
+        longestChain = chain;
       }
     }
     
-    // Build the chain
-    const chain: string[] = [longestFile];
-    let current = longestFile;
-    const visited = new Set<string>();
-    
-    while (true) {
-      const deps = this.nodes.get(current) || [];
-      const next = deps.find(d => !visited.has(d) && this.calculateDepth(d, new Set()) === maxFoundDepth - chain.length);
-      if (!next) break;
-      chain.push(next);
-      visited.add(next);
-      current = next;
+    return longestChain;
+  }
+
+  /**
+   * Build the longest chain starting from a given node
+   */
+  private buildChainFrom(node: string, graph: DependencyGraph, visited: Set<string>): string[] {
+    if (visited.has(node)) {
+      return [];
     }
     
-    return chain;
+    visited.add(node);
+    const deps = graph.nodes.get(node) || [];
+    
+    if (deps.length === 0) {
+      return [node];
+    }
+    
+    let longestSubChain: string[] = [];
+    for (const dep of deps) {
+      const subChain = this.buildChainFrom(dep, graph, new Set(visited));
+      if (subChain.length > longestSubChain.length) {
+        longestSubChain = subChain;
+      }
+    }
+    
+    return [node, ...longestSubChain];
   }
 
   private calculateDepth(filePath: string, visited: Set<string>): number {
@@ -670,18 +799,22 @@ export function getDependents(
  * Get dependencies and dependents for a specific file
  */
 export function getFileDependencies(
-  files: { path: string; content: string }[],
+  files: { path: string; content?: string; imports?: string[] }[],
   filePath: string
 ): { dependencies: string[]; dependents: string[] } {
   const builder = new DependencyGraphBuilder();
-  
+
   for (const f of files) {
-    builder.addFile(f.path, f.content);
+    if (f.imports) {
+      builder.addFile(f.path, undefined, { imports: f.imports });
+    } else {
+      builder.addFile(f.path, f.content || '');
+    }
   }
-  
-  const graph = builder.build();
+
+  builder.build();
   const analyzer = builder.getAnalyzer();
-  
+
   return {
     dependencies: analyzer.getDependencies(filePath),
     dependents: analyzer.getDependents(filePath),
@@ -692,7 +825,7 @@ export function getFileDependencies(
  * Analyze dependency health for a collection of files
  */
 export function analyzeDependencyHealth(
-  files: { path: string; content: string }[]
+  files: { path: string; content?: string; imports?: string[] }[]
 ): {
   statistics: {
     totalFiles: number;
@@ -707,7 +840,11 @@ export function analyzeDependencyHealth(
   const builder = new DependencyGraphBuilder();
   
   for (const f of files) {
-    builder.addFile(f.path, f.content);
+    if (f.imports) {
+      builder.addFile(f.path, undefined, { imports: f.imports });
+    } else {
+      builder.addFile(f.path, f.content || '');
+    }
   }
   
   const graph = builder.build();

@@ -287,4 +287,99 @@ describe('Test Templates Module', () => {
       }
     });
   });
+  
+  describe('generateTestSuite', () => {
+    it('should create tests directory', () => {
+      const suiteDir = require('path').join(tempDir, 'suite-test');
+      
+      // Clear if exists
+      if (require('fs').existsSync(suiteDir)) {
+        require('fs').rmSync(suiteDir, { recursive: true });
+      }
+      
+      const { generateTestSuite } = require('../../src/testing/templates');
+      const result = generateTestSuite(suiteDir, 'jest');
+      
+      expect(result.success).toBe(true);
+      expect(require('fs').existsSync(require('path').join(suiteDir, 'tests'))).toBe(true);
+    });
+    
+    it('should return empty files array when no templates generated', () => {
+      const { generateTestSuite } = require('../../src/testing/templates');
+      const result = generateTestSuite(tempDir, 'jest');
+      
+      expect(result.files).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
+    
+    it('should handle already existing tests directory', () => {
+      const suiteDir = require('path').join(tempDir, 'suite-existing');
+      require('fs').mkdirSync(require('path').join(suiteDir, 'tests'), { recursive: true });
+      
+      const { generateTestSuite } = require('../../src/testing/templates');
+      const result = generateTestSuite(suiteDir, 'jest');
+      
+      expect(result.success).toBe(true);
+    });
+  });
+  
+  describe('generateTest error handling', () => {
+    it('should handle file write errors gracefully', () => {
+      // Attempt to write to an invalid path
+      const { generateTest } = require('../../src/testing/templates');
+      const result = generateTest({
+        template: 'unit',
+        targetFile: '/nonexistent/path/test.ts',
+        outputDir: '/invalid/directory',
+        framework: 'jest'
+      });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
+  
+  describe('Template variable replacement edge cases', () => {
+    it('should handle snake_case file names', () => {
+      const { generateTest } = require('../../src/testing/templates');
+      const result = generateTest({
+        template: 'unit',
+        targetFile: 'src/my_snake_case_component.tsx',
+        outputDir: tempDir
+      });
+      
+      expect(result.success).toBe(true);
+      
+      const content = require('fs').readFileSync(result.filePath!, 'utf-8');
+      expect(content).toContain('MySnakeCaseComponent');
+    });
+    
+    it('should handle ALL_CAPS file names', () => {
+      const { generateTest } = require('../../src/testing/templates');
+      const result = generateTest({
+        template: 'unit',
+        targetFile: 'src/UTILS.ts',
+        outputDir: tempDir
+      });
+      
+      expect(result.success).toBe(true);
+      
+      const content = require('fs').readFileSync(result.filePath!, 'utf-8');
+      expect(content).toContain('UTILS');
+    });
+    
+    it('should handle numbers in file names', () => {
+      const { generateTest } = require('../../src/testing/templates');
+      const result = generateTest({
+        template: 'unit',
+        targetFile: 'src/v2-api.ts',
+        outputDir: tempDir
+      });
+      
+      expect(result.success).toBe(true);
+      
+      const content = require('fs').readFileSync(result.filePath!, 'utf-8');
+      expect(content).toContain('V2Api');
+    });
+  });
 });

@@ -6,8 +6,10 @@
  */
 
 import { Command } from 'commander';
-import { formatError, formatStatus } from './formatters.js';
-import { memoryStore } from '../storage/memory.js';
+
+import { formatError } from './formatters';
+import { memoryStore } from '../storage/memory';
+import { logger } from '../utils';
 
 // Re-export storage singleton
 export { memoryStore };
@@ -17,13 +19,21 @@ export let globalFormat: 'json' | 'table' = 'table';
 
 // Global options applied to all commands
 export function configureGlobalOptions(program: Command): Command {
+  interface GlobalCommandOptions {
+    format?: 'json' | 'table';
+    output?: string;
+    quiet?: boolean;
+    debug?: boolean;
+  }
+
   program
     .option('--format <json|table>', 'Output format', 'table')
     .option('--output <path>', 'Output file path (optional)')
     .option('--quiet', 'Suppress non-essential output')
     .option('--debug', 'Enable debug mode')
-    .hook('preAction', function(this: Command) {
-      globalFormat = this.opts().format as 'json' | 'table';
+    .hook('preAction', function(_this: Command) {
+      const opts = _this.opts<GlobalCommandOptions>();
+      globalFormat = opts.format || 'table';
     });
   
   return program;
@@ -31,7 +41,7 @@ export function configureGlobalOptions(program: Command): Command {
 
 // Error handler for CLI
 export function handleError(error: unknown): never {
-  console.error(formatError(error as Error | string));
+  logger.error(formatError(error as Error | string));
   process.exit(1);
 }
 
@@ -53,7 +63,7 @@ export function createCLI(): Command {
     .version('1.0.0')
     .addHelpCommand('help [command]', 'Display help for a specific command')
     .configureOutput({
-      writeErr: (str) => console.error(str),
+      writeErr: (str) => logger.error(str),
     });
   
   return program;
@@ -69,28 +79,28 @@ export async function buildCLI(): Promise<Command> {
   // Import commands dynamically (models may not exist yet)
   try {
     // Agents command
-    const { default: agentsCommand } = await import('./commands/agents.js');
+    const { default: agentsCommand } = await import('./commands/agents');
     program.addCommand(agentsCommand());
     
     // Tasks command
-    const { default: tasksCommand } = await import('./commands/tasks.js');
+    const { default: tasksCommand } = await import('./commands/tasks');
     program.addCommand(tasksCommand());
     
     // Events command
-    const { default: eventsCommand } = await import('./commands/events.js');
+    const { default: eventsCommand } = await import('./commands/events');
     program.addCommand(eventsCommand());
     
     // Context command
-    const { default: contextCommand } = await import('./commands/context.js');
+    const { default: contextCommand } = await import('./commands/context');
     program.addCommand(contextCommand());
 
     // Quality command
-    const qualityModule = await import('./commands/quality.js');
+    const qualityModule = await import('./commands/quality');
     const qualityCommand = qualityModule.qualityCommand;
     program.addCommand(qualityCommand());
 
     // Tests command
-    const { default: testsCommand } = await import('./commands/tests.js');
+    const { default: testsCommand } = await import('./commands/tests');
     program.addCommand(testsCommand());
 
     // System commands
@@ -98,7 +108,7 @@ export async function buildCLI(): Promise<Command> {
       .command('status')
       .description('Display system status')
       .action(async () => {
-        const { default: statusCommand } = await import('./commands/status.js');
+        const { default: statusCommand } = await import('./commands/status');
         await statusCommand();
       });
     
@@ -112,7 +122,7 @@ export async function buildCLI(): Promise<Command> {
       
   } catch (error) {
     // Commands will be available after models are implemented
-    console.warn('Warning: Some commands may not be available until models are implemented');
+    logger.warn('Some commands may not be available until models are implemented');
   }
   
   return program;

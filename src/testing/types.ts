@@ -192,6 +192,6 @@ export interface TestTemplate {
   name: string;
   description: string;
   framework: string;
-  template: string;
-  fileName: string;
+  content: string;
+  fileName?: string;
 }

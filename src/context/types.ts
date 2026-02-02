@@ -105,17 +105,17 @@ export type LanguageType = 'typescript' | 'javascript' | 'python' | 'rust' | 'go
 
 // Dependency parser interface (language-agnostic)
 export interface DependencyParser {
-  parseImports(content: string): ImportStatement[];
-  parseExports(content: string): string[];
-  detectLanguage(filePath: string): LanguageType;
+  parseImports(_content: string): ImportStatement[];
+  parseExports(_content: string): string[];
+  detectLanguage(_filePath: string): LanguageType;
 }
 
 // Symbol table for indexing
 export interface SymbolTable {
-  get(path: string): { exports: string[]; imports: string[] } | undefined;
-  set(path: string, value: { exports: string[]; imports: string[] }): void;
-  has(path: string): boolean;
-  delete(path: string): void;
+  get(_path: string): { exports: string[]; imports: string[] } | undefined;
+  set(_path: string, _value: { exports: string[]; imports: string[] }): void;
+  has(_path: string): boolean;
+  delete(_path: string): void;
   entries(): IterableIterator<[string, { exports: string[]; imports: string[] }]>;
   keys(): IterableIterator<string>;
   values(): IterableIterator<{ exports: string[]; imports: string[] }>;

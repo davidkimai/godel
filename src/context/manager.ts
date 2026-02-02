@@ -5,18 +5,20 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { ContextSizeCalculator, calculateContextStats } from './size';
+import { FileTreeBuilder, buildFileTree, formatTreeAsString } from './tree';
 import { 
   ContextFile, 
   ContextType, 
   AgentContext, 
   ContextAnalysis,
   FileNode,
-  DependencyGraph,
-  ValidationResult,
-  OptimizationSuggestion
+  DependencyGraph
 } from './types';
-import { FileTreeBuilder, buildFileTree, formatTreeAsString } from './tree';
-import { ContextSizeCalculator, calculateContextStats } from './size';
+
+import type {
+  ValidationResult} from './types';
 
 // Default limits
 const DEFAULT_MAX_CONTEXT_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -307,7 +309,7 @@ export class ContextManager {
   /**
    * Import context from serialized data
    */
-  importContext(data: object): void {
+  importContext(data: Record<string, unknown>): void {
     const {
       agentId,
       contextSize,
@@ -316,20 +318,20 @@ export class ContextManager {
       outputContext = [],
       sharedContext = [],
       reasoningContext = [],
-    } = data as any;
+    } = data;
 
     const context: AgentContext = {
-      agentId,
-      contextSize: contextSize || 0,
+      agentId: agentId as string,
+      contextSize: (contextSize as number) || 0,
       contextWindow: this.sizeCalculator.getLimits().maxContextWindow,
-      contextUsage: contextUsage || 0,
-      inputContext,
-      outputContext,
-      sharedContext,
-      reasoningContext,
+      contextUsage: (contextUsage as number) || 0,
+      inputContext: inputContext as ContextFile[],
+      outputContext: outputContext as ContextFile[],
+      sharedContext: sharedContext as ContextFile[],
+      reasoningContext: reasoningContext as ContextFile[],
     };
 
-    this.agentContexts.set(agentId, context);
+    this.agentContexts.set(agentId as string, context);
   }
 
   // Private helper methods
@@ -358,6 +360,8 @@ export class ContextManager {
       case 'reasoning':
         return context.reasoningContext;
     }
+    // Ensure all cases return a value (for consistent-return)
+    return context.inputContext;
   }
 
   private getTotalFileCount(context: AgentContext): number {

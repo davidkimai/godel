@@ -8,34 +8,8 @@
  */
 
 // ============================================================================
-// Enums
+// Enums are defined in agent.ts (AgentStatus) and task.ts (TaskStatus, Priority)
 // ============================================================================
-
-export enum AgentStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  PAUSED = 'paused',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  BLOCKED = 'blocked',
-  KILLED = 'killed'
-}
-
-export enum TaskStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  BLOCKED = 'blocked',
-  CANCELLED = 'cancelled'
-}
-
-export enum Priority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical'
-}
 
 // ============================================================================
 // Agent Model
@@ -293,38 +267,38 @@ export interface SymbolTable {
 // ============================================================================
 
 export interface Storage<T> {
-  get(id: string): Promise<T | null>;
-  list(filter?: Record<string, unknown>): Promise<T[]>;
-  create(data: Partial<T>): Promise<T>;
-  update(id: string, data: Partial<T>): Promise<T>;
-  delete(id: string): Promise<void>;
+  get(_id: string): Promise<T | null>;
+  list(_filter?: Record<string, unknown>): Promise<T[]>;
+  create(_data: Partial<T>): Promise<T>;
+  update(_id: string, _data: Partial<T>): Promise<T>;
+  delete(_id: string): Promise<void>;
 }
 
 export interface AgentStorage extends Storage<Agent> {
-  spawn(data: Partial<Agent>): Promise<Agent>;
-  kill(id: string): Promise<void>;
-  pause(id: string): Promise<void>;
-  resume(id: string): Promise<void>;
-  retry(id: string, options?: Record<string, unknown>): Promise<Agent>;
+  spawn(_data: Partial<Agent>): Promise<Agent>;
+  kill(_id: string): Promise<void>;
+  pause(_id: string): Promise<void>;
+  resume(_id: string): Promise<void>;
+  retry(_id: string, _options?: Record<string, unknown>): Promise<Agent>;
 }
 
 export interface TaskStorage extends Storage<Task> {
-  create(data: Partial<Task>): Promise<Task>;
-  assign(taskId: string, agentId: string): Promise<Task>;
-  getDependencies(taskId: string): Promise<{ dependsOn: string[]; blocks: string[] }>;
-  createCheckpoint(taskId: string, data: Partial<Checkpoint>): Promise<Checkpoint>;
-  resolveBlocker(taskId: string, blockerId: string): Promise<void>;
+  create(_data: Partial<Task>): Promise<Task>;
+  assign(_taskId: string, _agentId: string): Promise<Task>;
+  getDependencies(_taskId: string): Promise<{ dependsOn: string[]; blocks: string[] }>;
+  createCheckpoint(_taskId: string, _data: Partial<Checkpoint>): Promise<Checkpoint>;
+  resolveBlocker(_taskId: string, _blockerId: string): Promise<void>;
 }
 
 export interface EventStorage extends Storage<Event> {
-  query(filter: {
+  query(_filter: {
     since?: Date;
     until?: Date;
     agentId?: string;
     taskId?: string;
     type?: EventType;
   }): Promise<Event[]>;
-  getRecent(options: { limit: number; type?: EventType }): Promise<Event[]>;
+  getRecent(_options: { limit: number; type?: EventType }): Promise<Event[]>;
 }
 
 // ============================================================================

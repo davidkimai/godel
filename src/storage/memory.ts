@@ -5,25 +5,25 @@
  */
 
 import {
+  TaskStatus
+} from '../models';
+
+import type {
   Agent,
   AgentStatus,
   Task,
-  TaskStatus,
   Event,
-  EventType,
-  createAgent,
-  createTask,
-  createEvent
+  EventType
 } from '../models';
 
 /**
  * Storage interface for CRUD operations
  */
 export interface Storage<T> {
-  create(item: T): T;
-  get(id: string): T | undefined;
-  update(id: string, data: Partial<T>): T | undefined;
-  delete(id: string): boolean;
+  create(_item: T): T;
+  get(_id: string): T | undefined;
+  update(_id: string, _data: Partial<T>): T | undefined;
+  delete(_id: string): boolean;
   list(): T[];
   count(): number;
 }
@@ -563,11 +563,14 @@ export class MemoryStore {
   readonly tasks: TaskStorage;
   /** Event storage */
   readonly events: EventStorage;
+  /** Metadata storage for caching and other purposes */
+  readonly metadata: Map<string, unknown>;
 
   constructor() {
     this.agents = new AgentStorage();
     this.tasks = new TaskStorage();
     this.events = new EventStorage();
+    this.metadata = new Map();
   }
 
   /**
@@ -577,6 +580,7 @@ export class MemoryStore {
     this.agents.clear();
     this.tasks.clear();
     this.events.clear();
+    this.metadata.clear();
   }
 
   /**

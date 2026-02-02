@@ -7,10 +7,13 @@
  */
 
 import { Command } from 'commander';
-import { validateFormat, handleError, globalFormat } from '../main';
-import { formatEvents, formatEvent } from '../formatters';
-import { Event, EventType } from '../../models/index';
+
 import { memoryStore } from '../../storage';
+import { logger } from '../../utils/logger';
+import { formatEvents } from '../formatters';
+import { validateFormat, handleError, globalFormat } from '../main';
+
+import type { Event} from '../../models/index';
 
 export function eventsCommand(): Command {
   const program = new Command('events');
@@ -30,19 +33,19 @@ export function eventsCommand(): Command {
     .option('--quiet', 'Minimal output')
     .action(async (options: { filter?: string; agent?: string; task?: string; quiet?: boolean }) => {
       try {
-        console.log('Streaming events... (Press Ctrl+C to stop)');
-        console.log('');
-        
+        logger.info('Streaming events... (Press Ctrl+C to stop)');
+        logger.debug('');
+
         // Subscribe to new events
         // In a real implementation, this would use WebSocket or SSE
         // For now, we'll show a message about how to use it
-        console.log('Event streaming requires WebSocket/SSE implementation.');
-        console.log('In production, connect to: ws://localhost:3000/events');
-        console.log('');
-        console.log('Filters:');
-        console.log(`  Type: ${options.filter || 'all'}`);
-        console.log(`  Agent: ${options.agent || 'all'}`);
-        console.log(`  Task: ${options.task || 'all'}`);
+        logger.info('Event streaming requires WebSocket/SSE implementation.');
+        logger.info('In production, connect to: ws://localhost:3000/events');
+        logger.debug('');
+        logger.info('Filters:');
+        logger.info(`  Type: ${options.filter || 'all'}`);
+        logger.info(`  Agent: ${options.agent || 'all'}`);
+        logger.info(`  Task: ${options.task || 'all'}`);
         
         // Keep the process running
         await new Promise(() => {});
@@ -96,9 +99,9 @@ export function eventsCommand(): Command {
         
         // Sort by timestamp
         events.sort((a: Event, b: Event) => a.timestamp.getTime() - b.timestamp.getTime());
-        
-        console.log(`Found ${events.length} events`);
-        console.log(formatEvents(events, format));
+
+        logger.info(`Found ${events.length} events`);
+        logger.info(formatEvents(events, format));
       } catch (error) {
         handleError(error);
       }
@@ -126,8 +129,8 @@ export function eventsCommand(): Command {
         // Sort by timestamp descending (newest first) and limit
         events.sort((a: Event, b: Event) => b.timestamp.getTime() - a.timestamp.getTime());
         events = events.slice(0, limit);
-        
-        console.log(formatEvents(events, format));
+
+        logger.info(formatEvents(events, format));
       } catch (error) {
         handleError(error);
       }
@@ -138,50 +141,50 @@ export function eventsCommand(): Command {
     .command('types')
     .description('List all available event types')
     .action(() => {
-      console.log('Available event types:');
-      console.log('');
-      console.log('Agent lifecycle:');
-      console.log('  agent.spawned        Agent was created');
-      console.log('  agent.status_changed Agent status changed');
-      console.log('  agent.completed      Agent finished successfully');
-      console.log('  agent.failed         Agent failed');
-      console.log('  agent.blocked        Agent is blocked');
-      console.log('  agent.paused         Agent was paused');
-      console.log('  agent.resumed        Agent was resumed');
-      console.log('  agent.killed         Agent was killed');
-      console.log('');
-      console.log('Task lifecycle:');
-      console.log('  task.created         Task was created');
-      console.log('  task.status_changed  Task status changed');
-      console.log('  task.assigned        Task was assigned to agent');
-      console.log('  task.completed       Task completed');
-      console.log('  task.blocked         Task is blocked');
-      console.log('  task.failed          Task failed');
-      console.log('  task.cancelled       Task was cancelled');
-      console.log('');
-      console.log('Context:');
-      console.log('  context.added        Context item added');
-      console.log('  context.removed      Context item removed');
-      console.log('  context.changed      Context item changed');
-      console.log('  context.snapshot     Context snapshot created');
-      console.log('');
-      console.log('Quality:');
-      console.log('  critique.requested   Critique requested');
-      console.log('  critique.completed   Critique completed');
-      console.log('  quality.gate_passed  Quality gate passed');
-      console.log('  quality.gate_failed  Quality gate failed');
-      console.log('');
-      console.log('Safety:');
-      console.log('  safety.violation_attempted  Safety boundary attempted');
-      console.log('  safety.boundary_crossed     Safety boundary crossed');
-      console.log('  safety.escalation_required  Human escalation required');
-      console.log('  safety.human_approval       Human approval received');
-      console.log('');
-      console.log('System:');
-      console.log('  system.bottleneck_detected  Performance issue detected');
-      console.log('  system.disconnected        Connection lost');
-      console.log('  system.emergency_stop       Emergency stop triggered');
-      console.log('  system.checkpoint          System checkpoint created');
+      logger.info('Available event types:');
+      logger.debug('');
+      logger.info('Agent lifecycle:');
+      logger.info('  agent.spawned        Agent was created');
+      logger.info('  agent.status_changed Agent status changed');
+      logger.info('  agent.completed      Agent finished successfully');
+      logger.info('  agent.failed         Agent failed');
+      logger.info('  agent.blocked        Agent is blocked');
+      logger.info('  agent.paused         Agent was paused');
+      logger.info('  agent.resumed        Agent was resumed');
+      logger.info('  agent.killed         Agent was killed');
+      logger.debug('');
+      logger.info('Task lifecycle:');
+      logger.info('  task.created         Task was created');
+      logger.info('  task.status_changed  Task status changed');
+      logger.info('  task.assigned        Task was assigned to agent');
+      logger.info('  task.completed       Task completed');
+      logger.info('  task.blocked         Task is blocked');
+      logger.info('  task.failed          Task failed');
+      logger.info('  task.cancelled       Task was cancelled');
+      logger.debug('');
+      logger.info('Context:');
+      logger.info('  context.added        Context item added');
+      logger.info('  context.removed      Context item removed');
+      logger.info('  context.changed      Context item changed');
+      logger.info('  context.snapshot     Context snapshot created');
+      logger.debug('');
+      logger.info('Quality:');
+      logger.info('  critique.requested   Critique requested');
+      logger.info('  critique.completed   Critique completed');
+      logger.info('  quality.gate_passed  Quality gate passed');
+      logger.info('  quality.gate_failed  Quality gate failed');
+      logger.debug('');
+      logger.info('Safety:');
+      logger.info('  safety.violation_attempted  Safety boundary attempted');
+      logger.info('  safety.boundary_crossed     Safety boundary crossed');
+      logger.info('  safety.escalation_required  Human escalation required');
+      logger.info('  safety.human_approval       Human approval received');
+      logger.debug('');
+      logger.info('System:');
+      logger.info('  system.bottleneck_detected  Performance issue detected');
+      logger.info('  system.disconnected        Connection lost');
+      logger.info('  system.emergency_stop       Emergency stop triggered');
+      logger.info('  system.checkpoint          System checkpoint created');
     });
   
   return program;
@@ -192,8 +195,11 @@ function parseTimeOption(timeStr: string): Date | null {
   // Handle relative time like "1h ago", "30m ago", "1d ago"
   const relativeMatch = timeStr.match(/^(\d+)([hmd])\s*ago$/i);
   if (relativeMatch) {
-    const value = parseInt(relativeMatch[1], 10);
-    const unit = relativeMatch[2].toLowerCase();
+    const valueStr = relativeMatch[1];
+    const unitStr = relativeMatch[2];
+    if (!valueStr || !unitStr) return null;
+    const value = parseInt(valueStr, 10);
+    const unit = unitStr.toLowerCase();
     const now = new Date();
     
     switch (unit) {

@@ -4,24 +4,43 @@
  * Commands: get, add, remove, share, analyze, optimize, snapshot, tree
  */
 
-import { Command } from 'commander';
-import { validateFormat, handleError, globalFormat } from '../main';
-import { formatContext } from '../formatters';
-import { memoryStore } from '../../storage';
-import { Agent } from '../../models/index';
 import * as fs from 'fs';
-import * as path from 'path';
+
+import { Command } from 'commander';
+
 import {
   FileTreeBuilder,
-  buildFileTree,
   formatTreeAsString,
   DependencyGraphBuilder,
-  DependencyAnalyzer,
-  detectCycles,
-  detectLanguage,
-  parseImports,
-  parseExports
 } from '../../context';
+import {
+  analyzeContext,
+  formatAnalysisAsJson,
+  formatAnalysisAsString,
+} from '../../context/analyze';
+import {
+  findConsolidationOpportunities,
+  applyConsolidation,
+  formatConsolidationAsString,
+  formatConsolidationAsJson
+} from '../../context/compact';
+import {
+  planOptimization,
+  applyOptimization,
+  formatOptimizationAsJson,
+  formatOptimizationAsString
+} from '../../context/optimize';
+import { memoryStore } from '../../storage';
+import { logger } from '../../utils/logger';
+import { formatContext } from '../formatters';
+import { validateFormat, handleError } from '../main';
+
+import type {
+  ConsolidationResult
+} from '../../context/compact';
+import type {
+  OptimizationResult
+} from '../../context/optimize';
 
 export function contextCommand(): Command {
   const program = new Command('context');
@@ -43,7 +62,7 @@ export function contextCommand(): Command {
           handleError(`Agent not found: ${agentId}`);
         }
         
-        console.log(formatContext(agent!.context, format));
+        logger.info(formatContext(agent.context, format));
       } catch (error) {
         handleError(error);
       }
@@ -62,7 +81,7 @@ export function contextCommand(): Command {
         }
         
         // Add file to appropriate context array
-        const context = agent!.context;
+        const context = agent.context;
         switch (options.type) {
           case 'output':
             if (!context.outputContext.includes(filePath)) {
@@ -76,11 +95,11 @@ export function contextCommand(): Command {
             break;
           case 'reasoning':
             // Reasoning context stored in metadata for now
-            if (!agent!.metadata.reasoningContext) {
-              agent!.metadata.reasoningContext = [];
+            if (!agent.metadata['reasoningContext']) {
+              agent.metadata['reasoningContext'] = [];
             }
-            if (!(agent!.metadata.reasoningContext as string[]).includes(filePath)) {
-              (agent!.metadata.reasoningContext as string[]).push(filePath);
+            if (!(agent.metadata['reasoningContext'] as string[]).includes(filePath)) {
+              (agent.metadata['reasoningContext'] as string[]).push(filePath);
             }
             break;
           default:
@@ -90,8 +109,8 @@ export function contextCommand(): Command {
         }
         
         memoryStore.agents.update(agentId, { context });
-        
-        console.log(`✓ Added ${filePath} to ${agent!.label || agentId} context (${options.type})`);
+
+        logger.info(`✓ Added ${filePath} to ${agent.label || agentId} context (${options.type})`);
       } catch (error) {
         handleError(error);
       }
@@ -108,22 +127,22 @@ export function contextCommand(): Command {
           handleError(`Agent not found: ${agentId}`);
         }
         
-        const context = agent!.context;
+        const context = agent.context;
         
         // Remove from all context arrays
         context.inputContext = context.inputContext.filter((p: string) => p !== filePath);
         context.outputContext = context.outputContext.filter((p: string) => p !== filePath);
         context.sharedContext = context.sharedContext.filter((p: string) => p !== filePath);
         
-        if (agent!.metadata.reasoningContext) {
-          agent!.metadata.reasoningContext = (agent!.metadata.reasoningContext as string[]).filter(
+        if (agent.metadata['reasoningContext']) {
+          agent.metadata['reasoningContext'] = (agent.metadata['reasoningContext'] as string[]).filter(
             (p: string) => p !== filePath
           );
         }
         
         memoryStore.agents.update(agentId, { context });
-        
-        console.log(`✓ Removed ${filePath} from ${agent!.label || agentId} context`);
+
+        logger.info(`✓ Removed ${filePath} from ${agent.label || agentId} context`);
       } catch (error) {
         handleError(error);
       }
@@ -146,14 +165,14 @@ export function contextCommand(): Command {
         }
         
         // Add to target's shared context
-        const targetContext = target!.context;
+        const targetContext = target.context;
         if (!targetContext.sharedContext.includes(filePath)) {
           targetContext.sharedContext.push(filePath);
         }
         
         memoryStore.agents.update(targetAgentId, { context: targetContext });
-        
-        console.log(`✓ Shared ${filePath} from ${agent!.label || agentId} to ${target!.label || targetAgentId}`);
+
+        logger.info(`✓ Shared ${filePath} from ${agent.label || agentId} to ${target.label || targetAgentId}`);
       } catch (error) {
         handleError(error);
       }
@@ -162,53 +181,38 @@ export function contextCommand(): Command {
   // context analyze
   program
     .command('analyze <agent-id>')
-    .description('Analyze context for an agent')
-    .action(async (agentId, options) => {
+    .description('Analyze context usage for an agent with detailed metrics and recommendations')
+    .option('--format <json|table>', 'Output format', 'table')
+    .action(async (agentId: string, options: { format: string }) => {
       const format = validateFormat(options.format);
-      
+
       try {
         const agent = memoryStore.agents.get(agentId);
         if (!agent) {
           handleError(`Agent not found: ${agentId}`);
         }
-        
-        const context = agent!.context;
-        const analysis = {
-          fileCount: context.inputContext.length + context.outputContext.length + context.sharedContext.length,
-          inputCount: context.inputContext.length,
-          outputCount: context.outputContext.length,
-          sharedCount: context.sharedContext.length,
-          size: context.contextSize,
-          usagePercent: Math.round((context.contextUsage / context.contextWindow) * 100),
-          recommendations: [] as string[]
-        };
-        
-        // Generate recommendations
-        if (analysis.usagePercent > 80) {
-          analysis.recommendations.push('Context usage is high (>80%). Consider removing unused files.');
-        }
-        if (context.inputContext.length > 20) {
-          analysis.recommendations.push('Large input context. Consider splitting into smaller chunks.');
-        }
-        if (analysis.fileCount === 0) {
-          analysis.recommendations.push('No context files. Add relevant files for better performance.');
-        }
-        
+
+        const context = agent.context;
+
+        // Get reasoning context from metadata if available
+        const metadata = agent.metadata;
+        const reasoningContext = Array.isArray(metadata?.['reasoningContext']) 
+          ? (metadata['reasoningContext'] as string[]) 
+          : [];
+
+        // Run enhanced analysis
+        const analysis = analyzeContext(
+          agentId,
+          context.inputContext,
+          context.outputContext,
+          context.sharedContext,
+          reasoningContext
+        );
+
         if (format === 'json') {
-          console.log(JSON.stringify(analysis, null, 2));
+          logger.info(formatAnalysisAsJson(analysis));
         } else {
-          console.log(`Context Analysis for ${agent!.label || agentId}:`);
-          console.log(`  Input Files:   ${analysis.inputCount}`);
-          console.log(`  Output Files:  ${analysis.outputCount}`);
-          console.log(`  Shared Files:  ${analysis.sharedCount}`);
-          console.log(`  Total Files:   ${analysis.fileCount}`);
-          console.log(`  Context Size:  ${analysis.size} bytes`);
-          console.log(`  Usage:         ${analysis.usagePercent}%`);
-          if (analysis.recommendations.length > 0) {
-            console.log('');
-            console.log('Recommendations:');
-            analysis.recommendations.forEach(r => console.log(`  - ${r}`));
-          }
+          logger.info(formatAnalysisAsString(analysis));
         }
       } catch (error) {
         handleError(error);
@@ -218,40 +222,181 @@ export function contextCommand(): Command {
   // context optimize
   program
     .command('optimize <agent-id>')
-    .description('Optimize context for an agent')
-    .option('--aggressive', 'Use aggressive optimization')
-    .action(async (agentId: string, options: { aggressive?: boolean }) => {
+    .description('Optimize context for an agent with actionable recommendations')
+    .option('--dry-run', 'Show what would be done without applying (default behavior)')
+    .option('--aggressive', 'Apply maximum optimization (may remove more files)')
+    .option('--apply', 'Actually apply optimizations')
+    .option('--format <json|table>', 'Output format', 'table')
+    .action(async (agentId: string, options: { dryRun?: boolean; aggressive?: boolean; apply?: boolean; format: string }) => {
+      const format = validateFormat(options.format);
+      const isDryRun = options.dryRun || !options.apply; // Default to dry run if neither flag specified
+
       try {
         const agent = memoryStore.agents.get(agentId);
         if (!agent) {
           handleError(`Agent not found: ${agentId}`);
         }
-        
-        const context = agent!.context;
-        let removed = 0;
-        
-        if (options.aggressive) {
-          // Remove all output context (likely no longer needed)
-          removed += context.outputContext.length;
-          context.outputContext = [];
-          
-          // Clear reasoning context
-          if (agent!.metadata.reasoningContext) {
-            removed += (agent!.metadata.reasoningContext as string[]).length;
-            agent!.metadata.reasoningContext = [];
+
+        const context = agent.context;
+
+        // Get reasoning context from metadata if available
+        const optMetadata = agent.metadata;
+        const reasoningContext = Array.isArray(optMetadata?.['reasoningContext']) 
+          ? (optMetadata['reasoningContext'] as string[]) 
+          : [];
+
+        let result: OptimizationResult;
+
+        if (options.apply && !isDryRun) {
+          // Actually apply optimizations
+          result = applyOptimization(
+            agentId,
+            [...context.inputContext],
+            [...context.outputContext],
+            [...context.sharedContext],
+            [...reasoningContext],
+            options.aggressive
+          );
+
+          // Update agent context with optimized values
+          context.inputContext = result.changes
+            .filter((c) => context.inputContext.includes(c.filePath))
+            .reduce((acc, c) => {
+              const idx = acc.indexOf(c.filePath);
+              if (idx > -1) acc.splice(idx, 1);
+              return acc;
+            }, [...context.inputContext]);
+
+          context.outputContext = result.changes
+            .filter((c) => context.outputContext.includes(c.filePath))
+            .reduce((acc, c) => {
+              const idx = acc.indexOf(c.filePath);
+              if (idx > -1) acc.splice(idx, 1);
+              return acc;
+            }, [...context.outputContext]);
+
+          context.sharedContext = result.changes
+            .filter((c) => context.sharedContext.includes(c.filePath))
+            .reduce((acc, c) => {
+              const idx = acc.indexOf(c.filePath);
+              if (idx > -1) acc.splice(idx, 1);
+              return acc;
+            }, [...context.sharedContext]);
+
+          // Remove duplicates
+          context.inputContext = [...new Set(context.inputContext)];
+          context.outputContext = [...new Set(context.outputContext)];
+          context.sharedContext = [...new Set(context.sharedContext)];
+
+          // Update context metadata
+          context.contextSize = result.newSize;
+          context.contextUsage = result.newSize / 10000000; // Approximate
+
+          memoryStore.agents.update(agentId, { context });
+
+          // Update reasoning context in metadata
+          if (options.aggressive && agent.metadata) {
+            (agent.metadata)['reasoningContext'] = [];
           }
+
+          logger.info(`✓ Context optimized for ${agent.label || agentId}`);
+          logger.info(`  Removed ${result.changes.length} items, saved ${formatBytes(result.savings)}`);
+        } else {
+          // Just show the plan (dry run)
+          result = planOptimization(
+            agentId,
+            context.inputContext,
+            context.outputContext,
+            context.sharedContext,
+            reasoningContext,
+            options.aggressive
+          );
+
+          logger.info(`Context Optimization Plan for ${agent.label || agentId}:`);
+          logger.info(`  Run with --apply to apply these optimizations`);
+          logger.debug('');
         }
-        
-        // Remove duplicates
-        context.inputContext = [...new Set(context.inputContext)];
-        context.outputContext = [...new Set(context.outputContext)];
-        context.sharedContext = [...new Set(context.sharedContext)];
-        
-        memoryStore.agents.update(agentId, { context });
-        
-        console.log(`✓ Context optimized for ${agent!.label || agentId}`);
-        if (removed > 0) {
-          console.log(`  Removed ${removed} items`);
+
+        if (format === 'json') {
+          logger.info(formatOptimizationAsJson(result));
+        } else {
+          logger.info(formatOptimizationAsString(result, isDryRun));
+        }
+      } catch (error) {
+        handleError(error);
+      }
+    });
+  
+  // context compact - Automatically consolidate files
+  program
+    .command('compact <agent-id>')
+    .description('Automatically consolidate related files in context')
+    .option('--apply', 'Actually apply consolidations (without this, just shows the plan)')
+    .option('--format <json|table>', 'Output format', 'table')
+    .action(async (agentId: string, options: { apply?: boolean; format: string }) => {
+      const format = validateFormat(options.format);
+
+      try {
+        const agent = memoryStore.agents.get(agentId);
+        if (!agent) {
+          handleError(`Agent not found: ${agentId}`);
+        }
+
+        const context = agent.context;
+
+        // Find consolidation opportunities
+        const groups = findConsolidationOpportunities(
+          context.inputContext,
+          context.outputContext,
+          context.sharedContext
+        );
+
+        // Calculate original file count
+        const originalCount = 
+          context.inputContext.length +
+          context.outputContext.length +
+          context.sharedContext.length;
+
+        // Calculate estimated savings
+        const savings = groups.reduce((sum, g) => sum + g.estimatedSavings, 0);
+
+        const result: ConsolidationResult = {
+          originalCount,
+          consolidatedCount: originalCount - groups.reduce((sum, g) => sum + g.files.length, 0) + groups.length,
+          savings,
+          groups,
+        };
+
+        if (options.apply) {
+          // Actually apply consolidations
+          const updated = applyConsolidation(
+            [...context.inputContext],
+            [...context.outputContext],
+            [...context.sharedContext],
+            groups
+          );
+
+          // Update context
+          context.inputContext = updated.inputContext;
+          context.outputContext = updated.outputContext;
+          context.sharedContext = updated.sharedContext;
+
+          memoryStore.agents.update(agentId, { context });
+
+          logger.info(`✓ Context consolidated for ${agent.label || agentId}`);
+          logger.info(`  Created ${updated.consolidatedFiles.length} consolidated files`);
+          logger.info(`  Removed ${groups.reduce((sum, g) => sum + g.files.length, 0)} original files`);
+        } else {
+          // Show plan
+          logger.info(`Context Consolidation Plan for ${agent.label || agentId}:`);
+          logger.info(`  Run with --apply to apply these consolidations`);
+          logger.debug('');
+        }
+
+        if (format === 'json') {
+          logger.info(formatConsolidationAsJson(result));
+        } else {
+          logger.info(formatConsolidationAsString(result, !options.apply));
         }
       } catch (error) {
         handleError(error);
@@ -273,15 +418,15 @@ export function contextCommand(): Command {
         const snapshot = {
           agentId,
           timestamp: new Date().toISOString(),
-          context: agent!.context,
-          metadata: agent!.metadata
+          context: agent.context,
+          metadata: agent.metadata
         };
         
         if (options.output) {
           fs.writeFileSync(options.output, JSON.stringify(snapshot, null, 2));
-          console.log(`✓ Snapshot saved to ${options.output}`);
+          logger.info(`✓ Snapshot saved to ${options.output}`);
         } else {
-          console.log(JSON.stringify(snapshot, null, 2));
+          logger.info(JSON.stringify(snapshot, null, 2));
         }
       } catch (error) {
         handleError(error);
@@ -312,7 +457,7 @@ export function contextCommand(): Command {
           handleError(`Agent not found: ${agentId}`);
         }
         
-        const context = agent!.context;
+        const context = agent.context;
         
         // Collect all files from context
         const allFiles = [
@@ -323,10 +468,10 @@ export function contextCommand(): Command {
         
         if (allFiles.length === 0) {
           if (format === 'json') {
-            console.log(JSON.stringify({ fileTree: null, message: 'No files in context' }, null, 2));
+            logger.info(JSON.stringify({ fileTree: null, message: 'No files in context' }, null, 2));
           } else {
-            console.log(`Context Tree for ${agent!.label || agentId}:`);
-            console.log('  (empty)');
+            logger.info(`Context Tree for ${agent.label || agentId}:`);
+            logger.info('  (empty)');
           }
           return;
         }
@@ -393,31 +538,31 @@ export function contextCommand(): Command {
         
         // Format output
         if (format === 'json') {
-          const output: any = {
+          const output: Record<string, unknown> = {
             agentId,
             fileTree: builder.format(maxDepth, true),
           };
-          
+
           if (dependencyGraph) {
-            output.dependencyGraph = dependencyGraph;
+            output['dependencyGraph'] = dependencyGraph;
           }
-          
+
           if (cycleInfo) {
-            output.cycles = cycleInfo;
+            output['cycles'] = cycleInfo;
           }
-          
-          console.log(JSON.stringify(output, null, 2));
+
+          logger.info(JSON.stringify(output, null, 2));
         } else {
           // Table/string format - same output
-          console.log(`Context Tree for ${agent!.label || agentId}:`);
-          console.log(formatTreeAsString(fileTree, '', true, maxDepth, 0, showDeps));
-          
+          logger.info(`Context Tree for ${agent.label || agentId}:`);
+          logger.info(formatTreeAsString(fileTree, '', true, maxDepth, 0, showDeps));
+
           if (cycleInfo) {
-            console.log('');
+            logger.debug('');
             if (cycleInfo.hasCycles) {
-              console.log(`⚠ Cycles: ${cycleInfo.cycleCount} detected`);
+              logger.warn(`⚠ Cycles: ${cycleInfo.cycleCount} detected`);
             } else {
-              console.log(`✓ No circular dependencies`);
+              logger.info(`✓ No circular dependencies`);
             }
           }
         }
@@ -444,7 +589,7 @@ export function contextCommand(): Command {
           handleError(`Agent not found: ${agentId}`);
         }
         
-        const context = agent!.context;
+        const context = agent.context;
         const allFiles = [
           ...context.inputContext,
           ...context.outputContext,
@@ -474,47 +619,47 @@ export function contextCommand(): Command {
           const dependents = analyzer.getDependents(file);
           
           if (format === 'json') {
-            console.log(JSON.stringify({
+            logger.info(JSON.stringify({
               file,
               dependencies: deps,
               dependents,
             }, null, 2));
           } else {
-            console.log(`Dependencies for ${file}:`);
-            console.log(`  Direct deps: ${deps.length}`);
-            deps.forEach(d => console.log(`    - ${d}`));
-            console.log(`  Dependents: ${dependents.length}`);
-            dependents.forEach(d => console.log(`    - ${d}`));
+            logger.info(`Dependencies for ${file}:`);
+            logger.info(`  Direct deps: ${deps.length}`);
+            deps.forEach(d => logger.info(`    - ${d}`));
+            logger.info(`  Dependents: ${dependents.length}`);
+            dependents.forEach(d => logger.info(`    - ${d}`));
           }
         } else {
           // Show all dependencies
           const analysis = analyzer.analyze();
-          
+
           if (format === 'json') {
-            console.log(JSON.stringify({
+            logger.info(JSON.stringify({
               totalFiles: allFiles.length,
               maxDepth: analysis.maxDepth,
               orphanFiles: analysis.orphanFiles,
               cycles: analysis.cycles,
             }, null, 2));
           } else {
-            console.log(`Dependency Analysis for ${agent!.label || agentId}:`);
-            console.log(`  Total files: ${allFiles.length}`);
-            console.log(`  Max dependency depth: ${analysis.maxDepth}`);
-            console.log(`  Orphan files: ${analysis.orphanFiles.length}`);
-            
+            logger.info(`Dependency Analysis for ${agent.label || agentId}:`);
+            logger.info(`  Total files: ${allFiles.length}`);
+            logger.info(`  Max dependency depth: ${analysis.maxDepth}`);
+            logger.info(`  Orphan files: ${analysis.orphanFiles.length}`);
+
             if (analysis.orphanFiles.length > 0) {
-              console.log('  Orphan files (no dependencies):');
-              analysis.orphanFiles.forEach(f => console.log(`    - ${f}`));
+              logger.info('  Orphan files (no dependencies):');
+              analysis.orphanFiles.forEach(f => logger.info(`    - ${f}`));
             }
-            
+
             if (analysis.cycles.hasCycles) {
-              console.log(`\n⚠ Circular dependencies detected (${analysis.cycles.cycles.length} cycles):`);
+              logger.warn(`\n⚠ Circular dependencies detected (${analysis.cycles.cycles.length} cycles):`);
               analysis.cycles.cycles.forEach((cycle, i) => {
-                console.log(`  Cycle ${i + 1}: ${cycle.join(' → ')}`);
+                logger.warn(`  Cycle ${i + 1}: ${cycle.join(' → ')}`);
               });
             } else {
-              console.log('\n✓ No circular dependencies');
+              logger.info('\n✓ No circular dependencies');
             }
           }
         }
@@ -522,8 +667,19 @@ export function contextCommand(): Command {
         handleError(error);
       }
     });
-  
+
   return program;
+}
+
+/**
+ * Format bytes to human-readable string
+ */
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 export default contextCommand;

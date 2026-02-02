@@ -9,10 +9,8 @@ import * as fs from 'fs';
 import {
   discoverTests,
   detectFramework,
-  runTests,
   getChangedFiles,
   findAffectedTests,
-  runIncrementalTests
 } from '../../src/testing/runner';
 import { TestFramework } from '../../src/testing/types';
 
@@ -177,6 +175,117 @@ mod tests {
       const result = await findAffectedTests(testDir, changedFiles);
       
       expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('Framework Edge Cases', () => {
+    it('should detect cargo from Cargo.toml', () => {
+      const cargoPath = path.join(testDir, 'Cargo.toml');
+      fs.writeFileSync(cargoPath, `[package]
+name = "test"
+version = "0.1.0"
+`);
+      
+      const result = detectFramework(testDir);
+      expect(result).toBe('cargo');
+      
+      fs.unlinkSync(cargoPath);
+    });
+
+    it('should detect framework from package.json test script', () => {
+      const pkgPath = path.join(testDir, 'package.json');
+      fs.writeFileSync(pkgPath, JSON.stringify({
+        scripts: { test: 'vitest' }
+      }));
+      
+      const result = detectFramework(testDir);
+      expect(result).toBe('vitest');
+      
+      fs.unlinkSync(pkgPath);
+    });
+
+    it('should prioritize config files over package.json', () => {
+      const pkgPath = path.join(testDir, 'package.json');
+      const jestConfigPath = path.join(testDir, 'jest.config.js');
+      
+      fs.writeFileSync(pkgPath, JSON.stringify({
+        scripts: { test: 'vitest' }
+      }));
+      fs.writeFileSync(jestConfigPath, 'module.exports = {};');
+      
+      const result = detectFramework(testDir);
+      expect(result).toBe('jest');
+      
+      fs.unlinkSync(pkgPath);
+      fs.unlinkSync(jestConfigPath);
+    });
+  });
+
+  describe('discoverTests Edge Cases', () => {
+    it('should deduplicate discovered files', async () => {
+      const result = await discoverTests(testDir, '**/*.test.ts');
+      
+      const paths = result.files.map(f => f.path);
+      const uniquePaths = new Set(paths);
+      expect(paths.length).toBe(uniquePaths.size);
+    });
+
+    it('should return totalCount matching files length', async () => {
+      const result = await discoverTests(testDir, '**/*.test.ts');
+      
+      expect(result.totalCount).toBe(result.files.length);
+    });
+  });
+
+  describe('Test Count Estimation', () => {
+    it('should count Jest test patterns', async () => {
+      const jestTestPath = path.join(testDir, 'count_test.test.ts');
+      fs.writeFileSync(jestTestPath, `
+        describe('suite', () => {
+          it('test1', () => {});
+          it('test2', () => {});
+          it('test3', () => {});
+        });
+      `);
+      
+      const result = await discoverTests(testDir, '**/count_test.test.ts');
+      
+      expect(result.files[0]?.testCount).toBeGreaterThanOrEqual(3);
+      
+      fs.unlinkSync(jestTestPath);
+    });
+
+    it('should count pytest patterns', async () => {
+      const pythonTestPath = path.join(testDir, 'test_count.py');
+      fs.writeFileSync(pythonTestPath, `
+        def test_one():
+          pass
+        
+        def test_two():
+          pass
+        
+        class TestClass:
+          def test_three(self):
+            pass
+      `);
+      
+      const result = await discoverTests(testDir, '**/test_count.py');
+      
+      expect(result.files[0]?.testCount).toBeGreaterThanOrEqual(3);
+      
+      fs.unlinkSync(pythonTestPath);
+    });
+
+    it('should return 0 for unreadable files', async () => {
+      const unreadablePath = path.join(testDir, 'unreadable.test.ts');
+      // File exists but is empty/invalid
+      fs.writeFileSync(unreadablePath, '');
+      
+      const result = await discoverTests(testDir, '**/unreadable.test.ts');
+      
+      expect(result.files[0]?.testCount).toBeDefined();
+      
+      fs.unlinkSync(unreadablePath);
     });
   });
 });

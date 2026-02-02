@@ -7,10 +7,14 @@
  */
 
 import { Command } from 'commander';
-import { validateFormat, handleError, globalFormat } from '../main';
-import { formatTasks, formatTask } from '../formatters';
-import { Task, TaskStatus, TaskPriority, createTask, createEvent } from '../../models';
+
+import { TaskStatus, createTask, createEvent } from '../../models';
 import { memoryStore } from '../../storage';
+import { logger } from '../../utils/logger';
+import { formatTasks, formatTask } from '../formatters';
+import { validateFormat, handleError, globalFormat } from '../main';
+
+import type { Task} from '../../models';
 
 export function tasksCommand(): Command {
   const program = new Command('tasks');
@@ -47,7 +51,7 @@ export function tasksCommand(): Command {
         // Sort by createdAt descending (newest first)
         tasks.sort((a: Task, b: Task) => b.createdAt.getTime() - a.createdAt.getTime());
         
-        console.log(formatTasks(tasks, format));
+        logger.info(formatTasks(tasks, format));
       } catch (error) {
         handleError(error);
       }
@@ -82,8 +86,8 @@ export function tasksCommand(): Command {
           payload: { title, description, assigneeId: options.assignee, priority: options.priority }
         });
         memoryStore.events.create(event);
-        
-        console.log(formatTask(task, format));
+
+        logger.info(formatTask(task, format));
       } catch (error) {
         handleError(error);
       }
@@ -93,7 +97,7 @@ export function tasksCommand(): Command {
   program
     .command('get <task-id>')
     .description('Get details of a specific task')
-    .action(async (taskId: string, options: { format: string }) => {
+    .action(async (taskId: string) => {
       const format = validateFormat(globalFormat);
       
       try {
@@ -101,7 +105,7 @@ export function tasksCommand(): Command {
         if (!task) {
           handleError(`Task not found: ${taskId}`);
         }
-        console.log(formatTask(task!, format));
+        logger.info(formatTask(task, format));
       } catch (error) {
         handleError(error);
       }
@@ -111,7 +115,7 @@ export function tasksCommand(): Command {
   program
     .command('update <task-id> <status>')
     .description('Update task status')
-    .action(async (taskId: string, status: string, options: { format: string }) => {
+    .action(async (taskId: string, status: string) => {
       const format = validateFormat(globalFormat);
       
       try {
@@ -120,12 +124,12 @@ export function tasksCommand(): Command {
           handleError(`Task not found: ${taskId}`);
         }
         
-        const oldStatus = task!.status;
+        const oldStatus = task.status;
         const newStatus = status as TaskStatus;
         
         const updated = memoryStore.tasks.update(taskId, {
           status: newStatus,
-          completedAt: newStatus === TaskStatus.COMPLETED ? new Date() : task!.completedAt
+          completedAt: newStatus === TaskStatus.COMPLETED ? new Date() : task.completedAt
         });
         
         // Emit status change event
@@ -136,8 +140,8 @@ export function tasksCommand(): Command {
           payload: { previousStatus: oldStatus, newStatus }
         });
         memoryStore.events.create(event);
-        
-        console.log(formatTask(updated!, format));
+
+        logger.info(formatTask(updated!, format));
       } catch (error) {
         handleError(error);
       }
@@ -147,7 +151,7 @@ export function tasksCommand(): Command {
   program
     .command('assign <task-id> <agent-id>')
     .description('Assign a task to an agent')
-    .action(async (taskId: string, agentId: string, options: { format: string }) => {
+    .action(async (taskId: string, agentId: string) => {
       const format = validateFormat(globalFormat);
       
       try {
@@ -157,7 +161,7 @@ export function tasksCommand(): Command {
         }
         
         const updated = memoryStore.tasks.update(taskId, { assigneeId: agentId });
-        
+
         // Emit assign event
         const event = createEvent({
           type: 'task.assigned',
@@ -166,8 +170,8 @@ export function tasksCommand(): Command {
           payload: { agentId }
         });
         memoryStore.events.create(event);
-        
-        console.log(formatTask(updated!, format));
+
+        logger.info(formatTask(updated!, format));
       } catch (error) {
         handleError(error);
       }
@@ -177,7 +181,7 @@ export function tasksCommand(): Command {
   program
     .command('dependencies <task-id>')
     .description('Show dependencies for a task')
-    .action(async (taskId: string, options: { format: string }) => {
+    .action(async (taskId: string) => {
       const format = validateFormat(globalFormat);
       
       try {
@@ -188,35 +192,35 @@ export function tasksCommand(): Command {
         
         // Get dependent tasks
         const dependents = memoryStore.tasks.findDependents(taskId);
-        
-        console.log(`Task: ${taskId}`);
-        console.log(`Depends On: ${task!.dependsOn.length > 0 ? task!.dependsOn.join(', ') : 'none'}`);
-        console.log(`Blocked By: ${dependents.length > 0 ? dependents.map((t: Task) => t.id).join(', ') : 'none'}`);
-        console.log('');
-        
+
+        logger.info(`Task: ${taskId}`);
+        logger.info(`Depends On: ${task.dependsOn.length > 0 ? task.dependsOn.join(', ') : 'none'}`);
+        logger.info(`Blocked By: ${dependents.length > 0 ? dependents.map((t: Task) => t.id).join(', ') : 'none'}`);
+        logger.debug('');
+
         if (format === 'json') {
-          console.log(JSON.stringify({
+          logger.info(JSON.stringify({
             taskId,
-            dependsOn: task!.dependsOn,
+            dependsOn: task.dependsOn,
             blockedBy: dependents.map((t: Task) => t.id)
           }, null, 2));
         } else {
-          console.log('Depends On:');
-          if (task!.dependsOn.length === 0) {
-            console.log('  (none)');
+          logger.info('Depends On:');
+          if (task.dependsOn.length === 0) {
+            logger.info('  (none)');
           } else {
-            task!.dependsOn.forEach((depId: string) => {
+            task.dependsOn.forEach((depId: string) => {
               const dep = memoryStore.tasks.get(depId);
-              console.log(`  - ${depId} (${dep?.title || 'unknown'})`);
+              logger.info(`  - ${depId} (${dep?.title || 'unknown'})`);
             });
           }
-          console.log('');
-          console.log('Blocked By:');
+          logger.debug('');
+          logger.info('Blocked By:');
           if (dependents.length === 0) {
-            console.log('  (none)');
+            logger.info('  (none)');
           } else {
             dependents.forEach((t: Task) => {
-              console.log(`  - ${t.id} (${t.title})`);
+              logger.info(`  - ${t.id} (${t.title})`);
             });
           }
         }
@@ -232,9 +236,7 @@ export function tasksCommand(): Command {
     .option('--progress <0-1>', 'Progress value (0.0 to 1.0)', parseFloat)
     .option('--state <json>', 'State JSON object')
     .option('--label <text>', 'Checkpoint label')
-    .action(async (taskId: string, options: { format: string; progress?: number; state?: string; label?: string }) => {
-      const format = validateFormat(globalFormat);
-      
+    .action(async (taskId: string, options: { progress?: number; state?: string; label?: string }) => {
       try {
         const task = memoryStore.tasks.get(taskId);
         if (!task) {
@@ -243,21 +245,21 @@ export function tasksCommand(): Command {
         
         const checkpoint = {
           id: `cp-${Date.now()}`,
-          name: options.label || `Checkpoint ${(task!.checkpoints?.length || 0) + 1}`,
+          name: options.label || `Checkpoint ${(task.checkpoints?.length || 0) + 1}`,
           createdAt: new Date(),
           progress: options.progress || 0,
           state: options.state ? JSON.parse(options.state) : {}
         };
         
         // Add checkpoint to task
-        const checkpoints = task!.checkpoints || [];
+        const checkpoints = task.checkpoints || [];
         checkpoints.push(checkpoint);
         memoryStore.tasks.update(taskId, { checkpoints });
-        
-        console.log(`Checkpoint created for task ${taskId}:`);
-        console.log(`  ID: ${checkpoint.id}`);
-        console.log(`  Progress: ${(checkpoint.progress * 100).toFixed(0)}%`);
-        console.log(`  Name: ${checkpoint.name}`);
+
+        logger.info(`Checkpoint created for task ${taskId}:`);
+        logger.info(`  ID: ${checkpoint.id}`);
+        logger.info(`  Progress: ${(checkpoint.progress * 100).toFixed(0)}%`);
+        logger.info(`  Name: ${checkpoint.name}`);
       } catch (error) {
         handleError(error);
       }
@@ -275,10 +277,10 @@ export function tasksCommand(): Command {
         }
         
         // Remove blocker from dependsOn
-        const newDependsOn = task!.dependsOn.filter((id: string) => id !== blockerId);
+        const newDependsOn = task.dependsOn.filter((id: string) => id !== blockerId);
         memoryStore.tasks.update(taskId, { dependsOn: newDependsOn });
-        
-        console.log(`Blocker ${blockerId} resolved for task ${taskId}`);
+
+        logger.info(`Blocker ${blockerId} resolved for task ${taskId}`);
       } catch (error) {
         handleError(error);
       }

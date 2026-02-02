@@ -9,25 +9,29 @@
  *   dash tests watch <agent-id>
  */
 
-import { Command } from 'commander';
 import { join } from 'path';
-import { memoryStore } from '../../storage/index.js';
-import { 
-  runTests, 
-  detectFramework,
-  discoverTests
-} from '../../runner.js';
+
+import { Command } from 'commander';
+
+import { memoryStore } from '../../../storage/index';
+import { logger } from '../../../utils';
 import { 
   parseCoverage, 
   formatCoverageSummary, 
   checkCoverageThresholds 
-} from '../../coverage.js';
-import { TestFramework } from '../../types.js';
+} from '../../coverage';
+import { 
+  runTests, 
+  detectFramework,
+  discoverTests
+} from '../../runner';
+
+import type { TestFramework, TestExecutionResult } from '../../types';
 
 /**
  * Get framework-specific test patterns
  */
-function getDefaultPatterns(framework: TestFramework | null): string[] {
+export function getDefaultPatterns(framework: TestFramework | null): string[] {
   const patterns: Record<TestFramework, string[]> = {
     jest: ['**/*.test.{ts,js,tsx,jsx}', '**/*.spec.{ts,js,tsx,jsx}'],
     vitest: ['**/*.test.{ts,js,tsx,jsx}', '**/*.spec.{ts,js,tsx,jsx}'],
@@ -43,7 +47,7 @@ function getDefaultPatterns(framework: TestFramework | null): string[] {
 /**
  * Format test summary for display
  */
-function formatTestSummary(result: any): string {
+export function formatTestSummary(result: TestExecutionResult): string {
   const lines: string[] = [];
   lines.push('Test Summary:');
   lines.push('='.repeat(50));
@@ -52,11 +56,6 @@ function formatTestSummary(result: any): string {
   lines.push(`Failed: ${result.summary?.failed || 0}`);
   lines.push(`Skipped: ${result.summary?.skipped || 0}`);
   lines.push(`Duration: ${result.duration || 0}ms`);
-  
-  if (result.coverage) {
-    lines.push('');
-    lines.push(formatCoverageSummary(result.coverage.metrics));
-  }
   
   return lines.join('\n');
 }
@@ -76,7 +75,7 @@ async function findAndParseCoverage(cwd: string, format?: string) {
 /**
  * List available test templates
  */
-function listTestTemplates(): Record<string, string> {
+export function listTestTemplates(): Record<string, string> {
   return {
     'unit': 'Unit test template',
     'integration': 'Integration test template',
@@ -94,7 +93,7 @@ function listTestTemplates(): Record<string, string> {
 /**
  * Generate test template
  */
-function generateTestTemplate(options: {
+export function generateTestTemplate(options: {
   template: string;
   framework: TestFramework | null;
   outputDir: string;
@@ -124,20 +123,20 @@ from {{filename}} import {{className}}
 
 
 def test_{{className.lower()}}_creation():
-    \"\"\"Test {{className}} creation.\"\"\"
+    """Test {{className}} creation."""
     instance = {{className}}()
     assert instance is not None
 
 
 class Test{{className}}:
-    \"\"\"Test cases for {{className}}.\"\"\"
-    
+    """Test cases for {{className}}."""
+
     def setup_method(self):
-        \"\"\"Set up test fixtures.\"\"\"
+        """Set up test fixtures."""
         self.instance = {{className}}()
-    
+
     def test_example(self):
-        \"\"\"Test example.\"\"\"
+        """Test example."""
         assert True
 `,
       unittest: `import unittest
@@ -145,14 +144,14 @@ from {{filename}} import {{className}}
 
 
 class Test{{className}}(unittest.TestCase):
-    \"\"\"Test cases for {{className}}.\"\"\"
+    """Test cases for {{className}}."""
     
     def setUp(self):
-        \"\"\"Set up test fixtures.\"\"\"
+        """Set up test fixtures."""
         self.instance = {{className}}()
     
     def test_creation(self):
-        \"\"\"Test creation.\"\"\"
+        """Test creation."""
         self.assertIsNotNone(self.instance)
 `,
       cargo: `#[cfg(test)]
@@ -234,36 +233,27 @@ export function testsCommand(): Command {
           throw new Error(`Agent not found: ${agentId}`);
         }
         
-        console.log(`\nRunning tests for agent: ${agentId}`);
-        console.log(`Task: ${agent.task}`);
-        console.log('─'.repeat(50));
+        logger.info(`Running tests for agent: ${agentId}`);
+        logger.info(`Task: ${agent.task}`);
+        logger.debug('─'.repeat(50));
         
         // Get working directory (agent's code directory)
         const workingDir = process.cwd();
         
         // Detect framework
         const detectedFramework = detectFramework(workingDir);
-        let framework: TestFramework = (options.framework as TestFramework) || detectedFramework || 'jest';
+        const framework: TestFramework = (options.framework as TestFramework) || detectedFramework || 'jest';
         
         // Show patterns being used
         const patterns = getDefaultPatterns(framework);
         if (options.pattern) {
-          console.log(`Pattern: ${options.pattern}`);
+          logger.info(`Pattern: ${options.pattern}`);
         } else {
-          console.log('Default patterns:');
-          patterns.forEach(p => console.log(`  - ${p}`));
+          logger.info('Default patterns:');
+          patterns.forEach(p => logger.info(`  - ${p}`));
         }
         
-        console.log('');
-        
-        // Calculate incremental options
-        let incremental = false;
-        let changedSince: Date | undefined;
-        
-        if (options.changedSince) {
-          incremental = true;
-          changedSince = new Date(options.changedSince);
-        }
+        logger.debug('');
         
         // Run tests
         const result = await runTests({
@@ -273,10 +263,10 @@ export function testsCommand(): Command {
         });
         
         // Display results
-        console.log(formatTestSummary(result));
+        logger.info(formatTestSummary(result));
         
         // Emit test completion event
-        const { createEvent } = await import('../../models/event.js');
+        const { createEvent } = await import('../../../models/event');
         const event = createEvent({
           type: 'test.completed',
           entityType: 'agent',
@@ -297,7 +287,7 @@ export function testsCommand(): Command {
         }
         
       } catch (error) {
-        console.error('Error running tests:', error);
+        logger.error('Error running tests:', { error });
         process.exit(1);
       }
     });
@@ -319,10 +309,10 @@ export function testsCommand(): Command {
         
         if (options.list) {
           const templates = listTestTemplates();
-          console.log('\nAvailable Test Templates:');
-          console.log('─'.repeat(40));
+          logger.info('Available Test Templates:');
+          logger.debug('─'.repeat(40));
           for (const [name, desc] of Object.entries(templates)) {
-            console.log(`  ${name.padEnd(20)} - ${desc}`);
+            logger.info(`  ${name.padEnd(20)} - ${desc}`);
           }
           return;
         }
@@ -335,11 +325,11 @@ export function testsCommand(): Command {
         const framework = detectFramework(workingDir);
         const outputDir = options.output || join(workingDir, 'tests');
         
-        console.log(`\nGenerating test template for agent: ${agentId}`);
-        console.log(`Framework: ${framework}`);
-        console.log(`Template: ${options.template}`);
-        console.log(`Output: ${outputDir}`);
-        console.log('─'.repeat(50));
+        logger.info(`Generating test template for agent: ${agentId}`);
+        logger.info(`Framework: ${framework || 'unknown'}`);
+        logger.info(`Template: ${options.template}`);
+        logger.info(`Output: ${outputDir}`);
+        logger.debug('─'.repeat(50));
         
         const generated = generateTestTemplate({
           template: options.template,
@@ -352,15 +342,15 @@ export function testsCommand(): Command {
           throw new Error(generated.error);
         }
         
-        console.log(`\nGenerated ${generated.files.length} file(s):`);
+        logger.info(`Generated ${generated.files.length} file(s):`);
         for (const file of generated.files) {
-          console.log(`  ✓ ${file}`);
+          logger.info(`  ✓ ${file}`);
         }
         
-        console.log('\nTest template generated successfully!');
+        logger.info('Test template generated successfully!');
         
       } catch (error) {
-        console.error('Error generating test:', error);
+        logger.error('Error generating test:', { error });
         process.exit(1);
       }
     });
@@ -371,24 +361,24 @@ export function testsCommand(): Command {
     .description('Watch for file changes and run tests')
     .option('--pattern <glob>', 'Pattern to match test files')
     .option('--coverage', 'Include coverage')
-    .action(async (agentId: string, options: { pattern?: string; coverage?: boolean }) => {
+    .action(async (agentId: string) => {
       try {
         const agent = memoryStore.agents.get(agentId);
         if (!agent) {
           throw new Error(`Agent not found: ${agentId}`);
         }
         
-        console.log(`\nWatch mode for agent: ${agentId}`);
-        console.log('Press Ctrl+C to stop watching.');
-        console.log('─'.repeat(50));
-        console.log('Note: File watching requires additional setup (chokidar or similar)');
-        console.log('This is a placeholder for the watch functionality.');
+        logger.info(`Watch mode for agent: ${agentId}`);
+        logger.info('Press Ctrl+C to stop watching.');
+        logger.debug('─'.repeat(50));
+        logger.info('Note: File watching requires additional setup (chokidar or similar)');
+        logger.info('This is a placeholder for the watch functionality.');
         
         // In a full implementation, this would use chokidar or similar
         // to watch for file changes and re-run tests automatically
         
       } catch (error) {
-        console.error('Error in watch mode:', error);
+        logger.error('Error in watch mode:', { error });
         process.exit(1);
       }
     });
@@ -408,38 +398,38 @@ export function testsCommand(): Command {
         
         const workingDir = process.cwd();
         
-        console.log(`\nCoverage report for agent: ${agentId}`);
-        console.log('─'.repeat(50));
+        logger.info(`Coverage report for agent: ${agentId}`);
+        logger.debug('─'.repeat(50));
         
         const coverage = await findAndParseCoverage(workingDir, options.format);
         
         if (!coverage) {
-          console.log('No coverage report found.');
-          console.log('Run tests with --coverage flag first.');
+          logger.info('No coverage report found.');
+          logger.info('Run tests with --coverage flag first.');
           return;
         }
         
-        console.log(formatCoverageSummary(coverage.metrics));
+        logger.info(formatCoverageSummary(coverage.metrics));
         
         if (options.threshold) {
           const result = checkCoverageThresholds(coverage.metrics, { statements: options.threshold });
           
-          console.log(`\nThreshold Check: ${options.threshold}%`);
-          console.log('─'.repeat(40));
+          logger.info(`Threshold Check: ${options.threshold}%`);
+          logger.debug('─'.repeat(40));
           
           if (result.passed) {
-            console.log('✓ Coverage meets threshold!');
+            logger.info('✓ Coverage meets threshold!');
           } else {
-            console.log('✗ Coverage below threshold:');
+            logger.error('Coverage below threshold:');
             for (const failure of result.failures) {
-              console.log(`  - ${failure}`);
+              logger.error(`  - ${failure}`);
             }
             process.exit(1);
           }
         }
         
       } catch (error) {
-        console.error('Error showing coverage:', error);
+        logger.error('Error showing coverage:', { error });
         process.exit(1);
       }
     });
@@ -460,23 +450,23 @@ export function testsCommand(): Command {
         
         const patterns = getDefaultPatterns(framework);
         
-        console.log(`\nTest files for framework: ${framework}`);
-        console.log('─'.repeat(50));
+        logger.info(`Test files for framework: ${framework || 'auto-detected'}`);
+        logger.debug('─'.repeat(50));
         
         const files = await discoverTests(workingDir, patterns[0]);
         
         if (files.files.length === 0) {
-          console.log('No test files found.');
+          logger.info('No test files found.');
         } else {
           for (const file of files.files) {
-            console.log(`  ${file.path}`);
+            logger.info(`  ${file.path}`);
           }
         }
         
-        console.log(`\nTotal: ${files.totalCount} test file(s)`);
+        logger.info(`Total: ${files.totalCount} test file(s)`);
         
       } catch (error) {
-        console.error('Error listing tests:', error);
+        logger.error('Error listing tests:', { error });
         process.exit(1);
       }
     });

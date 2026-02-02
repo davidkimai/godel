@@ -5,14 +5,12 @@
  * and pass/fail determination based on SPEC_V3.md Part IV.
  */
 
-import {
+import type {
   LintResult,
   LintSummary,
   QualityCriterion,
   QualityGate,
-  GateEvaluationResult,
-  SeverityLevel
-} from './types';
+  GateEvaluationResult} from './types';
 
 // ============================================================================
 // Score Calculation
@@ -105,14 +103,10 @@ export function calculateScore(input: ScoreInput): number {
 export function calculateLintScore(results: LintResult[]): number {
   let totalErrors = 0;
   let totalWarnings = 0;
-  let totalFiles = 0;
   
   for (const result of results) {
     totalErrors += result.summary.errors;
     totalWarnings += result.summary.warnings;
-    if (result.issues.length > 0) {
-      totalFiles += new Set(result.issues.map(i => i.file)).size;
-    }
   }
   
   // Base penalty for errors (severe)
@@ -207,82 +201,91 @@ export interface GateEvaluationInput {
  */
 export function evaluateQualityGate(input: GateEvaluationInput): GateEvaluationResult {
   const { gate, lintResults, typeErrors, typeWarnings, testCoverage, testPassRate, securityVulnerabilities } = input;
-  
+
   const criterionScores: GateEvaluationResult['criterionScores'] = [];
   const failedCriteria: string[] = [];
   const recommendations: string[] = [];
-  
+
   // Evaluate each criterion
   for (const criterion of gate.criteria) {
     let score = 0;
     let passed = false;
-    
+
     switch (criterion.dimension) {
-      case 'correctness':
+      case 'correctness': {
         // Based on lint errors and type errors
         const errorCount = lintResults?.reduce((sum, r) => sum + r.summary.errors, 0) ?? 0;
         score = errorCount === 0 ? 1.0 : Math.max(0, 1 - errorCount * 0.1);
         break;
-        
-      case 'completeness':
+      }
+
+      case 'completeness': {
         // Based on test coverage and pass rate
         const coverage = testCoverage ?? 0;
         const passRate = testPassRate ?? 0;
         score = (coverage / 100 * 0.6 + passRate / 100 * 0.4);
         break;
-        
-      case 'consistency':
+      }
+
+      case 'consistency': {
         // Based on lint warnings
         const warningCount = lintResults?.reduce((sum, r) => sum + r.summary.warnings, 0) ?? 0;
         score = Math.max(0, 1 - warningCount * 0.02);
         break;
-        
-      case 'clarity':
+      }
+
+      case 'clarity': {
         // Based on style warnings and info messages
         const infoCount = lintResults?.reduce((sum, r) => sum + r.summary.info, 0) ?? 0;
         score = Math.max(0, 1 - infoCount * 0.01);
         break;
-        
-      case 'performance':
+      }
+
+      case 'performance': {
         // Based on performance-related lint issues
-        const perfIssues = lintResults?.flatMap(r => 
+        const perfIssues = lintResults?.flatMap(r =>
           r.issues.filter(i => i.category === 'performance')
         ).length ?? 0;
         score = Math.max(0, 1 - perfIssues * 0.1);
         break;
-        
-      case 'security':
+      }
+
+      case 'security': {
         // Based on security vulnerabilities
         const secVulns = securityVulnerabilities;
         if (secVulns) {
           score = calculateSecurityScore(secVulns);
         } else {
-          const secIssues = lintResults?.flatMap(r => 
+          const secIssues = lintResults?.flatMap(r =>
             r.issues.filter(i => i.category === 'security')
           ).length ?? 0;
           score = Math.max(0, 1 - secIssues * 0.15);
         }
         break;
-        
-      case 'style':
+      }
+
+      case 'style': {
         // Based on style warnings
         const styleWarnings = lintResults?.reduce((sum, r) => {
           return sum + r.issues.filter(i => i.category === 'style' && i.severity === 'warning').length;
         }, 0) ?? 0;
         score = Math.max(0, 1 - styleWarnings * 0.02);
         break;
-        
-      case 'type_safety':
+      }
+
+      case 'type_safety': {
         // Based on type errors
         const typeErr = typeErrors ?? 0;
         const typeWarn = typeWarnings ?? 0;
         score = calculateTypeScore(typeErr, typeWarn);
         break;
-        
-      case 'test_coverage':
+      }
+
+      case 'test_coverage': {
         // Based on test coverage
         score = calculateCoverageScore(testCoverage ?? 0);
         break;
+      }
     }
     
     passed = score >= criterion.threshold;
@@ -438,6 +441,11 @@ export const DEFAULT_GATES: Record<string, QualityGate> = {
 /**
  * Parse criteria JSON string into QualityCriterion array
  */
+interface ParsedCriteriaValue {
+  weight?: number;
+  threshold?: number;
+}
+
 export function parseCriteriaJson(criteriaJson: string): QualityCriterion[] {
   try {
     const parsed = JSON.parse(criteriaJson);
@@ -451,8 +459,8 @@ export function parseCriteriaJson(criteriaJson: string): QualityCriterion[] {
       // Parse "dimension:weight,dimension:weight" format
       return Object.entries(parsed).map(([dimension, values]) => ({
         dimension: dimension as QualityCriterion['dimension'],
-        weight: (values as any).weight ?? 0.1,
-        threshold: (values as any).threshold ?? 0.7
+        weight: (values as ParsedCriteriaValue).weight ?? 0.1,
+        threshold: (values as ParsedCriteriaValue).threshold ?? 0.7
       }));
     }
     return [];

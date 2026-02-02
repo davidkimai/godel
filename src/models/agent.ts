@@ -8,6 +8,7 @@
 /**
  * Possible states for an agent
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export enum AgentStatus {
   /** Agent has been created but not yet started */
   PENDING = 'pending',
@@ -24,6 +25,10 @@ export enum AgentStatus {
   /** Agent has been killed manually */
   KILLED = 'killed'
 }
+
+/**
+ * Type of reasoning trace
+ */
 
 /**
  * Type of reasoning trace
@@ -215,6 +220,10 @@ export interface Agent {
   completedAt?: Date;
   /** Total runtime in milliseconds */
   runtime: number;
+  
+  /** Pause state information */
+  pauseTime?: Date;
+  pausedBy?: string;
   
   /** Swarm identifier for grouping */
   swarmId?: string;

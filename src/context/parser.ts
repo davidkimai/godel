@@ -3,7 +3,7 @@
  * Parses import statements from various programming languages
  */
 
-import { ImportStatement, DependencyParser, LanguageType } from './types';
+import type { ImportStatement, DependencyParser, LanguageType } from './types';
 
 // Language-specific patterns for import statements
 const IMPORT_PATTERNS: Record<LanguageType, RegExp[]> = {
@@ -185,7 +185,7 @@ export function parseExports(
 /**
  * Detect language from file extension
  */
-export function detectLanguage(filePath: string): LanguageType {
+export function detectLanguage(filePath: string): LanguageType | null {
   const ext = filePath.split('.').pop()?.toLowerCase();
   
   switch (ext) {
@@ -204,7 +204,7 @@ export function detectLanguage(filePath: string): LanguageType {
     case 'go':
       return 'go';
     default:
-      return 'typescript';
+      return null;
   }
 }
 

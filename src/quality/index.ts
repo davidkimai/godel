@@ -49,9 +49,11 @@ export {
 // Convenience Functions
 // ============================================================================
 
-import { LintResult } from './types';
-import { calculateLintScore, generateLintSummary } from './gates';
-import { runLinters, LinterRunnerOptions } from './linter';
+import { generateLintSummary } from './gates';
+import { runLinters } from './linter';
+
+import type { LinterRunnerOptions } from './linter';
+import type { LintResult } from './types';
 
 /**
  * Quick lint function for a project

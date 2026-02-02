@@ -4,9 +4,10 @@
  * Generate test templates for various frameworks and test types
  */
 
-import * as path from 'path';
 import * as fs from 'fs';
-import { TestFramework } from './types';
+import * as path from 'path';
+
+import type { TestFramework } from './types';
 
 /**
  * Test template definition
@@ -125,20 +126,20 @@ from {{filename}} import {{className}}
 
 
 def test_{{className.lower()}}_creation():
-    \"\"\"Test {{className}} creation.\"\"\"
+    """Test {{className}} creation."""
     instance = {{className}}()
     assert instance is not None
 
 
 class Test{{className}}:
-    \"\"\"Test cases for {{className}}.\"\"\"
-    
+    """Test cases for {{className}}."""
+
     def setup_method(self):
-        \"\"\"Set up test fixtures.\"\"\"
+        """Set up test fixtures."""
         self.instance = {{className}}()
-    
+
     def test_example(self):
-        \"\"\"Test example.\"\"\"
+        """Test example."""
         assert True`,
     fileName: 'test_{{name}}.py'
   },
@@ -151,21 +152,21 @@ from {{filename}} import {{className}}
 
 
 class Test{{className}}Integration:
-    \"\"\"Integration tests for {{className}}.\"\"\"
+    """Integration tests for {{className}}."""
     
     @pytest.fixture
     def client(self):
-        \"\"\"Create test client.\"\"\"
+        """Create test client."""
         # Setup
         yield
         # Teardown
     
     def test_with_database(self, client):
-        \"\"\"Test interaction with database.\"\"\"
+        """Test interaction with database."""
         assert True
     
     def test_with_external_service(self, client):
-        \"\"\"Test interaction with external service.\"\"\"
+        """Test interaction with external service."""
         assert True`,
     fileName: 'test_{{name}}_integration.py'
   },
@@ -341,14 +342,14 @@ export function generateTest(options: {
     .join('');
   
   // Generate file name
-  let generatedFileName = templateObj.fileName
+  const generatedFileName = templateObj.fileName
     .replace('{{name}}', fileName)
     .replace('{{filename}}', fileName);
   
   const outputPath = path.join(targetDir, generatedFileName);
   
   // Generate content
-  let content = templateObj.template
+  const content = templateObj.template
     .replace(/\{\{className\}\}/g, className)
     .replace(/\{\{ClassName\}\}/g, className)
     .replace(/\{\{filename\}\}/g, fileName)
@@ -376,34 +377,19 @@ export function generateTest(options: {
  * Generate multiple test files for an agent
  */
 export function generateTestSuite(
-  targetDir: string,
-  framework: TestFramework
+  targetDir: string
 ): { success: boolean; files: string[]; errors: string[] } {
   const results = {
     success: true,
     files: [] as string[],
     errors: [] as string[]
   };
-  
-  // Get templates for the framework
-  const templates = getTemplates(framework);
-  
-  // Find source files in the target directory
-  const sourceExtensions: Record<TestFramework, string[]> = {
-    jest: ['.ts', '.tsx', '.js', '.jsx'],
-    vitest: ['.ts', '.tsx', '.js', '.jsx'],
-    pytest: ['.py'],
-    unittest: ['.py'],
-    cargo: ['.rs'],
-    go: ['.go']
-  };
-  
-  const extensions = sourceExtensions[framework] || [];
+
   const testDir = path.join(targetDir, 'tests');
-  
+
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
-  
+
   return results;
 }

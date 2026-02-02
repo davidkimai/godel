@@ -8,6 +8,7 @@
 /**
  * Possible states for a task
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export enum TaskStatus {
   /** Task has been created but not yet started */
   PENDING = 'pending',
@@ -26,6 +27,10 @@ export enum TaskStatus {
   /** Task has been completed successfully */
   COMPLETED = 'completed'
 }
+
+/**
+ * Priority levels for tasks
+ */
 
 /**
  * Priority levels for tasks

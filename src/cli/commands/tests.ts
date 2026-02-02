@@ -8,26 +8,29 @@
  * - generate: Generate test templates
  */
 
-import { Command } from 'commander';
-import * as path from 'path';
 import { EventEmitter } from 'events';
-import { globalFormat, handleError, validateFormat } from '../main';
-import {
-  discoverTests,
-  runTests,
-  runIncrementalTests,
-  detectFramework,
-  getChangedFiles
-} from '../testing/runner.js';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { Command } from 'commander';
+
 import {
   parseCoverage,
   formatCoverageSummary,
   checkCoverageThresholds
-} from '../testing/coverage.js';
-import { TestConfig, TestFramework, TestTemplate } from '../testing/types.js';
+} from '../../testing/coverage';
+import {
+  discoverTests,
+  runTests,
+  runIncrementalTests,
+  detectFramework
+} from '../../testing/runner';
+import { logger } from '../../utils/logger';
+import { globalFormat, handleError, validateFormat } from '../main';
+
+import type { TestConfig, TestFramework, TestTemplate } from '../../testing/types';
 
 // Import fs at module level
-import * as fs from 'fs';
 
 export function testsCommand(): Command {
   const program = new Command('tests');
@@ -78,10 +81,10 @@ export function testsCommand(): Command {
         
         // Create event emitter for progress
         const eventEmitter = new EventEmitter();
-        
-        console.log(`Running tests for agent ${agentId}...`);
-        console.log(`Framework: ${framework}`);
-        console.log(`Pattern: ${config.pattern}`);
+
+        logger.info(`Running tests for agent ${agentId}...`);
+        logger.info(`Framework: ${framework}`);
+        logger.info(`Pattern: ${config.pattern}`);
         
         let result;
         if (options.changedSince) {
@@ -89,8 +92,10 @@ export function testsCommand(): Command {
           const sinceMatch = options.changedSince.match(/(\d+)([hm])/);
           const since = new Date();
           if (sinceMatch) {
-            const value = parseInt(sinceMatch[1], 10);
+            const valueStr = sinceMatch[1];
             const unit = sinceMatch[2];
+            if (!valueStr || !unit) return;
+            const value = parseInt(valueStr, 10);
             if (unit === 'h') {
               since.setHours(since.getHours() - value);
             } else if (unit === 'm') {
@@ -104,45 +109,45 @@ export function testsCommand(): Command {
         
         // Output results
         if (format === 'json') {
-          console.log(JSON.stringify(result, null, 2));
+          logger.info(JSON.stringify(result, null, 2));
         } else {
-          console.log('\n' + '='.repeat(50));
-          console.log('Test Results');
-          console.log('='.repeat(50));
-          console.log(`Total: ${result.summary.total}`);
-          console.log(`Passed: ${result.summary.passed}`);
-          console.log(`Failed: ${result.summary.failed}`);
-          console.log(`Skipped: ${result.summary.skipped}`);
-          console.log(`Duration: ${result.summary.duration}ms`);
-          console.log(`Exit Code: ${result.exitCode}`);
-          
+          logger.info('\n' + '='.repeat(50));
+          logger.info('Test Results');
+          logger.info('='.repeat(50));
+          logger.info(`Total: ${result.summary.total}`);
+          logger.info(`Passed: ${result.summary.passed}`);
+          logger.info(`Failed: ${result.summary.failed}`);
+          logger.info(`Skipped: ${result.summary.skipped}`);
+          logger.info(`Duration: ${result.summary.duration}ms`);
+          logger.info(`Exit Code: ${result.exitCode}`);
+
           if (result.summary.failed > 0) {
-            console.log('\nFailed Tests:');
+            logger.info('\nFailed Tests:');
             for (const suite of result.suites) {
               for (const test of suite.tests) {
                 if (test.status === 'failed') {
-                  console.log(`  - ${test.name} (${suite.name})`);
+                  logger.info(`  - ${test.name} (${suite.name})`);
                   if (test.error) {
-                    console.log(`    Error: ${test.error.message}`);
+                    logger.info(`    Error: ${test.error}`);
                   }
                 }
               }
             }
           }
         }
-        
+
         // Run coverage if requested
         if (options.coverage) {
-          console.log('\n' + '='.repeat(50));
-          console.log('Coverage Analysis');
-          console.log('='.repeat(50));
-          
+          logger.info('\n' + '='.repeat(50));
+          logger.info('Coverage Analysis');
+          logger.info('='.repeat(50));
+
           const coverageReport = await parseCoverage(agentDir, framework);
-          
+
           if (format === 'json') {
-            console.log(JSON.stringify(coverageReport, null, 2));
+            logger.info(JSON.stringify(coverageReport, null, 2));
           } else {
-            console.log(formatCoverageSummary(coverageReport.metrics));
+            logger.info(formatCoverageSummary(coverageReport.metrics));
           }
         }
         
@@ -179,16 +184,16 @@ export function testsCommand(): Command {
         
         const template = generateTestTemplate(framework, options.template || 'basic');
         const outputPath = options.output || path.join(agentDir, `test_${agentId}.${getExtension(framework)}`);
-        
+
         await fs.promises.writeFile(outputPath, template.content);
-        
+
         if (format === 'json') {
-          console.log(JSON.stringify({ template, outputPath }, null, 2));
+          logger.info(JSON.stringify({ template, outputPath }, null, 2));
         } else {
-          console.log(`Generated test template: ${template.name}`);
-          console.log(`Framework: ${framework}`);
-          console.log(`Output: ${outputPath}`);
-          console.log(`\nDescription: ${template.description}`);
+          logger.info(`Generated test template: ${template.name}`);
+          logger.info(`Framework: ${framework}`);
+          logger.info(`Output: ${outputPath}`);
+          logger.info(`\nDescription: ${template.description}`);
         }
       } catch (error) {
         handleError(error);
@@ -211,13 +216,13 @@ export function testsCommand(): Command {
         }
         
         const result = await discoverTests(agentDir, options.pattern);
-        
+
         if (format === 'json') {
-          console.log(JSON.stringify(result, null, 2));
+          logger.info(JSON.stringify(result, null, 2));
         } else {
-          console.log(`Discovered ${result.totalCount} test file(s):`);
+          logger.info(`Discovered ${result.totalCount} test file(s):`);
           for (const file of result.files) {
-            console.log(`  - ${file.path} (${file.framework}, ~${file.testCount || '?'} tests)`);
+            logger.info(`  - ${file.path} (${file.framework}, ~${file.testCount || '?'} tests)`);
           }
         }
       } catch (error) {
@@ -244,21 +249,21 @@ export function testsCommand(): Command {
         const report = await parseCoverage(agentDir, framework);
         
         if (format === 'json') {
-          console.log(JSON.stringify(report, null, 2));
+          logger.info(JSON.stringify(report, null, 2));
         } else {
-          console.log(formatCoverageSummary(report.metrics));
-          
+          logger.info(formatCoverageSummary(report.metrics));
+
           if (options.threshold) {
             const thresholds = JSON.parse(options.threshold);
             const check = checkCoverageThresholds(report.metrics, thresholds);
-            
-            console.log('\n' + '='.repeat(50));
+
+            logger.info('\n' + '='.repeat(50));
             if (check.passed) {
-              console.log('✓ All coverage thresholds passed!');
+              logger.info('✓ All coverage thresholds passed!');
             } else {
-              console.log('✗ Coverage thresholds failed:');
+              logger.info('✗ Coverage thresholds failed:');
               for (const failure of check.failures) {
-                console.log(`  - ${failure}`);
+                logger.info(`  - ${failure}`);
               }
             }
           }
@@ -515,7 +520,8 @@ func BenchmarkExample(b *testing.B) {
     }
   };
 
-  return templates[framework]?.[templateName] || templates.jest.basic;
+  const template = templates[framework]?.[templateName];
+  return template ?? templates.jest['basic'];
 }
 
 export default testsCommand;

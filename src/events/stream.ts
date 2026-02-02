@@ -3,15 +3,17 @@
  * Handles client connections, filtering, and event broadcasting
  */
 
-import { Server as HttpServer } from 'http';
+
 import { Server as WebSocketServer, WebSocket } from 'ws';
+
 import { EventEmitter } from './emitter';
-import {
+import { logger } from '../utils/logger';
+
+import type {
   EventType,
   MissionEvent,
-  EventFilter,
-  EventFilter as StreamFilter,
-} from './types';
+  EventFilter as StreamFilter} from './types';
+import type { Server as HttpServer } from 'http';
 
 interface StreamConnection {
   id: string;
@@ -35,20 +37,20 @@ export class EventStream {
   /**
    * Start WebSocket server
    */
-  start(server: HttpServer, port?: number): Promise<void> {
+  start(server: HttpServer): Promise<void> {
     return new Promise((resolve, reject) => {
       this.server = server;
 
       this.wss = new WebSocketServer({ server, path: '/events/stream' });
 
       this.wss.on('listening', () => {
-        console.log(`Event stream server started on /events/stream`);
+        logger.info(`Event stream server started on /events/stream`);
         this.subscribeToEvents();
         resolve();
       });
 
       this.wss.on('error', (error) => {
-        console.error('WebSocket server error:', error);
+        logger.error('WebSocket server error:', { error });
         reject(error);
       });
 
@@ -89,7 +91,7 @@ export class EventStream {
   /**
    * Handle new WebSocket connection
    */
-  private handleConnection(ws: WebSocket, req: any): void {
+  private handleConnection(ws: WebSocket, req: { url?: string }): void {
     const connectionId = this.generateConnectionId();
     const connection: StreamConnection = {
       id: connectionId,
@@ -99,7 +101,7 @@ export class EventStream {
     };
 
     // Parse query parameters for initial filter
-    const url = new URL(req.url, 'http://localhost');
+    const url = new URL(req.url || '/', 'http://localhost');
     const eventTypes = url.searchParams.get('types');
     const agentIds = url.searchParams.get('agents');
     const taskIds = url.searchParams.get('tasks');
@@ -131,7 +133,7 @@ export class EventStream {
         const message = JSON.parse(data.toString());
         this.handleMessage(connectionId, message);
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        logger.error('Error parsing WebSocket message:', { error });
         this.sendToConnection(connection, {
           type: 'error',
           message: 'Invalid JSON',
@@ -142,36 +144,36 @@ export class EventStream {
     // Handle connection close
     ws.on('close', () => {
       this.connections.delete(connectionId);
-      console.log(`Connection ${connectionId} closed. Active connections: ${this.connections.size}`);
+      logger.info(`Connection ${connectionId} closed. Active connections: ${this.connections.size}`);
     });
 
     // Handle errors
     ws.on('error', (error) => {
-      console.error(`WebSocket error for connection ${connectionId}:`, error);
+      logger.error(`WebSocket error for connection ${connectionId}:`, { error });
     });
 
-    console.log(`New connection: ${connectionId}. Active connections: ${this.connections.size}`);
+    logger.info(`New connection: ${connectionId}. Active connections: ${this.connections.size}`);
   }
 
   /**
    * Handle message from client
    */
-  private handleMessage(connectionId: string, message: any): void {
+  private handleMessage(connectionId: string, message: Record<string, unknown>): void {
     const connection = this.connections.get(connectionId);
     if (!connection) return;
 
-    switch (message.type) {
+    switch (message['type']) {
       case 'subscribe':
-        this.handleSubscribe(connection, message);
+        this.handleSubscribe(connection, message as { filter?: StreamFilter });
         break;
       case 'unsubscribe':
-        this.handleUnsubscribe(connection, message);
+        this.handleUnsubscribe(connection, message as { filter?: StreamFilter });
         break;
       case 'ping':
         this.sendToConnection(connection, { type: 'pong', timestamp: new Date() });
         break;
       case 'setFilter':
-        this.handleSetFilter(connection, message);
+        this.handleSetFilter(connection, message as { filter?: StreamFilter });
         break;
       case 'clearFilter':
         this.handleClearFilter(connection);
@@ -179,7 +181,7 @@ export class EventStream {
       default:
         this.sendToConnection(connection, {
           type: 'error',
-          message: `Unknown message type: ${message.type}`,
+          message: `Unknown message type: ${message['type']}`,
         });
     }
   }
@@ -187,7 +189,7 @@ export class EventStream {
   /**
    * Handle subscribe request
    */
-  private handleSubscribe(connection: StreamConnection, message: any): void {
+  private handleSubscribe(connection: StreamConnection, message: { filter?: StreamFilter }): void {
     try {
       const filter = message.filter as StreamFilter;
       connection.filters.push(filter);
@@ -207,7 +209,7 @@ export class EventStream {
   /**
    * Handle unsubscribe request
    */
-  private handleUnsubscribe(connection: StreamConnection, message: any): void {
+  private handleUnsubscribe(connection: StreamConnection, message: { filter?: StreamFilter }): void {
     const filter = message.filter as StreamFilter;
     const index = connection.filters.findIndex((f) =>
       this.filtersEqual(f, filter)
@@ -225,7 +227,7 @@ export class EventStream {
   /**
    * Handle set filter request
    */
-  private handleSetFilter(connection: StreamConnection, message: any): void {
+  private handleSetFilter(connection: StreamConnection, message: { filter?: StreamFilter }): void {
     try {
       connection.filters = [message.filter as StreamFilter];
       this.sendToConnection(connection, {
@@ -322,7 +324,7 @@ export class EventStream {
   /**
    * Send message to connection
    */
-  private sendToConnection(connection: StreamConnection, data: any): void {
+  private sendToConnection(connection: StreamConnection, data: unknown): void {
     if (connection.ws.readyState === WebSocket.OPEN) {
       connection.ws.send(JSON.stringify(data));
     }
@@ -379,7 +381,7 @@ export class EventStream {
   /**
    * Broadcast to all connections (for system messages)
    */
-  broadcast(data: any): void {
+  broadcast(data: unknown): void {
     for (const connection of this.connections.values()) {
       this.sendToConnection(connection, data);
     }
@@ -390,7 +392,7 @@ export class EventStream {
 export async function stream(
   emitter: EventEmitter,
   filter?: StreamFilter,
-  onEvent?: (event: MissionEvent) => void
+  onEvent?: (_event: MissionEvent) => void
 ): Promise<{ unsubscribe: () => void; events: MissionEvent[] }> {
   const events: MissionEvent[] = [];
 

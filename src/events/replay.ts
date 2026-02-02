@@ -4,12 +4,37 @@
  */
 
 import { EventEmitter } from './emitter';
-import {
+import { logger } from '../utils/logger';
+
+import type {
   MissionEvent,
   EventFilter,
-  EventType,
-  generateEventId,
-} from './types';
+  EventType} from './types';
+
+/**
+ * Helper function to safely get field values from MissionEvent
+ * for CSV export with dynamic field access
+ */
+function getEventFieldValue(event: MissionEvent, field: string): unknown {
+  switch (field) {
+    case 'id':
+      return event.id;
+    case 'timestamp':
+      return event.timestamp;
+    case 'eventType':
+      return event.eventType;
+    case 'source':
+      return JSON.stringify(event.source);
+    case 'correlationId':
+      return event.correlationId;
+    default:
+      // For payload fields, check if they exist
+      if ('payload' in event && typeof event.payload === 'object' && event.payload !== null) {
+        return (event.payload as Record<string, unknown>)[field];
+      }
+      return undefined;
+  }
+}
 
 interface ReplaySession {
   id: string;
@@ -82,7 +107,7 @@ export class EventReplay {
    */
   async replayWithCallback(
     since: Date,
-    callback: (event: MissionEvent) => void | Promise<void>,
+    callback: (_event: MissionEvent) => void | Promise<void>,
     options?: {
       until?: Date;
       agentId?: string;
@@ -217,7 +242,8 @@ export class EventReplay {
     const rows = events.map((event) =>
       fields
         .map((field) => {
-          const value = (event as any)[field];
+          // Safely access dynamic fields on MissionEvent
+          const value = getEventFieldValue(event, field);
           if (value === undefined || value === null) {
             return '';
           }
@@ -303,7 +329,7 @@ export function createReplay(
   const replay = new EventReplay(emitter);
   if (options?.maxHistorySize) {
     // This would require modifying the class to accept this in constructor
-    console.warn('maxHistorySize option not yet implemented');
+    logger.warn('maxHistorySize option not yet implemented');
   }
   return replay;
 }

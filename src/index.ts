@@ -22,7 +22,7 @@
  *   --debug                Enable debug mode
  */
 
-import { createCLI, buildCLI, handleError } from './cli/main.js';
+import { buildCLI, handleError } from './cli/main';
 
 async function main(): Promise<void> {
   try {

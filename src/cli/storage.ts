@@ -5,10 +5,7 @@
  * Provides convenient access to storage singletons.
  */
 
-import { MemoryStore } from '../storage/memory.js';
-import { AgentStorage } from '../storage/memory.js';
-import { TaskStorage } from '../storage/memory.js';
-import { EventStorage } from '../storage/memory.js';
+import { MemoryStore } from '../storage/memory';
 
 export const memoryStore = new MemoryStore();
 export const agentStorage = memoryStore.agents;

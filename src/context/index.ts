@@ -8,17 +8,15 @@ export * from './types';
 
 // Core manager
 export { ContextManager } from './manager';
-export type { 
-  ContextFile, 
-  ContextType, 
-  AgentContext, 
-  ContextAnalysis,
-  FileNode,
-  DependencyGraph,
-  ValidationResult,
-  OptimizationSuggestion,
-  ContextLimits
-} from './types';
+
+// Analysis
+export * from './analyze';
+
+// Optimization
+export * from './optimize';
+
+// Compact/Consolidation
+export * from './compact';
 
 // File tree
 export { 
@@ -53,9 +51,7 @@ export {
   getFileDependencies,
   analyzeDependencyHealth,
   DependencyGraphBuilder,
-  DependencyAnalyzer,
-  DependencyAnalysis,
-  CycleDetectionResult
+  DependencyAnalyzer
 } from './dependencies';
 
 // Size tracking

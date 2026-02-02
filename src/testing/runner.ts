@@ -5,25 +5,22 @@
  * Supports Jest, Vitest, pytest, unittest, cargo test, and go test
  */
 
-import { spawn, ChildProcess } from 'child_process';
-import * as path from 'path';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
+
 import { glob } from 'glob';
-import {
+
+import type {
   TestFramework,
   TestConfig,
   TestDiscoveryResult,
   TestFile,
-  TestResult,
   TestSuite,
   TestExecutionResult,
   TestSummary,
-  TestError,
   SpawnOptions,
-  PatternMatchOptions,
-  ChangedFile,
-  IncrementalResult
-} from './types';
+  ChangedFile} from './types';
 
 /**
  * Detect the test framework based on project files
@@ -212,7 +209,6 @@ function buildTestCommand(
     timeout: 120000 // 2 minutes
   };
 
-  const cmd = config.framework;
   const args: string[] = [];
 
   switch (config.framework) {
@@ -270,7 +266,7 @@ export async function runTests(
     eventEmitter.emit('test:started', { name: command, file: config.pattern });
   }
 
-  const result = await spawnProcess(command, args, options, eventEmitter);
+  const result = await spawnProcess(command, args, options);
 
   // Parse results based on framework
   const framework = config.framework || detectFramework(config.pattern) || 'jest';
@@ -300,7 +296,6 @@ async function spawnProcess(
   command: string,
   args: string[],
   options: SpawnOptions,
-  eventEmitter?: NodeJS.EventEmitter
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
     const stdout: string[] = [];
@@ -385,7 +380,6 @@ function parseJestOutput(output: string): TestSuite[] {
   const lines = output.split('\n');
   
   let currentSuite: TestSuite | null = null;
-  let currentTest: TestResult | null = null;
 
   for (const line of lines) {
     // Suite header
@@ -686,13 +680,6 @@ export async function runIncrementalTests(
   since: Date,
   eventEmitter?: NodeJS.EventEmitter
 ): Promise<TestExecutionResult> {
-  const changedFiles = await getChangedFiles(config.pattern, since);
-  const affectedTests = await findAffectedTests(config.pattern, changedFiles);
-  
-  const testFiles = affectedTests.map(t => t.path);
-  
   // If no affected tests found, run all tests
-  const effectiveFiles = testFiles.length > 0 ? testFiles : undefined;
-  
   return runTests({ ...config, incremental: true }, eventEmitter);
 }

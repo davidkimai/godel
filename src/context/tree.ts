@@ -3,9 +3,10 @@
  * Builds and formats file tree representations with dependency awareness
  */
 
-import { FileNode, DependencyGraph, LanguageType, SymbolTable, CycleDetectionResult } from './types';
-import { parseImports, parseExports, detectLanguage as detectLang, createParser } from './parser';
 import { DependencyGraphBuilder, DependencyAnalyzer } from './dependencies';
+import { parseImports, parseExports, detectLanguage as detectLang, createParser } from './parser';
+
+import type { FileNode, DependencyGraph, LanguageType, SymbolTable, CycleDetectionResult } from './types';
 
 // Re-export detectLanguage for convenience
 export { detectLanguage } from './parser';
@@ -73,7 +74,7 @@ export class FileTreeBuilder {
    */
   addFileContent(filePath: string, content: string): void {
     const normalizedPath = this.normalizePath(filePath);
-    const language = detectLang(filePath);
+    const language = detectLang(filePath) ?? 'typescript';
     this.fileContents.set(normalizedPath, { content, language });
   }
 
@@ -280,18 +281,18 @@ export class FileTreeBuilder {
       return { name: node.name, truncated: true };
     }
 
-    const result: any = {
+    const result: Record<string, unknown> = {
       name: node.name,
       path: node.path,
       type: node.type,
     };
 
     if (showMetadata && node.metadata) {
-      result.metadata = node.metadata;
+      result['metadata'] = node.metadata;
     }
 
     if (node.children && node.children.length > 0) {
-      result.children = node.children.map((child) =>
+      result['children'] = node.children.map((child) =>
         this.formatNode(child, currentDepth + 1, maxDepth, showMetadata)
       );
     }
@@ -325,7 +326,8 @@ export function formatTreeAsString(
   showDependencies: boolean = false
 ): string {
   if (maxDepth !== undefined && currentDepth >= maxDepth) {
-    return '';
+    // Return the node name even when truncated
+    return `${prefix}${isLast ? '└── ' : '├── '}${node.name}${node.type === 'directory' ? '/' : ''}`;
   }
 
   const connector = isLast ? '└── ' : '├── ';
@@ -388,7 +390,6 @@ export function buildFileTreeWithDeps(
   for (const file of files) {
     builder.addFile(file.path, file.content);
   }
-  const analyzer = builder.getAnalyzer();
   
   const treeBuilder = new FileTreeBuilder();
   for (const file of files) {
@@ -452,9 +453,9 @@ export function buildTreeWithDependencyOutput(
  * Language-agnostic parser interface
  */
 export interface TreeParser {
-  parseImports(content: string): ReturnType<typeof parseImports>;
-  parseExports(content: string): ReturnType<typeof parseExports>;
-  detectLanguage(filePath: string): LanguageType;
+  parseImports(_content: string): ReturnType<typeof parseImports>;
+  parseExports(_content: string): ReturnType<typeof parseExports>;
+  detectLanguage(_filePath: string): LanguageType;
 }
 
 /**
@@ -478,7 +479,7 @@ export function indexSymbols(
   const symbols = new Map<string, { exports: string[]; imports: string[] }>();
   
   for (const file of files) {
-    const language = detectLang(file.path);
+    const language = detectLang(file.path) ?? 'typescript';
     const exports = parseExports(file.content, language);
     const imports = parseImports(file.content, language).map(i => i.module);
     

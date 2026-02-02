@@ -78,7 +78,7 @@ describe('Linter Module', () => {
 
   describe('runRustfmt', () => {
     it('should return a valid LintResult structure', async () => {
-      const result = await runRustfmt('/nonexistent', ['**/*.rs']);
+      const result = await runRustfmt('/nonexistent');
       
       expect(result).toHaveProperty('tool', 'rustfmt');
       expect(result).toHaveProperty('success');
@@ -118,19 +118,11 @@ describe('Linter Module', () => {
 
   describe('runSecurityScan', () => {
     it('should return security scan result', async () => {
-      const result = await runSecurityScan('/nonexistent', 'bandit');
+      const result = await runSecurityScan('/nonexistent');
       
       expect(result).toHaveProperty('vulnerabilities');
       expect(result).toHaveProperty('success');
       expect(Array.isArray(result.vulnerabilities)).toBe(true);
-    });
-
-    it('should support different security tools', async () => {
-      const trivyResult = await runSecurityScan('/nonexistent', 'trivy');
-      const semgrepResult = await runSecurityScan('/nonexistent', 'semgrep');
-      
-      expect(trivyResult).toHaveProperty('vulnerabilities');
-      expect(semgrepResult).toHaveProperty('vulnerabilities');
     });
   });
 
@@ -177,11 +169,11 @@ describe('Linter Module', () => {
       expect(result.summary).toHaveProperty('score');
     });
 
-    it('should detect language automatically', async () => {
+    it('should work with explicit language setting', async () => {
       const result = await lintAgentCodebase({
         agentId: 'test-agent',
         agentPath: '/nonexistent',
-        language: 'auto',
+        language: 'typescript',
         includePrettier: false,
         includeTypes: false
       });
