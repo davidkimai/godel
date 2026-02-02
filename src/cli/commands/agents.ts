@@ -12,7 +12,7 @@
  */
 
 import { Command } from 'commander';
-import { getGlobalLifecycle, type RetryOptions } from '../../core/lifecycle';
+import { getGlobalLifecycle, type RetryOptions, type AgentState } from '../../core/lifecycle';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalBus } from '../../bus/index';
 import { memoryStore } from '../../storage/memory';
@@ -43,10 +43,10 @@ export function registerAgentsCommand(program: Command): void {
 
         // Apply filters
         if (options.swarm) {
-          states = states.filter(s => s.agent.swarmId === options.swarm);
+          states = states.filter((s: AgentState) => s.agent.swarmId === options.swarm);
         }
         if (options.status) {
-          states = states.filter(s => s.status === options.status);
+          states = states.filter((s: AgentState) => s.status === options.status);
         }
 
         if (states.length === 0) {
@@ -56,7 +56,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(states.map(s => ({
+          console.log(JSON.stringify(states.map((s: AgentState) => ({
             id: s.id,
             status: s.status,
             lifecycleState: s.lifecycleState,
