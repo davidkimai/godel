@@ -45,8 +45,8 @@ export function registerDashboardCommand(program: Command): void {
           console.log('   Press Ctrl+C to stop\n');
           
           // Subscribe to all events for logging
-          subscribeDashboard(messageBus, (message: { payload?: { eventType?: string } }) => {
-            const payload = message.payload;
+          subscribeDashboard(messageBus, (message: Message) => {
+            const payload = message.payload as { eventType?: string } | undefined;
             if (payload?.eventType) {
               console.log(`[${new Date().toISOString()}] ${payload.eventType}`);
             }
@@ -118,14 +118,12 @@ export function registerDashboardCommand(program: Command): void {
         console.log('   Press Ctrl+C to exit\n');
 
         // Subscribe to events for real-time updates
-        const subscriptions = subscribeDashboard(messageBus, (message: { 
-          payload?: { 
+        const subscriptions = subscribeDashboard(messageBus, (message: Message) => {
+          const payload = message.payload as { 
             eventType?: string; 
             agentId?: string;
             swarmId?: string;
-          } 
-        }) => {
-          const payload = message.payload;
+          } | undefined;
           
           if (payload?.eventType) {
             // In a real TUI, this would update the display
