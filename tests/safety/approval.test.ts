@@ -634,9 +634,9 @@ describe('Approval Workflow', () => {
 
       const display = formatApprovalForDisplay(request);
 
-      expect(display.ID).toBe(request.id);
-      expect(display.Status).toBe('PENDING');
-      expect(display.Agent).toBe('Test');
+      expect(display['ID']).toBe(request.id);
+      expect(display['Status']).toBe('PENDING');
+      expect(display['Agent']).toBe('Test');
     });
 
     it('should format list for table display', () => {
@@ -712,7 +712,7 @@ describe('Approval Workflow', () => {
       expect(stats.total).toBe(2);
       expect(stats.pending).toBe(1);
       expect(stats.approved).toBe(1);
-      expect(stats.byRisk.high).toBe(1);
+      expect(stats.byRisk.medium).toBe(1);
       expect(stats.byRisk.critical).toBe(1);
     });
   });

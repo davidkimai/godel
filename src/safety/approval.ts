@@ -208,6 +208,7 @@ export function setConfig(config: Partial<ApprovalConfig>): void {
 const FILE_WRITE_PATTERNS: Array<{ pattern: RegExp; risk: RiskLevel; reason: string }> = [
   { pattern: /^config\/.*$/, risk: 'medium', reason: 'Configuration file modification' },
   { pattern: /.*\.prod\..*/, risk: 'high', reason: 'Production file modification' },
+  { pattern: /prod[.\/]/, risk: 'high', reason: 'Production file modification' },
   { pattern: /^src\/.*$/, risk: 'medium', reason: 'Source code modification' },
   { pattern: /^tests\/.*$/, risk: 'low', reason: 'Test file modification' },
   { pattern: /^docs\/.*$/, risk: 'low', reason: 'Documentation modification' }

@@ -140,13 +140,14 @@ export function escalateRequest(request: ApprovalRequest, reason: string): Appro
   request.expiresAt = new Date(Date.now() + timeout * 60 * 1000);
   
   // Log escalation
+  const approverForLog = nextApprover ?? undefined;
   logApprovalAudit({
     requestId: request.requestId,
     createdAt: request.createdAt,
     requestingAgent: request.requestingAgent,
     operation: request.operation,
     risk: request.risk,
-    approver: nextApprover,
+    approver: approverForLog,
     decision: {
       decision: 'escalate',
       decidedAt: new Date(),
@@ -186,7 +187,7 @@ function getTimeoutForEscalation(escalationLevel: number): number {
   );
 }
 
-function getNextApprover(request: ApprovalRequest): ApproverIdentity | null {
+function getNextApprover(request: ApprovalRequest): ApproverIdentity | undefined {
   const currentCount = request.escalationCount;
   
   if (currentCount <= 0) {
