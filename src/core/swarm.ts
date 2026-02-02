@@ -16,6 +16,15 @@ import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agen
 import { AgentLifecycle, type AgentState } from './lifecycle';
 import { MessageBus } from '../bus/index';
 import { AgentStorage } from '../storage/memory';
+import { SwarmRepository } from '../storage';
+import {
+  SwarmNotFoundError,
+  ApplicationError,
+  DashErrorCode,
+  assertExists,
+  safeExecute,
+} from '../errors';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Swarm Types
@@ -99,6 +108,7 @@ export class SwarmManager extends EventEmitter {
   private agentLifecycle: AgentLifecycle;
   private messageBus: MessageBus;
   private storage: AgentStorage;
+  private swarmRepository?: SwarmRepository;
   private active: boolean = false;
   
   // RACE CONDITION FIX: One mutex per swarm for exclusive access
@@ -109,12 +119,21 @@ export class SwarmManager extends EventEmitter {
   constructor(
     agentLifecycle: AgentLifecycle,
     messageBus: MessageBus,
-    storage: AgentStorage
+    storage: AgentStorage,
+    swarmRepository?: SwarmRepository
   ) {
     super();
     this.agentLifecycle = agentLifecycle;
     this.messageBus = messageBus;
     this.storage = storage;
+    this.swarmRepository = swarmRepository;
+  }
+  
+  /**
+   * Set the swarm repository for persistence
+   */
+  setSwarmRepository(repo: SwarmRepository): void {
+    this.swarmRepository = repo;
   }
   
   /**
@@ -215,20 +234,27 @@ export class SwarmManager extends EventEmitter {
   async destroy(swarmId: string, force: boolean = false): Promise<void> {
     const mutex = this.getMutex(swarmId);
     await mutex.runExclusive(async () => {
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) {
-        throw new Error(`Swarm ${swarmId} not found`);
-      }
+      const swarm = assertExists(
+        this.swarms.get(swarmId),
+        'Swarm',
+        swarmId,
+        { code: DashErrorCode.SWARM_NOT_FOUND }
+      );
 
       swarm.status = 'destroyed';
 
       // Kill all agents in the swarm
       for (const agentId of swarm.agents) {
-        try {
-          await this.agentLifecycle.kill(agentId, force);
-        } catch (error) {
-          console.warn(`Failed to kill agent ${agentId}:`, error);
-        }
+        await safeExecute(
+          async () => {
+            await this.agentLifecycle.kill(agentId, force);
+          },
+          undefined,
+          { 
+            logError: true, 
+            context: `SwarmManager.destroy.${swarmId}.killAgent` 
+          }
+        );
       }
 
       swarm.agents = [];
@@ -260,20 +286,34 @@ export class SwarmManager extends EventEmitter {
   async scale(swarmId: string, targetSize: number): Promise<void> {
     const mutex = this.getMutex(swarmId);
     await mutex.runExclusive(async () => {
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) {
-        throw new Error(`Swarm ${swarmId} not found`);
-      }
+      const swarm = assertExists(
+        this.swarms.get(swarmId),
+        'Swarm',
+        swarmId,
+        { code: DashErrorCode.SWARM_NOT_FOUND }
+      );
 
       if (swarm.status === 'destroyed') {
-        throw new Error(`Cannot scale destroyed swarm ${swarmId}`);
+        throw new ApplicationError(
+          `Cannot scale destroyed swarm ${swarmId}`,
+          DashErrorCode.INVALID_SWARM_STATE,
+          400,
+          { swarmId, currentStatus: swarm.status },
+          true
+        );
       }
 
       const currentSize = swarm.agents.length;
       const maxAgents = swarm.config.maxAgents;
 
       if (targetSize > maxAgents) {
-        throw new Error(`Target size ${targetSize} exceeds max agents ${maxAgents}`);
+        throw new ApplicationError(
+          `Target size ${targetSize} exceeds max agents ${maxAgents}`,
+          DashErrorCode.MAX_AGENTS_EXCEEDED,
+          400,
+          { swarmId, targetSize, maxAgents },
+          true
+        );
       }
 
       swarm.status = 'scaling';
@@ -289,8 +329,17 @@ export class SwarmManager extends EventEmitter {
         const toRemove = currentSize - targetSize;
         const agentsToRemove = swarm.agents.slice(-toRemove);
         for (const agentId of agentsToRemove) {
-          await this.agentLifecycle.kill(agentId);
-          swarm.agents = swarm.agents.filter(id => id !== agentId);
+          await safeExecute(
+            async () => {
+              await this.agentLifecycle.kill(agentId);
+              swarm.agents = swarm.agents.filter(id => id !== agentId);
+            },
+            undefined,
+            { 
+              logError: true, 
+              context: `SwarmManager.scale.${swarmId}.killAgent` 
+            }
+          );
         }
       }
 
@@ -314,10 +363,12 @@ export class SwarmManager extends EventEmitter {
    * Get swarm status
    */
   getStatus(swarmId: string): SwarmStatusInfo {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new Error(`Swarm ${swarmId} not found`);
-    }
+    const swarm = assertExists(
+      this.swarms.get(swarmId),
+      'Swarm',
+      swarmId,
+      { code: DashErrorCode.SWARM_NOT_FOUND }
+    );
 
     const activeAgents = swarm.agents.filter(id => {
       const state = this.agentLifecycle.getState(id);
@@ -418,7 +469,16 @@ export class SwarmManager extends EventEmitter {
     swarm.status = 'paused';
 
     for (const agentId of swarm.agents) {
-      await this.agentLifecycle.pause(agentId);
+      await safeExecute(
+        async () => {
+          await this.agentLifecycle.pause(agentId);
+        },
+        undefined,
+        { 
+          logError: true, 
+          context: `SwarmManager.pauseSwarm.${swarm.id}` 
+        }
+      );
     }
 
     this.emit('swarm.paused', { swarmId: swarm.id, reason });
@@ -431,16 +491,14 @@ export class SwarmManager extends EventEmitter {
   async pauseSwarm(swarmId: string, reason?: string): Promise<void> {
     const mutex = this.getMutex(swarmId);
     await mutex.runExclusive(async () => {
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) return;
+      const swarm = assertExists(
+        this.swarms.get(swarmId),
+        'Swarm',
+        swarmId,
+        { code: DashErrorCode.SWARM_NOT_FOUND }
+      );
 
-      swarm.status = 'paused';
-
-      for (const agentId of swarm.agents) {
-        await this.agentLifecycle.pause(agentId);
-      }
-
-      this.emit('swarm.paused', { swarmId, reason });
+      await this.pauseSwarmInternal(swarm, reason);
     });
   }
 
@@ -451,13 +509,26 @@ export class SwarmManager extends EventEmitter {
   async resumeSwarm(swarmId: string): Promise<void> {
     const mutex = this.getMutex(swarmId);
     await mutex.runExclusive(async () => {
-      const swarm = this.swarms.get(swarmId);
-      if (!swarm) return;
+      const swarm = assertExists(
+        this.swarms.get(swarmId),
+        'Swarm',
+        swarmId,
+        { code: DashErrorCode.SWARM_NOT_FOUND }
+      );
 
       swarm.status = 'active';
 
       for (const agentId of swarm.agents) {
-        await this.agentLifecycle.resume(agentId);
+        await safeExecute(
+          async () => {
+            await this.agentLifecycle.resume(agentId);
+          },
+          undefined,
+          { 
+            logError: true, 
+            context: `SwarmManager.resumeSwarm.${swarmId}` 
+          }
+        );
       }
 
       this.emit('swarm.resumed', { swarmId });
@@ -587,13 +658,29 @@ let globalSwarmManager: SwarmManager | null = null;
 export function getGlobalSwarmManager(
   agentLifecycle?: AgentLifecycle,
   messageBus?: MessageBus,
-  storage?: AgentStorage
+  storage?: AgentStorage,
+  swarmRepository?: SwarmRepository
 ): SwarmManager {
   if (!globalSwarmManager) {
     if (!agentLifecycle || !messageBus || !storage) {
-      throw new Error('SwarmManager requires dependencies on first initialization');
+      throw new ApplicationError(
+        'SwarmManager requires dependencies on first initialization',
+        DashErrorCode.INITIALIZATION_FAILED,
+        500,
+        { 
+          missingDeps: { 
+            agentLifecycle: !agentLifecycle, 
+            messageBus: !messageBus, 
+            storage: !storage 
+          } 
+        },
+        false
+      );
     }
-    globalSwarmManager = new SwarmManager(agentLifecycle, messageBus, storage);
+    globalSwarmManager = new SwarmManager(agentLifecycle, messageBus, storage, swarmRepository);
+  } else if (swarmRepository) {
+    // Update repository if provided
+    globalSwarmManager.setSwarmRepository(swarmRepository);
   }
   return globalSwarmManager;
 }

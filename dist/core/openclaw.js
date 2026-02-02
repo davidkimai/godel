@@ -12,6 +12,7 @@ exports.resetGlobalOpenClawIntegration = resetGlobalOpenClawIntegration;
 const events_1 = require("events");
 const index_1 = require("../bus/index");
 const logger_1 = require("../utils/logger");
+const errors_1 = require("../errors");
 // ============================================================================
 // Mock OpenClaw Client (for testing)
 // ============================================================================
@@ -47,12 +48,9 @@ class MockOpenClawClient extends events_1.EventEmitter {
         return { sessionId };
     }
     async sessionPause(sessionId) {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
-        }
+        const session = (0, errors_1.assertExists)(this.sessions.get(sessionId), 'Session', sessionId, { code: errors_1.DashErrorCode.SESSION_NOT_FOUND });
         if (session.status !== 'running') {
-            throw new Error(`Cannot pause session in ${session.status} state`);
+            throw new errors_1.ApplicationError(`Cannot pause session in ${session.status} state`, errors_1.DashErrorCode.INVALID_SESSION_STATE, 400, { sessionId, currentState: session.status, expectedState: 'running' }, true);
         }
         session.status = 'paused';
         session.pausedAt = new Date();
@@ -60,12 +58,9 @@ class MockOpenClawClient extends events_1.EventEmitter {
         this.emit('session.paused', { type: 'session.paused', sessionId, agentId: session.agentId });
     }
     async sessionResume(sessionId) {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
-        }
+        const session = (0, errors_1.assertExists)(this.sessions.get(sessionId), 'Session', sessionId, { code: errors_1.DashErrorCode.SESSION_NOT_FOUND });
         if (session.status !== 'paused') {
-            throw new Error(`Cannot resume session in ${session.status} state`);
+            throw new errors_1.ApplicationError(`Cannot resume session in ${session.status} state`, errors_1.DashErrorCode.INVALID_SESSION_STATE, 400, { sessionId, currentState: session.status, expectedState: 'paused' }, true);
         }
         session.status = 'running';
         session.resumedAt = new Date();
@@ -73,10 +68,7 @@ class MockOpenClawClient extends events_1.EventEmitter {
         this.emit('session.resumed', { type: 'session.resumed', sessionId, agentId: session.agentId });
     }
     async sessionKill(sessionId, force = false) {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
-        }
+        const session = (0, errors_1.assertExists)(this.sessions.get(sessionId), 'Session', sessionId, { code: errors_1.DashErrorCode.SESSION_NOT_FOUND });
         if (session.status === 'completed' || session.status === 'killed') {
             return; // Already terminated
         }
@@ -86,10 +78,7 @@ class MockOpenClawClient extends events_1.EventEmitter {
         this.emit('session.killed', { type: 'session.killed', sessionId, agentId: session.agentId, force });
     }
     async sessionStatus(sessionId) {
-        const session = this.sessions.get(sessionId);
-        if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
-        }
+        const session = (0, errors_1.assertExists)(this.sessions.get(sessionId), 'Session', sessionId, { code: errors_1.DashErrorCode.SESSION_NOT_FOUND });
         const usage = this.tokenUsage.get(sessionId) || { prompt: 0, completion: 0, cost: 0 };
         const runtime = session.startedAt
             ? Date.now() - session.startedAt.getTime()
@@ -110,6 +99,29 @@ class MockOpenClawClient extends events_1.EventEmitter {
     async sessionLogs(sessionId, limit = 100) {
         // Return mock logs
         return [`[${sessionId}] Log entry 1`, `[${sessionId}] Log entry 2`].slice(0, limit);
+    }
+    /**
+     * Send a message to a session
+     * Maps to: sessions_send
+     */
+    async sessionsSend(options) {
+        const session = (0, errors_1.assertExists)(this.sessions.get(options.sessionKey), 'Session', options.sessionKey, { code: errors_1.DashErrorCode.SESSION_NOT_FOUND });
+        // Update session activity
+        session.metadata['lastMessage'] = options.message;
+        session.metadata['messageCount'] = (session.metadata['messageCount'] || 0) + 1;
+        // Generate runId
+        const runId = `run_${options.sessionKey}_${Date.now()}`;
+        // Simulate processing
+        session.status = 'running';
+        // Simulate token usage
+        const usage = this.tokenUsage.get(options.sessionKey);
+        const tokens = Math.floor(Math.random() * 200) + 100;
+        usage.prompt += tokens;
+        usage.completion += Math.floor(tokens * 0.8);
+        usage.cost += (tokens / 1000) * 0.015;
+        logger_1.logger.info(`[OpenClaw] Message sent to session ${options.sessionKey}: ${options.message.slice(0, 50)}...`);
+        this.emit('session.message_sent', { type: 'session.message_sent', sessionId: options.sessionKey, agentId: session.agentId, runId });
+        return { runId, status: 'running' };
     }
     // ============================================================================
     // Simulation Methods (for testing)
@@ -147,6 +159,8 @@ class MockOpenClawClient extends events_1.EventEmitter {
                 });
             }
         }, 1000);
+        // Don't let the interval keep the process alive
+        interval.unref();
     }
     simulateSessionComplete(sessionId, output) {
         const session = this.sessions.get(sessionId);
@@ -181,6 +195,25 @@ class MockOpenClawClient extends events_1.EventEmitter {
         this.sessions.clear();
         this.tokenUsage.clear();
         this.sessionCounter = 0;
+    }
+    /**
+     * Restore a session from persisted state (for CLI mock mode)
+     */
+    restoreSession(sessionData) {
+        const session = {
+            sessionId: sessionData.sessionId,
+            agentId: sessionData.agentId,
+            status: sessionData.status,
+            createdAt: new Date(sessionData.createdAt),
+            metadata: {
+                model: sessionData.model || 'kimi-k2.5',
+                task: sessionData.task || '',
+            },
+        };
+        this.sessions.set(sessionData.sessionId, session);
+        if (!this.tokenUsage.has(sessionData.sessionId)) {
+            this.tokenUsage.set(sessionData.sessionId, { prompt: 0, completion: 0, cost: 0 });
+        }
     }
 }
 exports.MockOpenClawClient = MockOpenClawClient;
@@ -226,20 +259,14 @@ class OpenClawIntegration extends events_1.EventEmitter {
      * Pause a session by agent ID
      */
     async pauseSession(agentId) {
-        const sessionId = this.agentSessionMap.get(agentId);
-        if (!sessionId) {
-            throw new Error(`No OpenClaw session found for agent ${agentId}`);
-        }
+        const sessionId = (0, errors_1.assertExists)(this.agentSessionMap.get(agentId), 'OpenClaw Session', agentId, { code: errors_1.DashErrorCode.OPENCLAW_NOT_INITIALIZED, agentId });
         await this.client.sessionPause(sessionId);
     }
     /**
      * Resume a session by agent ID
      */
     async resumeSession(agentId) {
-        const sessionId = this.agentSessionMap.get(agentId);
-        if (!sessionId) {
-            throw new Error(`No OpenClaw session found for agent ${agentId}`);
-        }
+        const sessionId = (0, errors_1.assertExists)(this.agentSessionMap.get(agentId), 'OpenClaw Session', agentId, { code: errors_1.DashErrorCode.OPENCLAW_NOT_INITIALIZED, agentId });
         await this.client.sessionResume(sessionId);
     }
     /**
@@ -348,7 +375,7 @@ let globalIntegration = null;
 function getGlobalOpenClawIntegration(client, messageBus) {
     if (!globalIntegration) {
         if (!client || !messageBus) {
-            throw new Error('OpenClawIntegration requires dependencies on first initialization');
+            throw new errors_1.ApplicationError('OpenClawIntegration requires dependencies on first initialization', errors_1.DashErrorCode.INITIALIZATION_FAILED, 500, { missingDeps: { client: !client, messageBus: !messageBus } }, false);
         }
         globalIntegration = new OpenClawIntegration(client, messageBus);
     }

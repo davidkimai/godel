@@ -59,6 +59,14 @@ function registerInitCommand(program) {
         .action(async (options) => {
         try {
             console.log('🚀 Initializing Dash...\n');
+            // Validate budget if provided
+            if (options.budget) {
+                const budget = parseFloat(options.budget);
+                if (isNaN(budget) || budget < 0 || budget > 100000) {
+                    console.error('❌ Invalid budget. Must be between 0 and 100000 USD.');
+                    process.exit(1);
+                }
+            }
             // Check if already initialized
             const existingConfig = loadConfig();
             if (existingConfig && !options.force) {
@@ -103,7 +111,7 @@ function registerInitCommand(program) {
             console.log('\n🎉 Dash initialized successfully!\n');
             console.log('Configuration:');
             console.log(`  API URL:    ${config.apiUrl}`);
-            console.log(`  API Key:    ${config.apiKey.slice(0, 16)}...`);
+            console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
             console.log(`  Model:      ${config.defaultModel}`);
             console.log(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
             if (config.budgetLimit) {
@@ -141,7 +149,7 @@ function registerInitCommand(program) {
             }
             console.log('📋 Dash Configuration\n');
             console.log(`  API URL:    ${config.apiUrl}`);
-            console.log(`  API Key:    ${config.apiKey.slice(0, 16)}... (hidden)`);
+            console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
             console.log(`  Model:      ${config.defaultModel}`);
             console.log(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
             if (config.budgetLimit) {
@@ -177,7 +185,7 @@ function registerInitCommand(program) {
             };
             saveConfig(config);
             console.log('✅ Configuration reset to defaults.');
-            console.log(`   New API Key: ${config.apiKey.slice(0, 16)}...\n`);
+            console.log(`   New API Key: ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)\n`);
         }
         catch (error) {
             console.error('❌ Failed to reset config:', error instanceof Error ? error.message : String(error));

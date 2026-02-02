@@ -18,6 +18,12 @@ const swarm_1 = require("../../core/swarm");
 const index_1 = require("../../bus/index");
 const memory_1 = require("../../storage/memory");
 const agent_1 = require("../../models/agent");
+const AgentRepository_1 = require("../../storage/repositories/AgentRepository");
+const sqlite_1 = require("../../storage/sqlite");
+// Initialize database for persistence
+async function initDatabase() {
+    return (0, sqlite_1.getGlobalSQLiteStorage)({ dbPath: './dash.db' });
+}
 function registerAgentsCommand(program) {
     const agents = program
         .command('agents')
@@ -33,37 +39,33 @@ function registerAgentsCommand(program) {
         .option('--status <status>', 'Filter by status (pending|running|paused|completed|failed|killed)')
         .action(async (options) => {
         try {
-            // Initialize lifecycle
-            const messageBus = (0, index_1.getGlobalBus)();
-            const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
-            const swarmManager = (0, swarm_1.getGlobalSwarmManager)(lifecycle, messageBus, memory_1.memoryStore.agents);
-            let states = lifecycle.getAllStates();
-            // Apply filters
+            // PERFORMANCE ROUND 2: Use lightweight storage query instead of full repository
+            const storage = await (0, sqlite_1.getGlobalSQLiteStorage)({ dbPath: './dash.db' });
+            // PERFORMANCE: Use lightweight query that only selects needed columns
+            let agents = storage.getAgentListLightweight();
+            // Apply filters in-memory (fast since we have lightweight objects)
             if (options.swarm) {
-                states = states.filter((s) => s.agent.swarmId === options.swarm);
+                agents = agents.filter((a) => a.swarmId === options.swarm);
             }
             if (options.status) {
-                states = states.filter((s) => s.status === options.status);
+                agents = agents.filter((a) => a.status === options.status);
             }
-            if (states.length === 0) {
+            if (agents.length === 0) {
                 console.log('📭 No agents found');
                 console.log('💡 Use "dash agents spawn" or "dash swarm create" to create agents');
                 return;
             }
             if (options.format === 'json') {
-                console.log(JSON.stringify(states.map((s) => ({
-                    id: s.id,
-                    status: s.status,
-                    lifecycleState: s.lifecycleState,
-                    model: s.agent.model,
-                    task: s.agent.task,
-                    swarmId: s.agent.swarmId,
-                    swarmName: s.agent.swarmId ? swarmManager.getSwarm(s.agent.swarmId)?.name : null,
-                    createdAt: s.createdAt,
-                    startedAt: s.startedAt,
-                    completedAt: s.completedAt,
-                    runtime: s.agent.runtime,
-                    retryCount: s.retryCount,
+                console.log(JSON.stringify(agents.map((a) => ({
+                    id: a.id,
+                    status: a.status,
+                    model: a.model,
+                    task: a.task,
+                    swarmId: a.swarmId,
+                    createdAt: a.spawnedAt,
+                    runtime: a.runtime,
+                    retryCount: a.retryCount,
+                    maxRetries: a.maxRetries,
                 })), null, 2));
                 return;
             }
@@ -71,23 +73,21 @@ function registerAgentsCommand(program) {
             console.log('🤖 Agents:\n');
             console.log('ID                   Swarm                Status     Model           Runtime  Retries');
             console.log('───────────────────  ───────────────────  ─────────  ──────────────  ───────  ───────');
-            for (const state of states) {
-                const swarmName = state.agent.swarmId
-                    ? (swarmManager.getSwarm(state.agent.swarmId)?.name || 'unknown').slice(0, 19)
+            for (const agent of agents) {
+                const swarmName = agent.swarmId
+                    ? agent.swarmId.slice(0, 19)
                     : 'none';
-                const runtime = state.agent.runtime
-                    ? formatDuration(state.agent.runtime)
-                    : state.startedAt
-                        ? formatDuration(Date.now() - state.startedAt.getTime())
-                        : '-';
-                console.log(`${state.id.slice(0, 19).padEnd(19)}  ` +
+                const runtime = agent.runtime
+                    ? formatDuration(agent.runtime)
+                    : '-';
+                console.log(`${agent.id.slice(0, 19).padEnd(19)}  ` +
                     `${swarmName.padEnd(19)}  ` +
-                    `${getStatusEmoji(state.status)} ${state.status.padEnd(8)}  ` +
-                    `${state.agent.model.slice(0, 14).padEnd(14)}  ` +
+                    `${getStatusEmoji(agent.status)} ${agent.status.padEnd(8)}  ` +
+                    `${agent.model.slice(0, 14).padEnd(14)}  ` +
                     `${runtime.padStart(7)}  ` +
-                    `${state.retryCount}/${state.maxRetries}`);
+                    `${agent.retryCount}/${agent.maxRetries}`);
             }
-            console.log(`\n📊 Total: ${states.length} agents`);
+            console.log(`\n📊 Total: ${agents.length} agents`);
         }
         catch (error) {
             console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
@@ -150,6 +150,20 @@ function registerAgentsCommand(program) {
                 maxRetries: parseInt(options.retries, 10),
                 budgetLimit: options.budget ? parseFloat(options.budget) : undefined,
             });
+            // Persist agent to database
+            await initDatabase();
+            const agentRepo = new AgentRepository_1.AgentRepository();
+            await agentRepo.create({
+                id: agent.id,
+                label: agent.label,
+                status: 'spawning',
+                model: agent.model,
+                task: agent.task,
+                swarm_id: agent.swarmId,
+                parent_id: agent.parentId,
+                max_retries: agent.maxRetries,
+                metadata: agent.metadata,
+            });
             console.log('✅ Agent spawned successfully!\n');
             console.log(`   ID: ${agent.id}`);
             console.log(`   Status: ${agent.status}`);
@@ -176,6 +190,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const state = lifecycle.getState(agentId);
             if (!state) {
                 console.error(`❌ Agent ${agentId} not found`);
@@ -210,6 +225,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const state = lifecycle.getState(agentId);
             if (!state) {
                 console.error(`❌ Agent ${agentId} not found`);
@@ -242,6 +258,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const state = lifecycle.getState(agentId);
             if (!state) {
                 console.error(`❌ Agent ${agentId} not found`);
@@ -281,6 +298,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const swarmManager = (0, swarm_1.getGlobalSwarmManager)(lifecycle, messageBus, memory_1.memoryStore.agents);
             const state = lifecycle.getState(agentId);
             if (!state) {
@@ -354,6 +372,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const state = lifecycle.getState(agentId);
             if (!state) {
                 console.error(`❌ Agent ${agentId} not found`);
@@ -392,6 +411,7 @@ function registerAgentsCommand(program) {
             // Initialize lifecycle
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const metrics = lifecycle.getMetrics();
             if (options.format === 'json') {
                 console.log(JSON.stringify(metrics, null, 2));

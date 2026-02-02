@@ -106,7 +106,7 @@ export async function retry<T>(
         totalTime: Date.now() - startTime,
         finalAttempt: attempts === cfg.maxAttempts
       };
-    } catch (error: any) {
+    } catch (error) {
       lastError = error;
 
       // Check if error is retryable
@@ -211,7 +211,7 @@ export class CircuitBreaker extends EventEmitter {
         circuitState: this.getState(),
         fromCache: false
       };
-    } catch (error: any) {
+    } catch (error) {
       this.recordFailure();
       return {
         success: false,
@@ -406,19 +406,27 @@ export class Bulkhead extends EventEmitter {
 /**
  * Check if error is retryable
  */
-function isRetryable(error: any, config: RetryConfig): boolean {
+function isRetryable(error: unknown, config: RetryConfig): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const err = error as Record<string, unknown>;
+
   // Check status code
-  if (error.status && config.retryableStatuses.includes(error.status)) {
+  const status = err['status'];
+  if (typeof status === 'number' && config.retryableStatuses.includes(status)) {
     return true;
   }
 
   // Check error code
-  if (error.code && config.retryableErrors.includes(error.code)) {
+  const code = err['code'];
+  if (typeof code === 'string' && config.retryableErrors.includes(code)) {
     return true;
   }
 
   // Check error message
-  const message = error.message || '';
+  const message = typeof err['message'] === 'string' ? err['message'] : '';
   if (message.includes('timeout') || message.includes('ECONN')) {
     return true;
   }

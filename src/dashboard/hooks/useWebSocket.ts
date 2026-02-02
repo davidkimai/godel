@@ -82,10 +82,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
           error: error.message || 'Failed to start WebSocket'
         }));
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Connection failed';
       setState((prev) => ({
         ...prev,
-        error: error.message || 'Connection failed'
+        error: errorMessage
       }));
     }
   }, []);

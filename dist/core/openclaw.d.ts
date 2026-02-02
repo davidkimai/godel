@@ -102,6 +102,22 @@ export declare class MockOpenClawClient extends EventEmitter implements OpenClaw
     sessionKill(sessionId: string, force?: boolean): Promise<void>;
     sessionStatus(sessionId: string): Promise<SessionStatus>;
     sessionLogs(sessionId: string, limit?: number): Promise<string[]>;
+    /**
+     * Send a message to a session
+     * Maps to: sessions_send
+     */
+    sessionsSend(options: {
+        sessionKey: string;
+        message: string;
+        attachments?: Array<{
+            type: string;
+            data: string;
+            filename: string;
+        }>;
+    }): Promise<{
+        runId: string;
+        status: string;
+    }>;
     private simulateSessionStart;
     private simulateTokenUsage;
     simulateSessionComplete(sessionId: string, output?: string): void;
@@ -110,6 +126,17 @@ export declare class MockOpenClawClient extends EventEmitter implements OpenClaw
     getSessionByAgentId(agentId: string): OpenClawSession | undefined;
     getAllSessions(): OpenClawSession[];
     reset(): void;
+    /**
+     * Restore a session from persisted state (for CLI mock mode)
+     */
+    restoreSession(sessionData: {
+        sessionId: string;
+        agentId: string;
+        status: OpenClawSession['status'];
+        createdAt: string;
+        model?: string;
+        task?: string;
+    }): void;
 }
 export declare class OpenClawIntegration extends EventEmitter {
     private client;

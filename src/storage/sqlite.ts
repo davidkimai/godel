@@ -205,9 +205,16 @@ export class SQLiteStorage {
       )
     `);
 
-    // Create indexes for better query performance
+    // PERFORMANCE ROUND 2: Optimized indexes for common query patterns
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(swarm_id)`);
+    // PERFORMANCE: Composite index for status-based counting (used by status command)
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status_id ON agents(status, id)`);
+    // PERFORMANCE: Index for sorting agents by spawn time (list commands)
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_spawned ON agents(spawned_at DESC)`);
+    // PERFORMANCE: Covering index for lightweight status queries
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_lightweight ON agents(status, model, swarm_id, spawned_at)`);
+    
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent_id)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(swarm_id)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
@@ -370,6 +377,95 @@ export class SQLiteStorage {
     
     if (!row) return null;
     return this.rowToAgent(row);
+  }
+
+  // ============================================================================
+  // PERFORMANCE ROUND 2: Lightweight Query Methods
+  // These methods avoid full object construction for read-only operations
+  // ============================================================================
+
+  /**
+   * Get agent counts by status - O(1) aggregation query
+   * PERFORMANCE: Avoids loading all agents into memory
+   */
+  getAgentCountsByStatus(): Record<string, number> {
+    const stmt = this.getDb().prepare(`
+      SELECT status, COUNT(*) as count 
+      FROM agents 
+      GROUP BY status
+    `);
+    const rows = stmt.all() as Array<{ status: string; count: number }>;
+    
+    const counts: Record<string, number> = {
+      total: 0,
+      running: 0,
+      idle: 0,
+      paused: 0,
+      failed: 0,
+      spawning: 0,
+      completed: 0,
+      killing: 0,
+    };
+    
+    for (const row of rows) {
+      counts[row.status] = row.count;
+      counts['total'] += row.count;
+    }
+    
+    return counts;
+  }
+
+  /**
+   * Get lightweight agent info for listing
+   * PERFORMANCE: Only selects needed columns, no JSON parsing
+   */
+  getAgentListLightweight(limit?: number): Array<{
+    id: string;
+    label: string | null;
+    status: string;
+    model: string;
+    task: string;
+    spawnedAt: string;
+    swarmId: string | null;
+    runtime: number | null;
+    retryCount: number;
+    maxRetries: number;
+  }> {
+    let query = `
+      SELECT id, label, status, model, task, spawned_at, swarm_id, runtime, retry_count, max_retries
+      FROM agents 
+      ORDER BY spawned_at DESC
+    `;
+    
+    if (limit) {
+      query += ` LIMIT ${limit}`;
+    }
+    
+    const stmt = this.getDb().prepare(query);
+    const rows = stmt.all() as QueryResult[];
+    
+    return rows.map(row => ({
+      id: row['id'] as string,
+      label: row['label'] as string | null,
+      status: row['status'] as string,
+      model: row['model'] as string,
+      task: row['task'] as string,
+      spawnedAt: row['spawned_at'] as string,
+      swarmId: row['swarm_id'] as string | null,
+      runtime: row['runtime'] as number | null,
+      retryCount: (row['retry_count'] as number) || 0,
+      maxRetries: (row['max_retries'] as number) || 3,
+    }));
+  }
+
+  /**
+   * Get total agent count - O(1) indexed count query
+   * PERFORMANCE: Uses index-only scan if possible
+   */
+  getAgentCount(): number {
+    const stmt = this.getDb().prepare('SELECT COUNT(*) as count FROM agents');
+    const row = stmt.get() as { count: number } | undefined;
+    return row?.count || 0;
   }
 
   /**

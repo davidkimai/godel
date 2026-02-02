@@ -111,6 +111,7 @@ export function registerEventsCommand(program: Command): void {
         // Initialize components
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        lifecycle.start();
         const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         console.log('📡 Streaming events...\n');
@@ -207,6 +208,7 @@ export function registerEventsCommand(program: Command): void {
         // Initialize components
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        lifecycle.start();
         const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         // Calculate since date
@@ -380,6 +382,7 @@ export function registerEventsCommand(program: Command): void {
         // Initialize components
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        lifecycle.start();
         const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         // Check if session exists

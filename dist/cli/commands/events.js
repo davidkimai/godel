@@ -79,6 +79,7 @@ function registerEventsCommand(program) {
             // Initialize components
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const swarmManager = (0, swarm_1.getGlobalSwarmManager)(lifecycle, messageBus, memory_1.memoryStore.agents);
             console.log('📡 Streaming events...\n');
             // Build filter
@@ -163,6 +164,7 @@ function registerEventsCommand(program) {
             // Initialize components
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const swarmManager = (0, swarm_1.getGlobalSwarmManager)(lifecycle, messageBus, memory_1.memoryStore.agents);
             // Calculate since date
             let since;
@@ -312,6 +314,7 @@ function registerEventsCommand(program) {
             // Initialize components
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
+            lifecycle.start();
             const swarmManager = (0, swarm_1.getGlobalSwarmManager)(lifecycle, messageBus, memory_1.memoryStore.agents);
             // Check if session exists
             const swarm = swarmManager.getSwarm(sessionId);

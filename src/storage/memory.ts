@@ -15,6 +15,7 @@ import type {
   Event,
   EventType
 } from '../models';
+import { AgentRepository } from './repositories/AgentRepository';
 
 /**
  * Storage interface for CRUD operations
@@ -36,6 +37,21 @@ export class AgentStorage implements Storage<Agent> {
   private byStatus: Map<AgentStatus, Set<string>> = new Map();
   private bySwarm: Map<string, Set<string>> = new Map();
   private byParent: Map<string, Set<string>> = new Map();
+  private repository?: AgentRepository;
+
+  /**
+   * Set the agent repository for persistence
+   */
+  setAgentRepository(repo: AgentRepository): void {
+    this.repository = repo;
+  }
+
+  /**
+   * Get the agent repository
+   */
+  getAgentRepository(): AgentRepository | undefined {
+    return this.repository;
+  }
 
   /**
    * Creates a new agent and indexes it

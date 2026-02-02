@@ -27,9 +27,17 @@ const DEFAULT_CONFIG: ServerConfig = {
   port: 7373,
   host: 'localhost',
   apiKey: process.env['DASH_API_KEY'] || 'dash-api-key',
-  corsOrigins: ['http://localhost:3000'],
-  rateLimit: 100
+  corsOrigins: parseCorsOrigins(process.env['DASH_CORS_ORIGINS']),
+  rateLimit: parseInt(process.env['DASH_RATE_LIMIT'] || '100', 10)
 };
+
+function parseCorsOrigins(envValue: string | undefined): string[] {
+  if (!envValue) {
+    return ['http://localhost:3000'];
+  }
+  // Split by comma and trim whitespace
+  return envValue.split(',').map(origin => origin.trim());
+}
 
 function getIdParam(req: Request): string {
   const id = req.params['id'];

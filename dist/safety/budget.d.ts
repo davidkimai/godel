@@ -3,6 +3,7 @@
  *
  * Provides budget tracking per task, agent, swarm, and project.
  * Tracks token usage and cost calculation with threshold monitoring.
+ * Budget configurations are persisted to disk for cross-session survival.
  */
 import { ThresholdConfig, ThresholdCheckResult } from './thresholds';
 export type BudgetType = 'task' | 'agent' | 'swarm' | 'project';
@@ -92,11 +93,15 @@ export interface DailyUsage {
     tokens: number;
     cost: number;
 }
-declare const budgetConfigs: Map<string, BudgetConfig>;
+declare let budgetConfigs: Map<string, BudgetConfig>;
 declare const activeBudgets: Map<string, BudgetTracking>;
 declare const budgetHistory: BudgetHistoryEntry[];
-declare const budgetAlerts: Map<string, BudgetAlert[]>;
+declare let budgetAlerts: Map<string, BudgetAlert[]>;
 declare const DEFAULT_THRESHOLDS: ThresholdConfig[];
+/**
+ * Get the path to the budgets file (for debugging)
+ */
+export declare function getBudgetsFilePath(): string;
 /**
  * Set a budget configuration for a specific scope
  */
@@ -105,6 +110,22 @@ export declare function setBudgetConfig(config: BudgetConfig): BudgetConfig;
  * Get budget configuration for a scope
  */
 export declare function getBudgetConfig(type: BudgetType, scope: string): BudgetConfig | undefined;
+/**
+ * List all budget configurations
+ */
+export declare function listBudgetConfigs(): BudgetConfig[];
+/**
+ * List budget configurations by type
+ */
+export declare function listBudgetConfigsByType(type: BudgetType): BudgetConfig[];
+/**
+ * Clear all budget configurations (for testing/reset)
+ */
+export declare function clearAllBudgetConfigs(): void;
+/**
+ * Delete a specific budget configuration
+ */
+export declare function deleteBudgetConfig(type: BudgetType, scope: string): boolean;
 /**
  * Set project-level daily budget
  */
@@ -173,6 +194,10 @@ export declare function getBudgetAlerts(projectId: string): BudgetAlert[];
  * Remove a budget alert
  */
 export declare function removeBudgetAlert(projectId: string, alertId: string): boolean;
+/**
+ * Clear all budget alerts (for testing/reset)
+ */
+export declare function clearAllBudgetAlerts(): void;
 /**
  * Get budget history
  */

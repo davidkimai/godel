@@ -33,26 +33,17 @@ async function lazyRegister(
  * OPTIMIZATION: Uses lazy loading to reduce startup time by ~30-40%
  */
 export function registerCommands(program: Command): void {
-  // v1 commands (maintained for compatibility) - lazily loaded
-  program
-    .command('tasks')
-    .description('Manage tasks (lazily loaded)')
-    .hook('preAction', async () => {
-      const { registerTasksCommand } = await import('./commands/tasks');
-      // Re-register with subcommands on first use
-    });
-
   // Register commands with lazy-loaded action handlers
   // This defers module loading until the command is actually invoked
   
   // v2 commands per SPEC_v2.md
-  program
-    .command('swarm')
-    .description('Manage swarms of agents')
-    .hook('preSubcommand', async () => {
-      const { registerSwarmCommand } = await import('./commands/swarm');
-      registerSwarmCommand(program);
-    });
+  // Register swarm command immediately (not lazy-loaded due to subcommand issues)
+  try {
+    const { registerSwarmCommand } = require('./commands/swarm');
+    registerSwarmCommand(program);
+  } catch {
+    // Command not available, skip
+  }
 
   program
     .command('dashboard')
@@ -64,13 +55,29 @@ export function registerCommands(program: Command): void {
       await cmd.parseAsync(['dashboard']);
     });
 
-  program
-    .command('agents')
-    .description('Manage individual agents')
-    .hook('preSubcommand', async () => {
-      const { registerAgentsCommand } = await import('./commands/agents');
-      registerAgentsCommand(program);
-    });
+  // Register agents command immediately (not lazy-loaded due to subcommand issues)
+  try {
+    const { registerAgentsCommand } = require('./commands/agents');
+    registerAgentsCommand(program);
+  } catch {
+    // Command not available, skip
+  }
+
+  // Register openclaw command immediately (not lazy-loaded due to subcommand issues)
+  try {
+    const { registerOpenClawCommand } = require('./commands/openclaw');
+    registerOpenClawCommand(program);
+  } catch {
+    // Command not available, skip
+  }
+
+  // Register clawhub command immediately (not lazy-loaded due to subcommand issues)
+  try {
+    const { registerClawhubCommand } = require('./commands/clawhub');
+    registerClawhubCommand(program);
+  } catch {
+    // Command not available, skip
+  }
 
   program
     .command('events')
@@ -112,13 +119,26 @@ function registerCoreCommands(program: Command): void {
   setupLazyCommand(program, 'context', './commands/context', 'registerContextCommand');
   setupLazyCommand(program, 'tests', './commands/tests', 'registerTestsCommand');
   setupLazyCommand(program, 'safety', './commands/safety', 'registerSafetyCommand');
-  setupLazyCommand(program, 'self-improve', './commands/self-improve', 'registerSelfImproveCommand');
-  setupLazyCommand(program, 'openclaw', './commands/openclaw', 'registerOpenClawCommand');
-  setupLazyCommand(program, 'clawhub', './commands/clawhub', 'registerClawhubCommand');
+  
+  // Register self-improve command immediately (not lazy-loaded due to subcommand issues - S54 fix)
+  try {
+    const { registerSelfImproveCommand } = require('./commands/self-improve');
+    registerSelfImproveCommand(program);
+  } catch {
+    // Command not available, skip
+  }
   
   // Budget and approval use createCommand pattern
   setupLazyCreateCommand(program, 'budget', './commands/budget', 'createBudgetCommand');
   setupLazyCreateCommand(program, 'approve', './commands/approve', 'createApprovalCommand');
+  
+  // Register status command (lightweight, load immediately)
+  try {
+    const { registerStatusCommand } = require('./commands/status');
+    registerStatusCommand(program);
+  } catch {
+    // Command not available, skip
+  }
 }
 
 /**
@@ -130,21 +150,17 @@ function setupLazyCommand(
   modulePath: string,
   exportName: string
 ): void {
+  // Use preSubcommand hook to lazy load the module
+  // This allows subcommands to be registered before parsing continues
   program
     .command(name)
     .description(`${name} commands (loading on first use)`)
     .allowUnknownOption()
-    .action(async (...args) => {
+    .hook('preSubcommand', async (thisCommand, subCommand) => {
       const module = await import(modulePath);
       const registerFn = module[exportName];
       if (typeof registerFn === 'function') {
-        // Create a sub-program to capture the command structure
-        const subProgram = new Command();
-        registerFn(subProgram);
-        
-        // Re-parse with the registered subcommands
-        const subArgs = process.argv.slice(process.argv.indexOf(name) + 1);
-        await subProgram.parseAsync([name, ...subArgs]);
+        registerFn(program);
       }
     });
 }
@@ -167,7 +183,10 @@ function setupLazyCreateCommand(
       const createFn = module[exportName];
       if (typeof createFn === 'function') {
         const cmd = createFn();
-        const subArgs = process.argv.slice(process.argv.indexOf(name));
+        // Commander expects process.argv format: [node, script, command, ...]
+        // Pass node, script, then everything AFTER the command name (subcommand args)
+        const nameIndex = process.argv.indexOf(name);
+        const subArgs = [...process.argv.slice(0, 2), ...process.argv.slice(nameIndex + 1)];
         await cmd.parseAsync(subArgs);
       }
     });

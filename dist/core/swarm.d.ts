@@ -13,6 +13,7 @@ import { EventEmitter } from 'events';
 import { AgentLifecycle, type AgentState } from './lifecycle';
 import { MessageBus } from '../bus/index';
 import { AgentStorage } from '../storage/memory';
+import { SwarmRepository } from '../storage';
 export type SwarmStrategy = 'parallel' | 'map-reduce' | 'pipeline' | 'tree';
 export interface BudgetConfig {
     amount: number;
@@ -72,10 +73,15 @@ export declare class SwarmManager extends EventEmitter {
     private agentLifecycle;
     private messageBus;
     private storage;
+    private swarmRepository?;
     private active;
     private mutexes;
     private creationMutex;
-    constructor(agentLifecycle: AgentLifecycle, messageBus: MessageBus, storage: AgentStorage);
+    constructor(agentLifecycle: AgentLifecycle, messageBus: MessageBus, storage: AgentStorage, swarmRepository?: SwarmRepository);
+    /**
+     * Set the swarm repository for persistence
+     */
+    setSwarmRepository(repo: SwarmRepository): void;
     /**
      * RACE CONDITION FIX: Get or create a mutex for a specific swarm
      */
@@ -153,7 +159,7 @@ export declare class SwarmManager extends EventEmitter {
     private checkSwarmCompletion;
     private splitTaskIntoStages;
 }
-export declare function getGlobalSwarmManager(agentLifecycle?: AgentLifecycle, messageBus?: MessageBus, storage?: AgentStorage): SwarmManager;
+export declare function getGlobalSwarmManager(agentLifecycle?: AgentLifecycle, messageBus?: MessageBus, storage?: AgentStorage, swarmRepository?: SwarmRepository): SwarmManager;
 export declare function resetGlobalSwarmManager(): void;
 export default SwarmManager;
 //# sourceMappingURL=swarm.d.ts.map

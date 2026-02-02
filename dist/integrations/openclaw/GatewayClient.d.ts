@@ -48,6 +48,13 @@ export declare class GatewayClient extends EventEmitter {
     get statistics(): GatewayStats;
     /**
      * Authenticate with the Gateway using token
+     *
+     * Per OpenClaw Gateway Protocol v1:
+     * - For control clients (like dash CLI), use id 'node' and mode 'client'
+     * - For extension clients, use id 'node' and mode 'extension'
+     * - Per OpenClaw source, valid combinations:
+     *   - {id: 'node', mode: 'client'} for CLI/tools
+     *   - {id: 'node', mode: 'extension'} for extensions
      */
     authenticate(): Promise<void>;
     /**

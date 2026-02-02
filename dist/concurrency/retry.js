@@ -316,16 +316,22 @@ exports.Bulkhead = Bulkhead;
  * Check if error is retryable
  */
 function isRetryable(error, config) {
+    if (typeof error !== 'object' || error === null) {
+        return false;
+    }
+    const err = error;
     // Check status code
-    if (error.status && config.retryableStatuses.includes(error.status)) {
+    const status = err['status'];
+    if (typeof status === 'number' && config.retryableStatuses.includes(status)) {
         return true;
     }
     // Check error code
-    if (error.code && config.retryableErrors.includes(error.code)) {
+    const code = err['code'];
+    if (typeof code === 'string' && config.retryableErrors.includes(code)) {
         return true;
     }
     // Check error message
-    const message = error.message || '';
+    const message = typeof err['message'] === 'string' ? err['message'] : '';
     if (message.includes('timeout') || message.includes('ECONN')) {
         return true;
     }

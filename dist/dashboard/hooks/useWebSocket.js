@@ -57,9 +57,10 @@ function useWebSocket(options = {}) {
             });
         }
         catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Connection failed';
             setState((prev) => ({
                 ...prev,
-                error: error.message || 'Connection failed'
+                error: errorMessage
             }));
         }
     }, []);
@@ -141,7 +142,7 @@ function useAgentStatus(initialAgents = []) {
     const { connected, subscribe } = useWebSocket();
     (0, react_1.useEffect)(() => {
         if (!connected)
-            return;
+            return undefined;
         const unsubscribe = subscribe('agent_update', (data) => {
             setAgents((prev) => {
                 const index = prev.findIndex((a) => a.id === data.agent?.id);
@@ -165,7 +166,7 @@ function useBudget(initialBudget = null) {
     const { connected, subscribe } = useWebSocket();
     (0, react_1.useEffect)(() => {
         if (!connected)
-            return;
+            return undefined;
         const unsubscribe = subscribe('budget_update', (data) => {
             setBudget(data.budget);
         });
@@ -181,7 +182,7 @@ function useEventStream(maxEvents = 100) {
     const { connected, subscribe } = useWebSocket();
     (0, react_1.useEffect)(() => {
         if (!connected)
-            return;
+            return undefined;
         const unsubscribe = subscribe('*', (data) => {
             setEvents((prev) => {
                 const newEvents = [

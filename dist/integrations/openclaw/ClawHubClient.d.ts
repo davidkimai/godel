@@ -38,6 +38,10 @@ export declare class ClawHubClient {
      */
     search(params: SkillSearchParams): Promise<SkillSearchResult>;
     /**
+     * Return mock search results when API is unavailable
+     */
+    private getMockSearchResults;
+    /**
      * Quick search with defaults
      */
     quickSearch(query: string, limit?: number): Promise<SkillMetadata[]>;

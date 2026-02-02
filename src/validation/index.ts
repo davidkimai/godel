@@ -57,7 +57,7 @@ export class NotFoundError extends Error {
 
 export function validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
-  if (!result.success) {
+  if (result.success === false) {
     const issues = result.error.issues.map((issue) => ({
       path: issue.path.join('.'),
       message: issue.message,
@@ -75,9 +75,11 @@ export function validatePartial<T extends z.ZodObject<any>>(
   return validate(partialSchema, data);
 }
 
-export function validateSafe<T>(schema: z.ZodSchema<T>, data: unknown): 
+export type ValidationResult<T> = 
   | { success: true; data: T }
-  | { success: false; errors: Array<{ path: string; message: string }> } {
+  | { success: false; errors: Array<{ path: string; message: string }> };
+
+export function validateSafe<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T> {
   const result = schema.safeParse(data);
   if (result.success) {
     return { success: true, data: result.data };
@@ -260,10 +262,11 @@ export const validateId = (data: unknown): string => validate(idSchema, data);
 
 export function validateCliArgs<T>(schema: z.ZodSchema<T>, data: unknown, options?: { exitOnError?: boolean; verbose?: boolean }): T | null {
   const result = validateSafe(schema, data);
-  if (!result.success) {
+  if (result.success === false) {
     if (options?.verbose !== false) {
       console.error('Validation failed:');
-      for (const error of result.errors) {
+      const errorResult = result as { success: false; errors: Array<{ path: string; message: string }> };
+      for (const error of errorResult.errors) {
         console.error(`  ${error.path}: ${error.message}`);
       }
     }
@@ -272,20 +275,21 @@ export function validateCliArgs<T>(schema: z.ZodSchema<T>, data: unknown, option
     }
     return null;
   }
-  return result.data;
+  return (result as { success: true; data: T }).data;
 }
 
 export function validateCliArgsResult<T>(schema: z.ZodSchema<T>, data: unknown): 
   | { success: true; data: T }
   | { success: false; errors: string } {
   const result = validateSafe(schema, data);
-  if (!result.success) {
+  if (result.success === false) {
+    const errorResult = result as { success: false; errors: Array<{ path: string; message: string }> };
     return {
       success: false,
-      errors: formatValidationErrors(result.errors),
+      errors: formatValidationErrors(errorResult.errors),
     };
   }
-  return { success: true, data: result.data };
+  return { success: true, data: (result as { success: true; data: T }).data };
 }
 
 // =============================================================================

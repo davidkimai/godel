@@ -5,6 +5,7 @@
  */
 import { TaskStatus } from '../models';
 import type { Agent, AgentStatus, Task, Event, EventType } from '../models';
+import { AgentRepository } from './repositories/AgentRepository';
 /**
  * Storage interface for CRUD operations
  */
@@ -24,6 +25,15 @@ export declare class AgentStorage implements Storage<Agent> {
     private byStatus;
     private bySwarm;
     private byParent;
+    private repository?;
+    /**
+     * Set the agent repository for persistence
+     */
+    setAgentRepository(repo: AgentRepository): void;
+    /**
+     * Get the agent repository
+     */
+    getAgentRepository(): AgentRepository | undefined;
     /**
      * Creates a new agent and indexes it
      */

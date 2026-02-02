@@ -13,7 +13,38 @@ import { Command } from 'commander';
 import { getGlobalSwarmManager, type SwarmConfig, type SwarmStrategy } from '../../core/swarm';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus } from '../../bus/index';
-import { memoryStore } from '../../storage/memory';
+import { memoryStore, initDatabase } from '../../storage';
+import { resolve } from 'path';
+import { existsSync, mkdirSync } from 'fs';
+
+/**
+ * Initialize core components
+ */
+async function initializeCore(): Promise<{
+  messageBus: ReturnType<typeof getGlobalBus>;
+  lifecycle: ReturnType<typeof getGlobalLifecycle>;
+  dbPath: string;
+}> {
+  // Ensure dash data directory exists
+  const dataDir = resolve(process.cwd(), '.dash');
+  if (!existsSync(dataDir)) {
+    mkdirSync(dataDir, { recursive: true });
+  }
+
+  const dbPath = resolve(dataDir, 'dash.db');
+
+  // Initialize SQLite database
+  await initDatabase({ dbPath, enableWAL: true });
+
+  // Initialize message bus
+  const messageBus = getGlobalBus();
+
+  // Initialize lifecycle with SQLite persistence
+  const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+  lifecycle.start(); // CRITICAL: Start lifecycle before use
+
+  return { messageBus, lifecycle, dbPath };
+}
 
 export function registerSwarmCommand(program: Command): void {
   const swarm = program
@@ -96,9 +127,8 @@ export function registerSwarmCommand(program: Command): void {
           return;
         }
 
-        // Initialize core components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        // Initialize core components with persistence
+        const { messageBus, lifecycle } = await initializeCore();
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         if (!manager) {
@@ -106,20 +136,20 @@ export function registerSwarmCommand(program: Command): void {
           process.exit(1);
         }
 
-        manager.start();
+        await manager.start();
 
         // Create the swarm
-        const swarm = await manager.create(config);
+        const newSwarm = await manager.create(config);
 
         console.log('✅ Swarm created successfully!\n');
-        console.log(`   ID: ${swarm.id}`);
-        console.log(`   Name: ${swarm.name}`);
-        console.log(`   Status: ${swarm.status}`);
-        console.log(`   Agents: ${swarm.agents.length}`);
-        if (swarm.budget.allocated > 0) {
-          console.log(`   Budget: $${swarm.budget.allocated.toFixed(2)} USD`);
+        console.log(`   ID: ${newSwarm.id}`);
+        console.log(`   Name: ${newSwarm.name}`);
+        console.log(`   Status: ${newSwarm.status}`);
+        console.log(`   Agents: ${newSwarm.agents.length}`);
+        if (newSwarm.budget.allocated > 0) {
+          console.log(`   Budget: $${newSwarm.budget.allocated.toFixed(2)} USD`);
         }
-        console.log(`\n💡 Use 'dash swarm status ${swarm.id}' to monitor progress`);
+        console.log(`\n💡 Use 'dash swarm status ${newSwarm.id}' to monitor progress`);
 
       } catch (error) {
         console.error('❌ Failed to create swarm:', error instanceof Error ? error.message : String(error));
@@ -138,10 +168,10 @@ export function registerSwarmCommand(program: Command): void {
     .option('--yes', 'Skip confirmation prompt')
     .action(async (swarmId, options) => {
       try {
-        // Initialize core components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        // Initialize core components with persistence
+        const { messageBus, lifecycle } = await initializeCore();
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        await manager.start();
 
         const swarm = manager.getSwarm(swarmId);
         if (!swarm) {
@@ -152,7 +182,7 @@ export function registerSwarmCommand(program: Command): void {
         console.log(`⚠️  You are about to destroy swarm: ${swarm.name}`);
         console.log(`   ID: ${swarm.id}`);
         console.log(`   Agents: ${swarm.agents.length}`);
-        
+
         if (!options.yes && !options.force) {
           // In a real implementation, we'd use a prompt library
           console.log('\n🛑 Use --yes to confirm destruction');
@@ -185,10 +215,10 @@ export function registerSwarmCommand(program: Command): void {
           process.exit(2);
         }
 
-        // Initialize core components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        // Initialize core components with persistence
+        const { messageBus, lifecycle } = await initializeCore();
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        await manager.start();
 
         const swarm = manager.getSwarm(swarmId);
         if (!swarm) {
@@ -205,7 +235,7 @@ export function registerSwarmCommand(program: Command): void {
 
         const action = target > currentSize ? 'added' : 'removed';
         const delta = Math.abs(target - currentSize);
-        
+
         console.log(`✅ Scaled successfully (${action} ${delta} agents)`);
 
       } catch (error) {
@@ -222,12 +252,12 @@ export function registerSwarmCommand(program: Command): void {
     .description('Get swarm status')
     .argument('[swarm-id]', 'Swarm ID (shows all if omitted)')
     .option('-f, --format <format>', 'Output format (table|json)', 'table')
-    .action((swarmId, options) => {
+    .action(async (swarmId, options) => {
       try {
-        // Initialize core components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        // Initialize core components with persistence
+        const { messageBus, lifecycle } = await initializeCore();
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        await manager.start();
 
         if (swarmId) {
           // Show specific swarm
@@ -326,12 +356,12 @@ export function registerSwarmCommand(program: Command): void {
     .description('List all swarms')
     .option('-a, --active', 'Show only active swarms')
     .option('-f, --format <format>', 'Output format (table|json)', 'table')
-    .action((options) => {
+    .action(async (options) => {
       try {
-        // Initialize core components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
+        // Initialize core components with persistence
+        const { messageBus, lifecycle } = await initializeCore();
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        await manager.start();
 
         const swarms = options.active 
           ? manager.listActiveSwarms()

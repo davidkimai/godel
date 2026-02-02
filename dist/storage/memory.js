@@ -18,6 +18,18 @@ class AgentStorage {
         this.byParent = new Map();
     }
     /**
+     * Set the agent repository for persistence
+     */
+    setAgentRepository(repo) {
+        this.repository = repo;
+    }
+    /**
+     * Get the agent repository
+     */
+    getAgentRepository() {
+        return this.repository;
+    }
+    /**
      * Creates a new agent and indexes it
      */
     create(agent) {

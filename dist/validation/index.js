@@ -62,7 +62,7 @@ exports.NotFoundError = NotFoundError;
 // =============================================================================
 function validate(schema, data) {
     const result = schema.safeParse(data);
-    if (!result.success) {
+    if (result.success === false) {
         const issues = result.error.issues.map((issue) => ({
             path: issue.path.join('.'),
             message: issue.message,
@@ -254,10 +254,11 @@ exports.validateId = validateId;
 // =============================================================================
 function validateCliArgs(schema, data, options) {
     const result = validateSafe(schema, data);
-    if (!result.success) {
+    if (result.success === false) {
         if (options?.verbose !== false) {
             console.error('Validation failed:');
-            for (const error of result.errors) {
+            const errorResult = result;
+            for (const error of errorResult.errors) {
                 console.error(`  ${error.path}: ${error.message}`);
             }
         }
@@ -270,10 +271,11 @@ function validateCliArgs(schema, data, options) {
 }
 function validateCliArgsResult(schema, data) {
     const result = validateSafe(schema, data);
-    if (!result.success) {
+    if (result.success === false) {
+        const errorResult = result;
         return {
             success: false,
-            errors: formatValidationErrors(result.errors),
+            errors: formatValidationErrors(errorResult.errors),
         };
     }
     return { success: true, data: result.data };

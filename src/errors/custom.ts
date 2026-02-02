@@ -134,10 +134,10 @@ export class AuthorizationError extends ApplicationError {
 }
 
 export class InvalidApiKeyError extends AuthenticationError {
+  public readonly code = 'INVALID_API_KEY';
   constructor(context?: ErrorContext) {
     super('Invalid or missing API key', context);
     this.name = 'InvalidApiKeyError';
-    (this as any).code = 'INVALID_API_KEY';
   }
 }
 
@@ -279,6 +279,7 @@ export class ExternalServiceError extends ApplicationError {
 }
 
 export class LLMServiceError extends ExternalServiceError {
+  public readonly code = 'LLM_SERVICE_ERROR';
   constructor(
     public readonly provider: string,
     message: string,
@@ -286,7 +287,6 @@ export class LLMServiceError extends ExternalServiceError {
   ) {
     super(provider, message, context);
     this.name = 'LLMServiceError';
-    (this as any).code = 'LLM_SERVICE_ERROR';
   }
 }
 

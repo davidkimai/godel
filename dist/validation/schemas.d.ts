@@ -101,24 +101,24 @@ export declare const agentActionSchema: z.ZodEffects<z.ZodObject<{
     delay: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     reason?: string;
-    action?: "pause" | "resume" | "kill" | "retry" | "scale";
-    force?: boolean;
+    action?: "retry" | "pause" | "resume" | "kill" | "scale";
     delay?: number;
+    force?: boolean;
 }, {
     reason?: string;
-    action?: "pause" | "resume" | "kill" | "retry" | "scale";
-    force?: boolean;
+    action?: "retry" | "pause" | "resume" | "kill" | "scale";
     delay?: number;
+    force?: boolean;
 }>, {
     reason?: string;
-    action?: "pause" | "resume" | "kill" | "retry" | "scale";
-    force?: boolean;
+    action?: "retry" | "pause" | "resume" | "kill" | "scale";
     delay?: number;
+    force?: boolean;
 }, {
     reason?: string;
-    action?: "pause" | "resume" | "kill" | "retry" | "scale";
-    force?: boolean;
+    action?: "retry" | "pause" | "resume" | "kill" | "scale";
     delay?: number;
+    force?: boolean;
 }>;
 export declare const agentQuerySchema: z.ZodObject<{
     page: z.ZodDefault<z.ZodNumber>;
@@ -145,32 +145,32 @@ export declare const createSwarmSchema: z.ZodEffects<z.ZodObject<{
     config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
     description?: string;
-    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
+    config?: Record<string, unknown>;
     agents?: number;
     name?: string;
-    config?: Record<string, unknown>;
     budget?: number;
+    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
 }, {
     description?: string;
-    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
+    config?: Record<string, unknown>;
     agents?: number;
     name?: string;
-    config?: Record<string, unknown>;
     budget?: number;
+    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
 }>, {
     description?: string;
-    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
+    config?: Record<string, unknown>;
     agents?: number;
     name?: string;
-    config?: Record<string, unknown>;
     budget?: number;
+    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
 }, {
     description?: string;
-    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
+    config?: Record<string, unknown>;
     agents?: number;
     name?: string;
-    config?: Record<string, unknown>;
     budget?: number;
+    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
 }>;
 export declare const updateSwarmSchema: z.ZodEffects<z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -180,23 +180,23 @@ export declare const updateSwarmSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     description?: string;
     status?: "running" | "paused" | "completed" | "failed";
-    name?: string;
     config?: Record<string, unknown>;
+    name?: string;
 }, {
     description?: string;
     status?: "running" | "paused" | "completed" | "failed";
-    name?: string;
     config?: Record<string, unknown>;
+    name?: string;
 }>, {
     description?: string;
     status?: "running" | "paused" | "completed" | "failed";
-    name?: string;
     config?: Record<string, unknown>;
+    name?: string;
 }, {
     description?: string;
     status?: "running" | "paused" | "completed" | "failed";
-    name?: string;
     config?: Record<string, unknown>;
+    name?: string;
 }>;
 export declare const swarmActionSchema: z.ZodEffects<z.ZodObject<{
     action: z.ZodEnum<["pause", "resume", "cancel", "scale", "rebalance"]>;
@@ -240,31 +240,31 @@ export declare const setBudgetSchema: z.ZodEffects<z.ZodObject<{
     maxRequests: z.ZodOptional<z.ZodNumber>;
     alertThreshold: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    maxTokens?: number;
-    maxCost?: number;
     scopeType?: "agent" | "swarm" | "project" | "global";
     scopeId?: string;
+    maxTokens?: number;
+    maxCost?: number;
     maxRequests?: number;
     alertThreshold?: number;
 }, {
-    maxTokens?: number;
-    maxCost?: number;
     scopeType?: "agent" | "swarm" | "project" | "global";
     scopeId?: string;
+    maxTokens?: number;
+    maxCost?: number;
     maxRequests?: number;
     alertThreshold?: number;
 }>, {
-    maxTokens?: number;
-    maxCost?: number;
     scopeType?: "agent" | "swarm" | "project" | "global";
     scopeId?: string;
+    maxTokens?: number;
+    maxCost?: number;
     maxRequests?: number;
     alertThreshold?: number;
 }, {
-    maxTokens?: number;
-    maxCost?: number;
     scopeType?: "agent" | "swarm" | "project" | "global";
     scopeId?: string;
+    maxTokens?: number;
+    maxCost?: number;
     maxRequests?: number;
     alertThreshold?: number;
 }>;
@@ -294,13 +294,13 @@ export declare const budgetQuerySchema: z.ZodObject<{
     perPage: z.ZodDefault<z.ZodNumber>;
     scopeType: z.ZodOptional<z.ZodEnum<["swarm", "agent", "project", "global"]>>;
 }, "strip", z.ZodTypeAny, {
+    scopeType?: "agent" | "swarm" | "project" | "global";
     page?: number;
     perPage?: number;
-    scopeType?: "agent" | "swarm" | "project" | "global";
 }, {
+    scopeType?: "agent" | "swarm" | "project" | "global";
     page?: number;
     perPage?: number;
-    scopeType?: "agent" | "swarm" | "project" | "global";
 }>;
 export declare const createTaskSchema: z.ZodEffects<z.ZodObject<{
     title: z.ZodString;
@@ -315,33 +315,33 @@ export declare const createTaskSchema: z.ZodEffects<z.ZodObject<{
     metadata?: Record<string, unknown>;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
-    tags?: string[];
     dueDate?: Date;
     assignees?: string[];
+    tags?: string[];
 }, {
     description?: string;
     metadata?: Record<string, unknown>;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
-    tags?: string[];
     dueDate?: Date;
     assignees?: string[];
+    tags?: string[];
 }>, {
     description?: string;
     metadata?: Record<string, unknown>;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
-    tags?: string[];
     dueDate?: Date;
     assignees?: string[];
+    tags?: string[];
 }, {
     description?: string;
     metadata?: Record<string, unknown>;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
-    tags?: string[];
     dueDate?: Date;
     assignees?: string[];
+    tags?: string[];
 }>;
 export declare const updateTaskSchema: z.ZodEffects<z.ZodObject<{
     title: z.ZodOptional<z.ZodString>;
@@ -389,36 +389,36 @@ export declare const sendMessageSchema: z.ZodObject<{
         size: z.ZodNumber;
         data: z.ZodString;
     }, "strip", z.ZodTypeAny, {
-        type?: string;
         name?: string;
+        type?: string;
         data?: string;
         size?: number;
     }, {
-        type?: string;
         name?: string;
+        type?: string;
         data?: string;
         size?: number;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
+    content?: string;
+    replyTo?: string;
+    mentions?: string[];
     attachments?: {
-        type?: string;
         name?: string;
+        type?: string;
         data?: string;
         size?: number;
     }[];
-    replyTo?: string;
-    content?: string;
-    mentions?: string[];
 }, {
+    content?: string;
+    replyTo?: string;
+    mentions?: string[];
     attachments?: {
-        type?: string;
         name?: string;
+        type?: string;
         data?: string;
         size?: number;
     }[];
-    replyTo?: string;
-    content?: string;
-    mentions?: string[];
 }>;
 export declare const eventPublishSchema: z.ZodObject<{
     type: z.ZodString;
@@ -427,17 +427,17 @@ export declare const eventPublishSchema: z.ZodObject<{
     source: z.ZodString;
     correlationId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    type?: string;
     timestamp?: Date;
-    payload?: unknown;
-    correlationId?: string;
     source?: string;
+    payload?: unknown;
+    type?: string;
+    correlationId?: string;
 }, {
-    type?: string;
     timestamp?: Date;
-    payload?: unknown;
-    correlationId?: string;
     source?: string;
+    payload?: unknown;
+    type?: string;
+    correlationId?: string;
 }>;
 export declare const configUpdateSchema: z.ZodObject<{
     key: z.ZodString;
@@ -461,25 +461,25 @@ export declare const webhookRegisterSchema: z.ZodEffects<z.ZodObject<{
     secret: z.ZodString;
     active: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
+    secret?: string;
     active?: boolean;
     events?: string[];
     url?: string;
-    secret?: string;
 }, {
+    secret?: string;
     active?: boolean;
     events?: string[];
     url?: string;
-    secret?: string;
 }>, {
+    secret?: string;
     active?: boolean;
     events?: string[];
     url?: string;
-    secret?: string;
 }, {
+    secret?: string;
     active?: boolean;
     events?: string[];
     url?: string;
-    secret?: string;
 }>;
 export type SpawnAgentInput = z.infer<typeof spawnAgentSchema>;
 export type UpdateAgentInput = z.infer<typeof updateAgentSchema>;

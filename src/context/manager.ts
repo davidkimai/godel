@@ -19,6 +19,16 @@ import {
 
 import type {
   ValidationResult} from './types';
+import {
+  ApplicationError,
+  ValidationError,
+  NotFoundError,
+  DashErrorCode,
+  assert,
+  assertExists,
+  safeExecute,
+} from '../errors';
+import { logger } from '../utils/logger';
 
 // Default limits
 const DEFAULT_MAX_CONTEXT_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -52,24 +62,38 @@ export class ContextManager {
     type: ContextType = 'input'
   ): Promise<ContextFile> {
     // Validate file path
-    if (!this.validateFilePath(filePath)) {
-      throw new Error(`Invalid file path: ${filePath}`);
-    }
+    assert(
+      this.validateFilePath(filePath),
+      `Invalid file path: ${filePath}`,
+      { 
+        code: DashErrorCode.INVALID_FILE_PATH,
+        agentId,
+        filePath,
+        type
+      }
+    );
 
     // Check if file exists (async)
     let exists = false;
     let size = 0;
     let lastModified: Date | undefined;
 
-    try {
-      const stats = await fs.promises.stat(filePath);
-      exists = stats.isFile();
-      size = stats.size;
-      lastModified = stats.mtime;
-    } catch {
-      // File might not exist yet - allow adding reference anyway
-      exists = false;
-    }
+    const fileStats = await safeExecute(
+      async () => {
+        const stats = await fs.promises.stat(filePath);
+        return {
+          exists: stats.isFile(),
+          size: stats.size,
+          lastModified: stats.mtime,
+        };
+      },
+      { exists: false, size: 0, lastModified: undefined },
+      { logError: false, context: 'ContextManager.addFile.stat' }
+    );
+
+    exists = fileStats.exists;
+    size = fileStats.size;
+    lastModified = fileStats.lastModified;
 
     // Get or create agent context
     let context = this.agentContexts.get(agentId);
@@ -81,7 +105,13 @@ export class ContextManager {
     // Check max files limit
     const totalFiles = this.getTotalFileCount(context);
     if (totalFiles >= this.maxFiles) {
-      throw new Error(`Maximum number of files (${this.maxFiles}) reached for agent ${agentId}`);
+      throw new ApplicationError(
+        `Maximum number of files (${this.maxFiles}) reached for agent ${agentId}`,
+        DashErrorCode.MAX_FILES_EXCEEDED,
+        429,
+        { agentId, currentFiles: totalFiles, maxFiles: this.maxFiles },
+        true
+      );
     }
 
     // Create context file entry
@@ -175,10 +205,12 @@ export class ContextManager {
    * Analyze context for an agent - returns file tree and dependencies
    */
   async analyzeContext(agentId: string): Promise<ContextAnalysis> {
-    const context = this.agentContexts.get(agentId);
-    if (!context) {
-      throw new Error(`No context found for agent ${agentId}`);
-    }
+    const context = assertExists(
+      this.agentContexts.get(agentId),
+      'Context',
+      agentId,
+      { code: DashErrorCode.CONTEXT_NOT_FOUND }
+    );
 
     const allFiles = this.getContextFiles(agentId);
     const filePaths = allFiles.map((f) => f.path);
@@ -212,15 +244,25 @@ export class ContextManager {
     targetAgentId: string, 
     filePath: string
   ): Promise<ContextFile | null> {
-    const sourceContext = this.agentContexts.get(sourceAgentId);
-    if (!sourceContext) {
-      throw new Error(`No context found for source agent ${sourceAgentId}`);
-    }
+    const sourceContext = assertExists(
+      this.agentContexts.get(sourceAgentId),
+      'Context',
+      sourceAgentId,
+      { code: DashErrorCode.CONTEXT_NOT_FOUND }
+    );
 
     // Find file in source context
     const file = this.findFileInContext(sourceContext, filePath);
     if (!file) {
-      throw new Error(`File ${filePath} not found in source context`);
+      throw new NotFoundError(
+        'File in context',
+        filePath,
+        { 
+          code: DashErrorCode.FILE_NOT_FOUND_IN_CONTEXT,
+          sourceAgentId,
+          targetAgentId
+        }
+      );
     }
 
     // Add to target agent as shared context
@@ -407,13 +449,15 @@ export class ContextManager {
   }
 
   private async calculateChecksum(filePath: string): Promise<string> {
-    try {
-      const crypto = await import('crypto');
-      const data = await fs.promises.readFile(filePath);
-      return crypto.createHash('md5').update(data).digest('hex');
-    } catch {
-      return '';
-    }
+    return await safeExecute(
+      async () => {
+        const crypto = await import('crypto');
+        const data = await fs.promises.readFile(filePath);
+        return crypto.createHash('md5').update(data).digest('hex');
+      },
+      '',
+      { logError: false, context: 'ContextManager.calculateChecksum' }
+    );
   }
 
   private buildFileTreeFromContext(files: ContextFile[]): FileNode {

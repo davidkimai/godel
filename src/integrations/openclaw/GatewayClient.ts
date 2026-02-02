@@ -201,6 +201,13 @@ export class GatewayClient extends EventEmitter {
 
   /**
    * Authenticate with the Gateway using token
+   * 
+   * Per OpenClaw Gateway Protocol v1:
+   * - For control clients (like dash CLI), use id 'node' and mode 'client'
+   * - For extension clients, use id 'node' and mode 'extension'
+   * - Per OpenClaw source, valid combinations:
+   *   - {id: 'node', mode: 'client'} for CLI/tools
+   *   - {id: 'node', mode: 'extension'} for extensions
    */
   async authenticate(): Promise<void> {
     if (!this.config.token) {
@@ -211,13 +218,15 @@ export class GatewayClient extends EventEmitter {
 
     try {
       // Use 'connect' method as first request per OpenClaw Gateway protocol
+      // Using node client format for CLI/control connection
       await this.request('connect', {
         auth: {
           token: this.config.token,
         },
         client: {
-          id: this.clientId,
-          name: 'dash',
+          id: 'node',
+          mode: 'client',
+          platform: 'node',
           version: '2.0.0',
         },
         minProtocol: 1,

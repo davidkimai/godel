@@ -120,8 +120,8 @@ exports.AuthorizationError = AuthorizationError;
 class InvalidApiKeyError extends AuthenticationError {
     constructor(context) {
         super('Invalid or missing API key', context);
-        this.name = 'InvalidApiKeyError';
         this.code = 'INVALID_API_KEY';
+        this.name = 'InvalidApiKeyError';
     }
 }
 exports.InvalidApiKeyError = InvalidApiKeyError;
@@ -207,8 +207,8 @@ class LLMServiceError extends ExternalServiceError {
     constructor(provider, message, context) {
         super(provider, message, context);
         this.provider = provider;
-        this.name = 'LLMServiceError';
         this.code = 'LLM_SERVICE_ERROR';
+        this.name = 'LLMServiceError';
     }
 }
 exports.LLMServiceError = LLMServiceError;

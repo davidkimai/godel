@@ -13,15 +13,85 @@
  *
  * Per OPENCLAW_INTEGRATION_SPEC.md section 5.1
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentExecutor = exports.SessionManager = exports.GatewayClient = void 0;
 exports.registerOpenClawCommand = registerOpenClawCommand;
 exports.resetOpenClawState = resetOpenClawState;
+const path = __importStar(require("path"));
 const openclaw_1 = require("../../integrations/openclaw");
 Object.defineProperty(exports, "GatewayClient", { enumerable: true, get: function () { return openclaw_1.GatewayClient; } });
 Object.defineProperty(exports, "SessionManager", { enumerable: true, get: function () { return openclaw_1.SessionManager; } });
 Object.defineProperty(exports, "AgentExecutor", { enumerable: true, get: function () { return openclaw_1.AgentExecutor; } });
 const openclaw_2 = require("../../core/openclaw");
+const cli_state_1 = require("../../utils/cli-state");
+// ============================================================================
+// Validation Helpers
+// ============================================================================
+/**
+ * Validate a file path for attachments
+ * Prevents path traversal attacks
+ */
+function validateAttachmentPath(filePath) {
+    if (!filePath || typeof filePath !== 'string') {
+        return { valid: false, error: 'File path is required' };
+    }
+    // Normalize the path
+    const normalized = path.normalize(filePath);
+    // Check for path traversal attempts
+    if (normalized.includes('..')) {
+        return { valid: false, error: 'Path traversal detected' };
+    }
+    // Check for null bytes
+    if (normalized.includes('\0')) {
+        return { valid: false, error: 'Invalid characters in path' };
+    }
+    // Check for absolute paths that could be dangerous
+    if (path.isAbsolute(normalized)) {
+        const allowedPrefixes = [
+            process.cwd(),
+            process.env['HOME'] || '',
+            process.env['USERPROFILE'] || '',
+        ];
+        const isAllowed = allowedPrefixes.some(prefix => prefix && normalized.startsWith(prefix));
+        if (!isAllowed) {
+            return { valid: false, error: 'Absolute path not in allowed directories' };
+        }
+    }
+    return { valid: true };
+}
 // ============================================================================
 // Global State (for CLI session)
 // ============================================================================
@@ -31,30 +101,64 @@ let globalAgentExecutor = null;
 let globalMockClient = null;
 function getGatewayClient() {
     if (!globalGatewayClient) {
+        // Check if we have persisted state
+        const state = (0, cli_state_1.getOpenClawState)();
+        if (state?.connected && !state?.mockMode) {
+            // Re-create client from persisted state
+            const config = {
+                host: state.host || '127.0.0.1',
+                port: state.port || 18789,
+            };
+            globalGatewayClient = new openclaw_1.GatewayClient(config, {
+                autoReconnect: true,
+                subscriptions: ['agent', 'chat', 'presence', 'tick'],
+            });
+            // Note: We don't auto-connect here, just return the client
+            // The caller should handle connection
+            return globalGatewayClient;
+        }
         throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
     }
     return globalGatewayClient;
 }
 function getSessionManager() {
     if (!globalSessionManager) {
+        // Check if we have persisted state
+        const state = (0, cli_state_1.getOpenClawState)();
+        if (state?.connected && !state?.mockMode) {
+            const config = {
+                host: state.host || '127.0.0.1',
+                port: state.port || 18789,
+            };
+            globalSessionManager = (0, openclaw_1.getGlobalSessionManager)(config);
+            return globalSessionManager;
+        }
         throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
     }
     return globalSessionManager;
 }
 function getAgentExecutor() {
     if (!globalAgentExecutor) {
-        throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+        const sessionManager = getSessionManager();
+        globalAgentExecutor = (0, openclaw_1.createAgentExecutor)(sessionManager);
+        return globalAgentExecutor;
     }
     return globalAgentExecutor;
 }
 function getMockClient() {
     if (!globalMockClient) {
         globalMockClient = new openclaw_2.MockOpenClawClient();
+        // Restore persisted mock sessions
+        const persistedSessions = (0, cli_state_1.getMockSessions)();
+        for (const session of persistedSessions) {
+            // Re-create sessions in the mock client
+            globalMockClient.restoreSession(session);
+        }
     }
     return globalMockClient;
 }
 function isMockMode() {
-    return globalMockClient !== null;
+    return (0, cli_state_1.isOpenClawMockMode)();
 }
 // ============================================================================
 // Command Registration
@@ -76,10 +180,24 @@ function registerOpenClawCommand(program) {
         .action(async (options) => {
         try {
             console.log('🔌 Connecting to OpenClaw Gateway...\n');
+            // Validate port number
+            const port = parseInt(options.port, 10);
+            if (isNaN(port) || port < 1 || port > 65535) {
+                console.error('❌ Invalid port number. Port must be between 1 and 65535.');
+                process.exit(1);
+            }
             const token = options.token || process.env['OPENCLAW_GATEWAY_TOKEN'];
             if (options.mock) {
                 // Use mock client for testing
                 globalMockClient = new openclaw_2.MockOpenClawClient();
+                // Persist mock connection state
+                (0, cli_state_1.setOpenClawState)({
+                    connected: true,
+                    mockMode: true,
+                    host: options.host,
+                    port: port,
+                    connectedAt: new Date().toISOString(),
+                });
                 console.log('✓ Using mock OpenClaw client (testing mode)');
                 console.log('✓ Mock client initialized');
                 return;
@@ -87,7 +205,7 @@ function registerOpenClawCommand(program) {
             // Create and connect using real GatewayClient
             const config = {
                 host: options.host,
-                port: parseInt(options.port, 10),
+                port: port,
                 token,
             };
             globalGatewayClient = new openclaw_1.GatewayClient(config, {
@@ -99,9 +217,17 @@ function registerOpenClawCommand(program) {
             globalSessionManager = (0, openclaw_1.getGlobalSessionManager)(config);
             await globalSessionManager.connect();
             globalAgentExecutor = (0, openclaw_1.createAgentExecutor)(globalSessionManager);
-            console.log(`✓ Connected to OpenClaw Gateway at ws://${options.host}:${options.port}`);
+            // Persist connection state
+            (0, cli_state_1.setOpenClawState)({
+                connected: true,
+                mockMode: false,
+                host: options.host,
+                port: port,
+                connectedAt: new Date().toISOString(),
+            });
+            console.log(`✓ Connected to OpenClaw Gateway at ws://${options.host}:${port}`);
             if (token) {
-                console.log(`✓ Authenticated (token: ***${token.slice(-4)})`);
+                console.log(`✓ Authenticated (token: ***)`);
             }
             else {
                 console.log('⚠ No token provided (unauthenticated connection)');
@@ -128,18 +254,30 @@ function registerOpenClawCommand(program) {
         .option('--mock', 'Use mock client for testing (no real gateway required)')
         .action(async (options) => {
         try {
-            if (options.mock) {
+            // Check persisted state first
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            if (options.mock || (persistedState?.mockMode && persistedState?.connected)) {
                 const mockClient = getMockClient();
                 console.log('🔌 OpenClaw Gateway Status (MOCK MODE)\n');
                 console.log('✓ Connected: Mock Client');
                 console.log('✓ Sessions: ' + mockClient.getAllSessions().length);
+                if (persistedState?.connectedAt) {
+                    console.log(`✓ Connected At: ${persistedState.connectedAt}`);
+                }
                 return;
+            }
+            if (!persistedState?.connected) {
+                console.log('🔌 OpenClaw Gateway Status\n');
+                console.log('✗ Not connected');
+                console.log('\n💡 Run "dash openclaw connect" to connect');
+                process.exit(1);
             }
             const client = getGatewayClient();
             if (!client.connected) {
                 console.log('🔌 OpenClaw Gateway Status\n');
-                console.log('✗ Not connected');
-                console.log('\n💡 Run "dash openclaw connect" to connect');
+                console.log('⚠ Persisted state shows connected, but client is not connected');
+                console.log('  This may indicate a stale connection state.');
+                console.log('\n💡 Run "dash openclaw connect" to reconnect');
                 process.exit(1);
             }
             // Get gateway statistics
@@ -181,9 +319,25 @@ function registerOpenClawCommand(program) {
         .option('--mock', 'Use mock client for testing (no real gateway required)')
         .action(async (options) => {
         try {
-            if (options.mock) {
+            // Check persisted state first
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            if (options.mock || (persistedState?.mockMode && persistedState?.connected)) {
                 const mockClient = getMockClient();
                 const sessions = mockClient.getAllSessions();
+                // Also load from persisted state if memory is empty
+                const persistedSessions = (0, cli_state_1.getMockSessions)();
+                const allSessionIds = new Set(sessions.map(s => s.sessionId));
+                for (const persisted of persistedSessions) {
+                    if (!allSessionIds.has(persisted.sessionId)) {
+                        sessions.push({
+                            sessionId: persisted.sessionId,
+                            agentId: persisted.agentId,
+                            status: persisted.status,
+                            createdAt: new Date(persisted.createdAt),
+                            metadata: { model: persisted.model, task: persisted.task },
+                        });
+                    }
+                }
                 console.log(`SESSIONS (${sessions.length} total)\n`);
                 for (const session of sessions) {
                     const status = session.status === 'running' ? 'active' :
@@ -191,6 +345,10 @@ function registerOpenClawCommand(program) {
                     console.log(`├── ${session.sessionId} (${status}, mock session)`);
                 }
                 return;
+            }
+            if (!persistedState?.connected) {
+                console.error('❌ Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+                process.exit(1);
             }
             const sessionManager = getSessionManager();
             const params = {};
@@ -230,7 +388,16 @@ function registerOpenClawCommand(program) {
         .option('--mock', 'Use mock client for testing (no real gateway required)')
         .action(async (sessionKey, options) => {
         try {
-            if (options.mock) {
+            // Validate limit
+            const limit = parseInt(options.limit, 10);
+            if (isNaN(limit) || limit < 1 || limit > 1000) {
+                console.error('❌ Invalid limit. Must be between 1 and 1000.');
+                process.exit(1);
+            }
+            // Check persisted state for mock mode
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            const useMock = options.mock || (persistedState?.mockMode && persistedState?.connected);
+            if (useMock) {
                 const mockClient = getMockClient();
                 const session = mockClient.getSession(sessionKey);
                 if (!session) {
@@ -245,7 +412,7 @@ function registerOpenClawCommand(program) {
                 return;
             }
             const sessionManager = getSessionManager();
-            const messages = await sessionManager.sessionsHistory(sessionKey, parseInt(options.limit, 10));
+            const messages = await sessionManager.sessionsHistory(sessionKey, limit);
             if (!messages || messages.length === 0) {
                 console.log('📭 No messages found');
                 return;
@@ -282,7 +449,16 @@ function registerOpenClawCommand(program) {
         .action(async (options) => {
         try {
             console.log('🚀 Spawning agent via OpenClaw...\n');
-            if (options.mock) {
+            // Validate budget
+            const budget = parseFloat(options.budget);
+            if (isNaN(budget) || budget < 0 || budget > 10000) {
+                console.error('❌ Invalid budget. Must be between 0 and 10000 USD.');
+                process.exit(1);
+            }
+            // Check persisted state for mock mode
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            const useMock = options.mock || (persistedState?.mockMode && persistedState?.connected);
+            if (useMock) {
                 // Use mock client
                 const mockClient = getMockClient();
                 const spawnOptions = {
@@ -290,16 +466,28 @@ function registerOpenClawCommand(program) {
                     model: options.model,
                     task: options.task,
                     context: {
-                        budget: parseFloat(options.budget),
+                        budget: budget,
                         sandbox: options.sandbox,
                         skills: options.skills ? options.skills.split(',') : undefined,
                         systemPrompt: options.systemPrompt,
                     },
                 };
                 const { sessionId } = await mockClient.sessionsSpawn(spawnOptions);
+                // Persist the mock session
+                const session = mockClient.getSession(sessionId);
+                if (session) {
+                    (0, cli_state_1.setMockSession)({
+                        sessionId: session.sessionId,
+                        agentId: session.agentId,
+                        status: session.status,
+                        createdAt: session.createdAt.toISOString(),
+                        model: options.model,
+                        task: options.task,
+                    });
+                }
                 console.log(`✓ Spawned agent: sessionKey=${sessionId}`);
                 console.log(`✓ Model: ${options.model}`);
-                console.log(`✓ Budget: $${options.budget}`);
+                console.log(`✓ Budget: $${budget}`);
                 console.log(`✓ Status: idle (awaiting task)`);
                 console.log(`\n💡 Use "dash openclaw send --session ${sessionId} <message>" to send a task`);
                 return;
@@ -316,7 +504,7 @@ function registerOpenClawCommand(program) {
             });
             console.log(`✓ Spawned agent: sessionKey=${execution.sessionKey}`);
             console.log(`✓ Model: ${options.model}`);
-            console.log(`✓ Budget: $${options.budget}`);
+            console.log(`✓ Budget: $${budget}`);
             console.log(`✓ Status: ${execution.status} (awaiting task)`);
             console.log(`\n💡 Use "dash openclaw send --session ${execution.sessionKey} <message>" to send a task`);
         }
@@ -339,23 +527,34 @@ function registerOpenClawCommand(program) {
         .action(async (message, options) => {
         try {
             console.log('📤 Sending message to agent...\n');
-            if (options.mock) {
+            // Validate attachment path if provided
+            if (options.attach) {
+                const validation = validateAttachmentPath(options.attach);
+                if (!validation.valid) {
+                    console.error(`❌ Invalid attachment: ${validation.error}`);
+                    process.exit(1);
+                }
+            }
+            // Check persisted state for mock mode
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            const useMock = options.mock || (persistedState?.mockMode && persistedState?.connected);
+            if (useMock) {
                 const mockClient = getMockClient();
-                const result = await mockClient.sessionsSpawn({
-                    agentId: `send-${Date.now()}`,
-                    model: 'kimi-k2.5',
-                    task: message,
+                const result = await mockClient.sessionsSend({
+                    sessionKey: options.session,
+                    message,
+                    attachments: options.attach ? [{ type: 'file', data: options.attach, filename: path.basename(options.attach) }] : undefined,
                 });
                 console.log(`✓ Message sent to ${options.session}`);
-                console.log(`✓ RunId: run_${Date.now()}`);
-                console.log(`✓ Status: running (mock mode)`);
+                console.log(`✓ RunId: ${result.runId}`);
+                console.log(`✓ Status: ${result.status} (mock mode)`);
                 return;
             }
             const sessionManager = getSessionManager();
             const result = await sessionManager.sessionsSend({
                 sessionKey: options.session,
                 message,
-                attachments: options.attach ? [{ type: 'file', data: options.attach, filename: options.attach }] : undefined,
+                attachments: options.attach ? [{ type: 'file', data: options.attach, filename: path.basename(options.attach) }] : undefined,
             });
             console.log(`✓ Message sent to ${options.session}`);
             console.log(`✓ RunId: ${result.runId}`);
@@ -378,7 +577,10 @@ function registerOpenClawCommand(program) {
         .action(async (sessionKey, options) => {
         try {
             console.log(`💀 Killing session ${sessionKey}...\n`);
-            if (options.mock) {
+            // Check persisted state for mock mode
+            const persistedState = (0, cli_state_1.getOpenClawState)();
+            const useMock = options.mock || (persistedState?.mockMode && persistedState?.connected);
+            if (useMock) {
                 const mockClient = getMockClient();
                 await mockClient.sessionKill(sessionKey, options.force);
                 console.log(`✓ Session ${sessionKey} killed`);

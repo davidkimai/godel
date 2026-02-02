@@ -4,11 +4,50 @@
  *
  * Provides budget tracking per task, agent, swarm, and project.
  * Tracks token usage and cost calculation with threshold monitoring.
+ * Budget configurations are persisted to disk for cross-session survival.
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.budgetAlerts = exports.budgetHistory = exports.activeBudgets = exports.budgetConfigs = exports.DEFAULT_THRESHOLDS = void 0;
+exports.getBudgetsFilePath = getBudgetsFilePath;
 exports.setBudgetConfig = setBudgetConfig;
 exports.getBudgetConfig = getBudgetConfig;
+exports.listBudgetConfigs = listBudgetConfigs;
+exports.listBudgetConfigsByType = listBudgetConfigsByType;
+exports.clearAllBudgetConfigs = clearAllBudgetConfigs;
+exports.deleteBudgetConfig = deleteBudgetConfig;
 exports.setProjectDailyBudget = setProjectDailyBudget;
 exports.setTaskBudget = setTaskBudget;
 exports.setAgentBudget = setAgentBudget;
@@ -24,24 +63,34 @@ exports.generateBudgetReport = generateBudgetReport;
 exports.addBudgetAlert = addBudgetAlert;
 exports.getBudgetAlerts = getBudgetAlerts;
 exports.removeBudgetAlert = removeBudgetAlert;
+exports.clearAllBudgetAlerts = clearAllBudgetAlerts;
 exports.getBudgetHistory = getBudgetHistory;
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const os = __importStar(require("os"));
 const utils_1 = require("../utils");
 const cost_1 = require("./cost");
 const thresholds_1 = require("./thresholds");
 // ============================================================================
-// In-Memory Storage
+// Persistence Configuration
 // ============================================================================
-// Budget configurations by scope
-const budgetConfigs = new Map();
+// Budget storage location (in user's home directory for persistence)
+const BUDGETS_DIR = path.join(os.homedir(), '.config', 'dash');
+const BUDGETS_FILE = path.join(BUDGETS_DIR, 'budgets.json');
+// ============================================================================
+// In-Memory Storage (initialized from file)
+// ============================================================================
+// Budget configurations by scope - loaded from disk
+let budgetConfigs = new Map();
 exports.budgetConfigs = budgetConfigs;
-// Active budget tracking instances
+// Active budget tracking instances (runtime only - not persisted)
 const activeBudgets = new Map();
 exports.activeBudgets = activeBudgets;
-// Budget history for audit
+// Budget history for audit (runtime only - not persisted)
 const budgetHistory = [];
 exports.budgetHistory = budgetHistory;
-// Configured alerts
-const budgetAlerts = new Map();
+// Configured alerts - loaded from disk
+let budgetAlerts = new Map();
 exports.budgetAlerts = budgetAlerts;
 // Default thresholds
 const DEFAULT_THRESHOLDS = [
@@ -53,6 +102,67 @@ const DEFAULT_THRESHOLDS = [
 ];
 exports.DEFAULT_THRESHOLDS = DEFAULT_THRESHOLDS;
 // ============================================================================
+// Persistence Functions
+// ============================================================================
+/**
+ * Ensure the budgets directory exists
+ */
+function ensureBudgetsDir() {
+    if (!fs.existsSync(BUDGETS_DIR)) {
+        fs.mkdirSync(BUDGETS_DIR, { recursive: true });
+    }
+}
+/**
+ * Load persisted budgets from disk
+ */
+function loadPersistedBudgets() {
+    try {
+        ensureBudgetsDir();
+        if (fs.existsSync(BUDGETS_FILE)) {
+            const data = fs.readFileSync(BUDGETS_FILE, 'utf-8');
+            const persisted = JSON.parse(data);
+            // Restore configs
+            exports.budgetConfigs = budgetConfigs = new Map(Object.entries(persisted.configs || {}));
+            // Restore alerts
+            exports.budgetAlerts = budgetAlerts = new Map(Object.entries(persisted.alerts || {}));
+            utils_1.logger.debug(`Loaded ${budgetConfigs.size} budget configs and ${budgetAlerts.size} alert sets from disk`);
+        }
+    }
+    catch (error) {
+        console.error('Warning: Failed to load persisted budgets:', error);
+        // Start with empty maps
+        exports.budgetConfigs = budgetConfigs = new Map();
+        exports.budgetAlerts = budgetAlerts = new Map();
+    }
+}
+/**
+ * Save budgets to disk for persistence
+ */
+function savePersistedBudgets() {
+    try {
+        ensureBudgetsDir();
+        const persisted = {
+            configs: Object.fromEntries(budgetConfigs),
+            alerts: Object.fromEntries(budgetAlerts),
+            version: '1.0.0',
+            updatedAt: new Date().toISOString(),
+        };
+        fs.writeFileSync(BUDGETS_FILE, JSON.stringify(persisted, null, 2), 'utf-8');
+        utils_1.logger.debug(`Saved ${budgetConfigs.size} budget configs to disk`);
+    }
+    catch (error) {
+        console.error('Warning: Failed to save budgets to disk:', error);
+    }
+}
+/**
+ * Get the path to the budgets file (for debugging)
+ */
+function getBudgetsFilePath() {
+    return BUDGETS_FILE;
+}
+// Load persisted budgets on module initialization
+loadPersistedBudgets();
+// ============================================================================
 // Budget Configuration
 // ============================================================================
 /**
@@ -61,6 +171,8 @@ exports.DEFAULT_THRESHOLDS = DEFAULT_THRESHOLDS;
 function setBudgetConfig(config) {
     const key = `${config.type}:${config.scope}`;
     budgetConfigs.set(key, config);
+    // Persist to disk immediately
+    savePersistedBudgets();
     // Log to history
     budgetHistory.push({
         id: generateId(),
@@ -78,6 +190,39 @@ function setBudgetConfig(config) {
 function getBudgetConfig(type, scope) {
     const key = `${type}:${scope}`;
     return budgetConfigs.get(key);
+}
+/**
+ * List all budget configurations
+ */
+function listBudgetConfigs() {
+    return Array.from(budgetConfigs.values());
+}
+/**
+ * List budget configurations by type
+ */
+function listBudgetConfigsByType(type) {
+    return Array.from(budgetConfigs.values()).filter(config => config.type === type);
+}
+/**
+ * Clear all budget configurations (for testing/reset)
+ */
+function clearAllBudgetConfigs() {
+    budgetConfigs.clear();
+    savePersistedBudgets();
+    utils_1.logger.info('All budget configurations cleared');
+}
+/**
+ * Delete a specific budget configuration
+ */
+function deleteBudgetConfig(type, scope) {
+    const key = `${type}:${scope}`;
+    const existed = budgetConfigs.has(key);
+    if (existed) {
+        budgetConfigs.delete(key);
+        savePersistedBudgets();
+        utils_1.logger.info(`Budget configuration deleted: ${key}`);
+    }
+    return existed;
 }
 /**
  * Set project-level daily budget
@@ -350,6 +495,8 @@ function addBudgetAlert(projectId, threshold, options) {
     const existing = budgetAlerts.get(projectId) || [];
     existing.push(alert);
     budgetAlerts.set(projectId, existing);
+    // Persist to disk
+    savePersistedBudgets();
     utils_1.logger.info(`Budget alert added for ${projectId} at ${threshold}%`);
     return alert;
 }
@@ -370,7 +517,17 @@ function removeBudgetAlert(projectId, alertId) {
     if (filtered.length === alerts.length)
         return false;
     budgetAlerts.set(projectId, filtered);
+    // Persist to disk
+    savePersistedBudgets();
     return true;
+}
+/**
+ * Clear all budget alerts (for testing/reset)
+ */
+function clearAllBudgetAlerts() {
+    budgetAlerts.clear();
+    savePersistedBudgets();
+    utils_1.logger.info('All budget alerts cleared');
 }
 // ============================================================================
 // Budget History

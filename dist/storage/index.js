@@ -19,6 +19,7 @@ __exportStar(require("./repositories/SwarmRepository"), exports);
 __exportStar(require("./repositories/AgentRepository"), exports);
 __exportStar(require("./repositories/EventRepository"), exports);
 __exportStar(require("./repositories/BudgetRepository"), exports);
+__exportStar(require("./memory"), exports);
 var sqlite_1 = require("./sqlite");
 Object.defineProperty(exports, "getDb", { enumerable: true, get: function () { return sqlite_1.getDb; } });
 Object.defineProperty(exports, "initDatabase", { enumerable: true, get: function () { return sqlite_1.initDatabase; } });

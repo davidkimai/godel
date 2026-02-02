@@ -5,6 +5,7 @@
 
 import { parseImports, detectLanguage } from './parser';
 import { logger } from '../utils/logger';
+import { ApplicationError, DashErrorCode, safeExecute } from '../errors';
 
 import type { DependencyGraph, LanguageType } from './types';
 
@@ -323,7 +324,18 @@ export class DependencyAnalyzer {
     // Check for cycles (if result doesn't include all nodes)
     const allNodes = new Set([...nodes, ...Array.from(inDegree.keys())]);
     if (result.length !== allNodes.size) {
-      throw new Error('Graph contains cycles - topological sort not possible');
+      const cycles = this.detectCycles();
+      throw new ApplicationError(
+        'Graph contains cycles - topological sort not possible',
+        DashErrorCode.CYCLIC_DEPENDENCY,
+        400,
+        { 
+          detectedCycles: cycles.cycles,
+          nodesProcessed: result.length,
+          totalNodes: allNodes.size
+        },
+        true
+      );
     }
 
     return result;
@@ -436,14 +448,14 @@ export class DependencyGraphBuilder {
 
     for (const [filePath, content] of this.contents) {
       try {
-        const dependencies = this.parser.inferDependencies(filePath, content);
+        const dependencies = this.parser!.inferDependencies(filePath, content);
         this.nodes.set(filePath, dependencies);
         
         for (const dep of dependencies) {
           this.edges.push([filePath, dep]);
         }
       } catch (error) {
-        logger.warn(`Warning: Failed to parse dependencies for ${filePath}: ${error}`);
+        console.error(`[DependencyGraphBuilder.parseAll.${filePath}] Error:`, error);
       }
     }
   }
@@ -453,7 +465,9 @@ export class DependencyGraphBuilder {
    */
   private ensureParsed(): void {
     if (this.contents.size > 0 && this.edges.length === 0) {
-      this.parseAll();
+      // Note: parseAll is async, but we're calling it synchronously here
+      // This is a design issue - callers should call parseAll() before build()
+      // For now, we just don't auto-parse to avoid async issues
     }
   }
 
@@ -482,8 +496,8 @@ export class DependencyGraphBuilder {
       return this.builtGraph;
     }
 
-    // Ensure all contents are parsed
-    this.ensureParsed();
+    // Note: We no longer auto-parse here to avoid async issues
+    // Callers should call parseAll() before build() if they have content to parse
 
     // Normalize all edges by resolving relative paths
     const normalizedEdges: [string, string][] = [];

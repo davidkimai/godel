@@ -94,6 +94,32 @@ export declare class SQLiteStorage {
      */
     getAgent(id: string): Agent | null;
     /**
+     * Get agent counts by status - O(1) aggregation query
+     * PERFORMANCE: Avoids loading all agents into memory
+     */
+    getAgentCountsByStatus(): Record<string, number>;
+    /**
+     * Get lightweight agent info for listing
+     * PERFORMANCE: Only selects needed columns, no JSON parsing
+     */
+    getAgentListLightweight(limit?: number): Array<{
+        id: string;
+        label: string | null;
+        status: string;
+        model: string;
+        task: string;
+        spawnedAt: string;
+        swarmId: string | null;
+        runtime: number | null;
+        retryCount: number;
+        maxRetries: number;
+    }>;
+    /**
+     * Get total agent count - O(1) indexed count query
+     * PERFORMANCE: Uses index-only scan if possible
+     */
+    getAgentCount(): number;
+    /**
      * Get agents by status
      */
     getAgentsByStatus(status: AgentStatus): Agent[];

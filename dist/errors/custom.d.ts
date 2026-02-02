@@ -66,6 +66,7 @@ export declare class AuthorizationError extends ApplicationError {
     constructor(message?: string, context?: ErrorContext);
 }
 export declare class InvalidApiKeyError extends AuthenticationError {
+    readonly code = "INVALID_API_KEY";
     constructor(context?: ErrorContext);
 }
 export declare class AgentExecutionError extends ApplicationError {
@@ -116,6 +117,7 @@ export declare class ExternalServiceError extends ApplicationError {
 }
 export declare class LLMServiceError extends ExternalServiceError {
     readonly provider: string;
+    readonly code = "LLM_SERVICE_ERROR";
     constructor(provider: string, message: string, context?: ErrorContext);
 }
 export declare class DatabaseError extends ApplicationError {

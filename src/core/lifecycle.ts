@@ -29,6 +29,15 @@ import { AgentStorage } from '../storage/memory';
 import { MessageBus } from '../bus/index';
 import { generateEventId } from '../events/types';
 import { OpenClawIntegration, type SessionSpawnOptions } from './openclaw';
+import {
+  AgentNotFoundError,
+  ApplicationError,
+  DashErrorCode,
+  assert,
+  assertExists,
+  safeExecute,
+} from '../errors';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types
@@ -161,9 +170,11 @@ export class AgentLifecycle extends EventEmitter {
    * RACE CONDITION FIX: Protected by creationMutex to prevent ID collisions
    */
   async spawn(options: SpawnOptions): Promise<Agent> {
-    if (!this.active) {
-      throw new Error('AgentLifecycle is not started');
-    }
+    assert(
+      this.active,
+      'AgentLifecycle is not started. Call lifecycle.start() first',
+      { code: DashErrorCode.LIFECYCLE_NOT_STARTED }
+    );
 
     return this.creationMutex.runExclusive(async () => {
       // Create agent model
@@ -188,27 +199,34 @@ export class AgentLifecycle extends EventEmitter {
 
       // Spawn OpenClaw session if integration is available
       if (this.openclaw) {
-        try {
-          const spawnOptions: SessionSpawnOptions = {
-            agentId: agent.id,
-            model: agent.model,
-            task: agent.task,
-            context: {
-              label: agent.label,
-              swarmId: agent.swarmId,
-              parentId: agent.parentId,
-              ...agent.metadata,
-            },
-            maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
-          };
+        const sessionResult = await safeExecute(
+          async () => {
+            const spawnOptions: SessionSpawnOptions = {
+              agentId: agent.id,
+              model: agent.model,
+              task: agent.task,
+              context: {
+                label: agent.label,
+                swarmId: agent.swarmId,
+                parentId: agent.parentId,
+                ...agent.metadata,
+              },
+              maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
+            };
 
-          const sessionId = await this.openclaw.spawnSession(spawnOptions);
-          state.sessionId = sessionId;
-          
-          this.emit('agent.session_created', { agentId: agent.id, sessionId });
-        } catch (error) {
-          console.error(`[AgentLifecycle] Failed to spawn OpenClaw session for agent ${agent.id}:`, error);
-          // Continue without OpenClaw session - the agent can still function
+            const sessionId = await this.openclaw!.spawnSession(spawnOptions);
+            return sessionId;
+          },
+          undefined,
+          { 
+            logError: true, 
+            context: 'AgentLifecycle.spawnSession' 
+          }
+        );
+
+        if (sessionResult) {
+          state.sessionId = sessionResult;
+          this.emit('agent.session_created', { agentId: agent.id, sessionId: sessionResult });
         }
       }
 
@@ -240,13 +258,22 @@ export class AgentLifecycle extends EventEmitter {
    */
   async startAgent(agentId: string): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
-      if (state.lifecycleState !== 'spawning' && state.lifecycleState !== 'idle' && state.lifecycleState !== 'retrying') {
-        throw new Error(`Cannot start agent in ${state.lifecycleState} state`);
+      const validStates: LifecycleState[] = ['spawning', 'idle', 'retrying'];
+      if (!validStates.includes(state.lifecycleState)) {
+        throw new ApplicationError(
+          `Cannot start agent in ${state.lifecycleState} state`,
+          DashErrorCode.INVALID_STATE_TRANSITION,
+          400,
+          { agentId, currentState: state.lifecycleState, allowedStates: validStates },
+          true
+        );
       }
 
       state.lifecycleState = 'running';
@@ -273,13 +300,22 @@ export class AgentLifecycle extends EventEmitter {
    */
   async pause(agentId: string): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
-      if (state.lifecycleState !== 'running' && state.lifecycleState !== 'retrying') {
-        throw new Error(`Cannot pause agent in ${state.lifecycleState} state`);
+      const validStates: LifecycleState[] = ['running', 'retrying'];
+      if (!validStates.includes(state.lifecycleState)) {
+        throw new ApplicationError(
+          `Cannot pause agent in ${state.lifecycleState} state`,
+          DashErrorCode.INVALID_STATE_TRANSITION,
+          400,
+          { agentId, currentState: state.lifecycleState, allowedStates: validStates },
+          true
+        );
       }
 
       const previousStatus = state.status;
@@ -296,12 +332,14 @@ export class AgentLifecycle extends EventEmitter {
 
       // Pause OpenClaw session if available
       if (this.openclaw && this.openclaw.hasSession(agentId)) {
-        try {
-          await this.openclaw.pauseSession(agentId);
-          this.emit('agent.session_paused', { agentId, sessionId: state.sessionId });
-        } catch (error) {
-          console.error(`[AgentLifecycle] Failed to pause OpenClaw session for agent ${agentId}:`, error);
-        }
+        await safeExecute(
+          async () => {
+            await this.openclaw!.pauseSession(agentId);
+            this.emit('agent.session_paused', { agentId, sessionId: state.sessionId });
+          },
+          undefined,
+          { logError: true, context: 'AgentLifecycle.pauseSession' }
+        );
       }
 
       this.publishAgentEvent(agentId, 'agent.paused', {
@@ -321,13 +359,21 @@ export class AgentLifecycle extends EventEmitter {
    */
   async resume(agentId: string): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
       if (state.lifecycleState !== 'paused') {
-        throw new Error(`Cannot resume agent in ${state.lifecycleState} state`);
+        throw new ApplicationError(
+          `Cannot resume agent in ${state.lifecycleState} state`,
+          DashErrorCode.INVALID_STATE_TRANSITION,
+          400,
+          { agentId, currentState: state.lifecycleState, expectedState: 'paused' },
+          true
+        );
       }
 
       state.lifecycleState = 'running';
@@ -339,12 +385,14 @@ export class AgentLifecycle extends EventEmitter {
 
       // Resume OpenClaw session if available
       if (this.openclaw && this.openclaw.hasSession(agentId)) {
-        try {
-          await this.openclaw.resumeSession(agentId);
-          this.emit('agent.session_resumed', { agentId, sessionId: state.sessionId });
-        } catch (error) {
-          console.error(`[AgentLifecycle] Failed to resume OpenClaw session for agent ${agentId}:`, error);
-        }
+        await safeExecute(
+          async () => {
+            await this.openclaw!.resumeSession(agentId);
+            this.emit('agent.session_resumed', { agentId, sessionId: state.sessionId });
+          },
+          undefined,
+          { logError: true, context: 'AgentLifecycle.resumeSession' }
+        );
       }
 
       this.publishAgentEvent(agentId, 'agent.resumed', {
@@ -364,10 +412,12 @@ export class AgentLifecycle extends EventEmitter {
    */
   async kill(agentId: string, force: boolean = false): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
       if (state.lifecycleState === 'killed' || state.lifecycleState === 'completed') {
         return; // Already terminated
@@ -385,12 +435,14 @@ export class AgentLifecycle extends EventEmitter {
 
       // Kill OpenClaw session if available
       if (this.openclaw && this.openclaw.hasSession(agentId)) {
-        try {
-          await this.openclaw.killSession(agentId, force);
-          this.emit('agent.session_killed', { agentId, sessionId: state.sessionId, force });
-        } catch (error) {
-          console.error(`[AgentLifecycle] Failed to kill OpenClaw session for agent ${agentId}:`, error);
-        }
+        await safeExecute(
+          async () => {
+            await this.openclaw!.killSession(agentId, force);
+            this.emit('agent.session_killed', { agentId, sessionId: state.sessionId, force });
+          },
+          undefined,
+          { logError: true, context: 'AgentLifecycle.killSession' }
+        );
       }
 
       this.publishAgentEvent(agentId, 'agent.killed', {
@@ -412,10 +464,12 @@ export class AgentLifecycle extends EventEmitter {
    */
   async complete(agentId: string, output?: string): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
       if (state.lifecycleState === 'killed' || state.lifecycleState === 'completed') {
         return; // Already terminated
@@ -456,10 +510,12 @@ export class AgentLifecycle extends EventEmitter {
    */
   async fail(agentId: string, error: string, options?: RetryOptions): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
 
       state.lastError = error;
       state.retryCount++;
@@ -488,10 +544,12 @@ export class AgentLifecycle extends EventEmitter {
    */
   async retry(agentId: string, options?: RetryOptions): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
       await this.retryInternal(agentId, state, options);
     });
   }
@@ -529,10 +587,12 @@ export class AgentLifecycle extends EventEmitter {
    */
   async retryWithAlternateModel(agentId: string, alternateModel: string): Promise<void> {
     return this.withAgentLock(agentId, async () => {
-      const state = this.states.get(agentId);
-      if (!state) {
-        throw new Error(`Agent ${agentId} not found`);
-      }
+      const state = assertExists(
+        this.states.get(agentId),
+        'Agent',
+        agentId,
+        { code: DashErrorCode.AGENT_NOT_FOUND }
+      );
       await this.retryWithAlternateModelInternal(agentId, state, alternateModel);
     });
   }
@@ -712,7 +772,13 @@ export function getGlobalLifecycle(
 ): AgentLifecycle {
   if (!globalLifecycle) {
     if (!storage || !messageBus) {
-      throw new Error('AgentLifecycle requires dependencies on first initialization');
+      throw new ApplicationError(
+        'AgentLifecycle requires dependencies on first initialization',
+        DashErrorCode.INITIALIZATION_FAILED,
+        500,
+        { missingDeps: { storage: !storage, messageBus: !messageBus } },
+        false
+      );
     }
     globalLifecycle = new AgentLifecycle(storage, messageBus, openclaw);
   } else if (openclaw) {

@@ -26,7 +26,7 @@ export declare class NotFoundError extends Error {
 }
 export declare function validate<T>(schema: z.ZodSchema<T>, data: unknown): T;
 export declare function validatePartial<T extends z.ZodObject<any>>(schema: T, data: unknown): Partial<z.infer<T>>;
-export declare function validateSafe<T>(schema: z.ZodSchema<T>, data: unknown): {
+export type ValidationResult<T> = {
     success: true;
     data: T;
 } | {
@@ -36,6 +36,7 @@ export declare function validateSafe<T>(schema: z.ZodSchema<T>, data: unknown): 
         message: string;
     }>;
 };
+export declare function validateSafe<T>(schema: z.ZodSchema<T>, data: unknown): ValidationResult<T>;
 export declare function formatZodError(error: z.ZodError): string;
 export declare function formatValidationErrors(errors: Array<{
     path: string;
@@ -70,23 +71,23 @@ export declare const validateUpdateAgent: (data: unknown) => {
 };
 export declare const validateAgentAction: (data: unknown) => {
     reason?: string;
-    action?: "pause" | "resume" | "kill" | "retry" | "scale";
-    force?: boolean;
+    action?: "retry" | "pause" | "resume" | "kill" | "scale";
     delay?: number;
+    force?: boolean;
 };
 export declare const validateCreateSwarm: (data: unknown) => {
     description?: string;
-    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
+    config?: Record<string, unknown>;
     agents?: number;
     name?: string;
-    config?: Record<string, unknown>;
     budget?: number;
+    strategy?: "parallel" | "map-reduce" | "pipeline" | "race";
 };
 export declare const validateUpdateSwarm: (data: unknown) => {
     description?: string;
     status?: "running" | "paused" | "completed" | "failed";
-    name?: string;
     config?: Record<string, unknown>;
+    name?: string;
 };
 export declare const validateSwarmAction: (data: unknown) => {
     action?: "pause" | "resume" | "scale" | "cancel" | "rebalance";
@@ -94,10 +95,10 @@ export declare const validateSwarmAction: (data: unknown) => {
     graceful?: boolean;
 };
 export declare const validateSetBudget: (data: unknown) => {
-    maxTokens?: number;
-    maxCost?: number;
     scopeType?: "agent" | "swarm" | "project" | "global";
     scopeId?: string;
+    maxTokens?: number;
+    maxCost?: number;
     maxRequests?: number;
     alertThreshold?: number;
 };
