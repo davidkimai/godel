@@ -21,6 +21,7 @@ import {
 import { AgentStorage } from '../storage/memory.js';
 import { MessageBus } from '../bus/index.js';
 import { generateEventId } from '../events/types.js';
+import { OpenClawIntegration, type SessionSpawnOptions } from './openclaw.js';
 
 // ============================================================================
 // Types
@@ -81,15 +82,24 @@ export class AgentLifecycle extends EventEmitter {
   private states: Map<string, AgentState> = new Map();
   private storage: AgentStorage;
   private messageBus: MessageBus;
+  private openclaw?: OpenClawIntegration;
   private active: boolean = false;
   private retryDelays: Map<string, number> = new Map(); // Track retry delays per agent
   private readonly DEFAULT_MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 1000; // 1 second
 
-  constructor(storage: AgentStorage, messageBus: MessageBus) {
+  constructor(storage: AgentStorage, messageBus: MessageBus, openclaw?: OpenClawIntegration) {
     super();
     this.storage = storage;
     this.messageBus = messageBus;
+    this.openclaw = openclaw;
+  }
+
+  /**
+   * Set the OpenClaw integration (for late binding)
+   */
+  setOpenClawIntegration(openclaw: OpenClawIntegration): void {
+    this.openclaw = openclaw;
   }
 
   /**
@@ -133,6 +143,32 @@ export class AgentLifecycle extends EventEmitter {
     this.states.set(agent.id, state);
     this.storage.create(agent);
 
+    // Spawn OpenClaw session if integration is available
+    if (this.openclaw) {
+      try {
+        const spawnOptions: SessionSpawnOptions = {
+          agentId: agent.id,
+          model: agent.model,
+          task: agent.task,
+          context: {
+            label: agent.label,
+            swarmId: agent.swarmId,
+            parentId: agent.parentId,
+            ...agent.metadata,
+          },
+          maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
+        };
+
+        const sessionId = await this.openclaw.spawnSession(spawnOptions);
+        state.sessionId = sessionId;
+        
+        this.emit('agent.session_created', { agentId: agent.id, sessionId });
+      } catch (error) {
+        console.error(`[AgentLifecycle] Failed to spawn OpenClaw session for agent ${agent.id}:`, error);
+        // Continue without OpenClaw session - the agent can still function
+      }
+    }
+
     // Publish spawn event
     this.publishAgentEvent(agent.id, 'agent.spawned', {
       agentId: agent.id,
@@ -141,6 +177,7 @@ export class AgentLifecycle extends EventEmitter {
       task: agent.task,
       swarmId: agent.swarmId,
       parentId: agent.parentId,
+      sessionId: state.sessionId,
     });
 
     this.emit('agent.spawned', state);
@@ -208,10 +245,21 @@ export class AgentLifecycle extends EventEmitter {
       pausedBy: 'lifecycle_manager',
     });
 
+    // Pause OpenClaw session if available
+    if (this.openclaw && this.openclaw.hasSession(agentId)) {
+      try {
+        await this.openclaw.pauseSession(agentId);
+        this.emit('agent.session_paused', { agentId, sessionId: state.sessionId });
+      } catch (error) {
+        console.error(`[AgentLifecycle] Failed to pause OpenClaw session for agent ${agentId}:`, error);
+      }
+    }
+
     this.publishAgentEvent(agentId, 'agent.paused', {
       agentId,
       previousStatus: previousStatus.toLowerCase(),
       newStatus: 'paused',
+      sessionId: state.sessionId,
     });
 
     this.emit('agent.paused', state);
@@ -237,10 +285,21 @@ export class AgentLifecycle extends EventEmitter {
     // Update storage
     this.storage.update(agentId, { status: AgentStatus.RUNNING });
 
+    // Resume OpenClaw session if available
+    if (this.openclaw && this.openclaw.hasSession(agentId)) {
+      try {
+        await this.openclaw.resumeSession(agentId);
+        this.emit('agent.session_resumed', { agentId, sessionId: state.sessionId });
+      } catch (error) {
+        console.error(`[AgentLifecycle] Failed to resume OpenClaw session for agent ${agentId}:`, error);
+      }
+    }
+
     this.publishAgentEvent(agentId, 'agent.resumed', {
       agentId,
       previousStatus: 'paused',
       newStatus: 'running',
+      sessionId: state.sessionId,
     });
 
     this.emit('agent.resumed', state);
