@@ -1,5 +1,5 @@
 {
-  "name": "dash",
+  "name": "@jtan15010/dash",
   "version": "1.0.0",
   "description": "Dash - Agent Orchestration Platform",
   "main": "dist/index.js",
