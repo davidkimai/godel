@@ -155,7 +155,7 @@ export function registerEventsCommand(program: Command): void {
             if (options.type && event.type !== options.type) return;
             
             // Apply severity filter
-            const severityOrder = { debug: 0, info: 1, warning: 2, error: 3, critical: 4 };
+            const severityOrder: Record<string, number> = { debug: 0, info: 1, warning: 2, error: 3, critical: 4 };
             if (severityOrder[event.severity] < severityOrder[options.severity]) return;
 
             // Store event
@@ -316,7 +316,7 @@ export function registerEventsCommand(program: Command): void {
         if (!event) {
           const messageBus = getGlobalBus();
           const messages = messageBus.getAllMessages(1000);
-          const message = messages.find(m => {
+          const message = messages.find((m: Message) => {
             const payload = m.payload as { id?: string } | undefined;
             return payload?.id === eventId || m.id === eventId;
           });
@@ -492,16 +492,16 @@ function messageToEventRecord(message: Message): EventRecord {
 
 function getEventDescription(eventType: string, payload?: Record<string, unknown>): string {
   const descriptions: Record<string, string> = {
-    'agent.spawned': `Agent spawned: ${payload?.model || 'unknown model'}`,
-    'agent.completed': `Agent completed in ${payload?.runtime || '?'}ms`,
-    'agent.failed': `Agent failed: ${payload?.error || 'unknown error'}`,
-    'agent.killed': `Agent killed${payload?.force ? ' (forced)' : ''}`,
+    'agent.spawned': `Agent spawned: ${payload?.['model'] || 'unknown model'}`,
+    'agent.completed': `Agent completed in ${payload?.['runtime'] || '?'}ms`,
+    'agent.failed': `Agent failed: ${payload?.['error'] || 'unknown error'}`,
+    'agent.killed': `Agent killed${payload?.['force'] ? ' (forced)' : ''}`,
     'agent.paused': 'Agent paused',
     'agent.resumed': 'Agent resumed',
-    'agent.status_changed': `Status: ${payload?.previousStatus} → ${payload?.newStatus}`,
-    'swarm.created': `Swarm created: ${payload?.name}`,
-    'swarm.scaled': `Swarm scaled: ${payload?.previousSize} → ${payload?.newSize}`,
-    'system.emergency_stop': `Emergency stop: ${payload?.reason}`,
+    'agent.status_changed': `Status: ${payload?.['previousStatus']} → ${payload?.['newStatus']}`,
+    'swarm.created': `Swarm created: ${payload?.['name']}`,
+    'swarm.scaled': `Swarm scaled: ${payload?.['previousSize']} → ${payload?.['newSize']}`,
+    'system.emergency_stop': `Emergency stop: ${payload?.['reason']}`,
   };
   return descriptions[eventType] || eventType;
 }

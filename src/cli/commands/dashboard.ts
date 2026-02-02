@@ -10,7 +10,7 @@
 import { Command } from 'commander';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalLifecycle } from '../../core/lifecycle';
-import { getGlobalBus, subscribeDashboard } from '../../bus/index';
+import { getGlobalBus, subscribeDashboard, type Message } from '../../bus/index';
 import { memoryStore } from '../../storage/memory';
 
 export function registerDashboardCommand(program: Command): void {
