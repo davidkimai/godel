@@ -58,35 +58,36 @@ export {
 // Analysis (re-export from types)
 // ============================================================================
 
-export type {
-  ReasoningAnalysis,
-  ReasoningSummary
-} from './types';
+// Analysis types are already exported from './types' above
+// No need to re-export them here
 
 // ============================================================================
 // Convenience Functions
 // ============================================================================
 
-import { getTraceStats } from './traces';
 import { 
   getDecisionsByAgent, 
   warnLowConfidence, 
   getConfidenceStats 
 } from './decisions';
+import { getTraceStats } from './traces';
 
 /**
  * Initialize reasoning for an agent
  */
-export function initReasoning(agentId: string): void {
+export function initReasoning(_agentId: string): void {
   // Initialize empty traces and decisions
   // This is a no-op for in-memory storage
   // Can be extended for persistence
+  console.log(`Reasoning initialized for agent: ${_agentId}`);
 }
 
 /**
  * Get complete reasoning report for an agent
  */
-export function getReasoningReport(agentId: string, taskId?: string) {
+export function getReasoningReport(agentId: string, _taskId?: string) {
+  // _taskId is reserved for future task-scoped reasoning
+  console.log(`Generating reasoning report for agent: ${agentId}`);
   return {
     traceStats: getTraceStats(agentId),
     confidenceStats: getConfidenceStats(agentId),

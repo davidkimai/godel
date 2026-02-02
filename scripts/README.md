@@ -26,58 +26,103 @@ This directory contains utility scripts for Dash self-improvement and orchestrat
 ./scripts/dash-claude-code.sh self-improve
 ```
 
+---
+
+## dash-self-improve.sh
+
+**Purpose:** Orchestrate recursive self-improvement using Claude Code agents. Creates parallel workstreams, runs quality gates, and feeds results back.
+
+### Usage
+
+```bash
+# Full self-improvement cycle
+./scripts/dash-self-improve.sh self-improve
+
+# Quick improvement task
+./scripts/dash-self-improve.sh quick "Fix all lint errors"
+
+# Parallel swarm of agents
+./scripts/dash-self-improve.sh swarm \
+  "Fix lint errors in src/cli" \
+  "Add tests for untested modules" \
+  "Update CHANGELOG.md" \
+  "Refactor context module"
+
+# Analyze improvement trends
+./scripts/dash-self-improve.sh analyze
+
+# Check current quality status
+./scripts/dash-self-improve.sh status
+```
+
+### Phases
+
+1. **Quality Assessment** - Run lint, typecheck, tests
+2. **Spawn Claude Code Agents** - Create parallel workstreams
+3. **Verification** - Re-run quality gates
+4. **Commit & Push** - Automated commit with self-improve message
+5. **Feedback Analysis** - Analyze trends and recommendations
+
 ### Features
 
-- **Quick fixes:** Fast Claude Code tasks without worktrees
-- **Worktree spawning:** Creates git worktrees for focused Claude sessions
-- **Parallel execution:** Run multiple tasks simultaneously
-- **Self-improvement cycle:** Full assessment → fixes → tests → documentation → commit
-
-### Integration
-
-Claude Code CLI is installed at: `/Users/jasontang/.local/bin/claude`
-
-This script orchestrates Claude Code to work with Dash's self-improvement loop:
-1. Quality assessment via Claude Code
-2. Automated fixes using Claude Code
-3. Test coverage improvements
-4. Documentation updates
-5. Automated commits
-
-### Benefits
-
-- **Zero context switching:** Claude Code runs directly in worktrees
-- **Parallel execution:** Multiple Claude sessions running simultaneously
-- **Self-improving:** Dash uses Claude Code to improve itself
-- **Audit trail:** All Claude Code outputs logged to `logs/` directory
+- **Parallel agent spawning** - Multiple Claude Code sessions in worktrees
+- **Quality gates** - Automated pass/fail checks
+- **Feedback loop** - Results feed into next improvement cycle
+- **Audit trail** - All outputs logged to `logs/` directory
+- **Auto-commit** - Changes automatically committed and pushed
 
 ### Examples
 
 ```bash
-# Analyze a specific file
-./scripts/dash-claude-code.sh analyze src/cli/main.ts
-
-# Add tests for a module
-./scripts/dash-claude-code.sh test "Add tests for quality module"
-
-# Fix bugs
-./scripts/dash-claude-code.sh fix "Fix type errors in dependencies.ts"
-
-# Code review
-./scripts/dash-claude-code.sh review "Review the event system for issues"
-
 # Run full self-improvement cycle
-./scripts/dash-claude-code.sh self-improve
+./scripts/dash-self-improve.sh self-improve
+
+# Quick fix
+./scripts/dash-self-improve.sh quick "Fix type errors in src/models/"
+
+# Swarm of 4 agents
+./scripts/dash-self-improve.sh swarm \
+  "Fix all ESLint errors" \
+  "Add 10 new unit tests" \
+  "Update for reasoning module" \
+  documentation "Refactor storage module"
+
+# Check status
+./scripts/dash-self-improve.sh status
 ```
 
 ### Output
 
-All Claude Code outputs are saved to:
-- `logs/claude-[worktree-name].log` - Worktree outputs
-- `logs/claude-output.json` - JSON formatted outputs
+All outputs saved to:
+- `logs/self-improve-[timestamp].log` - Main improvement log
+- `logs/agent-[name].log` - Individual agent outputs
+- `logs/agent-[name].pid` - Process IDs
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Self-Improvement Loop                    │
+│  1. Quality Assessment (lint, types, tests)                │
+│  2. Spawn Claude Code Agents in Worktrees                  │
+│  3. Parallel Execution                                     │
+│  4. Verification (re-run quality gates)                    │
+│  5. Commit & Push                                          │
+│  6. Feedback Analysis → Back to Step 1                     │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+    ┌──────────┐          ┌──────────┐
+    │ Claude   │          │ Claude   │
+    │ Agent 1  │          │ Agent 2  │
+    │ (Worktree│          │ (Worktree│
+    │  fix)    │          │  tests)  │
+    └──────────┘          └──────────┘
+```
 
 ### See Also
 
 - `/Users/jasontang/clawd/HEARTBEAT_CLAUDE_CODE.md` - Orchestrator guide
 - `/Users/jasontang/clawd/CLAUDE_CODE_QUICK_REF.md` - Quick reference
-- https://github.com/anthropics/claude-code - Claude Code CLI repository
+- `CLAUDE_CODE_CLI_INTEGRATION.md` - Claude Code CLI integration guide

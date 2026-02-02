@@ -5,12 +5,10 @@
  * Phase 3: Reasoning Features
  */
 
-import { Command } from 'commander';
-import { logger } from '../../utils/logger';
+
 import {
   recordTrace,
   getTracesByAgent,
-  getTracesByTask,
   getTraceStats,
   logDecision,
   getDecisionsByAgent,
@@ -20,6 +18,9 @@ import {
   getReasoningReport
 } from '../../reasoning';
 import { ReasoningType } from '../../reasoning/types';
+import { logger } from '../../utils/logger';
+
+import type { Command } from 'commander';
 
 // Simple table formatter
 function displayTable(headers: string[], rows: string[][]): void {
@@ -238,7 +239,6 @@ export function buildReasoningCommands(program: Command): Command {
       
       try {
         const stats = getConfidenceStats(agentId);
-        const tracking = getConfidenceByAgent(agentId);
         const warnings = warnLowConfidence(agentId, threshold);
         
         if (format === 'json') {

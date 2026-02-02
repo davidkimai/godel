@@ -5,7 +5,7 @@
  * Phase 3: Reasoning Features
  */
 
-import { 
+import type { 
   DecisionLog, 
   ConfidenceTracking,
   DecisionQuery 
@@ -421,7 +421,7 @@ export function getConfidenceStats(agentId: string): {
   const history = agentConfidenceHistory.get(agentId) || [];
   const tracking = confidenceStore.get(agentId);
   
-  let current = tracking?.confidence || 0;
+  const current = tracking?.confidence || 0;
   let min = 1;
   let max = 0;
   let sum = 0;

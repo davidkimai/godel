@@ -6,8 +6,11 @@
  */
 
 import { 
+  ReasoningType 
+} from './types';
+
+import type { 
   ReasoningTrace, 
-  ReasoningType, 
   TraceQuery 
 } from './types';
 

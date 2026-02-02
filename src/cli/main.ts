@@ -103,6 +103,10 @@ export async function buildCLI(): Promise<Command> {
     const { default: testsCommand } = await import('./commands/tests');
     program.addCommand(testsCommand());
 
+    // Reasoning command
+    const { buildReasoningCommands } = await import('./commands/reasoning');
+    program.addCommand(buildReasoningCommands(program));
+
     // System commands
     program
       .command('status')

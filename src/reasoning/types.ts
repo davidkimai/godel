@@ -9,12 +9,17 @@
 // Reasoning Types
 // ============================================================================
 
+// Note: All ReasoningType values are exported for use across the codebase
+// They are used in traces.ts, decisions.ts, and CLI commands
 export enum ReasoningType {
   HYPOTHESIS = 'hypothesis',
   ANALYSIS = 'analysis',
   DECISION = 'decision',
   CORRECTION = 'correction'
 }
+
+// Export a type that includes all reasoning types for validation
+export type AnyReasoningType = ReasoningType.HYPOTHESIS | ReasoningType.ANALYSIS | ReasoningType.DECISION | ReasoningType.CORRECTION;
 
 export interface ReasoningTrace {
   id: string;
