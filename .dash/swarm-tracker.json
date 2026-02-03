@@ -47,5 +47,19 @@
   "next_steps": [
     "Fix 13 failing integration tests",
     "Increase test coverage to 80%"
+  ],
+  "senior_teams": [
+    {
+      "name": "Test Fixes Team",
+      "sessionKey": "agent:openai-codex-gpt-5-2-codex:subagent:8245548e-d73c-44c3-b5d3-bec704d24fa3",
+      "mission": "Fix all failing tests and increase coverage to 80%",
+      "status": "running"
+    },
+    {
+      "name": "Codebase Review Team",
+      "sessionKey": "agent:openai-codex-gpt-5-2-codex:subagent:5311671f-9529-47cd-a476-988670366d85",
+      "mission": "Comprehensive pre-release codebase review",
+      "status": "running"
+    }
   ]
 }
