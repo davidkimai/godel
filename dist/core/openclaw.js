@@ -801,7 +801,7 @@ class OpenClawCore extends events_1.EventEmitter {
         this.gateway.on('error', (error) => {
             this.emit('error', error);
         });
-        this.gateway.on('agent', (payload) => {
+        this.gateway.on('agent', (payload, event) => {
             this.handleAgentEvent(payload);
         });
     }

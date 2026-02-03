@@ -107,10 +107,10 @@ export async function retry<T>(
         finalAttempt: attempts === cfg.maxAttempts
       };
     } catch (error) {
-      lastError = error;
+      lastError = error as Error;
 
       // Check if error is retryable
-      if (!isRetryable(error, cfg)) {
+      if (!isRetryable(error as Error, cfg)) {
         return {
           success: false,
           error,
@@ -215,7 +215,7 @@ export class CircuitBreaker extends EventEmitter {
       this.recordFailure();
       return {
         success: false,
-        error,
+        error: error as Error,
         circuitState: this.getState(),
         fromCache: false
       };

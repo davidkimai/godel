@@ -146,7 +146,7 @@ class CircuitBreaker extends events_1.EventEmitter {
             this.recordFailure();
             return {
                 success: false,
-                error,
+                error: error,
                 circuitState: this.getState(),
                 fromCache: false
             };

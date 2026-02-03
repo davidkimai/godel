@@ -810,7 +810,7 @@ export class OpenClawCore extends EventEmitter {
         'Failed to initialize OpenClaw core primitive',
         DashErrorCode.INITIALIZATION_FAILED,
         500,
-        { error: error instanceof Error ? error.message : String(error) },
+        { error: error instanceof Error ? error.message : String(error) } as Record<string, unknown>,
         false
       );
     }
@@ -1077,8 +1077,8 @@ export class OpenClawCore extends EventEmitter {
       this.emit('error', error);
     });
 
-    this.gateway.on('agent', (payload: AgentEventPayload) => {
-      this.handleAgentEvent(payload);
+    this.gateway.on('agent', (payload: unknown, event: Event) => {
+      this.handleAgentEvent(payload as AgentEventPayload);
     });
   }
 

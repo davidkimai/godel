@@ -84,7 +84,7 @@ export class ContextManager {
         return {
           exists: stats.isFile(),
           size: stats.size,
-          lastModified: stats.mtime,
+          lastModified: stats.mtime || new Date(),
         };
       },
       { exists: false, size: 0, lastModified: undefined },

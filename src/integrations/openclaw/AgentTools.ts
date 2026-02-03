@@ -209,8 +209,8 @@ export class AgentTools {
   private config: AgentToolsConfig;
   private toolExecutor: OpenClawToolExecutor;
   private permissionManager: PermissionManager;
-  private budgetTracker: BudgetTracker;
-  private skillInstaller: SkillInstaller;
+  private budgetTracker!: BudgetTracker;
+  private skillInstaller!: SkillInstaller;
   private sessionManager: SessionManager;
   private agentExecutor: AgentExecutor;
   private connected: boolean = false;

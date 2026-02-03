@@ -277,7 +277,7 @@ class ContextSummarizer {
             currentCycle: latest?.cycle || 0,
             summaryCount: summaryFiles.length,
             totalSizeBytes: totalSize,
-            latestSummary: latest,
+            latestSummary: latest || undefined,
         };
     }
 }
