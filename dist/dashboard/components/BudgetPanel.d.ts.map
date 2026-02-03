@@ -1,1 +1,0 @@
-{"version":3,"file":"BudgetPanel.d.ts","sourceRoot":"","sources":["../../../src/dashboard/components/BudgetPanel.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,MAAM,WAAW,MAAM;IACrB,EAAE,EAAE,MAAM,CAAC;IACX,SAAS,EAAE,MAAM,CAAC;IAClB,QAAQ,CAAC,EAAE,MAAM,CAAC;IAClB,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,CAAC,EAAE,MAAM,CAAC;CACrB;AAED,wBAAgB,YAAY,CAAC,MAAM,EAAE,MAAM,GAAG,MAAM,CAQnD"}
