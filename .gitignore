@@ -44,3 +44,12 @@ PI_MONO_ASSESSMENT.md
 PROGRESS_REPORT_HOURLY.md
 SDD_INTEGRATION_ANALYSIS.md
 SWARM_HEALTH_ANALYSIS.md
+
+# Dev utilities (moved to dash-archive/)
+test-client.ts
+test-gateway.ts
+
+# Design patterns and specs (moved to dash-archive/)
+dash-patterns/
+specs/
+.swarm/
