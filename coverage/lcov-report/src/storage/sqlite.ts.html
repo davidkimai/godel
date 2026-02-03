@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">4.65% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/215</span>
+                <span class='fraction'>10/215</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">4.9% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/204</span>
+                <span class='fraction'>10/204</span>
             </div>
         
             
@@ -959,7 +959,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1699,12 +1699,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1725,7 +1725,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1735,27 +1735,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1774,7 +1774,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * SQLite Storage with Transaction Support - SPEC_v2.md Section 2.3
  * 
@@ -1815,7 +1815,7 @@ export interface QueryResult {
 // SQLite Storage
 // ============================================================================
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export class S</span>QLiteStorage {
+export class SQLiteStorage {
   private db: any; // Database instance (better-sqlite3)
   private config: StorageConfig;
   private <span class="cstat-no" title="statement not covered" >activeTransaction: Transaction | null = null;</span>
@@ -2555,10 +2555,10 @@ export interface QueryResult {
 // Singleton Instance
 // ============================================================================
 &nbsp;
-let globalSQLiteStorage: SQLiteStorage | null = <span class="cstat-no" title="statement not covered" >null;</span>
-let initializationPromise: Promise&lt;SQLiteStorage&gt; | null = <span class="cstat-no" title="statement not covered" >null;</span>
+let globalSQLiteStorage: SQLiteStorage | null = null;
+let initializationPromise: Promise&lt;SQLiteStorage&gt; | null = null;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export a</span>sync function <span class="fstat-no" title="function not covered" >getGlobalSQLiteStorage(</span>config?: StorageConfig): Promise&lt;SQLiteStorage&gt; {
+export async function <span class="fstat-no" title="function not covered" >getGlobalSQLiteStorage(</span>config?: StorageConfig): Promise&lt;SQLiteStorage&gt; {
 <span class="cstat-no" title="statement not covered" >  <span class="missing-if-branch" title="if path not taken" >I</span>if (globalSQLiteStorage) {</span>
 <span class="cstat-no" title="statement not covered" >    return globalSQLiteStorage;</span>
   }
@@ -2581,7 +2581,7 @@ let initializationPromise: Promise&lt;SQLiteStorage&gt; | null = <span class="cs
 <span class="cstat-no" title="statement not covered" >  return initializationPromise;</span>
 }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >r</span>esetGlobalSQLiteStorage(</span>): void {
+export function <span class="fstat-no" title="function not covered" >resetGlobalSQLiteStorage(</span>): void {
 <span class="cstat-no" title="statement not covered" >  globalSQLiteStorage?.close();</span>
 <span class="cstat-no" title="statement not covered" >  globalSQLiteStorage = null;</span>
 <span class="cstat-no" title="statement not covered" >  initializationPromise = null;</span>
@@ -2591,7 +2591,7 @@ let initializationPromise: Promise&lt;SQLiteStorage&gt; | null = <span class="cs
  * Get the database instance (alias for getGlobalSQLiteStorage)
  * Used by repositories for database access
  */
-<span class="cstat-no" title="statement not covered" >export a</span>sync function <span class="fstat-no" title="function not covered" >getDb(</span>config?: StorageConfig): Promise&lt;SQLiteStorage&gt; {
+export async function <span class="fstat-no" title="function not covered" >getDb(</span>config?: StorageConfig): Promise&lt;SQLiteStorage&gt; {
 <span class="cstat-no" title="statement not covered" >  return getGlobalSQLiteStorage(config);</span>
 }
 &nbsp;
@@ -2599,19 +2599,19 @@ let initializationPromise: Promise&lt;SQLiteStorage&gt; | null = <span class="cs
  * Initialize the database (alias for getGlobalSQLiteStorage)
  * Used for explicit initialization with config
  */
-<span class="cstat-no" title="statement not covered" >export a</span>sync function <span class="fstat-no" title="function not covered" >initDatabase(</span>config: StorageConfig): Promise&lt;SQLiteStorage&gt; {
+export async function <span class="fstat-no" title="function not covered" >initDatabase(</span>config: StorageConfig): Promise&lt;SQLiteStorage&gt; {
 <span class="cstat-no" title="statement not covered" >  return getGlobalSQLiteStorage(config);</span>
 }
 &nbsp;
 /**
  * Close the database connection (alias for resetGlobalSQLiteStorage)
  */
-<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >c</span>loseDatabase(</span>): void {
+export function <span class="fstat-no" title="function not covered" >closeDatabase(</span>): void {
 <span class="cstat-no" title="statement not covered" >  resetGlobalSQLiteStorage();</span>
 }
 &nbsp;
 // In-memory store for non-persistent storage needs
-export const <span class="cstat-no" title="statement not covered" >memoryStore: any = {</span>
+export const memoryStore: any = {
   metadata: new Map&lt;string, unknown&gt;(),
   agentsData: new Map&lt;string, unknown&gt;(),
   eventsData: new Map&lt;string, unknown&gt;(),
@@ -2630,7 +2630,7 @@ export const <span class="cstat-no" title="statement not covered" >memoryStore: 
   },
 };
 &nbsp;
-<span class="cstat-no" title="statement not covered" >export default SQLiteStorage;</span>
+export default SQLiteStorage;
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -2638,7 +2638,7 @@ export const <span class="cstat-no" title="statement not covered" >memoryStore: 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-03T01:41:25.912Z
+                at 2026-02-03T18:36:23.346Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

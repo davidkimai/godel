@@ -438,7 +438,8 @@ describe('Orchestrator Integration', () => {
     it('should throw error for non-existent swarm operations', async () => {
       await expect(swarmManager.scale('non-existent', 5)).rejects.toThrow();
       await expect(swarmManager.destroy('non-existent')).rejects.toThrow();
-      await expect(swarmManager.getStatus('non-existent')).rejects.toThrow();
+      // getStatus throws for non-existent swarm
+      expect(() => swarmManager.getStatus('non-existent')).toThrow();
     });
 
     it('should prevent scaling destroyed swarms', async () => {

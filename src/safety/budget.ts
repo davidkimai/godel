@@ -267,7 +267,12 @@ export function setBudgetConfig(
     ...partialConfig,
   };
 
-  return setBudgetConfig(fullConfig);
+  // Save the config directly (don't recursively call setBudgetConfig)
+  const key = `${type}:${scope}`;
+  budgetConfigs.set(key, fullConfig);
+  savePersistedBudgets();
+  logger.info(`Budget configuration set: ${key}`, { maxTokens: fullConfig.maxTokens, maxCost: fullConfig.maxCost });
+  return fullConfig;
 }
 
 /**
@@ -816,7 +821,8 @@ export function trackTokenUsage(
     total = prompt + completion;
   }
 
-  return recordTokenUsage(budgetId, prompt, completion);
+  recordTokenUsage(budgetId, prompt, completion);
+  return tracking;
 }
 
 /**

@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">6.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/15</span>
+                <span class='fraction'>1/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>12/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -97,24 +97,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">292x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
@@ -124,24 +124,24 @@
  */
 &nbsp;
 // Logger
-<span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >l</span>ogger,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >L</span>ogger,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >L</span>ogLevel,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >L</span>ogLevelEnum </span>} from './logger';</span>
+export { logger, <span class="fstat-no" title="function not covered" >Logger,</span> <span class="fstat-no" title="function not covered" >LogLevel,</span> <span class="fstat-no" title="function not covered" >LogLevelEnum </span>} from './logger';
 export type { LogEntry, LogLevelString } from './logger';
 &nbsp;
 // Cache
-<span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >L</span>RUCache,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >m</span>emoize </span>} from './cache';</span>
+export { <span class="fstat-no" title="function not covered" >LRUCache,</span> <span class="fstat-no" title="function not covered" >memoize </span>} from './cache';
 export type { CacheEntry, CacheOptions } from './cache';
 &nbsp;
 // CLI State Persistence
-<span class="cstat-no" title="statement not covered" >export {</span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  loadState,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  saveState,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  getOpenClawState,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  setOpenClawState,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  clearOpenClawState,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  isOpenClawConnected,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  isOpenClawMockMode,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  getStateFilePath,</span></span>
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  resetState,</span></span>
+export {
+<span class="fstat-no" title="function not covered" >  loadState,</span>
+<span class="fstat-no" title="function not covered" >  saveState,</span>
+<span class="fstat-no" title="function not covered" >  getOpenClawState,</span>
+<span class="fstat-no" title="function not covered" >  setOpenClawState,</span>
+<span class="fstat-no" title="function not covered" >  clearOpenClawState,</span>
+<span class="fstat-no" title="function not covered" >  isOpenClawConnected,</span>
+<span class="fstat-no" title="function not covered" >  isOpenClawMockMode,</span>
+<span class="fstat-no" title="function not covered" >  getStateFilePath,</span>
+<span class="fstat-no" title="function not covered" >  resetState,</span>
 } from './cli-state';
 export type { CLIState, OpenClawState } from './cli-state';
 &nbsp;</pre></td></tr></table></pre>
@@ -151,7 +151,7 @@ export type { CLIState, OpenClawState } from './cli-state';
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-03T01:41:25.912Z
+                at 2026-02-03T18:36:23.346Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
