@@ -166,20 +166,35 @@ function getBudgetsFilePath() {
 }
 // Load persisted budgets on module initialization
 loadPersistedBudgets();
-function setBudgetConfig(typeOrConfig, scopeOrConfig, config) {
-    if (typeof typeOrConfig === 'object') {
-        // Single argument form: setBudgetConfig(config)
+function setBudgetConfig(typeOrScopeOrConfig, scopeOrConfig, config) {
+    // Single argument form: setBudgetConfig(config)
+    if (typeof typeOrScopeOrConfig === 'object') {
         const fullConfig = {
             type: 'project',
             scope: 'default',
             maxTokens: 10000000,
             maxCost: 1000,
-            ...typeOrConfig,
+            ...typeOrScopeOrConfig,
         };
-        return setBudgetConfig(fullConfig);
+        return setBudgetConfigInternal(fullConfig);
+    }
+    // Two argument form: setBudgetConfig(scope, config)
+    if (typeof typeOrScopeOrConfig === 'string' && scopeOrConfig && typeof scopeOrConfig === 'object' && 'type' in scopeOrConfig) {
+        const scope = typeOrScopeOrConfig;
+        const cfg = scopeOrConfig;
+        const fullConfig = {
+            type: cfg.type,
+            scope,
+            maxTokens: cfg.maxTokens ?? 10000000,
+            maxCost: cfg.maxCost ?? 1000,
+            period: cfg.period,
+            resetHour: cfg.resetHour,
+            resetDay: cfg.resetDay,
+        };
+        return setBudgetConfigInternal(fullConfig);
     }
     // Three argument form: setBudgetConfig(type, scope, config)
-    const type = typeOrConfig;
+    const type = typeOrScopeOrConfig;
     const scope = scopeOrConfig;
     const partialConfig = config || {};
     const fullConfig = {
@@ -189,14 +204,32 @@ function setBudgetConfig(typeOrConfig, scopeOrConfig, config) {
         maxCost: 1000,
         ...partialConfig,
     };
-    return setBudgetConfig(fullConfig);
+    return setBudgetConfigInternal(fullConfig);
 }
-/**
- * Get budget configuration for a scope
- */
-function getBudgetConfig(type, scope) {
-    const key = `${type}:${scope}`;
-    return budgetConfigs.get(key);
+function setBudgetConfigInternal(config) {
+    const key = `${config.type}:${config.scope}`;
+    budgetConfigs.set(key, config);
+    // Persist to disk
+    savePersistedBudgets();
+    utils_1.logger.info(`Budget config set for ${key}`, { maxTokens: config.maxTokens, maxCost: config.maxCost });
+    return config;
+}
+function getBudgetConfig(typeOrScope, scope) {
+    // Two argument form: getBudgetConfig(type, scope)
+    if (scope) {
+        const key = `${typeOrScope}:${scope}`;
+        return budgetConfigs.get(key);
+    }
+    // Single argument form: getBudgetConfig(scope) - try all types
+    const scopeStr = typeOrScope;
+    const types = ['task', 'agent', 'swarm', 'project'];
+    for (const t of types) {
+        const key = `${t}:${scopeStr}`;
+        const config = budgetConfigs.get(key);
+        if (config)
+            return config;
+    }
+    return undefined;
 }
 /**
  * List all budget configurations
@@ -266,7 +299,7 @@ function setAgentBudget(agentId, maxTokens, maxCost) {
         maxCost,
     });
 }
-function startBudgetTracking(agentIdOrParams, taskId, projectId, model, swarmId) {
+function startBudgetTracking(agentIdOrParams, taskIdArg, projectIdArg, modelArg, swarmIdArg) {
     let params;
     if (typeof agentIdOrParams === 'object') {
         params = agentIdOrParams;
@@ -274,10 +307,10 @@ function startBudgetTracking(agentIdOrParams, taskId, projectId, model, swarmId)
     else {
         params = {
             agentId: agentIdOrParams,
-            taskId: taskId || '',
-            projectId: projectId || '',
-            model: model || 'unknown',
-            swarmId,
+            taskId: taskIdArg || '',
+            projectId: projectIdArg || '',
+            model: modelArg || 'unknown',
+            swarmId: swarmIdArg,
         };
     }
     const { agentId, taskId, projectId, model, swarmId, budgetConfig } = params;
@@ -597,7 +630,7 @@ function trackTokenUsage(budgetId, promptTokensOrTokenCount, completionTokens) {
         completion = completionTokens || 0;
         total = prompt + completion;
     }
-    return recordTokenUsage(budgetId, { prompt, completion, total });
+    return recordTokenUsage(budgetId, prompt, completion);
 }
 /**
  * Check if budget has been exceeded (test compatibility)
@@ -622,6 +655,7 @@ function checkBudgetExceeded(budgetId) {
 function setBudgetAlert(projectId, thresholdOrConfig, message) {
     let threshold;
     let alertMessage;
+    let options = {};
     if (typeof thresholdOrConfig === 'number') {
         threshold = thresholdOrConfig;
         alertMessage = message || `Budget alert: ${threshold}% threshold reached`;
@@ -629,13 +663,13 @@ function setBudgetAlert(projectId, thresholdOrConfig, message) {
     else {
         threshold = thresholdOrConfig.threshold;
         alertMessage = thresholdOrConfig.message || `Budget alert: ${threshold}% threshold reached`;
+        options = {
+            webhookUrl: thresholdOrConfig.webhookUrl,
+            email: thresholdOrConfig.email,
+            sms: thresholdOrConfig.sms,
+        };
     }
-    return addBudgetAlert({
-        projectId,
-        threshold,
-        message: alertMessage,
-        triggered: false,
-    });
+    return addBudgetAlert(projectId, threshold, options);
 }
 /**
  * Calculate cost for token usage (test compatibility)
@@ -644,12 +678,20 @@ function calculateCostForUsage(promptTokensOrModel, completionTokensOrTokenCount
     // Handle test signature: (model, {prompt, completion, total})
     if (typeof promptTokensOrModel === 'string') {
         const tokenCount = completionTokensOrTokenCount;
-        return (0, cost_1.calculateCost)(tokenCount?.prompt || 0, tokenCount?.completion || 0, promptTokensOrModel);
+        return (0, cost_1.calculateCost)({
+            prompt: tokenCount?.prompt || 0,
+            completion: tokenCount?.completion || 0,
+            total: (tokenCount?.prompt || 0) + (tokenCount?.completion || 0),
+        }, promptTokensOrModel);
     }
     // Handle normal signature: (promptTokens, completionTokens, model?)
     const promptTokens = promptTokensOrModel;
     const completionTokens = completionTokensOrTokenCount;
-    return (0, cost_1.calculateCost)(promptTokens, completionTokens, model);
+    return (0, cost_1.calculateCost)({
+        prompt: promptTokens,
+        completion: completionTokens,
+        total: promptTokens + completionTokens,
+    }, model || 'default');
 }
 // ============================================================================
 // Helpers

@@ -236,26 +236,43 @@ loadPersistedBudgets();
  * Set a budget configuration for a specific scope
  */
 export function setBudgetConfig(config: BudgetConfig): BudgetConfig;
+export function setBudgetConfig(scope: string, config: BudgetConfig): BudgetConfig;
 export function setBudgetConfig(type: BudgetType, scope: string, config: Partial<BudgetConfig>): BudgetConfig;
 export function setBudgetConfig(
-  typeOrConfig: BudgetType | BudgetConfig,
+  typeOrScopeOrConfig: BudgetType | string | BudgetConfig,
   scopeOrConfig?: string | Partial<BudgetConfig>,
   config?: Partial<BudgetConfig>
 ): BudgetConfig {
-  if (typeof typeOrConfig === 'object') {
-    // Single argument form: setBudgetConfig(config)
+  // Single argument form: setBudgetConfig(config)
+  if (typeof typeOrScopeOrConfig === 'object') {
     const fullConfig: BudgetConfig = {
       type: 'project',
       scope: 'default',
       maxTokens: 10_000_000,
       maxCost: 1000,
-      ...typeOrConfig,
+      ...typeOrScopeOrConfig,
     };
-    return setBudgetConfig(fullConfig);
+    return setBudgetConfigInternal(fullConfig);
+  }
+
+  // Two argument form: setBudgetConfig(scope, config)
+  if (typeof typeOrScopeOrConfig === 'string' && scopeOrConfig && typeof scopeOrConfig === 'object' && 'type' in scopeOrConfig) {
+    const scope = typeOrScopeOrConfig;
+    const cfg = scopeOrConfig as BudgetConfig;
+    const fullConfig: BudgetConfig = {
+      type: cfg.type,
+      scope,
+      maxTokens: cfg.maxTokens ?? 10_000_000,
+      maxCost: cfg.maxCost ?? 1000,
+      period: cfg.period,
+      resetHour: cfg.resetHour,
+      resetDay: cfg.resetDay,
+    };
+    return setBudgetConfigInternal(fullConfig);
   }
 
   // Three argument form: setBudgetConfig(type, scope, config)
-  const type = typeOrConfig;
+  const type = typeOrScopeOrConfig as BudgetType;
   const scope = scopeOrConfig as string;
   const partialConfig = config || {};
 
@@ -267,15 +284,41 @@ export function setBudgetConfig(
     ...partialConfig,
   };
 
-  return setBudgetConfig(fullConfig);
+  return setBudgetConfigInternal(fullConfig);
+}
+
+function setBudgetConfigInternal(config: BudgetConfig): BudgetConfig {
+  const key = `${config.type}:${config.scope}`;
+  budgetConfigs.set(key, config);
+
+  // Persist to disk
+  savePersistedBudgets();
+
+  logger.info(`Budget config set for ${key}`, { maxTokens: config.maxTokens, maxCost: config.maxCost });
+  return config;
 }
 
 /**
  * Get budget configuration for a scope
  */
-export function getBudgetConfig(type: BudgetType, scope: string): BudgetConfig | undefined {
-  const key = `${type}:${scope}`;
-  return budgetConfigs.get(key);
+export function getBudgetConfig(type: BudgetType, scope: string): BudgetConfig | undefined;
+export function getBudgetConfig(scope: string): BudgetConfig | undefined;
+export function getBudgetConfig(typeOrScope: BudgetType | string, scope?: string): BudgetConfig | undefined {
+  // Two argument form: getBudgetConfig(type, scope)
+  if (scope) {
+    const key = `${typeOrScope}:${scope}`;
+    return budgetConfigs.get(key);
+  }
+
+  // Single argument form: getBudgetConfig(scope) - try all types
+  const scopeStr = typeOrScope as string;
+  const types: BudgetType[] = ['task', 'agent', 'swarm', 'project'];
+  for (const t of types) {
+    const key = `${t}:${scopeStr}`;
+    const config = budgetConfigs.get(key);
+    if (config) return config;
+  }
+  return undefined;
 }
 
 /**
@@ -390,10 +433,10 @@ export function startBudgetTracking(params: {
 }): BudgetTracking;
 export function startBudgetTracking(
   agentIdOrParams: string | { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string },
-  taskId?: string,
-  projectId?: string,
-  model?: string,
-  swarmId?: string
+  taskIdArg?: string,
+  projectIdArg?: string,
+  modelArg?: string,
+  swarmIdArg?: string
 ): BudgetTracking {
   let params: { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string };
 
@@ -402,10 +445,10 @@ export function startBudgetTracking(
   } else {
     params = {
       agentId: agentIdOrParams,
-      taskId: taskId || '',
-      projectId: projectId || '',
-      model: model || 'unknown',
-      swarmId,
+      taskId: taskIdArg || '',
+      projectId: projectIdArg || '',
+      model: modelArg || 'unknown',
+      swarmId: swarmIdArg,
     };
   }
 
@@ -798,7 +841,7 @@ export function trackTokenUsage(
   budgetId: string,
   promptTokensOrTokenCount: number | { prompt: number; completion: number; total: number },
   completionTokens?: number
-): BudgetTracking | null {
+): ThresholdCheckResult | null {
   const tracking = activeBudgets.get(budgetId);
   if (!tracking) return null;
 
@@ -816,7 +859,7 @@ export function trackTokenUsage(
     total = prompt + completion;
   }
 
-  return recordTokenUsage(budgetId, { prompt, completion, total });
+  return recordTokenUsage(budgetId, prompt, completion);
 }
 
 /**
@@ -849,11 +892,12 @@ export function checkBudgetExceeded(budgetId: string): {
  */
 export function setBudgetAlert(
   projectId: string,
-  thresholdOrConfig: number | { threshold: number; message?: string },
+  thresholdOrConfig: number | { threshold: number; message?: string; webhookUrl?: string; email?: string; sms?: string },
   message?: string
 ): BudgetAlert {
   let threshold: number;
   let alertMessage: string;
+  let options: { webhookUrl?: string; email?: string; sms?: string } = {};
 
   if (typeof thresholdOrConfig === 'number') {
     threshold = thresholdOrConfig;
@@ -861,14 +905,14 @@ export function setBudgetAlert(
   } else {
     threshold = thresholdOrConfig.threshold;
     alertMessage = thresholdOrConfig.message || `Budget alert: ${threshold}% threshold reached`;
+    options = {
+      webhookUrl: thresholdOrConfig.webhookUrl,
+      email: thresholdOrConfig.email,
+      sms: thresholdOrConfig.sms,
+    };
   }
 
-  return addBudgetAlert({
-    projectId,
-    threshold,
-    message: alertMessage,
-    triggered: false,
-  });
+  return addBudgetAlert(projectId, threshold, options);
 }
 
 /**
@@ -883,8 +927,11 @@ export function calculateCostForUsage(
   if (typeof promptTokensOrModel === 'string') {
     const tokenCount = completionTokensOrTokenCount as { prompt: number; completion: number; total: number };
     return calculateCost(
-      tokenCount?.prompt || 0,
-      tokenCount?.completion || 0,
+      {
+        prompt: tokenCount?.prompt || 0,
+        completion: tokenCount?.completion || 0,
+        total: (tokenCount?.prompt || 0) + (tokenCount?.completion || 0),
+      },
       promptTokensOrModel
     );
   }
@@ -892,7 +939,14 @@ export function calculateCostForUsage(
   // Handle normal signature: (promptTokens, completionTokens, model?)
   const promptTokens = promptTokensOrModel;
   const completionTokens = completionTokensOrTokenCount as number;
-  return calculateCost(promptTokens, completionTokens, model);
+  return calculateCost(
+    {
+      prompt: promptTokens,
+      completion: completionTokens,
+      total: promptTokens + completionTokens,
+    },
+    model || 'default'
+  );
 }
 
 // ============================================================================
