@@ -12,6 +12,9 @@
  * - NightModeManager: Overnight operation
  * - MetricsCollector: Time-series metrics
  * - VerificationPipeline: Build/test/rollback
+ * - AgentEventBus: Granular event streaming
+ * - SessionTree: Tree-structured session storage
+ * - SwarmOrchestrator: Enhanced orchestrator with events + branching
  * 
  * OpenClaw is a core primitive, not an integration.
  * It is initialized at startup and available to all agents automatically.
@@ -21,6 +24,11 @@
 export * from './swarm';
 export * from './lifecycle';
 export * from './openclaw';
+
+// Phase 3: Session Tree + Event Architecture
+export * from './event-bus';
+export * from './session-tree';
+export * from './swarm-orchestrator';
 
 // Budget and limits - explicit exports to avoid duplicates
 export { HARD_LIMITS, SOFT_LIMITS, BUDGET_ALERTS, budgetController, canSpend, canAddAgent, getBudgetStatus } from './budget-controller';

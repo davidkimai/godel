@@ -322,6 +322,13 @@ export class SessionTree {
     this.byId.set(entry.id, entry);
     this.leafId = entry.id;
     this.dirty = true;
+
+    // Update current branch's leafEntryId if we're on a named branch
+    const currentBranch = this.branches.get(this.currentBranchId);
+    if (currentBranch) {
+      currentBranch.leafEntryId = entry.id;
+    }
+
     this.flush();
     return entry.id;
   }
@@ -381,6 +388,13 @@ export class SessionTree {
     }
 
     return this.appendEntry(entry);
+  }
+
+  /**
+   * Get the label for an entry, if any.
+   */
+  getLabel(entryId: string): string | undefined {
+    return this.labelsById.get(entryId);
   }
 
   // =========================================================================
@@ -479,13 +493,17 @@ export class SessionTree {
    */
   getBranch(branchName?: string): SessionEntry[] {
     const targetBranch = branchName ? this.branches.get(branchName) : null;
-    const startId = targetBranch?.rootEntryId || this.leafId;
+    // Start from the branch's leaf if specified, otherwise use current leaf
+    const startId = targetBranch?.leafEntryId || this.leafId;
 
     const path: SessionEntry[] = [];
     let current = startId ? this.byId.get(startId) : undefined;
+    const stopId = targetBranch?.rootEntryId || null;
 
     while (current) {
       path.unshift(current);
+      // Stop if we've reached the root entry of this branch
+      if (stopId && current.id === stopId) break;
       current = current.parentId ? this.byId.get(current.parentId) : undefined;
     }
 
@@ -609,9 +627,8 @@ export class SessionTree {
       for (const node of nodes) {
         node.depth = depth;
         node.children.sort(
-          (a, b) =
-            new Date(a.entry.timestamp).getTime() -
-            new Date(b.entry.timestamp).getTime()
+          (a: SessionTreeNode, b: SessionTreeNode) =>
+            new Date(a.entry.timestamp).getTime() - new Date(b.entry.timestamp).getTime()
         );
         calculateDepths(node.children, depth + 1);
       }
@@ -662,7 +679,7 @@ export class SessionTree {
       }
     }
     return children.sort(
-      (a, b) =
+      (a: SessionEntry, b: SessionEntry) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
   }

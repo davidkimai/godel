@@ -257,7 +257,7 @@ export class SwarmOrchestrator extends EventEmitter {
       
       // Emit event bus event if enabled
       if (config.enableEventStreaming) {
-        this.eventBus.emit({
+        this.eventBus.emitEvent({
           id: `evt_${Date.now()}`,
           type: 'agent_start',
           timestamp: Date.now(),
@@ -824,7 +824,7 @@ export class SwarmOrchestrator extends EventEmitter {
 
       // Emit completion event
       if (swarm.config.enableEventStreaming) {
-        this.eventBus.emit({
+        this.eventBus.emitEvent({
           id: `evt_${Date.now()}`,
           type: 'agent_complete',
           timestamp: Date.now(),

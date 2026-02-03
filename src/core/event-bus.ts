@@ -203,7 +203,7 @@ export class AgentEventBus extends EventEmitter {
   /**
    * Emit an event to all subscribers
    */
-  emit<T extends AgentEvent>(event: T): boolean {
+  emitEvent<T extends AgentEvent>(event: T): void {
     // Add timestamp if not present
     if (!event.timestamp) {
       event.timestamp = Date.now();
@@ -224,7 +224,12 @@ export class AgentEventBus extends EventEmitter {
     this.deliverEvent(event);
 
     // Also emit via EventEmitter for compatibility
-    return super.emit(event.type, event);
+    // Use 'agent:event' as the event name to avoid special handling for 'error'
+    super.emit('agent:event', event);
+    // Also emit by specific type for listeners that want specific events
+    if (event.type !== 'error') {
+      super.emit(event.type, event);
+    }
   }
 
   private persistEvent(event: AgentEvent): void {
@@ -389,63 +394,123 @@ export class ScopedEventBus {
     private sessionId?: string
   ) {}
 
-  private createEvent<T extends Omit<AgentEvent, 'id' | 'timestamp' | 'agentId' | 'swarmId' | 'sessionId'>>(
-    type: T['type'],
-    data: Omit<T, 'id' | 'timestamp' | 'type' | 'agentId' | 'swarmId' | 'sessionId'>
-  ): AgentEvent {
+  private createBaseEvent(type: AgentEventType): Omit<BaseAgentEvent, 'type'> {
     return {
       id: `evt_${randomUUID().slice(0, 8)}`,
-      type,
       timestamp: Date.now(),
       agentId: this.agentId,
       swarmId: this.swarmId,
       sessionId: this.sessionId,
-      ...data,
-    } as AgentEvent;
+    };
   }
 
   emitAgentStart(task: string, model: string, provider: string): void {
-    this.bus.emit(this.createEvent('agent_start', { task, model, provider }));
+    const event: AgentStartEvent = {
+      ...this.createBaseEvent('agent_start'),
+      type: 'agent_start',
+      task,
+      model,
+      provider,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitAgentComplete(result: string, totalCost: number, totalTokens: number, duration: number): void {
-    this.bus.emit(this.createEvent('agent_complete', { result, totalCost, totalTokens, duration }));
+    const event: AgentCompleteEvent = {
+      ...this.createBaseEvent('agent_complete'),
+      type: 'agent_complete',
+      result,
+      totalCost,
+      totalTokens,
+      duration,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitTurnStart(turnId: string, message: string): void {
-    this.bus.emit(this.createEvent('turn_start', { turnId, message }));
+    const event: TurnStartEvent = {
+      ...this.createBaseEvent('turn_start'),
+      type: 'turn_start',
+      turnId,
+      message,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitTurnEnd(turnId: string, usage: { promptTokens: number; completionTokens: number; totalTokens: number }, cost: number): void {
-    this.bus.emit(this.createEvent('turn_end', { turnId, usage, cost }));
+    const event: TurnEndEvent = {
+      ...this.createBaseEvent('turn_end'),
+      type: 'turn_end',
+      turnId,
+      usage,
+      cost,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitThinkingStart(): void {
-    this.bus.emit(this.createEvent('thinking_start', {}));
+    const event: ThinkingStartEvent = {
+      ...this.createBaseEvent('thinking_start'),
+      type: 'thinking_start',
+    };
+    this.bus.emitEvent(event);
   }
 
   emitThinkingDelta(delta: string): void {
-    this.bus.emit(this.createEvent('thinking_delta', { delta }));
+    const event: ThinkingDeltaEvent = {
+      ...this.createBaseEvent('thinking_delta'),
+      type: 'thinking_delta',
+      delta,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitThinkingEnd(): void {
-    this.bus.emit(this.createEvent('thinking_end', {}));
+    const event: ThinkingEndEvent = {
+      ...this.createBaseEvent('thinking_end'),
+      type: 'thinking_end',
+    };
+    this.bus.emitEvent(event);
   }
 
   emitToolCallStart(tool: string, args: unknown): void {
-    this.bus.emit(this.createEvent('tool_call_start', { tool, args }));
+    const event: ToolCallStartEvent = {
+      ...this.createBaseEvent('tool_call_start'),
+      type: 'tool_call_start',
+      tool,
+      args,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitToolCallEnd(tool: string, result: unknown, duration: number, success: boolean): void {
-    this.bus.emit(this.createEvent('tool_call_end', { tool, result, duration, success }));
+    const event: ToolCallEndEvent = {
+      ...this.createBaseEvent('tool_call_end'),
+      type: 'tool_call_end',
+      tool,
+      result,
+      duration,
+      success,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitTextDelta(delta: string): void {
-    this.bus.emit(this.createEvent('text_delta', { delta }));
+    const event: TextDeltaEvent = {
+      ...this.createBaseEvent('text_delta'),
+      type: 'text_delta',
+      delta,
+    };
+    this.bus.emitEvent(event);
   }
 
   emitError(error: { message: string; stack?: string; code?: string }): void {
-    this.bus.emit(this.createEvent('error', { error }));
+    const event: ErrorEvent = {
+      ...this.createBaseEvent('error'),
+      type: 'error',
+      error,
+    };
+    this.bus.emitEvent(event);
   }
 }
 
