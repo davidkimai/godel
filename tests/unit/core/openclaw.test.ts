@@ -84,12 +84,31 @@ describe('OpenClawGatewayClient', () => {
 describe('OpenClawCore', () => {
   let core: OpenClawCore;
   let mockMessageBus: jest.Mocked<MessageBus>;
+  let mockWsInstance: any;
 
   beforeEach(() => {
     mockMessageBus = {
       publish: jest.fn().mockResolvedValue(undefined),
       subscribe: jest.fn().mockReturnValue(() => {}),
     } as unknown as jest.Mocked<MessageBus>;
+    
+    // Setup WebSocket mock to simulate successful connection
+    mockWsInstance = {
+      once: jest.fn((event: string, handler: Function) => {
+        if (event === 'open') {
+          // Simulate successful connection
+          setTimeout(() => handler(), 0);
+        }
+      }),
+      on: jest.fn(),
+      send: jest.fn(),
+      close: jest.fn(),
+      terminate: jest.fn(),
+      removeAllListeners: jest.fn(),
+      readyState: 1, // WebSocket.OPEN
+    };
+    
+    (WebSocket as unknown as jest.Mock).mockImplementation(() => mockWsInstance);
     
     core = new OpenClawCore(mockMessageBus);
   });
@@ -114,12 +133,27 @@ describe('OpenClawCore', () => {
 
   describe('initialize', () => {
     it('should attempt initialization', async () => {
-      // Will fail without real gateway but tests the API
-      try {
-        await core.initialize();
-      } catch (error) {
-        // Expected without real gateway
-      }
+      // Mock successful authentication response
+      mockWsInstance.send.mockImplementation((data: string) => {
+        const parsed = JSON.parse(data);
+        if (parsed.method === 'connect') {
+          // Simulate authentication success
+          setTimeout(() => {
+            const messageHandler = mockWsInstance.on.mock.calls.find((call: any[]) => call[0] === 'message')?.[1];
+            if (messageHandler) {
+              messageHandler(Buffer.from(JSON.stringify({
+                type: 'res',
+                id: parsed.id,
+                ok: true,
+                payload: {},
+              })));
+            }
+          }, 0);
+        }
+      });
+
+      // Should not throw with proper mocks
+      await expect(core.initialize()).resolves.not.toThrow();
     }, 10000);
 
     it('should return correct initialization state', () => {

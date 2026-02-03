@@ -9,9 +9,13 @@ import {
   OpenClawCore,
 } from '../../src/core/openclaw';
 import { MessageBus } from '../../src/bus/index';
+import WebSocket from 'ws';
 
-// Mock WebSocket
-jest.mock('ws');
+// Mock WebSocket with proper factory
+jest.mock('ws', () => {
+  return jest.fn();
+});
+
 jest.mock('../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -23,9 +27,24 @@ jest.mock('../../src/utils/logger', () => ({
 
 describe('OpenClaw Connection Integration', () => {
   let messageBus: MessageBus;
+  let mockWsInstance: any;
 
   beforeEach(() => {
     messageBus = new MessageBus();
+    
+    // Setup WebSocket mock to simulate connection behavior
+    mockWsInstance = {
+      once: jest.fn(),
+      on: jest.fn(),
+      send: jest.fn(),
+      close: jest.fn(),
+      terminate: jest.fn(),
+      removeAllListeners: jest.fn(),
+      readyState: 1,
+    };
+    
+    // Setup the mock implementation
+    (WebSocket as unknown as jest.Mock).mockImplementation(() => mockWsInstance);
   });
 
   afterEach(() => {
@@ -40,8 +59,15 @@ describe('OpenClaw Connection Integration', () => {
         token: 'test-token',
       });
 
-      // Connection is attempted but will fail without real server
-      await expect(client.connect()).rejects.toThrow();
+      // Mock successful connection
+      mockWsInstance.once.mockImplementation((event: string, handler: Function) => {
+        if (event === 'open') {
+          setTimeout(() => handler(), 0);
+        }
+      });
+
+      // Should resolve when connection opens
+      await expect(client.connect()).resolves.not.toThrow();
     }, 10000);
 
     it('should handle connection failure', async () => {
@@ -51,6 +77,19 @@ describe('OpenClaw Connection Integration', () => {
         token: 'test-token',
       });
 
+      // Suppress unhandled errors - the error event gets emitted after rejection
+      client.on('error', () => {});
+
+      // Mock the WebSocket to immediately trigger an error on the 'once' handler
+      // This simulates a connection failure during the initial handshake
+      mockWsInstance.once.mockImplementation((event: string, handler: Function) => {
+        if (event === 'error') {
+          // Trigger error immediately - this should reject the connect() promise
+          handler(new Error('Connection refused'));
+        }
+      });
+
+      // The connect() method should reject when an error occurs during connection
       await expect(client.connect()).rejects.toThrow();
     }, 10000);
 
@@ -154,13 +193,34 @@ describe('OpenClaw Connection Integration', () => {
         port: 18789,
       });
 
-      // Note: This will fail without actual gateway, testing the API structure
-      try {
-        await core.initialize();
-      } catch (error) {
-        // Expected to fail without real gateway
-      }
-      expect(core.isInitialized).toBe(false);
+      // Mock successful WebSocket connection and authentication
+      mockWsInstance.once.mockImplementation((event: string, handler: Function) => {
+        if (event === 'open') {
+          setTimeout(() => handler(), 0);
+        }
+      });
+
+      mockWsInstance.send.mockImplementation((data: string) => {
+        const parsed = JSON.parse(data);
+        if (parsed.method === 'connect') {
+          // Simulate authentication success
+          setTimeout(() => {
+            const messageHandler = mockWsInstance.on.mock.calls.find((call: any[]) => call[0] === 'message')?.[1];
+            if (messageHandler) {
+              messageHandler(Buffer.from(JSON.stringify({
+                type: 'res',
+                id: parsed.id,
+                ok: true,
+                payload: {},
+              })));
+            }
+          }, 0);
+        }
+      });
+
+      // Should initialize successfully with mocks
+      await core.initialize();
+      expect(core.isInitialized).toBe(true);
     }, 10000);
 
     it('should track initialization state', () => {
