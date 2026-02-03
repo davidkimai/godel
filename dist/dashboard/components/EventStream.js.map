@@ -1,1 +1,0 @@
-{"version":3,"file":"EventStream.js","sourceRoot":"","sources":["../../../src/dashboard/components/EventStream.ts"],"names":[],"mappings":";AAAA;;;;GAIG;;AAWH,kCAGC;AAHD,SAAgB,WAAW,CAAC,KAAY;IACtC,MAAM,IAAI,GAAG,IAAI,IAAI,CAAC,KAAK,CAAC,SAAS,CAAC,CAAC,kBAAkB,EAAE,CAAC;IAC5D,OAAO,IAAI,IAAI,KAAK,KAAK,CAAC,IAAI,KAAK,KAAK,CAAC,OAAO,EAAE,CAAC;AACrD,CAAC"}
