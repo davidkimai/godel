@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastHeartbeat": 1770094327419,
+  "lastHeartbeat": 1770143277475,
   "mode": "normal",
   "activeSwarms": {
     "cli-1770086777645": {
@@ -8,53 +8,74 @@
       "area": "coverage",
       "model": "kimi-coding/k2p5",
       "priority": "HIGH",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_coverage-1770086777645.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770143115003
     },
     "cli-1770086799895": {
       "started": 1770086799895,
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770086799895.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770143115003
     },
     "cli-1770087159302": {
       "started": 1770087159302,
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770087159302.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770143115003
     },
     "cli-1770094330751": {
       "started": 1770094330751,
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770094330751.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770143115003
+    },
+    "orch-1770143115004": {
+      "id": "orch-1770143115004",
+      "started": 1770143115004,
+      "area": "bugfix",
+      "priority": "CRITICAL",
+      "status": "running",
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-bugfix-1770143115004.log",
+      "method": "kimi-cli-primary",
+      "context": {
+        "coverage": 0,
+        "errors": "Build failed with exit code: 2"
+      }
     }
   },
   "metrics": {
     "current": {
-      "timestamp": 1770094327419,
+      "timestamp": 1770143115004,
       "testCoverage": 0,
       "tsErrors": 0,
       "swarmCount": 0,
       "agentCount": 43,
       "budgetSpent": 0,
-      "stuckAgents": 0,
+      "stuckAgents": 4,
       "buildPassing": false,
-      "lastError": "Build failed with exit code: undefined"
+      "lastError": "Build failed with exit code: 2"
     },
     "history": [
       {
@@ -133,14 +154,33 @@
         "stuckAgents": 0,
         "buildPassing": false,
         "lastError": "Build failed with exit code: undefined"
+      },
+      {
+        "timestamp": 1770143115004,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 0,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 4,
+        "buildPassing": false,
+        "lastError": "Build failed with exit code: 2"
       }
     ]
   },
   "cooldowns": {
     "coverage": 1770088577649,
-    "bugfix": 1770095230757
+    "bugfix": 1770143415012
   },
   "decisions": [
+    {
+      "timestamp": 1770143115012,
+      "action": "spawn_bugfix",
+      "reason": "Build is failing",
+      "priority": "CRITICAL",
+      "swarmId": "orch-1770143115004",
+      "area": "bugfix"
+    },
     {
       "timestamp": 1770084270323,
       "action": "spawn_coverage",
@@ -172,5 +212,6 @@
       "action": "spawn_bugfix",
       "reason": "Build broken"
     }
-  ]
+  ],
+  "testCounter": 5
 }
