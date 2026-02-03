@@ -53,7 +53,8 @@
       "name": "Test Fixes Team",
       "sessionKey": "agent:openai-codex-gpt-5-2-codex:subagent:8245548e-d73c-44c3-b5d3-bec704d24fa3",
       "mission": "Fix all failing tests and increase coverage to 80%",
-      "status": "running"
+      "status": "running",
+      "progress": "261 passing, 9 failing (improved from 31 failing)"
     },
     {
       "name": "Codebase Review Team",
