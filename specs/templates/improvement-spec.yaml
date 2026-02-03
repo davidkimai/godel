@@ -1,0 +1,67 @@
+# Template for Self-Improvement Specs
+
+```yaml
+spec:
+  id: IMP-XXX
+  name: Improvement or Optimization Name
+  version: 1.0.0
+  status: draft
+
+description: |
+  Description of the improvement and why it's needed.
+
+problem:
+  - Current behavior or limitation
+  - Impact on system performance or reliability
+  - Evidence supporting the improvement
+
+requirements:
+  - id: IMP-REQ-001
+    description: First improvement requirement
+    priority: P0
+    test: command_to_verify
+
+  - id: IMP-REQ-002
+    description: Second improvement requirement
+    priority: P1
+    test: command_to_verify
+
+implementation:
+  files:
+    - scripts/file-to-modify.js
+    - src/file-to-modify.ts
+
+prompt_template: |
+  You are implementing an improvement for Dash v2.0.
+
+  Problem Statement:
+  {{spec.problem}}
+
+  Improvements to Implement:
+  {{#each spec.requirements}}
+  - [{{this.priority}}] {{this.description}}
+  {{/each}}
+
+  Current Implementation:
+  {{spec.implementation.files}}
+
+  Tasks:
+  1. Analyze current implementation
+  2. Identify improvement areas
+  3. Implement changes
+  4. Verify improvements work
+  5. Update related specs if needed
+
+  Success Criteria:
+  {{#each spec.requirements}}
+  - [ ] {{this.description}}
+  {{/each}}
+
+validation:
+  command: npm run build && node scripts/self-improvement.js --validate
+  coverage_threshold: 80
+
+metadata:
+  created: 2026-02-02
+  type: improvement
+  target: system_component
