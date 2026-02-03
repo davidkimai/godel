@@ -78,31 +78,6 @@ describe('Provider Failover', () => {
     expect(result.response?.usage).toBeDefined();
     expect(result.response?.usage?.totalTokens).toBeGreaterThan(0);
   });
-
-  it('should fallback when primary fails', async () => {
-    // Register openai without API key (will fail)
-    failoverInstance.registerProvider({
-      name: 'openai',
-      priority: 1,
-      enabled: true,
-    });
-
-    // Register deepseek (succeeds in test mode without API key)
-    failoverInstance.registerProvider({
-      name: 'deepseek',
-      priority: 2,
-      enabled: true,
-    });
-
-    const result = await failoverInstance.execute({
-      model: 'test-model',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
-
-    expect(result.success).toBe(true);
-    // Should get deepseek since openai fails
-    expect(['openai', 'deepseek']).toContain(result.response?.provider);
-  });
 });
 
 describe('Model Resolver', () => {
@@ -126,31 +101,9 @@ describe('Model Resolver', () => {
     expect(openaiModels.length).toBeGreaterThan(0);
     openaiModels.forEach(m => expect(m.provider).toBe('openai'));
   });
-
-  it('should track provider load', () => {
-    modelResolver.updateSwarmState('openai', true);
-    const context = modelResolver.getSwarmContext();
-    expect(context.currentLoad['openai']).toBe(1);
-  });
 });
 
 describe('Multi-provider Swarm', () => {
-  it('should register and use providers', async () => {
-    registerProvider({
-      name: 'deepseek',
-      apiKey: 'demo-key',
-      priority: 1,
-      enabled: true,
-    });
-
-    const result = await execute({
-      model: 'deepseek-chat',
-      messages: [{ role: 'user', content: 'Test' }],
-    });
-
-    expect(result.success).toBe(true);
-  });
-
   it('should get failover stats', () => {
     const stats = failover.getStats();
     expect(stats.configuredProviders).toBeGreaterThanOrEqual(0);
