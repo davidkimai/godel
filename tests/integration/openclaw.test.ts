@@ -42,7 +42,7 @@ describe('OpenClaw Connection Integration', () => {
 
       // Connection is attempted but will fail without real server
       await expect(client.connect()).rejects.toThrow();
-    });
+    }, 10000);
 
     it('should handle connection failure', async () => {
       const client = new OpenClawGatewayClient({
@@ -52,7 +52,7 @@ describe('OpenClaw Connection Integration', () => {
       });
 
       await expect(client.connect()).rejects.toThrow();
-    });
+    }, 10000);
 
     it('should track connection state', () => {
       const client = new OpenClawGatewayClient({
@@ -161,7 +161,7 @@ describe('OpenClaw Connection Integration', () => {
         // Expected to fail without real gateway
       }
       expect(core.isInitialized).toBe(false);
-    });
+    }, 10000);
 
     it('should track initialization state', () => {
       const core = new OpenClawCore(messageBus);

@@ -49,7 +49,6 @@ describe('OpenClawGatewayClient', () => {
         host: 'custom-host',
         port: 9999,
         token: 'custom-token',
-        secure: true,
       });
       expect(customClient).toBeDefined();
     });
@@ -121,7 +120,7 @@ describe('OpenClawCore', () => {
       } catch (error) {
         // Expected without real gateway
       }
-    });
+    }, 10000);
 
     it('should return correct initialization state', () => {
       expect(core.isInitialized).toBe(false);

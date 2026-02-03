@@ -390,10 +390,10 @@ export function startBudgetTracking(params: {
 }): BudgetTracking;
 export function startBudgetTracking(
   agentIdOrParams: string | { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string },
-  taskId?: string,
-  projectId?: string,
-  model?: string,
-  swarmId?: string
+  taskIdArg?: string,
+  projectIdArg?: string,
+  modelArg?: string,
+  swarmIdArg?: string
 ): BudgetTracking {
   let params: { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string };
 
@@ -402,10 +402,10 @@ export function startBudgetTracking(
   } else {
     params = {
       agentId: agentIdOrParams,
-      taskId: taskId || '',
-      projectId: projectId || '',
-      model: model || 'unknown',
-      swarmId,
+      taskId: taskIdArg || '',
+      projectId: projectIdArg || '',
+      model: modelArg || 'unknown',
+      swarmId: swarmIdArg,
     };
   }
 
@@ -816,7 +816,7 @@ export function trackTokenUsage(
     total = prompt + completion;
   }
 
-  return recordTokenUsage(budgetId, { prompt, completion, total });
+  return recordTokenUsage(budgetId, prompt, completion);
 }
 
 /**
@@ -863,12 +863,7 @@ export function setBudgetAlert(
     alertMessage = thresholdOrConfig.message || `Budget alert: ${threshold}% threshold reached`;
   }
 
-  return addBudgetAlert({
-    projectId,
-    threshold,
-    message: alertMessage,
-    triggered: false,
-  });
+  return addBudgetAlert(projectId, threshold, {});
 }
 
 /**
@@ -878,13 +873,12 @@ export function calculateCostForUsage(
   promptTokensOrModel: number | string,
   completionTokensOrTokenCount?: number | { prompt: number; completion: number; total: number },
   model?: string
-): { prompt: number; completion: number; total: number } {
+): CostBreakdown {
   // Handle test signature: (model, {prompt, completion, total})
   if (typeof promptTokensOrModel === 'string') {
     const tokenCount = completionTokensOrTokenCount as { prompt: number; completion: number; total: number };
     return calculateCost(
-      tokenCount?.prompt || 0,
-      tokenCount?.completion || 0,
+      tokenCount || { prompt: 0, completion: 0, total: 0 },
       promptTokensOrModel
     );
   }
@@ -892,7 +886,11 @@ export function calculateCostForUsage(
   // Handle normal signature: (promptTokens, completionTokens, model?)
   const promptTokens = promptTokensOrModel;
   const completionTokens = completionTokensOrTokenCount as number;
-  return calculateCost(promptTokens, completionTokens, model);
+  const useModel = model || 'default';
+  return calculateCost(
+    { prompt: promptTokens, completion: completionTokens, total: promptTokens + completionTokens },
+    useModel
+  );
 }
 
 // ============================================================================
