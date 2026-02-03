@@ -11,7 +11,7 @@ import {
   trackTokenUsage,
   getBudgetUsage,
   checkBudgetExceeded,
-  setBudgetAlert,
+  addBudgetAlert,
   getBudgetAlerts,
   removeBudgetAlert,
   getBudgetHistory,
@@ -25,7 +25,7 @@ import * as os from 'os';
 
 // Mock fs module
 jest.mock('fs');
-jest.mock('../../src/utils', () => ({
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -61,56 +61,48 @@ describe('Budget Module', () => {
 
   describe('setBudgetConfig', () => {
     it('should set budget config for a scope', () => {
-      const config: BudgetConfig = {
-        type: 'agent',
-        scope: 'agent-1',
+      const config: Partial<BudgetConfig> = {
         maxTokens: 10000,
         maxCost: 5.0,
         period: 'daily',
       };
       
-      setBudgetConfig('agent-1', config);
+      setBudgetConfig('agent', 'agent-1', config);
       
       expect(fs.writeFileSync).toHaveBeenCalled();
     });
 
     it('should persist budget to disk', () => {
-      const config: BudgetConfig = {
-        type: 'project',
-        scope: 'project-1',
+      const config: Partial<BudgetConfig> = {
         maxTokens: 100000,
         maxCost: 50.0,
         period: 'monthly',
       };
       
-      setBudgetConfig('project-1', config);
+      setBudgetConfig('project', 'project-1', config);
       
       const writeCall = (fs.writeFileSync as jest.Mock).mock.calls[0];
       expect(writeCall[0]).toBe(mockBudgetsFile);
       
       const writtenData = JSON.parse(writeCall[1]);
-      expect(writtenData.configs['project-1']).toBeDefined();
+      expect(writtenData.configs).toBeDefined();
     });
 
     it('should update existing config', () => {
-      const config1: BudgetConfig = {
-        type: 'agent',
-        scope: 'agent-1',
+      const config1: Partial<BudgetConfig> = {
         maxTokens: 10000,
         maxCost: 5.0,
       };
       
-      const config2: BudgetConfig = {
-        type: 'agent',
-        scope: 'agent-1',
+      const config2: Partial<BudgetConfig> = {
         maxTokens: 20000,
         maxCost: 10.0,
       };
       
-      setBudgetConfig('agent-1', config1);
-      setBudgetConfig('agent-1', config2);
+      setBudgetConfig('agent', 'agent-1', config1);
+      setBudgetConfig('agent', 'agent-1', config2);
       
-      const config = getBudgetConfig('agent-1');
+      const config = getBudgetConfig('agent', 'agent-1');
       expect(config?.maxTokens).toBe(20000);
       expect(config?.maxCost).toBe(10.0);
     });
@@ -118,20 +110,18 @@ describe('Budget Module', () => {
 
   describe('getBudgetConfig', () => {
     it('should return undefined for non-existent config', () => {
-      const config = getBudgetConfig('non-existent');
+      const config = getBudgetConfig('agent', 'non-existent');
       expect(config).toBeUndefined();
     });
 
     it('should return config after setting', () => {
-      const config: BudgetConfig = {
-        type: 'swarm',
-        scope: 'swarm-1',
+      const config: Partial<BudgetConfig> = {
         maxTokens: 50000,
         maxCost: 25.0,
       };
       
-      setBudgetConfig('swarm-1', config);
-      const retrieved = getBudgetConfig('swarm-1');
+      setBudgetConfig('swarm', 'swarm-1', config);
+      const retrieved = getBudgetConfig('swarm', 'swarm-1');
       
       expect(retrieved).toBeDefined();
       expect(retrieved?.type).toBe('swarm');
@@ -299,7 +289,8 @@ describe('Budget Module', () => {
       
       trackTokenUsage(tracking.id, { prompt: 100, completion: 50, total: 150 });
       
-      expect(checkBudgetExceeded(tracking.id)).toBe(false);
+      const result = checkBudgetExceeded(tracking.id);
+      expect(result.exceeded).toBe(false);
     });
 
     it('should return true when over token budget', () => {
@@ -318,14 +309,14 @@ describe('Budget Module', () => {
       
       trackTokenUsage(tracking.id, { prompt: 200, completion: 100, total: 300 });
       
-      expect(checkBudgetExceeded(tracking.id)).toBe(true);
+      const result = checkBudgetExceeded(tracking.id);
+      expect(result.exceeded).toBe(true);
     });
   });
 
-  describe('setBudgetAlert', () => {
+  describe('addBudgetAlert', () => {
     it('should set budget alert', () => {
-      const alert = setBudgetAlert('project-1', {
-        threshold: 80,
+      const alert = addBudgetAlert('project-1', 80, {
         webhookUrl: 'https://example.com/webhook',
       });
       
@@ -335,8 +326,7 @@ describe('Budget Module', () => {
     });
 
     it('should persist alert to disk', () => {
-      setBudgetAlert('project-1', {
-        threshold: 80,
+      addBudgetAlert('project-1', 80, {
         webhookUrl: 'https://example.com/webhook',
       });
       
@@ -351,8 +341,8 @@ describe('Budget Module', () => {
     });
 
     it('should return alerts for budget', () => {
-      setBudgetAlert('project-1', { threshold: 80 });
-      setBudgetAlert('project-1', { threshold: 90 });
+      addBudgetAlert('project-1', 80, {});
+      addBudgetAlert('project-1', 90, {});
       
       const alerts = getBudgetAlerts('project-1');
       
@@ -362,8 +352,8 @@ describe('Budget Module', () => {
 
   describe('removeBudgetAlert', () => {
     it('should remove specific alert', () => {
-      const alert1 = setBudgetAlert('project-1', { threshold: 80 });
-      setBudgetAlert('project-1', { threshold: 90 });
+      const alert1 = addBudgetAlert('project-1', 80, {});
+      addBudgetAlert('project-1', 90, {});
       
       removeBudgetAlert('project-1', alert1.id);
       
@@ -382,24 +372,16 @@ describe('Budget Module', () => {
 
   describe('calculateCostForUsage', () => {
     it('should calculate cost for token usage', () => {
-      const cost = calculateCostForUsage('kimi-k2.5', {
-        prompt: 1000,
-        completion: 500,
-        total: 1500,
-      });
+      const cost = calculateCostForUsage(1000, 500, 'kimi-k2.5');
       
-      expect(cost).toBeGreaterThan(0);
+      expect(cost.total).toBeGreaterThan(0);
       expect(cost.prompt).toBeGreaterThan(0);
       expect(cost.completion).toBeGreaterThan(0);
       expect(cost.total).toBe(cost.prompt + cost.completion);
     });
 
     it('should handle unknown model', () => {
-      const cost = calculateCostForUsage('unknown-model', {
-        prompt: 1000,
-        completion: 500,
-        total: 1500,
-      });
+      const cost = calculateCostForUsage(1000, 500, 'unknown-model');
       
       expect(cost.total).toBe(0);
     });

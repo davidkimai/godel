@@ -74,9 +74,9 @@ describe('SwarmManager', () => {
     mockMessageBus.publish = jest.fn().mockResolvedValue(undefined);
     mockStorage.create = jest.fn();
     mockStorage.get = jest.fn();
-    mockSwarmRepository.createSwarm = jest.fn().mockResolvedValue(undefined);
-    mockSwarmRepository.updateSwarm = jest.fn().mockResolvedValue(undefined);
-    mockSwarmRepository.getSwarm = jest.fn().mockResolvedValue(null);
+    mockSwarmRepository.create = jest.fn().mockResolvedValue(undefined);
+    mockSwarmRepository.update = jest.fn().mockResolvedValue(undefined);
+    mockSwarmRepository.findById = jest.fn().mockResolvedValue(null);
 
     swarmManager = new SwarmManager(
       mockAgentLifecycle,
@@ -138,7 +138,7 @@ describe('SwarmManager', () => {
       
       await swarmManager.create(config);
       
-      expect(mockSwarmRepository.createSwarm).toHaveBeenCalled();
+      expect(mockSwarmRepository.create).toHaveBeenCalled();
     });
 
     it('should emit swarm.created event', async () => {
@@ -170,21 +170,21 @@ describe('SwarmManager', () => {
     });
   });
 
-  describe('list', () => {
+  describe('listSwarms', () => {
     it('should return all swarms', async () => {
       swarmManager.start();
       const config = createMockSwarmConfig();
-      
+
       await swarmManager.create(config);
       await swarmManager.create({ ...config, name: 'swarm-2' });
-      
-      const swarms = swarmManager.list();
-      
+
+      const swarms = swarmManager.listSwarms();
+
       expect(swarms).toHaveLength(2);
     });
 
     it('should return empty array when no swarms exist', () => {
-      const swarms = swarmManager.list();
+      const swarms = swarmManager.listSwarms();
       expect(swarms).toEqual([]);
     });
   });
@@ -249,14 +249,14 @@ describe('SwarmManager', () => {
     });
   });
 
-  describe('getSwarmStatus', () => {
+  describe('getStatus', () => {
     it('should return swarm status info', async () => {
       swarmManager.start();
       const config = createMockSwarmConfig();
       const swarm = await swarmManager.create(config);
-      
-      const status = swarmManager.getSwarmStatus(swarm.id);
-      
+
+      const status = swarmManager.getStatus(swarm.id);
+
       expect(status).toBeDefined();
       expect(status!.id).toBe(swarm.id);
       expect(status!.name).toBe(swarm.name);
