@@ -345,6 +345,15 @@ export function clearAllBudgetConfigs(): void {
 }
 
 /**
+ * Clear all active budget tracking instances (for testing/reset)
+ */
+export function clearAllActiveBudgets(): void {
+  activeBudgets.clear();
+  budgetHistory.length = 0;
+  logger.info('All active budget tracking cleared');
+}
+
+/**
  * Delete a specific budget configuration
  */
 export function deleteBudgetConfig(type: BudgetType, scope: string): boolean {
@@ -878,10 +887,11 @@ export function checkBudgetExceeded(budgetId: string): {
   }
 
   const usage = getBudgetUsage(tracking);
-  const exceeded = tracking.costUsed.total >= tracking.budgetConfig.maxCost;
+  const costExceeded = tracking.costUsed.total >= tracking.budgetConfig.maxCost;
+  const tokensExceeded = tracking.tokensUsed.total >= tracking.budgetConfig.maxTokens;
 
   return {
-    exceeded,
+    exceeded: costExceeded || tokensExceeded,
     percentageUsed: usage.percentageUsed,
     budgetConfig: config,
   };

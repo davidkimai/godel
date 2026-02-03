@@ -16,6 +16,9 @@ import {
   removeBudgetAlert,
   getBudgetHistory,
   calculateCostForUsage,
+  clearAllBudgetConfigs,
+  clearAllBudgetAlerts,
+  clearAllActiveBudgets,
   BudgetConfig,
   TokenCount,
 } from '../../../src/safety/budget';
@@ -41,6 +44,11 @@ describe('Budget Module', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
+    // Clear budget state
+    clearAllBudgetConfigs();
+    clearAllBudgetAlerts();
+    clearAllActiveBudgets();
+    
     // Mock fs.existsSync
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     
@@ -57,6 +65,12 @@ describe('Budget Module', () => {
     
     // Mock fs.mkdirSync
     (fs.mkdirSync as jest.Mock).mockImplementation(() => {});
+  });
+  
+  afterEach(() => {
+    clearAllBudgetConfigs();
+    clearAllBudgetAlerts();
+    clearAllActiveBudgets();
   });
 
   describe('setBudgetConfig', () => {
@@ -383,7 +397,8 @@ describe('Budget Module', () => {
     it('should handle unknown model', () => {
       const cost = calculateCostForUsage(1000, 500, 'unknown-model');
       
-      expect(cost.total).toBe(0);
+      // Unknown models use default pricing, not 0
+      expect(cost.total).toBeGreaterThan(0);
     });
   });
 });

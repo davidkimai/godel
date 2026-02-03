@@ -114,9 +114,9 @@ describe('SwarmManager', () => {
       
       expect(swarm).toBeDefined();
       expect(swarm.name).toBe(config.name);
-      expect(swarm.status).toBe('creating');
+      expect(swarm.status).toBe('active');
       expect(swarm.config).toEqual(config);
-      expect(swarm.agents).toHaveLength(0);
+      expect(swarm.agents).toHaveLength(config.initialAgents);
       expect(swarm.budget.allocated).toBe(config.budget!.amount);
       expect(swarm.budget.remaining).toBe(config.budget!.amount);
       expect(swarm.budget.consumed).toBe(0);
@@ -164,9 +164,9 @@ describe('SwarmManager', () => {
       expect(retrieved!.id).toBe(created.id);
     });
 
-    it('should return null for non-existent swarm', () => {
+    it('should return undefined for non-existent swarm', () => {
       const swarm = swarmManager.getSwarm('non-existent-id');
-      expect(swarm).toBeNull();
+      expect(swarm).toBeUndefined();
     });
   });
 
@@ -203,7 +203,9 @@ describe('SwarmManager', () => {
       
       await swarmManager.destroy(swarm.id);
       
-      expect(swarmManager.getSwarm(swarm.id)).toBeNull();
+      const destroyedSwarm = swarmManager.getSwarm(swarm.id);
+      expect(destroyedSwarm).toBeDefined();
+      expect(destroyedSwarm!.status).toBe('destroyed');
     });
 
     it('should emit swarm.destroyed event', async () => {

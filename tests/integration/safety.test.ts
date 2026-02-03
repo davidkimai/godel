@@ -22,6 +22,7 @@ import {
   checkBudgetExceeded,
   clearAllBudgetConfigs,
   clearAllBudgetAlerts,
+  clearAllActiveBudgets,
   BudgetConfig,
 } from '../../src/safety/budget';
 
@@ -58,12 +59,14 @@ describe('Safety Integration', () => {
   beforeEach(() => {
     clearAllBudgetConfigs();
     clearAllBudgetAlerts();
+    clearAllActiveBudgets();
     jest.clearAllMocks();
   });
 
   afterEach(() => {
     clearAllBudgetConfigs();
     clearAllBudgetAlerts();
+    clearAllActiveBudgets();
   });
 
   describe('Budget Tracking Integration', () => {
@@ -586,7 +589,7 @@ describe('Safety Integration', () => {
         operation: request1.operation,
         risk: request1.risk,
         metadata: { sessionId: 'test' },
-        createdAt: new Date(),
+        createdAt: new Date()
       });
 
       logApprovalAudit({
@@ -694,6 +697,17 @@ describe('Safety Integration', () => {
         { type: 'human', identity: 'admin@example.com' },
         'Approved for production deployment'
       );
+
+      // Log the approval for audit trail
+      logApprovalAudit({
+        requestId: approvalRequest.requestId,
+        requestingAgent: approvalRequest.requestingAgent,
+        operation: approvalRequest.operation,
+        risk: approvalRequest.risk,
+        decision: approvalRequest.decision,
+        metadata: { sessionId: 'e2e-test', taskId: 'task-1' },
+        createdAt: new Date(),
+      });
 
       // 7. Track token usage
       trackTokenUsage(tracking.id, 5000, 2500);

@@ -212,6 +212,23 @@ export class SwarmManager extends EventEmitter {
       await this.initializeAgents(swarm);
 
       swarm.status = 'active';
+      
+      // Persist to repository if available
+      if (this.swarmRepository) {
+        await this.swarmRepository.create({
+          id: swarm.id,
+          name: swarm.name,
+          status: swarm.status,
+          config: swarm.config as unknown as Record<string, unknown>,
+          agents: swarm.agents,
+          created_at: swarm.createdAt.toISOString(),
+          budget_allocated: swarm.budget.allocated,
+          budget_consumed: swarm.budget.consumed,
+          budget_remaining: swarm.budget.remaining,
+          metrics: swarm.metrics as unknown as Record<string, unknown>,
+        });
+      }
+      
       this.emit('swarm.created', swarm);
       this.messageBus.publish(
         MessageBus.swarmBroadcast(id),

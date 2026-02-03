@@ -33,6 +33,8 @@ jest.mock('../../../src/skills/clawhub', () => ({
     uninstall: jest.fn().mockResolvedValue({ success: true }),
     listInstalled: jest.fn().mockResolvedValue([]),
     updateConfig: jest.fn(),
+    isEnabled: jest.fn().mockReturnValue(true),
+    fetchSkill: jest.fn(),
   })),
   getGlobalClawHubAdapter: jest.fn().mockImplementation(() => ({
     search: jest.fn().mockResolvedValue({
@@ -62,12 +64,21 @@ jest.mock('../../../src/skills/clawhub', () => ({
       success: true,
       skillId: 'clawhub-skill-1',
       installedPath: '/skills/clawhub-skill-1',
+      version: '1.0.0',
+      source: 'clawhub',
     }),
     uninstall: jest.fn().mockResolvedValue({ success: true }),
     listInstalled: jest.fn().mockResolvedValue([
       { id: 'installed-1', name: 'Installed 1', version: '1.0.0', source: 'clawhub' },
     ]),
     updateConfig: jest.fn(),
+    isEnabled: jest.fn().mockReturnValue(true),
+    fetchSkill: jest.fn().mockResolvedValue({
+      id: 'clawhub-skill-1',
+      name: 'ClawHub Skill 1',
+      version: '1.0.0',
+      source: 'clawhub',
+    }),
   })),
 }));
 
@@ -83,6 +94,8 @@ jest.mock('../../../src/skills/vercel', () => ({
     uninstall: jest.fn().mockResolvedValue({ success: true }),
     listInstalled: jest.fn().mockResolvedValue([]),
     updateConfig: jest.fn(),
+    isEnabled: jest.fn().mockReturnValue(true),
+    fetchSkill: jest.fn(),
   })),
   getGlobalVercelSkillsClient: jest.fn().mockImplementation(() => ({
     search: jest.fn().mockResolvedValue({
@@ -112,10 +125,19 @@ jest.mock('../../../src/skills/vercel', () => ({
       success: true,
       skillId: 'vercel-skill-1',
       installedPath: '/skills/vercel-skill-1',
+      version: '2.0.0',
+      source: 'vercel',
     }),
     uninstall: jest.fn().mockResolvedValue({ success: true }),
     listInstalled: jest.fn().mockResolvedValue([]),
     updateConfig: jest.fn(),
+    isEnabled: jest.fn().mockReturnValue(true),
+    fetchSkill: jest.fn().mockResolvedValue({
+      id: 'vercel-skill-1',
+      name: 'Vercel Skill 1',
+      version: '2.0.0',
+      source: 'vercel',
+    }),
   })),
 }));
 
@@ -274,20 +296,22 @@ describe('UnifiedSkillRegistry', () => {
 
   describe('install', () => {
     it('should install skill from clawhub', async () => {
-      const result = await registry.install('clawhub-skill-1');
+      const result = await registry.install('clawhub:clawhub-skill-1');
       
       expect(result).toBeDefined();
+      expect(result.success).toBe(true);
     });
 
     it('should install skill from vercel', async () => {
-      const result = await registry.install('vercel-skill-1');
+      const result = await registry.install('vercel:vercel-skill-1');
       
       expect(result).toBeDefined();
+      expect(result.success).toBe(true);
     });
 
     it('should handle installation errors', async () => {
       // Mock will handle the error gracefully
-      const result = await registry.install('error-skill');
+      const result = await registry.install('clawhub:error-skill');
       
       expect(result).toBeDefined();
     });
@@ -295,16 +319,16 @@ describe('UnifiedSkillRegistry', () => {
 
   describe('uninstall', () => {
     it('should uninstall skill', async () => {
-      const result = await registry.uninstall('clawhub-skill-1');
+      // First install the skill
+      await registry.install('clawhub:clawhub-skill-1');
       
-      expect(result).toBeDefined();
+      // Then uninstall it - should not throw
+      await expect(registry.uninstall('clawhub:clawhub-skill-1')).resolves.not.toThrow();
     });
 
     it('should handle uninstall errors', async () => {
-      // Should handle gracefully
-      const result = await registry.uninstall('non-existent');
-      
-      expect(result).toBeDefined();
+      // Should throw for non-existent skills
+      await expect(registry.uninstall('clawhub:non-existent')).rejects.toThrow();
     });
   });
 

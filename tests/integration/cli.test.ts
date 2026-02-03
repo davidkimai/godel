@@ -86,8 +86,11 @@ describe('CLI Commands Integration', () => {
     it('should define swarm create command', () => {
       let commandCalled = false;
       
-      program
-        .command('swarm create')
+      // Create parent command
+      const swarm = program.command('swarm').description('Manage swarms');
+      
+      swarm
+        .command('create')
         .requiredOption('--name <name>', 'Swarm name')
         .requiredOption('--task <task>', 'Task description')
         .action(() => {
@@ -102,8 +105,10 @@ describe('CLI Commands Integration', () => {
     it('should define swarm list command', () => {
       let commandCalled = false;
       
-      program
-        .command('swarm list')
+      const swarm = program.command('swarm').description('Manage swarms');
+      
+      swarm
+        .command('list')
         .action(() => {
           commandCalled = true;
         });
@@ -117,8 +122,10 @@ describe('CLI Commands Integration', () => {
       let commandCalled = false;
       let swarmId = '';
       
-      program
-        .command('swarm destroy <id>')
+      const swarm = program.command('swarm').description('Manage swarms');
+      
+      swarm
+        .command('destroy <id>')
         .action((id) => {
           commandCalled = true;
           swarmId = id;
@@ -133,9 +140,11 @@ describe('CLI Commands Integration', () => {
     it('should accept --agents option', () => {
       let agentCount = 0;
       
-      program
-        .command('swarm create')
-        .option('--agents <count>', 'Number of agents', parseInt)
+      const swarm = program.command('swarm').description('Manage swarms');
+      
+      swarm
+        .command('create')
+        .option('--agents <count>', 'Number of agents', (val) => parseInt(val, 10))
         .action((options) => {
           agentCount = options.agents;
         });
@@ -148,8 +157,10 @@ describe('CLI Commands Integration', () => {
     it('should accept --strategy option', () => {
       let strategy = '';
       
-      program
-        .command('swarm create')
+      const swarm = program.command('swarm').description('Manage swarms');
+      
+      swarm
+        .command('create')
         .option('--strategy <type>', 'Swarm strategy')
         .action((options) => {
           strategy = options.strategy;
@@ -165,8 +176,10 @@ describe('CLI Commands Integration', () => {
     it('should define agents list command', () => {
       let commandCalled = false;
       
-      program
-        .command('agents list')
+      const agents = program.command('agents').description('Manage agents');
+      
+      agents
+        .command('list')
         .action(() => {
           commandCalled = true;
         });
@@ -179,8 +192,10 @@ describe('CLI Commands Integration', () => {
     it('should define agents spawn command', () => {
       let commandCalled = false;
       
-      program
-        .command('agents spawn')
+      const agents = program.command('agents').description('Manage agents');
+      
+      agents
+        .command('spawn')
         .requiredOption('--task <task>', 'Task description')
         .action(() => {
           commandCalled = true;
@@ -195,8 +210,10 @@ describe('CLI Commands Integration', () => {
       let commandCalled = false;
       let agentId = '';
       
-      program
-        .command('agents kill <id>')
+      const agents = program.command('agents').description('Manage agents');
+      
+      agents
+        .command('kill <id>')
         .action((id) => {
           commandCalled = true;
           agentId = id;
@@ -213,8 +230,10 @@ describe('CLI Commands Integration', () => {
     it('should define budget show command', () => {
       let commandCalled = false;
       
-      program
-        .command('budget show')
+      const budget = program.command('budget').description('Manage budget');
+      
+      budget
+        .command('show')
         .action(() => {
           commandCalled = true;
         });
@@ -227,8 +246,10 @@ describe('CLI Commands Integration', () => {
     it('should define budget set command', () => {
       let commandCalled = false;
       
-      program
-        .command('budget set')
+      const budget = program.command('budget').description('Manage budget');
+      
+      budget
+        .command('set')
         .requiredOption('--amount <value>', 'Budget amount')
         .action(() => {
           commandCalled = true;
@@ -242,8 +263,10 @@ describe('CLI Commands Integration', () => {
     it('should accept --period option', () => {
       let period = '';
       
-      program
-        .command('budget set')
+      const budget = program.command('budget').description('Manage budget');
+      
+      budget
+        .command('set')
         .option('--period <type>', 'Budget period')
         .action((options) => {
           period = options.period;
@@ -257,8 +280,10 @@ describe('CLI Commands Integration', () => {
     it('should define budget report command', () => {
       let commandCalled = false;
       
-      program
-        .command('budget report')
+      const budget = program.command('budget').description('Manage budget');
+      
+      budget
+        .command('report')
         .action(() => {
           commandCalled = true;
         });
@@ -274,8 +299,10 @@ describe('CLI Commands Integration', () => {
       let commandCalled = false;
       let query = '';
       
-      program
-        .command('skills search <query>')
+      const skills = program.command('skills').description('Manage skills');
+      
+      skills
+        .command('search <query>')
         .action((q) => {
           commandCalled = true;
           query = q;
@@ -291,8 +318,10 @@ describe('CLI Commands Integration', () => {
       let commandCalled = false;
       let skillId = '';
       
-      program
-        .command('skills install <skill>')
+      const skills = program.command('skills').description('Manage skills');
+      
+      skills
+        .command('install <skill>')
         .action((id) => {
           commandCalled = true;
           skillId = id;
@@ -307,8 +336,10 @@ describe('CLI Commands Integration', () => {
     it('should define skills uninstall command', () => {
       let commandCalled = false;
       
-      program
-        .command('skills uninstall <skill>')
+      const skills = program.command('skills').description('Manage skills');
+      
+      skills
+        .command('uninstall <skill>')
         .action(() => {
           commandCalled = true;
         });
@@ -321,8 +352,10 @@ describe('CLI Commands Integration', () => {
     it('should define skills list command', () => {
       let commandCalled = false;
       
-      program
-        .command('skills list')
+      const skills = program.command('skills').description('Manage skills');
+      
+      skills
+        .command('list')
         .action(() => {
           commandCalled = true;
         });
@@ -335,8 +368,10 @@ describe('CLI Commands Integration', () => {
     it('should accept --source option', () => {
       let source = '';
       
-      program
-        .command('skills search <query>')
+      const skills = program.command('skills').description('Manage skills');
+      
+      skills
+        .command('search <query>')
         .option('--source <name>', 'Skill source')
         .action((q, options) => {
           source = options.source;
@@ -352,8 +387,10 @@ describe('CLI Commands Integration', () => {
     it('should define openclaw connect command', () => {
       let commandCalled = false;
       
-      program
-        .command('openclaw connect')
+      const openclaw = program.command('openclaw').description('OpenClaw integration');
+      
+      openclaw
+        .command('connect')
         .action(() => {
           commandCalled = true;
         });
@@ -366,8 +403,10 @@ describe('CLI Commands Integration', () => {
     it('should define openclaw spawn command', () => {
       let commandCalled = false;
       
-      program
-        .command('openclaw spawn')
+      const openclaw = program.command('openclaw').description('OpenClaw integration');
+      
+      openclaw
+        .command('spawn')
         .requiredOption('--task <task>', 'Task to spawn')
         .action(() => {
           commandCalled = true;
@@ -381,8 +420,10 @@ describe('CLI Commands Integration', () => {
     it('should accept --mock flag', () => {
       let mockFlag = false;
       
-      program
-        .command('openclaw connect')
+      const openclaw = program.command('openclaw').description('OpenClaw integration');
+      
+      openclaw
+        .command('connect')
         .option('--mock', 'Use mock mode')
         .action((options) => {
           mockFlag = options.mock;
@@ -396,8 +437,10 @@ describe('CLI Commands Integration', () => {
     it('should accept --host option', () => {
       let host = '';
       
-      program
-        .command('openclaw connect')
+      const openclaw = program.command('openclaw').description('OpenClaw integration');
+      
+      openclaw
+        .command('connect')
         .option('--host <address>', 'Gateway host')
         .action((options) => {
           host = options.host;

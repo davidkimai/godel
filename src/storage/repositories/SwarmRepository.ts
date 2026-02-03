@@ -6,10 +6,12 @@
 
 import { getDb } from '../sqlite';
 
+export type SwarmState = 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed';
+
 export interface Swarm {
   id: string;
   name: string;
-  status: 'running' | 'paused' | 'completed' | 'failed';
+  status: SwarmState;
   config: Record<string, unknown>;
   agents: string[];  // JSON array
   created_at: string;
@@ -29,7 +31,7 @@ export class SwarmRepository {
     const swarm: Swarm = {
       id,
       name: data.name || 'Unnamed Swarm',
-      status: data.status || 'running',
+      status: data.status || 'active',
       config: data.config || {},
       agents: data.agents || [],
       created_at: now,

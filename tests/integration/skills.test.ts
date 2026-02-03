@@ -27,6 +27,7 @@ const mockClawHubGet = jest.fn();
 const mockClawHubInstall = jest.fn();
 const mockClawHubUninstall = jest.fn();
 const mockClawHubListInstalled = jest.fn();
+const mockClawHubIsEnabled = jest.fn().mockReturnValue(true);
 
 jest.mock('../../src/skills/clawhub', () => ({
   getGlobalClawHubAdapter: jest.fn().mockImplementation(() => ({
@@ -36,6 +37,12 @@ jest.mock('../../src/skills/clawhub', () => ({
     uninstall: mockClawHubUninstall,
     listInstalled: mockClawHubListInstalled,
     updateConfig: jest.fn(),
+    isEnabled: mockClawHubIsEnabled,
+    fetchSkill: jest.fn().mockResolvedValue({
+      id: 'test-skill',
+      name: 'Test Skill',
+      version: '1.0.0',
+    }),
   })),
 }));
 
@@ -45,6 +52,7 @@ const mockVercelGet = jest.fn();
 const mockVercelInstall = jest.fn();
 const mockVercelUninstall = jest.fn();
 const mockVercelListInstalled = jest.fn();
+const mockVercelIsEnabled = jest.fn().mockReturnValue(true);
 
 jest.mock('../../src/skills/vercel', () => ({
   getGlobalVercelSkillsClient: jest.fn().mockImplementation(() => ({
@@ -54,6 +62,12 @@ jest.mock('../../src/skills/vercel', () => ({
     uninstall: mockVercelUninstall,
     listInstalled: mockVercelListInstalled,
     updateConfig: jest.fn(),
+    isEnabled: mockVercelIsEnabled,
+    fetchSkill: jest.fn().mockResolvedValue({
+      id: 'vercel-skill',
+      name: 'Vercel Skill',
+      version: '1.0.0',
+    }),
   })),
 }));
 
@@ -67,18 +81,21 @@ describe('Skills Integration', () => {
     mockClawHubInstall.mockReset();
     mockClawHubUninstall.mockReset();
     mockClawHubListInstalled.mockReset();
+    mockClawHubIsEnabled.mockReturnValue(true);
+    
     mockVercelSearch.mockReset();
     mockVercelGet.mockReset();
     mockVercelInstall.mockReset();
     mockVercelUninstall.mockReset();
     mockVercelListInstalled.mockReset();
+    mockVercelIsEnabled.mockReturnValue(true);
 
-    // Create registry
+    // Create registry with required registryUrl
     registry = new UnifiedSkillRegistry({
       workdir: '/tmp/dash',
       skillsDir: 'skills',
-      clawhub: { enabled: true },
-      vercel: { enabled: true },
+      clawhub: { enabled: true, registryUrl: 'https://clawhub.example.com' },
+      vercel: { enabled: true, registryUrl: 'https://vercel.example.com' },
     });
   });
 
@@ -163,8 +180,8 @@ describe('Skills Integration', () => {
       const result = await registry.search({ query: 'test' });
 
       expect(result.skills).toHaveLength(3);
-      expect(result.totalBySource.clawhub).toBe(2);
-      expect(result.totalBySource.vercel).toBe(1);
+      expect(result.bySource.clawhub.total).toBe(2);
+      expect(result.bySource.vercel.total).toBe(1);
     });
   });
 
@@ -174,12 +191,11 @@ describe('Skills Integration', () => {
         success: true,
         skillId: 'test-skill',
         installedPath: '/skills/test-skill',
-      });
-
-      const result = await registry.install({
-        skillId: 'test-skill',
+        version: '1.0.0',
         source: 'clawhub',
       });
+
+      const result = await registry.install('clawhub:test-skill');
 
       expect(result.success).toBe(true);
       expect(mockClawHubInstall).toHaveBeenCalledWith('test-skill', expect.any(Object));
@@ -190,12 +206,11 @@ describe('Skills Integration', () => {
         success: true,
         skillId: 'vercel-skill',
         installedPath: '/skills/vercel-skill',
-      });
-
-      const result = await registry.install({
-        skillId: 'vercel-skill',
+        version: '1.0.0',
         source: 'vercel',
       });
+
+      const result = await registry.install('vercel:vercel-skill');
 
       expect(result.success).toBe(true);
       expect(mockVercelInstall).toHaveBeenCalledWith('vercel-skill', expect.any(Object));
@@ -205,16 +220,15 @@ describe('Skills Integration', () => {
       mockClawHubInstall.mockResolvedValue({
         success: false,
         skillId: 'failing-skill',
-        error: 'Installation failed',
-      });
-
-      const result = await registry.install({
-        skillId: 'failing-skill',
+        errors: ['Installation failed'],
+        version: '',
         source: 'clawhub',
       });
 
+      const result = await registry.install('clawhub:failing-skill');
+
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Installation failed');
+      expect(result.errors).toContain('Installation failed');
     });
 
     it('should auto-detect source when not specified', async () => {
@@ -243,31 +257,34 @@ describe('Skills Integration', () => {
         tags: [],
       });
 
-      // This should pick the best match or throw ambiguous error
-      try {
-        await registry.install({ skillId: 'ambiguous-skill' });
-      } catch (error) {
-        // May throw ambiguous error
-        expect(error).toBeDefined();
-      }
+      // This should throw ambiguous error since both sources have it
+      await expect(registry.install('ambiguous-skill')).rejects.toThrow();
     });
   });
 
   describe('Skill Uninstallation Integration', () => {
     it('should uninstall skill', async () => {
       mockClawHubUninstall.mockResolvedValue({ success: true });
-
-      const result = await registry.uninstall('test-skill');
-
-      expect(result.success).toBe(true);
+      
+      // First install a skill
+      mockClawHubInstall.mockResolvedValue({
+        success: true,
+        skillId: 'test-skill',
+        installedPath: '/skills/test-skill',
+        version: '1.0.0',
+        source: 'clawhub',
+      });
+      
+      await registry.install('clawhub:test-skill');
+      
+      // Then uninstall it
+      await expect(registry.uninstall('clawhub:test-skill')).resolves.not.toThrow();
     });
 
     it('should handle uninstall errors', async () => {
       mockClawHubUninstall.mockRejectedValue(new Error('Not installed'));
 
-      const result = await registry.uninstall('not-installed');
-
-      expect(result.success).toBe(false);
+      await expect(registry.uninstall('clawhub:not-installed')).rejects.toThrow();
     });
   });
 
