@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
@@ -17,8 +17,12 @@
     "declarationMap": true,
     "sourceMap": true,
     "moduleResolution": "node",
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@dash/ai": ["./packages/ai/src/index.ts"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts"]
+  "include": ["src/**/*", "packages/*/src/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts", "packages/**/__tests__"]
 }

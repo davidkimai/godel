@@ -7,6 +7,9 @@
   "bin": {
     "dash": "./dist/index.js"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -18,6 +21,8 @@
     "quality": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
+    "@dash/ai": "file:./packages/ai",
+    "@mariozechner/pi-ai": "^0.51.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/helmet": "^4.0.0",

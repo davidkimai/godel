@@ -63,3 +63,34 @@ export type { SwarmExecutionContext, AgentExecutionResult, ExecutionMetrics } fr
 // Bug Monitor - Recursive bug detection/fix
 export { BugMonitor, bugMonitor, reportBug, getBugDashboard, startBugMonitoring, stopBugMonitoring, BugSeverity, BugStatus } from './bug-monitor';
 export type { BugReport, BugMonitorConfig } from './bug-monitor';
+
+// Unified LLM API - Phase 1 pi-mono integration
+export {
+  UnifiedLLMClient,
+  getUnifiedLLMClient,
+  resetLLMClient,
+  quickComplete,
+  // Re-exports from @dash/ai
+  getSwarmModel,
+  completeWithFailover,
+  streamWithFailover,
+  createMultiProviderSwarm,
+  SwarmModelResolver,
+  ProviderFailover,
+  CostTracker,
+  FailoverStrategy,
+} from './llm';
+export type {
+  UnifiedLLMConfig,
+  // Re-exported types from @dash/ai
+  Model,
+  Api,
+  Context,
+  AssistantMessage,
+  SwarmModelConfig,
+  TaskType,
+  FailoverConfig,
+  CostTrackingOptions,
+  MultiProviderSwarmConfig,
+  SwarmAgentConfig,
+} from './llm';
