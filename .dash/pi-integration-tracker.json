@@ -37,7 +37,8 @@
       "worktree": ".claude-worktrees/phase4-skills",
       "sessionKey": "agent:openai-codex-gpt-5-2-codex:subagent:e629390c-3082-44a7-bcc6-2f0d9d9d2486",
       "focus": "Agent Skills standard with auto-loading",
-      "status": "running",
+      "status": "completed",
+      "commit": "pending",
       "duration": "Weeks 11-12"
     }
   ],
