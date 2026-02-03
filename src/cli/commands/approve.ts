@@ -135,7 +135,7 @@ function createRespondCommand(): Command {
         const decision = options.approve ? 'approve' : 'deny';
         // For denial, justification is required
         if (decision === 'deny' && !options.justification) {
-          console.error('Justification is required for denial. Use --justification flag.');
+          logger.error('approve', 'Justification is required for denial. Use --justification flag.');
           process.exit(1);
         }
         const approver = {
@@ -178,7 +178,7 @@ function createApproveAllCommand(): Command {
           limit: parseInt(options.limit || '100', 10)
         });
         if (requests.length === 0) {
-          console.log('No matching pending requests found.');
+          logger.info('approve', 'No matching pending requests found.');
           return;
         }
         console.log(`Found ${requests.length} matching request(s):\n`);
@@ -189,7 +189,7 @@ function createApproveAllCommand(): Command {
           console.log('\n🔍 Dry run - no approvals were made.');
           return;
         }
-        console.log('\n⏳ Approving all...');
+        logger.info('approve', '\n⏳ Approving all...');
         let approved = 0;
         let skipped = 0;
         const approver = {
@@ -247,13 +247,13 @@ function createAuditCommand(): Command {
           riskLevel: options.risk as RiskLevel | undefined
         }).slice(0, parseInt(options.limit || '100', 10));
         if (logs.length === 0) {
-          console.log('No audit logs found matching criteria.');
+          logger.info('approve', 'No audit logs found matching criteria.');
           return;
         }
         if (options.format === 'json') {
           console.log(JSON.stringify(logs, null, 2));
         } else {
-          console.log('APPROVAL AUDIT TRAIL');
+          logger.info('approve', 'APPROVAL AUDIT TRAIL');
           console.log('═'.repeat(80));
           for (const log of logs) {
             console.log(`\nID: ${log.id}`);
@@ -338,7 +338,7 @@ function createEmergencyCommand(): Command {
         console.log(`Justification: ${options.justification}`);
         // Log warning
         console.log('\n⚠️  WARNING: Emergency override has been logged with enhanced audit trail.');
-        console.log('This action will be reviewed in the next security audit.');
+        logger.info('approve', 'This action will be reviewed in the next security audit.');
       } catch (error) {
         logger.error('Failed to execute emergency override', { error });
         process.exit(1);
@@ -358,7 +358,7 @@ function createMonitorCommand(): Command {
         if (options.status || (!options.start && !options.stop)) {
           const status = isMonitoring();
           const config = getEscalationConfig();
-          console.log('ESCALATION MONITOR STATUS');
+          logger.info('approve', 'ESCALATION MONITOR STATUS');
           console.log('═'.repeat(40));
           console.log(`Monitoring: ${status ? 'RUNNING' : 'STOPPED'}`);
           if (status) {
@@ -396,7 +396,7 @@ function createStatsCommand(): Command {
         if (options.format === 'json') {
           console.log(JSON.stringify(stats, null, 2));
         } else {
-          console.log('APPROVAL STATISTICS');
+          logger.info('approve', 'APPROVAL STATISTICS');
           console.log('═'.repeat(40));
           console.log(`Total Requests:  ${stats.total}`);
           console.log(`  Pending:   ${stats.pending}`);
@@ -405,13 +405,13 @@ function createStatsCommand(): Command {
           console.log(`  Expired:   ${stats.expired}`);
           console.log(`  Escalated: ${stats.escalated}`);
           console.log('');
-          console.log('By Risk Level:');
+          logger.info('approve', 'By Risk Level:');
           console.log(`  Critical: ${stats.byRisk.critical}`);
           console.log(`  High:     ${stats.byRisk.high}`);
           console.log(`  Medium:   ${stats.byRisk.medium}`);
           console.log(`  Low:      ${stats.byRisk.low}`);
           console.log('');
-          console.log('By Operation Type:');
+          logger.info('approve', 'By Operation Type:');
           console.log(`  File Write:      ${stats.byType.file_write}`);
           console.log(`  File Delete:     ${stats.byType.file_delete}`);
           console.log(`  API Call:        ${stats.byType.api_call}`);

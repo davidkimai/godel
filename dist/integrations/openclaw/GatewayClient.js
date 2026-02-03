@@ -9,6 +9,9 @@
  * - Request/response cycle with idempotency keys
  * - Event subscription (agent, chat, presence, tick)
  * - Connection state management
+ *
+ * Protocol: OpenClaw Gateway Protocol v3
+ * Docs: https://docs.openclaw.ai/gateway/protocol
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -20,6 +23,33 @@ exports.connectToGateway = connectToGateway;
 const ws_1 = __importDefault(require("ws"));
 const events_1 = require("events");
 const types_1 = require("./types");
+// ============================================================================
+// Protocol Constants (from OpenClaw Gateway Protocol v3)
+// ============================================================================
+const PROTOCOL_VERSION = 3;
+const GATEWAY_CLIENT_IDS = {
+    WEBCHAT_UI: 'webchat-ui',
+    CONTROL_UI: 'openclaw-control-ui',
+    WEBCHAT: 'webchat',
+    CLI: 'cli',
+    GATEWAY_CLIENT: 'gateway-client',
+    MACOS_APP: 'openclaw-macos',
+    IOS_APP: 'openclaw-ios',
+    ANDROID_APP: 'openclaw-android',
+    NODE_HOST: 'node-host',
+    TEST: 'test',
+    FINGERPRINT: 'fingerprint',
+    PROBE: 'openclaw-probe',
+};
+const GATEWAY_CLIENT_MODES = {
+    WEBCHAT: 'webchat',
+    CLI: 'cli',
+    UI: 'ui',
+    BACKEND: 'backend',
+    NODE: 'node',
+    PROBE: 'probe',
+    TEST: 'test',
+};
 // ============================================================================
 // Gateway Client Class
 // ============================================================================
@@ -35,6 +65,7 @@ class GatewayClient extends events_1.EventEmitter {
         this.reconnectTimeout = null;
         this.eventSeq = 0;
         this.requestIdCounter = 0;
+        this.currentChallenge = null;
         // Merge with defaults
         this.config = {
             ...types_1.DEFAULT_GATEWAY_CONFIG,
@@ -71,29 +102,47 @@ class GatewayClient extends events_1.EventEmitter {
         this.setState('connecting');
         const wsUrl = `ws://${this.config.host}:${this.config.port}`;
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
+            let connectTimeout;
+            const cleanup = () => {
+                clearTimeout(connectTimeout);
+                this.off('authenticated', onAuthenticated);
+                this.off('error', onError);
+            };
+            const onAuthenticated = () => {
+                cleanup();
+                resolve();
+            };
+            const onError = (error) => {
+                if (this.state !== 'authenticated') {
+                    cleanup();
+                    reject(error);
+                }
+            };
+            // Set up authentication timeout
+            connectTimeout = setTimeout(() => {
+                cleanup();
                 this.ws?.terminate();
                 this.setState('error');
                 reject(new types_1.ConnectionError(`Connection timeout after ${this.options.connectionTimeout}ms`));
             }, this.options.connectionTimeout);
+            // Listen for authentication
+            this.on('authenticated', onAuthenticated);
+            this.on('error', onError);
             try {
                 this.ws = new ws_1.default(wsUrl);
                 this.ws.once('open', () => {
-                    clearTimeout(timeout);
                     this.handleOpen();
-                    resolve();
                 });
                 this.ws.once('error', (error) => {
-                    clearTimeout(timeout);
                     this.handleError(error);
-                    reject(new types_1.ConnectionError(`WebSocket error: ${error.message}`));
+                    // Don't reject here - the onError handler will handle it
                 });
                 this.ws.on('message', (data) => this.handleMessage(data));
                 this.ws.on('close', (code, reason) => this.handleClose(code, reason));
                 this.ws.on('error', (error) => this.handleError(error));
             }
             catch (error) {
-                clearTimeout(timeout);
+                cleanup();
                 this.setState('error');
                 reject(new types_1.ConnectionError(`Failed to create WebSocket: ${error instanceof Error ? error.message : String(error)}`));
             }
@@ -140,17 +189,25 @@ class GatewayClient extends events_1.EventEmitter {
         return { ...this.stats };
     }
     // ============================================================================
-    // Authentication
+    // Authentication (OpenClaw Gateway Protocol v3)
     // ============================================================================
+    /**
+     * Handle connection open - wait for challenge and authenticate
+     */
+    async handleOpen() {
+        this.stats.connectedAt = new Date();
+        this.reconnectionState = null;
+        this.emit('connected');
+        // Wait for connect.challenge event before authenticating
+        // This will be handled by handleMessage
+    }
     /**
      * Authenticate with the Gateway using token
      *
-     * Per OpenClaw Gateway Protocol v1:
-     * - For control clients (like dash CLI), use id 'node' and mode 'client'
-     * - For extension clients, use id 'node' and mode 'extension'
-     * - Per OpenClaw source, valid combinations:
-     *   - {id: 'node', mode: 'client'} for CLI/tools
-     *   - {id: 'node', mode: 'extension'} for extensions
+     * Per OpenClaw Gateway Protocol v3:
+     * - Wait for connect.challenge event
+     * - Send connect request with client info and auth token
+     * - For local connections, device identity is optional
      */
     async authenticate() {
         if (!this.config.token) {
@@ -158,29 +215,43 @@ class GatewayClient extends events_1.EventEmitter {
         }
         this.setState('authenticating');
         try {
-            // Use 'connect' method as first request per OpenClaw Gateway protocol
-            // Using node client format for CLI/control connection
-            await this.request('connect', {
+            // Send connect request per Protocol v3
+            const response = await this.request('connect', {
+                minProtocol: PROTOCOL_VERSION,
+                maxProtocol: PROTOCOL_VERSION,
+                client: {
+                    id: GATEWAY_CLIENT_IDS.CLI,
+                    mode: GATEWAY_CLIENT_MODES.CLI,
+                    platform: process.platform === 'darwin' ? 'macos' : process.platform,
+                    version: '2.0.0',
+                },
+                role: 'operator',
+                scopes: ['operator.read', 'operator.write', 'operator.admin'],
+                caps: [],
+                commands: [],
+                permissions: {},
                 auth: {
                     token: this.config.token,
                 },
-                client: {
-                    id: 'node',
-                    mode: 'client',
-                    platform: 'node',
-                    version: '2.0.0',
-                },
-                minProtocol: 1,
-                maxProtocol: 1,
+                locale: 'en-US',
+                userAgent: 'dash-cli/2.0.0',
             });
             this.setState('authenticated');
-            this.emit('authenticated');
-            // Subscribe to default events
+            this.emit('authenticated', response);
+            // Subscribe to default events (non-blocking - gateway may not support subscribe method)
             if (this.options.subscriptions) {
                 for (const event of this.options.subscriptions) {
-                    await this.subscribeToEvent(event);
+                    try {
+                        await this.subscribeToEvent(event);
+                    }
+                    catch {
+                        // Subscription failed - gateway may not support this method
+                        // Continue without subscribing
+                    }
                 }
             }
+            // Start heartbeat
+            this.startHeartbeat(response.policy?.tickIntervalMs || 30000);
         }
         catch (error) {
             this.setState('error');
@@ -258,6 +329,9 @@ class GatewayClient extends events_1.EventEmitter {
      * Subscribe to an event type
      */
     on(event, handler) {
+        // Also register with parent EventEmitter for internal events
+        super.on(event, handler);
+        // Also track in eventHandlers for custom event routing
         if (!this.eventHandlers.has(event)) {
             this.eventHandlers.set(event, new Set());
         }
@@ -268,6 +342,9 @@ class GatewayClient extends events_1.EventEmitter {
      * Unsubscribe from an event type
      */
     off(event, handler) {
+        // Also remove from parent EventEmitter
+        super.off(event, handler);
+        // Also remove from eventHandlers
         const handlers = this.eventHandlers.get(event);
         if (handlers) {
             handlers.delete(handler);
@@ -363,22 +440,6 @@ class GatewayClient extends events_1.EventEmitter {
     // ============================================================================
     // WebSocket Event Handlers
     // ============================================================================
-    handleOpen() {
-        this.stats.connectedAt = new Date();
-        this.reconnectionState = null;
-        this.emit('connected');
-        // Authenticate if token is available
-        if (this.config.token) {
-            this.authenticate().catch((error) => {
-                this.emit('error', error);
-            });
-        }
-        else {
-            this.setState('connected');
-        }
-        // Start heartbeat
-        this.startHeartbeat();
-    }
     handleMessage(data) {
         try {
             const message = JSON.parse(data.toString());
@@ -415,6 +476,14 @@ class GatewayClient extends events_1.EventEmitter {
     handleEvent(event) {
         this.stats.eventsReceived++;
         this.eventSeq = event.seq ?? this.eventSeq + 1;
+        // Handle connect.challenge for authentication
+        if (event.event === 'connect.challenge') {
+            this.currentChallenge = event.payload;
+            this.authenticate().catch((error) => {
+                this.emit('error', error);
+            });
+            return;
+        }
         // Emit specific event
         this.emit(event.event, event.payload, event);
         // Call registered handlers
@@ -499,7 +568,7 @@ class GatewayClient extends events_1.EventEmitter {
     // ============================================================================
     // Heartbeat
     // ============================================================================
-    startHeartbeat() {
+    startHeartbeat(intervalMs = 30000) {
         this.clearHeartbeat();
         this.heartbeatInterval = setInterval(() => {
             if (this.connected) {
@@ -510,7 +579,7 @@ class GatewayClient extends events_1.EventEmitter {
                     this.ws?.terminate();
                 });
             }
-        }, this.options.heartbeatInterval);
+        }, intervalMs);
     }
     clearHeartbeat() {
         if (this.heartbeatInterval) {

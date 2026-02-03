@@ -9,6 +9,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -74,7 +75,7 @@ export function registerInitCommand(program: Command): void {
         if (options.budget) {
           const budget = parseFloat(options.budget);
           if (isNaN(budget) || budget < 0 || budget > 100000) {
-            console.error('❌ Invalid budget. Must be between 0 and 100000 USD.');
+            logger.error('init', '❌ Invalid budget. Must be between 0 and 100000 USD.');
             process.exit(1);
           }
         }
@@ -125,8 +126,8 @@ export function registerInitCommand(program: Command): void {
         }
 
         // Success message
-        console.log('\n🎉 Dash initialized successfully!\n');
-        console.log('Configuration:');
+        logger.info('init', '\n🎉 Dash initialized successfully!\n');
+        logger.info('init', 'Configuration:');
         console.log(`  API URL:    ${config.apiUrl}`);
         console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
         console.log(`  Model:      ${config.defaultModel}`);
@@ -135,7 +136,7 @@ export function registerInitCommand(program: Command): void {
           console.log(`  Budget:     $${config.budgetLimit} USD`);
         }
         console.log(`  Log Level:  ${config.logLevel}`);
-        console.log('\nNext steps:');
+        logger.info('init', '\nNext steps:');
         console.log('  1. Set DASH_API_KEY environment variable:');
         console.log(`     export DASH_API_KEY=${config.apiKey}`);
         console.log('  2. Start the Dash API server:');
@@ -158,7 +159,7 @@ export function registerInitCommand(program: Command): void {
         const config = loadConfig();
         
         if (!config) {
-          console.error('❌ Dash is not initialized.');
+          logger.error('init', '❌ Dash is not initialized.');
           console.log('   Run "dash init" first.\n');
           process.exit(1);
         }

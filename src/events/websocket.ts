@@ -7,6 +7,7 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
+import { logger } from '../utils';
 // EventBus import will be added when EventBus module is implemented
 // import { getEventBus } from '../events/EventBus';
 
@@ -59,7 +60,7 @@ export class WebSocketManager extends EventEmitter {
     if (this.wss) {
       this.wss.on('connection', this.handleConnection.bind(this));
       this.wss.on('error', (error) => {
-        console.error('WebSocket server error:', error);
+        logger.error('events/websocket', 'WebSocket server error', { error: String(error) });
         this.emit('error', error);
       });
     }
@@ -70,7 +71,7 @@ export class WebSocketManager extends EventEmitter {
     // Connect to event bus for broadcasting
     this.connectToEventBus();
 
-    console.log(`WebSocket server started on port ${this.serverPort}`);
+    logger.info('events/websocket', 'WebSocket server started', { port: this.serverPort });
     this.emit('started', { port: this.serverPort });
   }
 
@@ -119,7 +120,7 @@ export class WebSocketManager extends EventEmitter {
     ws.on('message', (data: Buffer) => this.handleMessage(clientId, data));
     ws.on('close', () => this.handleDisconnect(clientId));
     ws.on('error', (error) => {
-      console.error(`WebSocket client ${clientId} error:`, error);
+      logger.error('events/websocket', 'WebSocket client error', { clientId, error: String(error) });
     });
 
     // Emit connection event
@@ -128,7 +129,7 @@ export class WebSocketManager extends EventEmitter {
       clientCount: this.clients.size 
     });
 
-    console.log(`Client ${clientId} connected (${this.clients.size} total)`);
+    logger.info('events/websocket', 'Client connected', { clientId, totalClients: this.clients.size });
   }
 
   /**
@@ -152,10 +153,10 @@ export class WebSocketManager extends EventEmitter {
           this.sendToClient(clientId, 'pong', { timestamp: Date.now() });
           break;
         default:
-          console.log(`Unknown message type from ${clientId}:`, message.type);
+          logger.warn('events/websocket', 'Unknown message type', { clientId, type: message.type });
       }
     } catch (error) {
-      console.error(`Error handling message from ${clientId}:`, error);
+      logger.error('events/websocket', 'Error handling message', { clientId, error: String(error) });
     }
   }
 
@@ -203,7 +204,7 @@ export class WebSocketManager extends EventEmitter {
         clientCount: this.clients.size,
         duration: Date.now() - client.connectedAt.getTime()
       });
-      console.log(`Client ${clientId} disconnected (${this.clients.size} remaining)`);
+      logger.info('events/websocket', 'Client disconnected', { clientId, remainingClients: this.clients.size });
     }
   }
 
@@ -217,7 +218,7 @@ export class WebSocketManager extends EventEmitter {
           client.ws.terminate();
           this.clients.delete(clientId);
           this.emit('client_timed_out', { clientId });
-          console.log(`Client ${clientId} timed out`);
+          logger.warn('events/websocket', 'Client timed out', { clientId });
         } else {
           client.isAlive = false;
           client.ws.ping();
@@ -238,9 +239,9 @@ export class WebSocketManager extends EventEmitter {
     //   });
     //   console.log('Connected to event bus for automatic broadcasting');
     // } catch (error) {
-    //   console.warn('Could not connect to event bus, manual broadcasting required');
+    //   logger.warn('events/websocket', 'Could not connect to event bus', { error: String(error) });
     // }
-    console.log('Event bus integration pending module implementation');
+    logger.info('events/websocket', 'Event bus integration pending module implementation');
   }
 
   /**
@@ -363,7 +364,7 @@ export class WebSocketManager extends EventEmitter {
       this.wss = null;
     }
 
-    console.log('WebSocket server stopped');
+    logger.info('events/websocket', 'WebSocket server stopped');
     this.emit('stopped');
   }
 }

@@ -10,6 +10,7 @@
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { logger } from '../../utils/logger';
+import { GatewayClient } from './GatewayClient';
 
 // ============================================================================
 // Types - Based on OPENCLAW_INTEGRATION_SPEC.md Section 4.2
@@ -103,49 +104,19 @@ export interface SessionsHistoryResponse {
 }
 
 // ============================================================================
-// Gateway Protocol Types
-// ============================================================================
-
-interface Request {
-  type: 'req';
-  id: string;
-  method: string;
-  params: Record<string, unknown> | undefined;
-}
-
-interface Response {
-  type: 'res';
-  id: string;
-  ok: boolean;
-  payload?: unknown;
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-interface Event {
-  type: 'event';
-  event: string;
-  payload: unknown;
-  seq?: number;
-  stateVersion?: number;
-}
-
-interface PendingRequest {
-  resolve: (value: unknown) => void;
-  reject: (error: Error) => void;
-  timeout: NodeJS.Timeout;
-}
-
-// ============================================================================
 // Session Manager
 // ============================================================================
 
 export class SessionManager extends EventEmitter {
   private ws: WebSocket | null = null;
   private config: GatewayConfig;
-  private pendingRequests: Map<string, PendingRequest> = new Map();
+  private gatewayClient: GatewayClient | null = null;
+  private useGatewayClient: boolean;
+  private pendingRequests = new Map<string, {
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+    timeout: NodeJS.Timeout;
+  }>();
   private requestIdCounter = 0;
   private reconnectAttempts = 0;
   private isConnecting = false;
@@ -162,8 +133,9 @@ export class SessionManager extends EventEmitter {
     runId?: string;
   }> = new Map();
 
-  constructor(config?: Partial<GatewayConfig>) {
+  constructor(config?: Partial<GatewayConfig>, gatewayClient?: GatewayClient) {
     super();
+    
     this.config = {
       host: config?.host || process.env['OPENCLAW_GATEWAY_HOST'] || '127.0.0.1',
       port: config?.port || parseInt(process.env['OPENCLAW_GATEWAY_PORT'] || '18789', 10),
@@ -171,6 +143,52 @@ export class SessionManager extends EventEmitter {
       reconnectDelay: config?.reconnectDelay || 1000,
       maxRetries: config?.maxRetries || 10,
     };
+
+    // If a GatewayClient is provided, use it instead of creating our own connection
+    if (gatewayClient) {
+      this.gatewayClient = gatewayClient;
+      this.useGatewayClient = true;
+      this.setupGatewayClientHandlers();
+    } else {
+      this.useGatewayClient = false;
+    }
+  }
+
+  private setupGatewayClientHandlers(): void {
+    if (!this.gatewayClient) return;
+
+    // Forward events from GatewayClient
+    this.gatewayClient.on('event', (event: unknown) => {
+      const e = event as { event?: string; payload?: unknown };
+      if (e.event) {
+        this.emit('event', e);
+        this.emit(e.event, e.payload);
+      }
+    });
+
+    this.gatewayClient.on('session.spawned', (data: unknown) => {
+      this.emit('session.spawned', data);
+    });
+
+    this.gatewayClient.on('session.sent', (data: unknown) => {
+      this.emit('session.sent', data);
+    });
+
+    this.gatewayClient.on('session.killed', (data: unknown) => {
+      this.emit('session.killed', data);
+    });
+
+    this.gatewayClient.on('connected', () => {
+      this.emit('connected');
+    });
+
+    this.gatewayClient.on('disconnected', (data: unknown) => {
+      this.emit('disconnected', data);
+    });
+
+    this.gatewayClient.on('error', (error: Error) => {
+      this.emit('error', { message: error.message });
+    });
   }
 
   // ============================================================================
@@ -181,6 +199,15 @@ export class SessionManager extends EventEmitter {
    * Connect to the OpenClaw Gateway
    */
   async connect(): Promise<void> {
+    // If using GatewayClient, just ensure it's connected
+    if (this.useGatewayClient && this.gatewayClient) {
+      if (!this.gatewayClient.connected) {
+        await this.gatewayClient.connect();
+      }
+      return;
+    }
+
+    // Otherwise, create our own WebSocket connection
     if (this.ws?.readyState === WebSocket.OPEN) {
       logger.debug('[SessionManager] Already connected');
       return;
@@ -223,14 +250,14 @@ export class SessionManager extends EventEmitter {
           clearTimeout(connectionTimeout);
           this.isConnecting = false;
           logger.error('[SessionManager] WebSocket error', { message: error.message });
-          this.emit('error', { message: error.message, code: (error as Error & { code?: string }).code } as Record<string, unknown>);
+          this.emit('error', { message: error.message, code: (error as Error & { code?: string }).code });
           reject(error);
         });
 
         this.ws.on('close', (code: number, reason: Buffer) => {
           this.isConnecting = false;
           logger.warn(`[SessionManager] Connection closed: ${code} ${reason.toString()}`);
-          this.emit('disconnected', { code, reason: reason.toString() } as Record<string, unknown>);
+          this.emit('disconnected', { code, reason: reason.toString() });
           
           if (!this.isShuttingDown) {
             this.scheduleReconnect();
@@ -248,6 +275,11 @@ export class SessionManager extends EventEmitter {
    */
   async disconnect(): Promise<void> {
     this.isShuttingDown = true;
+
+    // If using GatewayClient, we don't disconnect it (it's shared)
+    if (this.useGatewayClient) {
+      return;
+    }
     
     // Reject all pending requests
     for (const [id, pending] of this.pendingRequests) {
@@ -269,10 +301,15 @@ export class SessionManager extends EventEmitter {
    * Check if connected to Gateway
    */
   isConnected(): boolean {
+    if (this.useGatewayClient && this.gatewayClient) {
+      return this.gatewayClient.connected;
+    }
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
   private scheduleReconnect(): void {
+    if (this.useGatewayClient) return; // Don't reconnect if using GatewayClient
+
     if (this.reconnectAttempts >= this.config.maxRetries) {
       logger.error('[SessionManager] Max reconnection attempts reached');
       this.emit('maxRetriesReached');
@@ -292,35 +329,35 @@ export class SessionManager extends EventEmitter {
   }
 
   // ============================================================================
-  // Message Handling
+  // Message Handling (only used when not using GatewayClient)
   // ============================================================================
 
   private handleMessage(data: string): void {
     try {
-      const message = JSON.parse(data) as Response | Event;
+      const message = JSON.parse(data) as { type: string; id?: string; ok?: boolean; payload?: unknown; error?: { code: string; message: string } };
 
       if (message.type === 'res') {
-        this.handleResponse(message as Response);
+        this.handleResponse(message);
       } else if (message.type === 'event') {
-        this.handleEvent(message as Event);
+        this.handleEvent(message as unknown as { event: string; payload: unknown });
       }
     } catch (error) {
       logger.error('[SessionManager] Failed to parse message', { error: (error as Error).message });
     }
   }
 
-  private handleResponse(response: Response): void {
-    const pending = this.pendingRequests.get(response.id);
+  private handleResponse(response: { id?: string; ok?: boolean; payload?: unknown; error?: { code: string; message: string } }): void {
+    const pending = this.pendingRequests.get(response.id || '');
     if (!pending) {
       logger.warn(`[SessionManager] Received response for unknown request: ${response.id}`);
       return;
     }
 
     clearTimeout(pending.timeout);
-    this.pendingRequests.delete(response.id);
+    this.pendingRequests.delete(response.id || '');
 
     if (response.ok) {
-      pending.resolve(response.payload as Record<string, unknown>);
+      pending.resolve(response.payload);
     } else {
       const error = new Error(response.error?.message || 'Unknown error');
       (error as Error & { code: string }).code = response.error?.code || 'UNKNOWN_ERROR';
@@ -328,12 +365,12 @@ export class SessionManager extends EventEmitter {
     }
   }
 
-  private handleEvent(event: Event): void {
+  private handleEvent(event: { event: string; payload: unknown }): void {
     logger.debug(`[SessionManager] Event received: ${event.event}`);
     
     // Emit for general listeners
-    this.emit('event', event as unknown as Record<string, unknown>);
-    this.emit(event.event, event.payload as unknown as Record<string, unknown>);
+    this.emit('event', event);
+    this.emit(event.event, event.payload);
 
     // Call registered handlers
     const handlers = this.eventHandlers.get(event.event);
@@ -351,7 +388,7 @@ export class SessionManager extends EventEmitter {
     this.updateSessionFromEvent(event);
   }
 
-  private updateSessionFromEvent(event: Event): void {
+  private updateSessionFromEvent(event: { event: string; payload: unknown }): void {
     if (event.event === 'agent' && event.payload) {
       const payload = event.payload as { sessionKey?: string; status?: string; runId?: string };
       if (payload.sessionKey) {
@@ -378,12 +415,18 @@ export class SessionManager extends EventEmitter {
     params: Record<string, unknown> | undefined,
     timeoutMs = 30000
   ): Promise<T> {
+    // If using GatewayClient, delegate to it
+    if (this.useGatewayClient && this.gatewayClient) {
+      return this.gatewayClient.request<T>(method, params || {});
+    }
+
+    // Otherwise, use our own WebSocket
     if (!this.isConnected()) {
       throw new Error('Not connected to Gateway');
     }
 
     const id = `${Date.now()}-${++this.requestIdCounter}`;
-    const request: Request = { type: 'req', id, method, params };
+    const request = { type: 'req', id, method, params };
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -641,9 +684,9 @@ export class SessionManager extends EventEmitter {
 
 let globalSessionManager: SessionManager | null = null;
 
-export function getGlobalSessionManager(config?: Partial<GatewayConfig>): SessionManager {
+export function getGlobalSessionManager(config?: Partial<GatewayConfig>, gatewayClient?: GatewayClient): SessionManager {
   if (!globalSessionManager) {
-    globalSessionManager = new SessionManager(config);
+    globalSessionManager = new SessionManager(config, gatewayClient);
   }
   return globalSessionManager;
 }

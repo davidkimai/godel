@@ -79,6 +79,14 @@ export function registerCommands(program: Command): void {
     // Command not available, skip
   }
 
+  // Register skills command immediately (Vercel /agent skills compatibility)
+  try {
+    const { registerSkillsCommand } = require('./commands/skills');
+    registerSkillsCommand(program);
+  } catch {
+    // Command not available, skip
+  }
+
   program
     .command('events')
     .description('Stream and list events')

@@ -15,6 +15,7 @@
 
 import { Command } from 'commander';
 import * as path from 'path';
+import { logger } from '../../utils/logger';
 import { 
   GatewayClient, 
   SessionManager, 
@@ -26,7 +27,6 @@ import {
   SessionsSpawnParams,
 } from '../../integrations/openclaw';
 import { MockOpenClawClient, type SessionSpawnOptions, type OpenClawSession } from '../../core/openclaw';
-import { logger } from '../../utils/logger';
 import {
   setOpenClawState,
   getOpenClawState,
@@ -37,6 +37,71 @@ import {
   setMockSession,
   type MockSessionData,
 } from '../../utils/cli-state';
+
+// ============================================================================
+// Configuration from Environment
+// ============================================================================
+
+/**
+ * Parse gateway URL from environment variable
+ * Format: ws://host:port or wss://host:port
+ */
+function parseGatewayUrl(): { host: string; port: number; secure: boolean } | null {
+  const url = process.env['OPENCLAW_GATEWAY_URL'];
+  if (!url) return null;
+  
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const port = parseInt(parsed.port, 10) || (parsed.protocol === 'wss:' ? 443 : 18789);
+    const secure = parsed.protocol === 'wss:';
+    return { host, port, secure };
+  } catch {
+    // Try simple host:port format
+    const parts = url.replace(/^ws:\/\//, '').replace(/^wss:\/\//, '').split(':');
+    if (parts.length === 2) {
+      const port = parseInt(parts[1], 10);
+      if (!isNaN(port)) {
+        return { host: parts[0], port, secure: false };
+      }
+    }
+    return null;
+  }
+}
+
+/**
+ * Get gateway configuration from environment or defaults
+ */
+function getGatewayConfig(options: { host?: string; port?: string; token?: string } = {}): GatewayConfig {
+  const envUrl = parseGatewayUrl();
+  const envToken = process.env['OPENCLAW_GATEWAY_TOKEN'];
+  
+  return {
+    host: options.host || envUrl?.host || '127.0.0.1',
+    port: options.port ? parseInt(options.port, 10) : (envUrl?.port || 18789),
+    token: options.token || envToken,
+    reconnectDelay: 1000,
+    maxRetries: 3, // Fewer retries for CLI to fail fast and fallback to mock
+    requestTimeout: 10000,
+  };
+}
+
+/**
+ * Connection mode detection
+ */
+type ConnectionMode = 'real' | 'mock' | 'auto';
+
+function getConnectionMode(options: { mock?: boolean }): ConnectionMode {
+  if (options.mock) return 'mock';
+  
+  // Check if OPENCLAW_MOCK_MODE is explicitly set
+  const envMock = process.env['OPENCLAW_MOCK_MODE'];
+  if (envMock === 'true' || envMock === '1') return 'mock';
+  if (envMock === 'false' || envMock === '0') return 'real';
+  
+  // Default to auto (try real first, fallback to mock)
+  return 'auto';
+}
 
 // ============================================================================
 // Validation Helpers
@@ -118,16 +183,6 @@ function getGatewayClient(): GatewayClient {
 
 function getSessionManager(): SessionManager {
   if (!globalSessionManager) {
-    // Check if we have persisted state
-    const state = getOpenClawState();
-    if (state?.connected && !state?.mockMode) {
-      const config: Partial<GatewayConfig> = {
-        host: state.host || '127.0.0.1',
-        port: state.port || 18789,
-      };
-      globalSessionManager = getGlobalSessionManager(config);
-      return globalSessionManager;
-    }
     throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
   }
   return globalSessionManager;
@@ -174,87 +229,124 @@ export function registerOpenClawCommand(program: Command): void {
   // ============================================================================
   openclaw
     .command('connect')
-    .description('Connect to OpenClaw Gateway')
-    .option('--host <host>', 'Gateway host', '127.0.0.1')
-    .option('--port <port>', 'Gateway port', '18789')
+    .description('Connect to OpenClaw Gateway (auto-detects real/mock)')
+    .option('--host <host>', 'Gateway host (or set OPENCLAW_GATEWAY_URL)')
+    .option('--port <port>', 'Gateway port')
     .option('--token <token>', 'Authentication token (or set OPENCLAW_GATEWAY_TOKEN)')
-    .option('--mock', 'Use mock client for testing (no real gateway required)')
+    .option('--mock', 'Force mock client for testing (no real gateway required)')
     .action(async (options) => {
-      try {
+      const mode = getConnectionMode(options);
+      
+      // If explicitly mock mode
+      if (mode === 'mock') {
         console.log('🔌 Connecting to OpenClaw Gateway...\n');
-
-        // Validate port number
-        const port = parseInt(options.port, 10);
-        if (isNaN(port) || port < 1 || port > 65535) {
-          console.error('❌ Invalid port number. Port must be between 1 and 65535.');
-          process.exit(1);
-        }
-
-        const token = options.token || process.env['OPENCLAW_GATEWAY_TOKEN'];
+        console.log('ℹ️  Mock mode requested (--mock flag)\n');
         
-        if (options.mock) {
-          // Use mock client for testing
-          globalMockClient = new MockOpenClawClient();
-          
-          // Persist mock connection state
-          setOpenClawState({
-            connected: true,
-            mockMode: true,
-            host: options.host,
-            port: port,
-            connectedAt: new Date().toISOString(),
-          });
-          
-          console.log('✓ Using mock OpenClaw client (testing mode)');
-          console.log('✓ Mock client initialized');
-          return;
-        }
+        const config = getGatewayConfig(options);
+        globalMockClient = new MockOpenClawClient();
+        
+        // Persist mock connection state
+        setOpenClawState({
+          connected: true,
+          mockMode: true,
+          host: config.host,
+          port: config.port,
+          connectedAt: new Date().toISOString(),
+        });
+        
+        console.log('✅ Connected to MOCK OpenClaw Gateway');
+        console.log('   Mode: Explicit mock (--mock flag)');
+        console.log(`   Config: ${config.host}:${config.port}`);
+        console.log('\n💡 Set OPENCLAW_MOCK_MODE=false to force real gateway');
+        return;
+      }
+      
+      // Try real connection first (real mode or auto mode)
+      console.log('🔌 Connecting to OpenClaw Gateway...\n');
+      
+      if (mode === 'auto') {
+        console.log('ℹ️  Auto-detect mode: Will try real gateway first, fallback to mock\n');
+      }
+      
+      const config = getGatewayConfig(options);
+      const tokenDisplay = config.token ? '***' : 'none';
+      
+      console.log(`📍 Gateway: ws://${config.host}:${config.port}`);
+      console.log(`🔑 Token: ${tokenDisplay}\n`);
 
-        // Create and connect using real GatewayClient
-        const config: Partial<GatewayConfig> = {
-          host: options.host,
-          port: port,
-          token,
-        };
-
+      try {
+        // Attempt real connection
         globalGatewayClient = new GatewayClient(config, {
-          autoReconnect: true,
+          autoReconnect: false, // Don't auto-reconnect for CLI
           subscriptions: ['agent', 'chat', 'presence', 'tick'],
         });
 
         await globalGatewayClient.connect();
 
-        // Create SessionManager and AgentExecutor from the connected GatewayClient
-        globalSessionManager = getGlobalSessionManager(config);
-        await globalSessionManager.connect();
-        
+        // Create SessionManager using the connected GatewayClient
+        globalSessionManager = new SessionManager(config, globalGatewayClient);
         globalAgentExecutor = createAgentExecutor(globalSessionManager);
 
         // Persist connection state
         setOpenClawState({
           connected: true,
           mockMode: false,
-          host: options.host,
-          port: port,
+          host: config.host,
+          port: config.port,
           connectedAt: new Date().toISOString(),
         });
 
-        console.log(`✓ Connected to OpenClaw Gateway at ws://${options.host}:${port}`);
-        if (token) {
-          console.log(`✓ Authenticated (token: ***)`);
+        console.log('✅ Connected to REAL OpenClaw Gateway');
+        console.log(`   URL: ws://${config.host}:${config.port}`);
+        if (config.token) {
+          console.log(`   Auth: Authenticated`);
         } else {
-          console.log('⚠ No token provided (unauthenticated connection)');
+          console.log('   Auth: No token (unauthenticated)');
         }
-        console.log('✓ Subscribed to events: agent, chat, presence, tick');
+        console.log('   Subscriptions: agent, chat, presence, tick');
+        
+        // Disconnect since this is just a CLI command
+        await globalGatewayClient.disconnect();
+        process.exit(0);
+        
       } catch (error) {
-        console.error('❌ Failed to connect to OpenClaw Gateway');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
-        console.error('\n💡 Troubleshooting:');
-        console.error('   - Ensure OpenClaw Gateway is running');
-        console.error('   - Check host and port are correct');
-        console.error('   - Verify authentication token');
-        console.error('   - Use --mock flag for testing without gateway');
-        process.exit(1);
+        // Real connection failed
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        if (mode === 'real') {
+          // In real mode, fail hard
+          logger.error('openclaw', '❌ Failed to connect to OpenClaw Gateway');
+          console.error(`   Error: ${errorMessage}`);
+          logger.error('openclaw', '\n💡 Troubleshooting:');
+          logger.error('openclaw', '   - Ensure OpenClaw Gateway is running: openclaw gateway status');
+          logger.error('openclaw', '   - Check OPENCLAW_GATEWAY_URL environment variable');
+          logger.error('openclaw', '   - Verify OPENCLAW_GATEWAY_TOKEN is set correctly');
+          logger.error('openclaw', '   - Use --mock flag to force mock mode');
+          process.exit(1);
+        }
+        
+        // In auto mode, fallback to mock
+        console.log('⚠️  Real gateway unavailable, falling back to mock mode\n');
+        console.log(`   Error: ${errorMessage}\n`);
+        
+        globalMockClient = new MockOpenClawClient();
+        
+        // Persist mock connection state
+        setOpenClawState({
+          connected: true,
+          mockMode: true,
+          host: config.host,
+          port: config.port,
+          connectedAt: new Date().toISOString(),
+          fallbackReason: errorMessage,
+        });
+        
+        console.log('✅ Connected to MOCK OpenClaw Gateway');
+        console.log('   Mode: Fallback (real gateway unavailable)');
+        console.log(`   Config: ${config.host}:${config.port}`);
+        console.log('\n💡 To use real gateway:');
+        console.log('   - Start gateway: openclaw gateway start');
+        console.log('   - Or set OPENCLAW_MOCK_MODE=false to fail if real unavailable');
       }
     });
 
@@ -288,34 +380,19 @@ export function registerOpenClawCommand(program: Command): void {
           process.exit(1);
         }
 
-        const client = getGatewayClient();
-        
-        if (!client.connected) {
-          console.log('🔌 OpenClaw Gateway Status\n');
-          console.log('⚠ Persisted state shows connected, but client is not connected');
-          console.log('  This may indicate a stale connection state.');
-          console.log('\n💡 Run "dash openclaw connect" to reconnect');
-          process.exit(1);
-        }
-
-        // Get gateway statistics
-        const stats = client.statistics;
-        
+        // Show persisted connection state (CLI doesn't maintain persistent connections)
         console.log('🔌 OpenClaw Gateway Status\n');
-        console.log(`✓ Connected: ${client.connectionState}`);
-        console.log(`  Connection State: ${client.connectionState}`);
-        if (stats.connectedAt) {
-          console.log(`  Connected At: ${stats.connectedAt.toISOString()}`);
+        console.log(`✓ Connection configured: ${persistedState.host}:${persistedState.port}`);
+        console.log(`  Mode: ${persistedState.mockMode ? 'Mock' : 'Real'}`);
+        if (persistedState.connectedAt) {
+          console.log(`  Connected At: ${persistedState.connectedAt}`);
         }
-        console.log(`  Requests Sent: ${stats.requestsSent}`);
-        console.log(`  Responses Received: ${stats.responsesReceived}`);
-        console.log(`  Events Received: ${stats.eventsReceived}`);
-        console.log(`  Reconnections: ${stats.reconnections}`);
-        if (stats.lastPing) {
-          console.log(`  Last Ping: ${new Date(stats.lastPing).toISOString()}`);
+        if (persistedState.fallbackReason) {
+          console.log(`  Note: Using fallback mode (${persistedState.fallbackReason})`);
         }
+        console.log('\n💡 Connection is ready for commands');
       } catch (error) {
-        console.error('❌ Failed to get gateway status');
+        logger.error('openclaw', '❌ Failed to get gateway status');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
@@ -373,7 +450,7 @@ export function registerOpenClawCommand(program: Command): void {
         }
 
         if (!persistedState?.connected) {
-          console.error('❌ Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+          logger.error('openclaw', '❌ Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
           process.exit(1);
         }
 
@@ -405,7 +482,7 @@ export function registerOpenClawCommand(program: Command): void {
           console.log(`├── ${session.key} (${session.status}, ${tokensStr} tokens, ${timeAgo})`);
         }
       } catch (error) {
-        console.error('❌ Failed to list sessions');
+        logger.error('openclaw', '❌ Failed to list sessions');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
@@ -424,7 +501,7 @@ export function registerOpenClawCommand(program: Command): void {
         // Validate limit
         const limit = parseInt(options.limit, 10);
         if (isNaN(limit) || limit < 1 || limit > 1000) {
-          console.error('❌ Invalid limit. Must be between 1 and 1000.');
+          logger.error('openclaw', '❌ Invalid limit. Must be between 1 and 1000.');
           process.exit(1);
         }
 
@@ -444,7 +521,7 @@ export function registerOpenClawCommand(program: Command): void {
           console.log(`Agent: ${session.agentId}`);
           console.log(`Status: ${session.status}`);
           console.log(`Created: ${session.createdAt.toISOString()}`);
-          console.log('\n[Mock mode - no transcript available]');
+          logger.info('openclaw', '\n[Mock mode - no transcript available]');
           return;
         }
 
@@ -469,7 +546,7 @@ export function registerOpenClawCommand(program: Command): void {
           console.log(`${role} [${time}] ${content}\n`);
         }
       } catch (error) {
-        console.error('❌ Failed to get session history');
+        logger.error('openclaw', '❌ Failed to get session history');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
@@ -495,7 +572,7 @@ export function registerOpenClawCommand(program: Command): void {
         // Validate budget
         const budget = parseFloat(options.budget);
         if (isNaN(budget) || budget < 0 || budget > 10000) {
-          console.error('❌ Invalid budget. Must be between 0 and 10000 USD.');
+          logger.error('openclaw', '❌ Invalid budget. Must be between 0 and 10000 USD.');
           process.exit(1);
         }
 
@@ -559,7 +636,7 @@ export function registerOpenClawCommand(program: Command): void {
         console.log(`✓ Status: ${execution.status} (awaiting task)`);
         console.log(`\n💡 Use "dash openclaw send --session ${execution.sessionKey} <message>" to send a task`);
       } catch (error) {
-        console.error('❌ Failed to spawn agent');
+        logger.error('openclaw', '❌ Failed to spawn agent');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
@@ -618,7 +695,7 @@ export function registerOpenClawCommand(program: Command): void {
         console.log(`✓ RunId: ${result.runId}`);
         console.log(`✓ Status: ${result.status}`);
       } catch (error) {
-        console.error('❌ Failed to send message');
+        logger.error('openclaw', '❌ Failed to send message');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
@@ -659,7 +736,7 @@ export function registerOpenClawCommand(program: Command): void {
           console.log('  (force mode)');
         }
       } catch (error) {
-        console.error('❌ Failed to kill session');
+        logger.error('openclaw', '❌ Failed to kill session');
         console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }

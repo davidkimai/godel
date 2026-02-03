@@ -4,6 +4,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerReasoningCommand = registerReasoningCommand;
+const utils_1 = require("../../utils");
 function registerReasoningCommand(program) {
     const reasoning = program
         .command('reasoning')
@@ -19,7 +20,7 @@ function registerReasoningCommand(program) {
         if (options.type)
             console.log('Type filter:', options.type);
         console.log(`Showing last ${options.limit} traces...`);
-        console.log('No traces found');
+        utils_1.logger.info('reasoning', 'No traces found');
     });
     reasoning
         .command('decisions')
@@ -29,7 +30,7 @@ function registerReasoningCommand(program) {
         .action(async (agentId, options) => {
         console.log(`🎯 Decisions for agent ${agentId}:`);
         console.log('Format:', options.format);
-        console.log('No decisions recorded');
+        utils_1.logger.info('reasoning', 'No decisions recorded');
     });
     reasoning
         .command('analyze')
@@ -39,7 +40,7 @@ function registerReasoningCommand(program) {
         .action(async (agentId, options) => {
         console.log(`🔍 Analyzing reasoning for agent ${agentId}...`);
         if (options.confidence)
-            console.log('Checking confidence-evidence alignment...');
+            utils_1.logger.info('reasoning', 'Checking confidence-evidence alignment...');
         console.log('✅ Analysis complete');
     });
     reasoning

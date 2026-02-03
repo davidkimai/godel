@@ -55,17 +55,17 @@ export declare const coerceBoolean: z.ZodUnion<[z.ZodBoolean, z.ZodEffects<z.Zod
 export declare const coerceDate: z.ZodUnion<[z.ZodDate, z.ZodEffects<z.ZodString, Date, string>, z.ZodEffects<z.ZodNumber, Date, number>]>;
 export declare function coerceArray<T>(schema: z.ZodSchema<T>): z.ZodUnion<[z.ZodArray<z.ZodType<T, z.ZodTypeDef, T>, "many">, z.ZodEffects<z.ZodType<T, z.ZodTypeDef, T>, T[], T>]>;
 export declare const validateSpawnAgent: (data: unknown) => {
+    metadata?: Record<string, unknown>;
     task?: string;
     model?: "kimi-k2.5" | "claude-sonnet-4-5" | "gpt-4" | "gpt-4o";
     swarmId?: string;
     parentId?: string;
-    metadata?: Record<string, unknown>;
     priority?: "low" | "medium" | "high" | "critical";
 };
 export declare const validateUpdateAgent: (data: unknown) => {
     error?: string;
-    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     metadata?: Record<string, unknown>;
+    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     progress?: number;
     result?: string;
 };

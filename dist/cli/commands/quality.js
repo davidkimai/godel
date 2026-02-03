@@ -18,6 +18,7 @@ exports.qualityTypesCommand = qualityTypesCommand;
 exports.qualitySecurityCommand = qualitySecurityCommand;
 exports.qualityGateCommand = qualityGateCommand;
 const commander_1 = require("commander");
+const utils_1 = require("../../utils");
 const child_process_1 = require("child_process");
 const fs_1 = require("fs");
 // Import the real quality modules
@@ -178,7 +179,7 @@ async function handleLint(options) {
     console.log(`   Duration: ${result.duration}ms`);
     if (result.details && result.details.length > 0) {
         console.log('');
-        console.log('Details:');
+        utils_1.logger.info('quality', 'Details:');
         result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
         if (result.details.length > 20) {
             console.log(`   ... and ${result.details.length - 20} more issues`);
@@ -202,7 +203,7 @@ async function handleTypes(options) {
     console.log(`   Duration: ${result.duration}ms`);
     if (result.details && result.details.length > 0) {
         console.log('');
-        console.log('Errors:');
+        utils_1.logger.info('quality', 'Errors:');
         result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
         if (result.details.length > 20) {
             console.log(`   ... and ${result.details.length - 20} more issues`);
@@ -225,7 +226,7 @@ async function handleSecurity(options) {
     console.log(`   Duration: ${result.duration}ms`);
     if (result.details && result.details.length > 0) {
         console.log('');
-        console.log('Findings:');
+        utils_1.logger.info('quality', 'Findings:');
         result.details.forEach(detail => console.log(`   ${detail}`));
     }
     if (!result.passed) {
@@ -282,7 +283,7 @@ async function handleGate(options) {
     console.log(`Total Duration: ${totalDuration}ms`);
     if (gateResult.recommendations.length > 0) {
         console.log('');
-        console.log('Recommendations:');
+        utils_1.logger.info('quality', 'Recommendations:');
         gateResult.recommendations.forEach((rec, i) => {
             console.log(`  ${i + 1}. ${rec}`);
         });
@@ -312,7 +313,7 @@ async function handleStatus(options) {
         console.log(`Lint Status: ${passesLint ? '✅ PASSING' : '❌ FAILING'}`);
         console.log(`Type Check: ${typeResult.errors === 0 ? '✅ PASSING' : '❌ FAILING'}`);
         console.log('');
-        console.log('Current Metrics:');
+        utils_1.logger.info('quality', 'Current Metrics:');
         console.log(`   Type Errors: ${typeResult.errors}`);
         console.log(`   Type Warnings: ${typeResult.warnings}`);
         // Calculate overall quality score
@@ -323,7 +324,7 @@ async function handleStatus(options) {
         console.log(`   Quality Score: ${(score * 100).toFixed(1)}%`);
     }
     catch (error) {
-        console.log('❌ Unable to determine quality status');
+        utils_1.logger.info('quality', '❌ Unable to determine quality status');
         console.log(`   Error: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

@@ -3,6 +3,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 
 export function registerReasoningCommand(program: Command): void {
   const reasoning = program
@@ -19,7 +20,7 @@ export function registerReasoningCommand(program: Command): void {
       console.log(`🧠 Reasoning traces for agent ${agentId}:`);
       if (options.type) console.log('Type filter:', options.type);
       console.log(`Showing last ${options.limit} traces...`);
-      console.log('No traces found');
+      logger.info('reasoning', 'No traces found');
     });
 
   reasoning
@@ -30,7 +31,7 @@ export function registerReasoningCommand(program: Command): void {
     .action(async (agentId, options) => {
       console.log(`🎯 Decisions for agent ${agentId}:`);
       console.log('Format:', options.format);
-      console.log('No decisions recorded');
+      logger.info('reasoning', 'No decisions recorded');
     });
 
   reasoning
@@ -40,7 +41,7 @@ export function registerReasoningCommand(program: Command): void {
     .option('--confidence', 'Check confidence alignment')
     .action(async (agentId, options) => {
       console.log(`🔍 Analyzing reasoning for agent ${agentId}...`);
-      if (options.confidence) console.log('Checking confidence-evidence alignment...');
+      if (options.confidence) logger.info('reasoning', 'Checking confidence-evidence alignment...');
       console.log('✅ Analysis complete');
     });
 

@@ -45,7 +45,6 @@ class TerminalDashboard extends events_1.EventEmitter {
     start() {
         this.isRunning = true;
         this.emit('started');
-        console.log('Dashboard started. Use arrow keys to navigate, q to quit.');
     }
     /**
      * Stop the dashboard
@@ -64,7 +63,7 @@ class TerminalDashboard extends events_1.EventEmitter {
      * Connect to WebSocket for real-time updates
      */
     connectToWebSocket() {
-        console.log('WebSocket connection established');
+        // WebSocket connection established
     }
     /**
      * Set agents data

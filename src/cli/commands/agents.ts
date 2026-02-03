@@ -12,6 +12,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { getGlobalLifecycle, type RetryOptions, type AgentState } from '../../core/lifecycle';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalBus } from '../../bus/index';
@@ -143,7 +144,7 @@ export function registerAgentsCommand(program: Command): void {
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
 
         if (!lifecycle) {
-          console.error('❌ Failed to initialize agent lifecycle');
+          logger.error('agents', '❌ Failed to initialize agent lifecycle');
           process.exit(1);
         }
 
@@ -372,7 +373,7 @@ export function registerAgentsCommand(program: Command): void {
           console.log(`   Children:     ${state.agent.childIds.length}`);
         }
 
-        console.log(`\n   Timestamps:`);
+        logger.info('agents', `\n   Timestamps:`);
         console.log(`     Created:    ${state.createdAt.toISOString()}`);
         if (state.startedAt) console.log(`     Started:    ${state.startedAt.toISOString()}`);
         if (state.pausedAt) console.log(`     Paused:     ${state.pausedAt.toISOString()}`);
@@ -394,7 +395,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (options.logs) {
-          console.log(`\n   Recent Logs:`);
+          logger.info('agents', `\n   Recent Logs:`);
           console.log('   (Log retrieval not yet implemented)');
         }
 

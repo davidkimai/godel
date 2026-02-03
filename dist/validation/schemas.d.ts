@@ -35,32 +35,32 @@ export declare const spawnAgentSchema: z.ZodEffects<z.ZodObject<{
     swarmId: z.ZodOptional<z.ZodString>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
+    metadata?: Record<string, unknown>;
     task?: string;
     model?: "kimi-k2.5" | "claude-sonnet-4-5" | "gpt-4" | "gpt-4o";
     swarmId?: string;
     parentId?: string;
-    metadata?: Record<string, unknown>;
     priority?: "low" | "medium" | "high" | "critical";
 }, {
+    metadata?: Record<string, unknown>;
     task?: string;
     model?: "kimi-k2.5" | "claude-sonnet-4-5" | "gpt-4" | "gpt-4o";
     swarmId?: string;
     parentId?: string;
-    metadata?: Record<string, unknown>;
     priority?: "low" | "medium" | "high" | "critical";
 }>, {
+    metadata?: Record<string, unknown>;
     task?: string;
     model?: "kimi-k2.5" | "claude-sonnet-4-5" | "gpt-4" | "gpt-4o";
     swarmId?: string;
     parentId?: string;
-    metadata?: Record<string, unknown>;
     priority?: "low" | "medium" | "high" | "critical";
 }, {
+    metadata?: Record<string, unknown>;
     task?: string;
     model?: "kimi-k2.5" | "claude-sonnet-4-5" | "gpt-4" | "gpt-4o";
     swarmId?: string;
     parentId?: string;
-    metadata?: Record<string, unknown>;
     priority?: "low" | "medium" | "high" | "critical";
 }>;
 export declare const updateAgentSchema: z.ZodEffects<z.ZodObject<{
@@ -71,26 +71,26 @@ export declare const updateAgentSchema: z.ZodEffects<z.ZodObject<{
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
     error?: string;
-    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     metadata?: Record<string, unknown>;
+    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     progress?: number;
     result?: string;
 }, {
     error?: string;
-    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     metadata?: Record<string, unknown>;
+    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     progress?: number;
     result?: string;
 }>, {
     error?: string;
-    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     metadata?: Record<string, unknown>;
+    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     progress?: number;
     result?: string;
 }, {
     error?: string;
-    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     metadata?: Record<string, unknown>;
+    status?: "running" | "paused" | "completed" | "failed" | "idle" | "spawning" | "killing";
     progress?: number;
     result?: string;
 }>;
@@ -311,32 +311,32 @@ export declare const createTaskSchema: z.ZodEffects<z.ZodObject<{
     tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
-    description?: string;
     metadata?: Record<string, unknown>;
+    description?: string;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
     dueDate?: Date;
     assignees?: string[];
     tags?: string[];
 }, {
-    description?: string;
     metadata?: Record<string, unknown>;
+    description?: string;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
     dueDate?: Date;
     assignees?: string[];
     tags?: string[];
 }>, {
-    description?: string;
     metadata?: Record<string, unknown>;
+    description?: string;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
     dueDate?: Date;
     assignees?: string[];
     tags?: string[];
 }, {
-    description?: string;
     metadata?: Record<string, unknown>;
+    description?: string;
     title?: string;
     priority?: "low" | "medium" | "high" | "critical";
     dueDate?: Date;
@@ -401,24 +401,24 @@ export declare const sendMessageSchema: z.ZodObject<{
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     content?: string;
-    replyTo?: string;
-    mentions?: string[];
     attachments?: {
         name?: string;
         type?: string;
         data?: string;
         size?: number;
     }[];
+    replyTo?: string;
+    mentions?: string[];
 }, {
     content?: string;
-    replyTo?: string;
-    mentions?: string[];
     attachments?: {
         name?: string;
         type?: string;
         data?: string;
         size?: number;
     }[];
+    replyTo?: string;
+    mentions?: string[];
 }>;
 export declare const eventPublishSchema: z.ZodObject<{
     type: z.ZodString;
@@ -463,23 +463,23 @@ export declare const webhookRegisterSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     secret?: string;
     active?: boolean;
-    events?: string[];
     url?: string;
+    events?: string[];
 }, {
     secret?: string;
     active?: boolean;
-    events?: string[];
     url?: string;
+    events?: string[];
 }>, {
     secret?: string;
     active?: boolean;
-    events?: string[];
     url?: string;
+    events?: string[];
 }, {
     secret?: string;
     active?: boolean;
-    events?: string[];
     url?: string;
+    events?: string[];
 }>;
 export type SpawnAgentInput = z.infer<typeof spawnAgentSchema>;
 export type UpdateAgentInput = z.infer<typeof updateAgentSchema>;

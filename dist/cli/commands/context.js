@@ -4,6 +4,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerContextCommand = registerContextCommand;
+const utils_1 = require("../../utils");
 function registerContextCommand(program) {
     const context = program
         .command('context')
@@ -19,7 +20,7 @@ function registerContextCommand(program) {
             console.log(`Agent: ${agentId}`);
         if (options.depth)
             console.log(`Depth: ${options.depth}`);
-        console.log('.');
+        utils_1.logger.info('context', '.');
         console.log('├── src/');
         console.log('├── tests/');
         console.log('└── package.json');
@@ -30,9 +31,9 @@ function registerContextCommand(program) {
         .argument('<agent-id>', 'Agent ID')
         .action(async (agentId) => {
         console.log(`📊 Analyzing context for agent ${agentId}...`);
-        console.log('Total size: 1.2MB');
-        console.log('Files: 47');
-        console.log('Compression: 15%');
+        utils_1.logger.info('context', 'Total size: 1.2MB');
+        utils_1.logger.info('context', 'Files: 47');
+        utils_1.logger.info('context', 'Compression: 15%');
     });
     context
         .command('optimize')
@@ -42,7 +43,7 @@ function registerContextCommand(program) {
         .action(async (agentId, options) => {
         console.log(`⚡ Optimizing context for agent ${agentId}...`);
         if (options.aggressive)
-            console.log('Aggressive mode enabled');
+            utils_1.logger.info('context', 'Aggressive mode enabled');
         console.log('✅ Optimization complete');
     });
     context

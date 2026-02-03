@@ -10,6 +10,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import * as path from 'path';
@@ -225,7 +226,7 @@ async function handleLint(options: QualityOptions): Promise<void> {
   
   if (result.details && result.details.length > 0) {
     console.log('');
-    console.log('Details:');
+    logger.info('quality', 'Details:');
     result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
     if (result.details.length > 20) {
       console.log(`   ... and ${result.details.length - 20} more issues`);
@@ -253,7 +254,7 @@ async function handleTypes(options: QualityOptions): Promise<void> {
   
   if (result.details && result.details.length > 0) {
     console.log('');
-    console.log('Errors:');
+    logger.info('quality', 'Errors:');
     result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
     if (result.details.length > 20) {
       console.log(`   ... and ${result.details.length - 20} more issues`);
@@ -280,7 +281,7 @@ async function handleSecurity(options: QualityOptions): Promise<void> {
   
   if (result.details && result.details.length > 0) {
     console.log('');
-    console.log('Findings:');
+    logger.info('quality', 'Findings:');
     result.details.forEach(detail => console.log(`   ${detail}`));
   }
   
@@ -345,7 +346,7 @@ async function handleGate(options: QualityOptions): Promise<void> {
   
   if (gateResult.recommendations.length > 0) {
     console.log('');
-    console.log('Recommendations:');
+    logger.info('quality', 'Recommendations:');
     gateResult.recommendations.forEach((rec, i) => {
       console.log(`  ${i + 1}. ${rec}`);
     });
@@ -379,7 +380,7 @@ async function handleStatus(options: QualityOptions): Promise<void> {
     console.log(`Lint Status: ${passesLint ? '✅ PASSING' : '❌ FAILING'}`);
     console.log(`Type Check: ${typeResult.errors === 0 ? '✅ PASSING' : '❌ FAILING'}`);
     console.log('');
-    console.log('Current Metrics:');
+    logger.info('quality', 'Current Metrics:');
     console.log(`   Type Errors: ${typeResult.errors}`);
     console.log(`   Type Warnings: ${typeResult.warnings}`);
     
@@ -392,7 +393,7 @@ async function handleStatus(options: QualityOptions): Promise<void> {
     console.log(`   Quality Score: ${(score * 100).toFixed(1)}%`);
     
   } catch (error) {
-    console.log('❌ Unable to determine quality status');
+    logger.info('quality', '❌ Unable to determine quality status');
     console.log(`   Error: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

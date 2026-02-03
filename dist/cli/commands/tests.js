@@ -4,6 +4,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerTestsCommand = registerTestsCommand;
+const utils_1 = require("../../utils");
 function registerTestsCommand(program) {
     const tests = program
         .command('tests')
@@ -19,9 +20,9 @@ function registerTestsCommand(program) {
         if (pattern)
             console.log('Pattern:', pattern);
         if (options.watch)
-            console.log('Watch mode enabled');
+            utils_1.logger.info('tests', 'Watch mode enabled');
         if (options.coverage)
-            console.log('Coverage enabled');
+            utils_1.logger.info('tests', 'Coverage enabled');
         console.log('✅ All tests passed');
     });
     tests
@@ -51,7 +52,7 @@ function registerTestsCommand(program) {
         console.log('👀 Watching tests...');
         if (pattern)
             console.log('Pattern:', pattern);
-        console.log('(Press Ctrl+C to stop)');
+        utils_1.logger.info('tests', '(Press Ctrl+C to stop)');
     });
 }
 //# sourceMappingURL=tests.js.map

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerStatusCommand = registerStatusCommand;
 exports.createStatusCommand = createStatusCommand;
 const commander_1 = require("commander");
+const utils_1 = require("../../utils");
 const sqlite_1 = require("../../storage/sqlite");
 const budget_1 = require("../../safety/budget");
 // Version info from package.json (injected at build time)
@@ -202,13 +203,13 @@ function printStatus(status) {
     // Print the formatted output
     console.log();
     console.log(`${healthEmoji} Dash v${status.dash.version} Status`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    utils_1.logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`API:      v${status.dash.apiVersion} (${healthText})`);
     console.log(`Agents:   ${status.agents.total} total (${status.agents.running} running, ${status.agents.idle} idle)`);
     console.log(`Swarms:   ${status.swarms.active} active`);
     console.log(`Budgets:  ${budgetStr}`);
     console.log(`OpenClaw: ${openclawText}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    utils_1.logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log();
 }
 /**

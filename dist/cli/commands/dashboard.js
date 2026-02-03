@@ -9,6 +9,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerDashboardCommand = registerDashboardCommand;
+const utils_1 = require("../../utils");
 const swarm_1 = require("../../core/swarm");
 const lifecycle_1 = require("../../core/lifecycle");
 const index_1 = require("../../bus/index");
@@ -51,8 +52,8 @@ function registerDashboardCommand(program) {
                 return;
             }
             // Full TUI mode
-            console.log('Launching interactive dashboard...\n');
-            console.log('Keyboard Shortcuts:');
+            utils_1.logger.info('dashboard', 'Launching interactive dashboard...\n');
+            utils_1.logger.info('dashboard', 'Keyboard Shortcuts:');
             console.log('  j/k     Navigate agents');
             console.log('  Enter   Focus agent');
             console.log('  Space   Pause/resume');

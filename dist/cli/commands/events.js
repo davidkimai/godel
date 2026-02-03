@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerEventsCommand = registerEventsCommand;
+const utils_1 = require("../../utils");
 const index_1 = require("../../bus/index");
 const lifecycle_1 = require("../../core/lifecycle");
 const swarm_1 = require("../../core/swarm");
@@ -131,7 +132,7 @@ function registerEventsCommand(program) {
             }, filter));
             console.log(`Subscribed to ${subscriptions.length} topics`);
             console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.swarm ? `swarm=${options.swarm} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
-            console.log('\n(Press Ctrl+C to stop)\n');
+            utils_1.logger.info('events', '\n(Press Ctrl+C to stop)\n');
             // Keep alive
             await new Promise(() => {
                 process.on('SIGINT', () => {
@@ -227,7 +228,7 @@ function registerEventsCommand(program) {
             }
             // Table format
             console.log('📋 Events:\n');
-            console.log('Timestamp            Severity   Type                          Source');
+            utils_1.logger.info('events', 'Timestamp            Severity   Type                          Source');
             console.log('───────────────────  ─────────  ────────────────────────────  ──────────────');
             for (const event of events) {
                 const timestamp = event.timestamp.toISOString().slice(0, 19).replace('T', ' ');
@@ -285,7 +286,7 @@ function registerEventsCommand(program) {
                 console.log(`\n   Message:   ${event.message}`);
             }
             if (event.metadata) {
-                console.log(`\n   Metadata:`);
+                utils_1.logger.info('events', `\n   Metadata:`);
                 console.log(JSON.stringify(event.metadata, null, 4).replace(/^/gm, '     '));
             }
         }
@@ -308,7 +309,7 @@ function registerEventsCommand(program) {
         try {
             const speed = parseFloat(options.speed);
             if (isNaN(speed) || speed <= 0) {
-                console.error('❌ Invalid speed');
+                utils_1.logger.error('events', '❌ Invalid speed');
                 process.exit(2);
             }
             // Initialize components
@@ -326,7 +327,7 @@ function registerEventsCommand(program) {
             console.log(`   Speed: ${speed}x`);
             console.log(`   From: ${options.from || swarm.createdAt.toISOString()}`);
             console.log(`   To: ${options.to || new Date().toISOString()}`);
-            console.log('\n   (Replay functionality would show events with simulated timing)');
+            utils_1.logger.info('events', '\n   (Replay functionality would show events with simulated timing)');
             console.log('   (Press Ctrl+C to stop)\n');
             // In a full implementation, this would:
             // 1. Load events from persistent storage

@@ -1,1 +1,1 @@
-{"version":3,"file":"events.d.ts","sourceRoot":"","sources":["../../../src/api/routes/events.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,MAAM,IAAI,eAAe,EAAE,MAAM,IAAI,CAAC;AAGpD,QAAA,MAAM,MAAM,4CAAW,CAAC;AA0ExB,wBAAgB,oBAAoB,CAAC,GAAG,EAAE,eAAe,GAAG,IAAI,CAgC/D;AAED,eAAe,MAAM,CAAC"}
+{"version":3,"file":"events.d.ts","sourceRoot":"","sources":["../../../src/api/routes/events.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,MAAM,IAAI,eAAe,EAAE,MAAM,IAAI,CAAC;AAIpD,QAAA,MAAM,MAAM,4CAAW,CAAC;AA0ExB,wBAAgB,oBAAoB,CAAC,GAAG,EAAE,eAAe,GAAG,IAAI,CAgC/D;AAED,eAAe,MAAM,CAAC"}

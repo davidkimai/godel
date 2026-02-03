@@ -9,6 +9,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { getGlobalBus, type Message, type MessageFilter } from '../../bus/index';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalSwarmManager } from '../../core/swarm';
@@ -173,7 +174,7 @@ export function registerEventsCommand(program: Command): void {
 
         console.log(`Subscribed to ${subscriptions.length} topics`);
         console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.swarm ? `swarm=${options.swarm} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
-        console.log('\n(Press Ctrl+C to stop)\n');
+        logger.info('events', '\n(Press Ctrl+C to stop)\n');
 
         // Keep alive
         await new Promise(() => {
@@ -282,7 +283,7 @@ export function registerEventsCommand(program: Command): void {
 
         // Table format
         console.log('📋 Events:\n');
-        console.log('Timestamp            Severity   Type                          Source');
+        logger.info('events', 'Timestamp            Severity   Type                          Source');
         console.log('───────────────────  ─────────  ────────────────────────────  ──────────────');
 
         for (const event of events) {
@@ -351,7 +352,7 @@ export function registerEventsCommand(program: Command): void {
         }
         
         if (event.metadata) {
-          console.log(`\n   Metadata:`);
+          logger.info('events', `\n   Metadata:`);
           console.log(JSON.stringify(event.metadata, null, 4).replace(/^/gm, '     '));
         }
 
@@ -375,7 +376,7 @@ export function registerEventsCommand(program: Command): void {
       try {
         const speed = parseFloat(options.speed);
         if (isNaN(speed) || speed <= 0) {
-          console.error('❌ Invalid speed');
+          logger.error('events', '❌ Invalid speed');
           process.exit(2);
         }
 
@@ -396,7 +397,7 @@ export function registerEventsCommand(program: Command): void {
         console.log(`   Speed: ${speed}x`);
         console.log(`   From: ${options.from || swarm.createdAt.toISOString()}`);
         console.log(`   To: ${options.to || new Date().toISOString()}`);
-        console.log('\n   (Replay functionality would show events with simulated timing)');
+        logger.info('events', '\n   (Replay functionality would show events with simulated timing)');
         console.log('   (Press Ctrl+C to stop)\n');
 
         // In a full implementation, this would:

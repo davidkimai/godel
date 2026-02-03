@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupWebSocketEvents = setupWebSocketEvents;
 const express_1 = require("express");
 const EventRepository_1 = require("../../storage/repositories/EventRepository");
+const utils_1 = require("../../utils");
 const router = (0, express_1.Router)();
 // GET /api/events - List events
 router.get('/', async (req, res) => {
@@ -66,7 +67,7 @@ router.get('/stream', (req, res) => {
 // WebSocket handler setup
 function setupWebSocketEvents(wss) {
     wss.on('connection', (ws, req) => {
-        console.log('WebSocket client connected for events');
+        utils_1.logger.info('api/routes/events', 'WebSocket client connected for events');
         // Send welcome message
         ws.send(JSON.stringify({
             type: 'connected',
@@ -78,7 +79,7 @@ function setupWebSocketEvents(wss) {
                 const message = JSON.parse(data.toString());
                 if (message.action === 'subscribe') {
                     // Client wants to subscribe to specific events
-                    console.log('Client subscribed to:', message.events);
+                    utils_1.logger.info('api/routes/events', 'Client subscribed to events', { events: message.events });
                 }
             }
             catch {
@@ -86,10 +87,10 @@ function setupWebSocketEvents(wss) {
             }
         });
         ws.on('close', () => {
-            console.log('WebSocket client disconnected');
+            utils_1.logger.info('api/routes/events', 'WebSocket client disconnected');
         });
         ws.on('error', (error) => {
-            console.error('WebSocket error:', error);
+            utils_1.logger.error('api/routes/events', 'WebSocket error', { error: String(error) });
         });
     });
 }

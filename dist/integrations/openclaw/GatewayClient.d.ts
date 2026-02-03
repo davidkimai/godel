@@ -8,6 +8,9 @@
  * - Request/response cycle with idempotency keys
  * - Event subscription (agent, chat, presence, tick)
  * - Connection state management
+ *
+ * Protocol: OpenClaw Gateway Protocol v3
+ * Docs: https://docs.openclaw.ai/gateway/protocol
  */
 import { EventEmitter } from 'events';
 import { GatewayConfig, GatewayClientOptions, ConnectionState, EventHandler, GatewayStats, SessionsListParams, SessionsSpawnParams, SessionsSpawnResponse, SessionsSendResponse, AgentEventPayload, ChatEventPayload, PresenceEventPayload, TickEventPayload, SessionInfo, Message } from './types';
@@ -25,6 +28,7 @@ export declare class GatewayClient extends EventEmitter {
     private eventSeq;
     private requestIdCounter;
     private clientId;
+    private currentChallenge;
     constructor(config?: Partial<GatewayConfig>, options?: Partial<GatewayClientOptions>);
     /**
      * Connect to the OpenClaw Gateway
@@ -47,16 +51,18 @@ export declare class GatewayClient extends EventEmitter {
      */
     get statistics(): GatewayStats;
     /**
+     * Handle connection open - wait for challenge and authenticate
+     */
+    private handleOpen;
+    /**
      * Authenticate with the Gateway using token
      *
-     * Per OpenClaw Gateway Protocol v1:
-     * - For control clients (like dash CLI), use id 'node' and mode 'client'
-     * - For extension clients, use id 'node' and mode 'extension'
-     * - Per OpenClaw source, valid combinations:
-     *   - {id: 'node', mode: 'client'} for CLI/tools
-     *   - {id: 'node', mode: 'extension'} for extensions
+     * Per OpenClaw Gateway Protocol v3:
+     * - Wait for connect.challenge event
+     * - Send connect request with client info and auth token
+     * - For local connections, device identity is optional
      */
-    authenticate(): Promise<void>;
+    private authenticate;
     /**
      * Send a request to the Gateway
      */
@@ -117,7 +123,6 @@ export declare class GatewayClient extends EventEmitter {
      * Unsubscribe from server-side events
      */
     unsubscribe(event: string): Promise<void>;
-    private handleOpen;
     private handleMessage;
     private handleResponse;
     private handleEvent;

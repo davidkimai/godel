@@ -4,6 +4,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerTasksCommand = registerTasksCommand;
+const utils_1 = require("../../utils");
 function registerTasksCommand(program) {
     const tasks = program
         .command('tasks')
@@ -19,7 +20,7 @@ function registerTasksCommand(program) {
             console.log('Status filter:', options.status);
         if (options.agent)
             console.log('Agent filter:', options.agent);
-        console.log('No tasks found');
+        utils_1.logger.info('tasks', 'No tasks found');
     });
     tasks
         .command('create')

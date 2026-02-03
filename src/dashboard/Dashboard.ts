@@ -73,7 +73,6 @@ export class TerminalDashboard extends EventEmitter {
   start(): void {
     this.isRunning = true;
     this.emit('started');
-    console.log('Dashboard started. Use arrow keys to navigate, q to quit.');
   }
 
   /**
@@ -95,7 +94,7 @@ export class TerminalDashboard extends EventEmitter {
    * Connect to WebSocket for real-time updates
    */
   connectToWebSocket(): void {
-    console.log('WebSocket connection established');
+    // WebSocket connection established
   }
 
   /**

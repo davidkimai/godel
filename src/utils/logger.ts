@@ -5,27 +5,61 @@
  * Replaces console.* calls throughout the codebase with consistent, structured output.
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import * as fs from 'fs';
+import * as path from 'path';
+
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+}
 
 export interface LogEntry {
   timestamp: string;
   level: LogLevel;
+  module: string;
   message: string;
-  context?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
+
+export type LogLevelString = 'debug' | 'info' | 'warn' | 'error';
 
 /**
  * Logger class providing structured logging capabilities
  */
 export class Logger {
-  private level: LogLevel = 'info';
+  private level: LogLevel = LogLevel.INFO;
   private format: 'json' | 'pretty' = 'pretty';
+  private logFilePath?: string;
+  private fileStream?: fs.WriteStream;
+
+  constructor() {
+    // Initialize log file path from environment or default
+    const logDir = process.env['LOG_DIR'] || path.join(process.cwd(), 'logs');
+    const logFile = process.env['LOG_FILE'] || 'app.log';
+    this.logFilePath = path.join(logDir, logFile);
+    
+    // Ensure log directory exists
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+
+    // Create write stream
+    this.fileStream = fs.createWriteStream(this.logFilePath, { flags: 'a' });
+  }
 
   /**
    * Set the minimum log level
    */
-  setLevel(level: LogLevel): void {
-    this.level = level;
+  setLevel(level: LogLevelString): void {
+    const levelMap: Record<LogLevelString, LogLevel> = {
+      debug: LogLevel.DEBUG,
+      info: LogLevel.INFO,
+      warn: LogLevel.WARN,
+      error: LogLevel.ERROR,
+    };
+    this.level = levelMap[level];
   }
 
   /**
@@ -38,8 +72,14 @@ export class Logger {
   /**
    * Get current log level
    */
-  getLevel(): LogLevel {
-    return this.level;
+  getLevel(): LogLevelString {
+    const levelMap: Record<LogLevel, LogLevelString> = {
+      [LogLevel.DEBUG]: 'debug',
+      [LogLevel.INFO]: 'info',
+      [LogLevel.WARN]: 'warn',
+      [LogLevel.ERROR]: 'error',
+    };
+    return levelMap[this.level];
   }
 
   /**
@@ -53,10 +93,7 @@ export class Logger {
    * Check if a log level is enabled
    */
   private isEnabled(level: LogLevel): boolean {
-    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
-    const currentIndex = levels.indexOf(this.level);
-    const targetIndex = levels.indexOf(level);
-    return targetIndex >= currentIndex;
+    return level >= this.level;
   }
 
   /**
@@ -64,14 +101,16 @@ export class Logger {
    */
   private createEntry(
     level: LogLevel,
+    module: string,
     message: string,
-    context?: Record<string, unknown>
+    metadata?: Record<string, unknown>
   ): LogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
+      module,
       message,
-      context
+      metadata,
     };
   }
 
@@ -83,87 +122,164 @@ export class Logger {
       return JSON.stringify(entry);
     }
 
-    const { timestamp, level, message, context } = entry;
-    const levelUpper = level.toUpperCase().padEnd(5);
+    const { timestamp, level, module, message, metadata } = entry;
+    const levelName = LogLevel[level].padEnd(5);
     const time = new Date(timestamp).toLocaleTimeString();
 
-    let output = `[${time}] ${levelUpper} ${message}`;
+    let output = `[${time}] ${levelName} [${module}] ${message}`;
 
-    if (context && Object.keys(context).length > 0) {
-      const contextStr = JSON.stringify(context);
-      output += ` ${contextStr}`;
+    if (metadata && Object.keys(metadata).length > 0) {
+      const metadataStr = JSON.stringify(metadata);
+      output += ` ${metadataStr}`;
     }
 
     return output;
   }
 
   /**
-   * Log a debug message
+   * Output log entry to console and file
    */
-  debug(message: string, context?: Record<string, unknown>): void {
-    if (!this.isEnabled('debug')) return;
-    const entry = this.createEntry('debug', message, context);
-    console.debug(this.formatEntry(entry));
+  private output(entry: LogEntry): void {
+    const formatted = this.formatEntry(entry);
+    
+    // Console output
+    switch (entry.level) {
+      case LogLevel.DEBUG:
+        console.debug(formatted);
+        break;
+      case LogLevel.INFO:
+        console.log(formatted);
+        break;
+      case LogLevel.WARN:
+        console.warn(formatted);
+        break;
+      case LogLevel.ERROR:
+        console.error(formatted);
+        break;
+    }
+
+    // File output
+    if (this.fileStream) {
+      this.fileStream.write(formatted + '\n');
+    }
+  }
+
+  /**
+   * Log a debug message
+   * Supports both signatures:
+   * - debug(module, message, metadata?) 
+   * - debug(message, metadata?) [backwards compatible, uses 'app' as module]
+   */
+  debug(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void {
+    if (!this.isEnabled(LogLevel.DEBUG)) return;
+    let module: string;
+    let message: string;
+    let meta: Record<string, unknown> | undefined;
+    
+    if (typeof messageOrMetadata === 'string') {
+      module = moduleOrMessage;
+      message = messageOrMetadata;
+      meta = metadata;
+    } else {
+      module = 'app';
+      message = moduleOrMessage;
+      meta = messageOrMetadata as Record<string, unknown> | undefined;
+    }
+    
+    const entry = this.createEntry(LogLevel.DEBUG, module, message, meta);
+    this.output(entry);
   }
 
   /**
    * Log an info message
+   * Supports both signatures:
+   * - info(module, message, metadata?)
+   * - info(message, metadata?) [backwards compatible, uses 'app' as module]
    */
-  info(message: string, context?: Record<string, unknown>): void {
-    if (!this.isEnabled('info')) return;
-    const entry = this.createEntry('info', message, context);
-    console.log(this.formatEntry(entry));
+  info(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void {
+    if (!this.isEnabled(LogLevel.INFO)) return;
+    let module: string;
+    let message: string;
+    let meta: Record<string, unknown> | undefined;
+    
+    if (typeof messageOrMetadata === 'string') {
+      module = moduleOrMessage;
+      message = messageOrMetadata;
+      meta = metadata;
+    } else {
+      module = 'app';
+      message = moduleOrMessage;
+      meta = messageOrMetadata as Record<string, unknown> | undefined;
+    }
+    
+    const entry = this.createEntry(LogLevel.INFO, module, message, meta);
+    this.output(entry);
   }
 
   /**
    * Log a warning message
+   * Supports both signatures:
+   * - warn(module, message, metadata?)
+   * - warn(message, metadata?) [backwards compatible, uses 'app' as module]
    */
-  warn(message: string, context?: Record<string, unknown>): void {
-    if (!this.isEnabled('warn')) return;
-    const entry = this.createEntry('warn', message, context);
-    console.warn(this.formatEntry(entry));
+  warn(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void {
+    if (!this.isEnabled(LogLevel.WARN)) return;
+    let module: string;
+    let message: string;
+    let meta: Record<string, unknown> | undefined;
+    
+    if (typeof messageOrMetadata === 'string') {
+      module = moduleOrMessage;
+      message = messageOrMetadata;
+      meta = metadata;
+    } else {
+      module = 'app';
+      message = moduleOrMessage;
+      meta = messageOrMetadata as Record<string, unknown> | undefined;
+    }
+    
+    const entry = this.createEntry(LogLevel.WARN, module, message, meta);
+    this.output(entry);
   }
 
   /**
    * Log an error message
+   * Supports both signatures:
+   * - error(module, message, metadata?)
+   * - error(message, metadata?) [backwards compatible, uses 'app' as module]
    */
-  error(message: string, context?: Record<string, unknown>): void {
-    if (!this.isEnabled('error')) return;
-    const entry = this.createEntry('error', message, context);
-    console.error(this.formatEntry(entry));
+  error(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void {
+    if (!this.isEnabled(LogLevel.ERROR)) return;
+    let module: string;
+    let message: string;
+    let meta: Record<string, unknown> | undefined;
+    
+    if (typeof messageOrMetadata === 'string') {
+      module = moduleOrMessage;
+      message = messageOrMetadata;
+      meta = metadata;
+    } else {
+      module = 'app';
+      message = moduleOrMessage;
+      meta = messageOrMetadata as Record<string, unknown> | undefined;
+    }
+    
+    const entry = this.createEntry(LogLevel.ERROR, module, message, meta);
+    this.output(entry);
+  }
+
+  /**
+   * Close the logger and flush file stream
+   */
+  close(): void {
+    if (this.fileStream) {
+      this.fileStream.end();
+    }
   }
 }
 
 // Export a singleton instance
 export const logger = new Logger();
 
-// Convenience function to create a child logger with additional context
-export function createLogger(baseContext: Record<string, unknown>): Logger {
-  const child = new Logger();
-  child.setLevel(logger.getLevel());
-  child.setFormat(logger.getFormat());
-
-  // Override methods to include base context
-  const originalDebug = child.debug.bind(child);
-  const originalInfo = child.info.bind(child);
-  const originalWarn = child.warn.bind(child);
-  const originalError = child.error.bind(child);
-
-  child.debug = (message: string, context?: Record<string, unknown>) => {
-    originalDebug(message, { ...baseContext, ...context });
-  };
-
-  child.info = (message: string, context?: Record<string, unknown>) => {
-    originalInfo(message, { ...baseContext, ...context });
-  };
-
-  child.warn = (message: string, context?: Record<string, unknown>) => {
-    originalWarn(message, { ...baseContext, ...context });
-  };
-
-  child.error = (message: string, context?: Record<string, unknown>) => {
-    originalError(message, { ...baseContext, ...context });
-  };
-
-  return child;
-}
+// Export LogLevel enum values for convenience
+export { LogLevel as LogLevelEnum };

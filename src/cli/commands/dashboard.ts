@@ -8,6 +8,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus, subscribeDashboard, type Message } from '../../bus/index';
@@ -58,8 +59,8 @@ export function registerDashboardCommand(program: Command): void {
         }
 
         // Full TUI mode
-        console.log('Launching interactive dashboard...\n');
-        console.log('Keyboard Shortcuts:');
+        logger.info('dashboard', 'Launching interactive dashboard...\n');
+        logger.info('dashboard', 'Keyboard Shortcuts:');
         console.log('  j/k     Navigate agents');
         console.log('  Enter   Focus agent');
         console.log('  Space   Pause/resume');

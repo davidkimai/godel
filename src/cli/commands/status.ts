@@ -12,6 +12,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalBus } from '../../bus/index';
@@ -273,13 +274,13 @@ function printStatus(status: SystemStatus): void {
   // Print the formatted output
   console.log();
   console.log(`${healthEmoji} Dash v${status.dash.version} Status`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`API:      v${status.dash.apiVersion} (${healthText})`);
   console.log(`Agents:   ${status.agents.total} total (${status.agents.running} running, ${status.agents.idle} idle)`);
   console.log(`Swarms:   ${status.swarms.active} active`);
   console.log(`Budgets:  ${budgetStr}`);
   console.log(`OpenClaw: ${openclawText}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log();
 }
 

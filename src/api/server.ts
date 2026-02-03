@@ -7,12 +7,14 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { createServer, Server as HttpServer } from 'http';
+import { logger } from '../utils';
 import { SwarmRepository } from '../storage/repositories/SwarmRepository';
 import { AgentRepository } from '../storage/repositories/AgentRepository';
 import { EventRepository } from '../storage/repositories/EventRepository';
 import { authMiddleware } from './middleware/auth';
 import { rateLimitMiddleware } from './middleware/ratelimit';
 import { errorHandler } from './middleware/error';
+import { validators } from './middleware/validation';
 import { startWebSocketServer } from './websocket';
 
 export interface ServerConfig {
@@ -86,14 +88,12 @@ function createApiRoutes() {
   const eventRepo = new EventRepository();
 
   // Swarm endpoints
-  router.post('/swarm', async (req: Request, res: Response) => {
+  router.post('/swarm', validators.createSwarm, async (req: Request, res: Response) => {
     try {
       const { name, config } = req.body;
-      console.log('Creating swarm:', { name, config, body: req.body });
       const swarm = await swarmRepo.create({ name, config, status: 'running' });
       res.status(201).json(swarm);
     } catch (error) {
-      console.error('Swarm creation error:', error);
       res.status(400).json({ error: (error as Error).message });
     }
   });
@@ -132,7 +132,7 @@ function createApiRoutes() {
     }
   });
 
-  router.post('/agents', async (req: Request, res: Response) => {
+  router.post('/agents', validators.createAgent, async (req: Request, res: Response) => {
     try {
       const agent = await agentRepo.create(req.body);
       res.status(201).json(agent);
@@ -190,7 +190,7 @@ function createApiRoutes() {
   });
 
   // POST /events - Create a new event
-  router.post('/events', async (req: Request, res: Response) => {
+  router.post('/events', validators.createEvent, async (req: Request, res: Response) => {
     try {
       const { eventType, payload } = req.body;
       const event = await eventRepo.create({
@@ -202,7 +202,6 @@ function createApiRoutes() {
       });
       res.status(201).json(event);
     } catch (error) {
-      console.error('Event creation error:', error);
       res.status(500).json({ error: 'Failed to create event: ' + (error as Error).message });
     }
   });
@@ -225,8 +224,11 @@ export async function startServer(config: Partial<ServerConfig> = {}): Promise<H
 
   return new Promise((resolve) => {
     server.listen(cfg.port, cfg.host, () => {
-      console.log(`Dash API server running on http://${cfg.host}:${cfg.port}`);
-      console.log(`WebSocket server running on ws://${cfg.host}:${cfg.port}/events`);
+      logger.info('api/server', 'Dash API server started', { 
+        host: cfg.host, 
+        port: cfg.port,
+        websocket: `ws://${cfg.host}:${cfg.port}/events`
+      });
       resolve(server);
     });
   });

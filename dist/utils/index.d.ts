@@ -3,8 +3,8 @@
  *
  * Centralized exports for utility functions
  */
-export { logger, createLogger, Logger } from './logger';
-export type { LogEntry, LogLevel } from './logger';
+export { logger, Logger, LogLevel, LogLevelEnum } from './logger';
+export type { LogEntry, LogLevelString } from './logger';
 export { LRUCache, memoize } from './cache';
 export type { CacheEntry, CacheOptions } from './cache';
 export { loadState, saveState, getOpenClawState, setOpenClawState, clearOpenClawState, isOpenClawConnected, isOpenClawMockMode, getStateFilePath, resetState, } from './cli-state';

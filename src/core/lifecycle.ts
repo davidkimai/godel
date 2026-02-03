@@ -28,7 +28,7 @@ import {
 import { AgentStorage } from '../storage/memory';
 import { MessageBus } from '../bus/index';
 import { generateEventId } from '../events/types';
-import { OpenClawIntegration, type SessionSpawnOptions } from './openclaw';
+import { OpenClawCore, type SessionSpawnOptions, getOpenClawCore } from './openclaw';
 import {
   AgentNotFoundError,
   ApplicationError,
@@ -98,18 +98,18 @@ export class AgentLifecycle extends EventEmitter {
   private states: Map<string, AgentState> = new Map();
   private storage: AgentStorage;
   private messageBus: MessageBus;
-  private openclaw?: OpenClawIntegration;
+  private openclaw: OpenClawCore;
   private active: boolean = false;
   private retryDelays: Map<string, number> = new Map(); // Track retry delays per agent
   private readonly DEFAULT_MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 1000; // 1 second
-  
+
   // RACE CONDITION FIX: One mutex per agent for exclusive state transitions
   private mutexes: Map<string, Mutex> = new Map();
   // Global mutex for agent creation (to prevent ID collisions)
   private creationMutex: Mutex = new Mutex();
 
-  constructor(storage: AgentStorage, messageBus: MessageBus, openclaw?: OpenClawIntegration) {
+  constructor(storage: AgentStorage, messageBus: MessageBus, openclaw: OpenClawCore) {
     super();
     this.storage = storage;
     this.messageBus = messageBus;
@@ -143,18 +143,19 @@ export class AgentLifecycle extends EventEmitter {
   }
 
   /**
-   * Set the OpenClaw integration (for late binding)
-   */
-  setOpenClawIntegration(openclaw: OpenClawIntegration): void {
-    this.openclaw = openclaw;
-  }
-
-  /**
    * Start the lifecycle manager
+   * Initializes OpenClaw core primitive as part of startup
    */
-  start(): void {
+  async start(): Promise<void> {
     this.active = true;
+    
+    // Initialize OpenClaw core primitive
+    logger.info('[AgentLifecycle] Starting lifecycle manager, initializing OpenClaw core...');
+    await this.openclaw.initialize();
+    await this.openclaw.connect();
+    
     this.emit('lifecycle.started');
+    logger.info('[AgentLifecycle] Lifecycle manager started with OpenClaw core active');
   }
 
   /**
@@ -197,37 +198,35 @@ export class AgentLifecycle extends EventEmitter {
       // Create the mutex for this agent immediately
       this.getMutex(agent.id);
 
-      // Spawn OpenClaw session if integration is available
-      if (this.openclaw) {
-        const sessionResult = await safeExecute(
-          async () => {
-            const spawnOptions: SessionSpawnOptions = {
-              agentId: agent.id,
-              model: agent.model,
-              task: agent.task,
-              context: {
-                label: agent.label,
-                swarmId: agent.swarmId,
-                parentId: agent.parentId,
-                ...agent.metadata,
-              },
-              maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
-            };
+      // Spawn OpenClaw session - core primitive, always available
+      const sessionResult = await safeExecute(
+        async () => {
+          const spawnOptions: SessionSpawnOptions = {
+            agentId: agent.id,
+            model: agent.model,
+            task: agent.task,
+            context: {
+              label: agent.label,
+              swarmId: agent.swarmId,
+              parentId: agent.parentId,
+              ...agent.metadata,
+            },
+            maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
+          };
 
-            const sessionId = await this.openclaw!.spawnSession(spawnOptions);
-            return sessionId;
-          },
-          undefined,
-          { 
-            logError: true, 
-            context: 'AgentLifecycle.spawnSession' 
-          }
-        );
-
-        if (sessionResult) {
-          state.sessionId = sessionResult;
-          this.emit('agent.session_created', { agentId: agent.id, sessionId: sessionResult });
+          const sessionId = await this.openclaw.spawnSession(spawnOptions);
+          return sessionId;
+        },
+        undefined,
+        { 
+          logError: true, 
+          context: 'AgentLifecycle.spawnSession' 
         }
+      );
+
+      if (sessionResult) {
+        state.sessionId = sessionResult;
+        this.emit('agent.session_created', { agentId: agent.id, sessionId: sessionResult });
       }
 
       // Publish spawn event
@@ -330,11 +329,11 @@ export class AgentLifecycle extends EventEmitter {
         pausedBy: 'lifecycle_manager',
       });
 
-      // Pause OpenClaw session if available
-      if (this.openclaw && this.openclaw.hasSession(agentId)) {
+      // Pause OpenClaw session
+      if (this.openclaw.hasSession(agentId)) {
         await safeExecute(
           async () => {
-            await this.openclaw!.pauseSession(agentId);
+            await this.openclaw.killSession(agentId, false);
             this.emit('agent.session_paused', { agentId, sessionId: state.sessionId });
           },
           undefined,
@@ -383,17 +382,8 @@ export class AgentLifecycle extends EventEmitter {
       // Update storage
       this.storage.update(agentId, { status: AgentStatus.RUNNING });
 
-      // Resume OpenClaw session if available
-      if (this.openclaw && this.openclaw.hasSession(agentId)) {
-        await safeExecute(
-          async () => {
-            await this.openclaw!.resumeSession(agentId);
-            this.emit('agent.session_resumed', { agentId, sessionId: state.sessionId });
-          },
-          undefined,
-          { logError: true, context: 'AgentLifecycle.resumeSession' }
-        );
-      }
+      // Note: OpenClaw sessions are spawned fresh on resume
+      // The session ID is tracked but sessions don't support pause/resume directly
 
       this.publishAgentEvent(agentId, 'agent.resumed', {
         agentId,
@@ -433,11 +423,11 @@ export class AgentLifecycle extends EventEmitter {
         completedAt: state.completedAt,
       });
 
-      // Kill OpenClaw session if available
-      if (this.openclaw && this.openclaw.hasSession(agentId)) {
+      // Kill OpenClaw session
+      if (this.openclaw.hasSession(agentId)) {
         await safeExecute(
           async () => {
-            await this.openclaw!.killSession(agentId, force);
+            await this.openclaw.killSession(agentId, force);
             this.emit('agent.session_killed', { agentId, sessionId: state.sessionId, force });
           },
           undefined,
@@ -768,7 +758,7 @@ let globalLifecycle: AgentLifecycle | null = null;
 export function getGlobalLifecycle(
   storage?: AgentStorage,
   messageBus?: MessageBus,
-  openclaw?: OpenClawIntegration
+  openclaw?: OpenClawCore
 ): AgentLifecycle {
   if (!globalLifecycle) {
     if (!storage || !messageBus) {
@@ -780,10 +770,9 @@ export function getGlobalLifecycle(
         false
       );
     }
-    globalLifecycle = new AgentLifecycle(storage, messageBus, openclaw);
-  } else if (openclaw) {
-    // Update OpenClaw integration if provided
-    globalLifecycle.setOpenClawIntegration(openclaw);
+    // OpenClaw is a core primitive - get the global instance if not provided
+    const openclawInstance = openclaw ?? getOpenClawCore(messageBus);
+    globalLifecycle = new AgentLifecycle(storage, messageBus, openclawInstance);
   }
   return globalLifecycle;
 }

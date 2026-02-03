@@ -80,26 +80,46 @@ function createBudgetCommand() {
 // ============================================================================
 function createSetCommand() {
     const command = new commander_1.Command('set')
-        .description('Set budget limits')
+        .description('Set budget limits for tasks, agents, or projects')
         .addOption(new commander_1.Option('--task <tokens>', 'Set per-task token limit').argParser(parseInt))
-        .addOption(new commander_1.Option('--cost <dollars>', 'Set budget cost limit in USD').argParser(parseFloat))
-        .addOption(new commander_1.Option('--daily <tokens>', 'Set daily token limit').argParser(parseInt))
+        .addOption(new commander_1.Option('--daily <tokens>', 'Set daily token limit (requires --project)').argParser(parseInt))
+        .addOption(new commander_1.Option('--cost <dollars>', 'Set budget cost limit in USD (required)').argParser(parseFloat))
         .addOption(new commander_1.Option('--agent <id>', 'Agent ID for agent-level budget'))
-        .addOption(new commander_1.Option('--project <name>', 'Project name'))
+        .addOption(new commander_1.Option('--project <name>', 'Project name (required for --daily budgets)'))
         .addOption(new commander_1.Option('--reset-hour <hour>', 'UTC hour for daily reset (0-23)').default('0').argParser(parseInt))
+        .addHelpText('after', `
+Examples:
+  $ dash budget set --daily 10000 --cost 50 --project myapp
+  $ dash budget set --task 5000 --cost 10 --agent agent-1
+  $ dash budget set --daily 50000 --cost 100 --project prod --reset-hour 6
+    `)
         .action(async (options) => {
         try {
             // Validate options
             if (!options.task && !options.daily) {
-                console.error('Error: Must specify either --task or --daily');
+                utils_1.logger.error('budget', '❌ Error: Must specify either --task or --daily');
+                console.error('');
+                utils_1.logger.error('budget', 'Usage examples:');
+                utils_1.logger.error('budget', '  dash budget set --daily 10000 --cost 50 --project myapp');
+                utils_1.logger.error('budget', '  dash budget set --task 5000 --cost 10');
                 process.exit(1);
             }
-            if (!options.cost) {
-                console.error('Error: --cost is required');
+            if (options.cost === undefined || options.cost === null || isNaN(options.cost)) {
+                utils_1.logger.error('budget', '❌ Error: --cost is required (budget cost limit in USD)');
+                console.error('');
+                utils_1.logger.error('budget', 'Example: dash budget set --daily 10000 --cost 50 --project myapp');
+                process.exit(1);
+            }
+            if (options.cost <= 0) {
+                utils_1.logger.error('budget', '❌ Error: --cost must be greater than 0');
                 process.exit(1);
             }
             if (options.task) {
                 // Task-level budget
+                if (options.task <= 0) {
+                    utils_1.logger.error('budget', '❌ Error: --task must be greater than 0');
+                    process.exit(1);
+                }
                 const taskId = options.agent ? `task-${options.agent}` : `task-${Date.now()}`;
                 const config = (0, budget_1.setTaskBudget)(taskId, options.task, options.cost);
                 console.log(`✅ Task budget set: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
@@ -108,7 +128,13 @@ function createSetCommand() {
             if (options.daily) {
                 // Project daily budget
                 if (!options.project) {
-                    console.error('Error: --project is required for daily budgets');
+                    utils_1.logger.error('budget', '❌ Error: --project is required when using --daily');
+                    console.error('');
+                    utils_1.logger.error('budget', 'Example: dash budget set --daily 10000 --cost 50 --project myapp');
+                    process.exit(1);
+                }
+                if (options.daily <= 0) {
+                    utils_1.logger.error('budget', '❌ Error: --daily must be greater than 0');
                     process.exit(1);
                 }
                 const config = (0, budget_1.setProjectDailyBudget)(options.project, options.daily, options.cost, options.resetHour);
@@ -118,7 +144,7 @@ function createSetCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to set budget', { error });
+            utils_1.logger.error('budget', 'Failed to set budget', { error: String(error) });
             process.exit(1);
         }
     });
@@ -176,7 +202,7 @@ function createStatusCommand() {
                         console.log(`Remaining: ${formatCurrency(Math.max(0, config.maxCost - totalUsed.total))}`);
                     }
                     else {
-                        console.log('\nNo budget configured for this project');
+                        utils_1.logger.info('budget', '\nNo budget configured for this project');
                         console.log(`Total used: ${formatCurrency(totalUsed.total)}`);
                     }
                     console.log(`\nActive Budgets: ${budgets.length}`);
@@ -202,7 +228,7 @@ function createStatusCommand() {
                     console.log(JSON.stringify(allBudgets, null, 2));
                 }
                 else {
-                    console.log(`\nBUDGET STATUS: All Active Budgets`);
+                    utils_1.logger.info('budget', `\nBUDGET STATUS: All Active Budgets`);
                     console.log('═'.repeat(60));
                     console.log(`Total active budgets: ${allBudgets.length}`);
                     const totalCost = allBudgets.reduce((sum, b) => sum + b.costUsed.total, 0);
@@ -216,7 +242,7 @@ function createStatusCommand() {
                         list.push(budget);
                         byProject.set(budget.projectId, list);
                     }
-                    console.log(`\nBy Project:`);
+                    utils_1.logger.info('budget', `\nBy Project:`);
                     console.log('─'.repeat(60));
                     for (const [project, budgets] of byProject) {
                         const projectCost = budgets.reduce((sum, b) => sum + b.costUsed.total, 0);
@@ -226,7 +252,7 @@ function createStatusCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to get budget status', { error });
+            utils_1.logger.error('budget', 'Failed to get budget status', { error: String(error) });
             process.exit(1);
         }
     });
@@ -260,7 +286,7 @@ function createUsageCommand() {
                 console.log(`Total Used: ${formatCurrency(report.totalUsed)} (${report.percentageUsed.toFixed(1)}%)`);
                 console.log(`Remaining: ${formatCurrency(report.totalRemaining)}`);
                 if (report.agentBreakdown.length > 0) {
-                    console.log(`\nAgent Breakdown:`);
+                    utils_1.logger.info('budget', `\nAgent Breakdown:`);
                     console.log('─'.repeat(70));
                     console.log(`${'Agent'.padEnd(20)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)} ${'%'.padStart(6)} ${'Status'.padStart(10)}`);
                     console.log('─'.repeat(70));
@@ -273,7 +299,7 @@ function createUsageCommand() {
                     }
                 }
                 if (report.dailyUsage.length > 0) {
-                    console.log(`\nDaily Usage:`);
+                    utils_1.logger.info('budget', `\nDaily Usage:`);
                     console.log('─'.repeat(50));
                     console.log(`${'Date'.padEnd(12)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)}`);
                     console.log('─'.repeat(50));
@@ -286,7 +312,7 @@ function createUsageCommand() {
                 // Show cost aggregation by model
                 const byModel = (0, cost_1.aggregateCostsByModel)(costHistory);
                 if (byModel.size > 0) {
-                    console.log(`\nUsage by Model:`);
+                    utils_1.logger.info('budget', `\nUsage by Model:`);
                     console.log('─'.repeat(50));
                     console.log(`${'Model'.padEnd(25)} ${'Cost'.padStart(12)} ${'Requests'.padStart(10)}`);
                     console.log('─'.repeat(50));
@@ -299,7 +325,7 @@ function createUsageCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to get budget usage', { error });
+            utils_1.logger.error('budget', 'Failed to get budget usage', { error: String(error) });
             process.exit(1);
         }
     });
@@ -322,7 +348,7 @@ function createAlertCommand() {
         .action(async (options) => {
         try {
             if (!options.webhook && !options.email && !options.sms) {
-                console.error('Error: Must specify at least one notification method (--webhook, --email, or --sms)');
+                utils_1.logger.error('budget', 'Error: Must specify at least one notification method (--webhook, --email, or --sms)');
                 process.exit(1);
             }
             const alert = (0, budget_1.addBudgetAlert)(options.project, options.threshold, {
@@ -341,7 +367,7 @@ function createAlertCommand() {
                 console.log(`   SMS: ${options.sms}`);
         }
         catch (error) {
-            utils_1.logger.error('Failed to add alert', { error });
+            utils_1.logger.error('budget', 'Failed to add alert', { error: String(error) });
             process.exit(1);
         }
     }));
@@ -361,7 +387,7 @@ function createAlertCommand() {
                     console.log(`\nBUDGET ALERTS: ${options.project}`);
                     console.log('═'.repeat(60));
                     if (alerts.length === 0) {
-                        console.log('No alerts configured');
+                        utils_1.logger.info('budget', 'No alerts configured');
                     }
                     else {
                         console.log(`${'ID'.padEnd(25)} ${'Threshold'.padStart(10)} ${'Type'.padStart(15)}`);
@@ -376,11 +402,11 @@ function createAlertCommand() {
                 }
             }
             else {
-                console.log('Please specify --project to list alerts');
+                utils_1.logger.info('budget', 'Please specify --project to list alerts');
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to list alerts', { error });
+            utils_1.logger.error('budget', 'Failed to list alerts', { error: String(error) });
             process.exit(1);
         }
     }));
@@ -401,7 +427,7 @@ function createAlertCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to remove alert', { error });
+            utils_1.logger.error('budget', 'Failed to remove alert', { error: String(error) });
             process.exit(1);
         }
     }));
@@ -443,7 +469,7 @@ function createHistoryCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to get budget history', { error });
+            utils_1.logger.error('budget', 'Failed to get budget history', { error: String(error) });
             process.exit(1);
         }
     });
@@ -489,7 +515,7 @@ function createReportCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to generate report', { error });
+            utils_1.logger.error('budget', 'Failed to generate report', { error: String(error) });
             process.exit(1);
         }
     });
@@ -511,10 +537,10 @@ function createBlockedCommand() {
                 console.log(JSON.stringify(blocked, null, 2));
             }
             else {
-                console.log(`\nBLOCKED AGENTS`);
+                utils_1.logger.info('budget', `\nBLOCKED AGENTS`);
                 console.log('═'.repeat(70));
                 if (blocked.length === 0) {
-                    console.log('No blocked agents');
+                    utils_1.logger.info('budget', 'No blocked agents');
                 }
                 else {
                     console.log(`${'Agent'.padEnd(20)} ${'Blocked At'.padEnd(20)} ${'Threshold'.padStart(10)}`);
@@ -529,7 +555,7 @@ function createBlockedCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to list blocked agents', { error });
+            utils_1.logger.error('budget', 'Failed to list blocked agents', { error: String(error) });
             process.exit(1);
         }
     }));
@@ -548,7 +574,7 @@ function createBlockedCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to unblock agent', { error });
+            utils_1.logger.error('budget', 'Failed to unblock agent', { error: String(error) });
             process.exit(1);
         }
     }));
@@ -618,7 +644,7 @@ function createDashboardCommand() {
             }
         }
         catch (error) {
-            utils_1.logger.error('Failed to show dashboard', { error });
+            utils_1.logger.error('budget', 'Failed to show dashboard', { error: String(error) });
             process.exit(1);
         }
     });

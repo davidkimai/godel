@@ -5,8 +5,8 @@
  */
 
 // Logger
-export { logger, createLogger, Logger } from './logger';
-export type { LogEntry, LogLevel } from './logger';
+export { logger, Logger, LogLevel, LogLevelEnum } from './logger';
+export type { LogEntry, LogLevelString } from './logger';
 
 // Cache
 export { LRUCache, memoize } from './cache';

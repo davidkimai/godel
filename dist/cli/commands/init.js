@@ -13,6 +13,7 @@ exports.CONFIG_FILE = exports.DASH_DIR = void 0;
 exports.registerInitCommand = registerInitCommand;
 exports.loadConfig = loadConfig;
 exports.saveConfig = saveConfig;
+const utils_1 = require("../../utils");
 const fs_1 = require("fs");
 const os_1 = require("os");
 const path_1 = require("path");
@@ -63,7 +64,7 @@ function registerInitCommand(program) {
             if (options.budget) {
                 const budget = parseFloat(options.budget);
                 if (isNaN(budget) || budget < 0 || budget > 100000) {
-                    console.error('❌ Invalid budget. Must be between 0 and 100000 USD.');
+                    utils_1.logger.error('init', '❌ Invalid budget. Must be between 0 and 100000 USD.');
                     process.exit(1);
                 }
             }
@@ -108,8 +109,8 @@ function registerInitCommand(program) {
                 }
             }
             // Success message
-            console.log('\n🎉 Dash initialized successfully!\n');
-            console.log('Configuration:');
+            utils_1.logger.info('init', '\n🎉 Dash initialized successfully!\n');
+            utils_1.logger.info('init', 'Configuration:');
             console.log(`  API URL:    ${config.apiUrl}`);
             console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
             console.log(`  Model:      ${config.defaultModel}`);
@@ -118,7 +119,7 @@ function registerInitCommand(program) {
                 console.log(`  Budget:     $${config.budgetLimit} USD`);
             }
             console.log(`  Log Level:  ${config.logLevel}`);
-            console.log('\nNext steps:');
+            utils_1.logger.info('init', '\nNext steps:');
             console.log('  1. Set DASH_API_KEY environment variable:');
             console.log(`     export DASH_API_KEY=${config.apiKey}`);
             console.log('  2. Start the Dash API server:');
@@ -139,7 +140,7 @@ function registerInitCommand(program) {
         try {
             const config = loadConfig();
             if (!config) {
-                console.error('❌ Dash is not initialized.');
+                utils_1.logger.error('init', '❌ Dash is not initialized.');
                 console.log('   Run "dash init" first.\n');
                 process.exit(1);
             }

@@ -10,6 +10,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 import { getGlobalSwarmManager, type SwarmConfig, type SwarmStrategy } from '../../core/swarm';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus } from '../../bus/index';
@@ -93,7 +94,7 @@ export function registerSwarmCommand(program: Command): void {
         if (options.budget) {
           const budgetAmount = parseFloat(options.budget);
           if (isNaN(budgetAmount) || budgetAmount <= 0) {
-            console.error('❌ Invalid budget amount');
+            logger.error('swarm', '❌ Invalid budget amount');
             process.exit(2);
           }
           config.budget = {
@@ -132,7 +133,7 @@ export function registerSwarmCommand(program: Command): void {
         const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         if (!manager) {
-          console.error('❌ Failed to initialize swarm manager');
+          logger.error('swarm', '❌ Failed to initialize swarm manager');
           process.exit(1);
         }
 
@@ -211,7 +212,7 @@ export function registerSwarmCommand(program: Command): void {
       try {
         const target = parseInt(targetSize, 10);
         if (isNaN(target) || target < 0) {
-          console.error('❌ Invalid target size');
+          logger.error('swarm', '❌ Invalid target size');
           process.exit(2);
         }
 
@@ -283,20 +284,20 @@ export function registerSwarmCommand(program: Command): void {
           
           if (swarm.budget.allocated > 0) {
             const consumedPct = (swarm.budget.consumed / swarm.budget.allocated) * 100;
-            console.log(`\n   Budget:`);
+            logger.info('swarm', `\n   Budget:`);
             console.log(`     Allocated: $${swarm.budget.allocated.toFixed(2)}`);
             console.log(`     Consumed:  $${swarm.budget.consumed.toFixed(2)} (${consumedPct.toFixed(1)}%)`);
             console.log(`     Remaining: $${swarm.budget.remaining.toFixed(2)}`);
           }
 
-          console.log(`\n   Metrics:`);
+          logger.info('swarm', `\n   Metrics:`);
           console.log(`     Total:     ${swarm.metrics.totalAgents}`);
           console.log(`     Completed: ${swarm.metrics.completedAgents}`);
           console.log(`     Failed:    ${swarm.metrics.failedAgents}`);
 
           // Show agent list
           if (swarm.agents.length > 0) {
-            console.log(`\n   Agent List:`);
+            logger.info('swarm', `\n   Agent List:`);
             const agentStates = manager.getSwarmAgents(swarmId);
             for (const state of agentStates.slice(0, 10)) {
               console.log(`     • ${state.id.slice(0, 16)}... ${getStatusEmoji(state.status)} ${state.status}`);

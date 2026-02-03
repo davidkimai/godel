@@ -43,6 +43,7 @@ import {
   ImprovementEntry,
   getImprovementStore,
 } from '../integrations/openclaw/ImprovementStore';
+import { logger } from '../utils';
 
 export interface ImprovementResult {
   success: boolean;
@@ -133,7 +134,7 @@ async function updateAgentStatus(agentId: string, status: string): Promise<void>
 }
 
 async function killAgent(agentId: string, reason: string): Promise<void> {
-  console.log(`[Orchestrator] Killing agent ${agentId}: ${reason}`);
+  logger.info('self-improvement/orchestrator', 'Killing agent', { agentId, reason });
   await updateAgentStatus(agentId, 'killed');
   
   // TODO: Also kill via OpenClaw gateway if session key exists
@@ -174,7 +175,7 @@ async function fetchOpenClawSessionHistory(sessionKey: string): Promise<SessionH
     const data = await response.json();
     return data.history || [];
   } catch (error) {
-    console.error(`[Orchestrator] Failed to fetch session history for ${sessionKey}:`, error);
+    logger.error('self-improvement/orchestrator', 'Failed to fetch session history', { sessionKey, error: String(error) });
     return [];
   }
 }
@@ -219,7 +220,7 @@ async function spawnOpenClawAgent(
 
     return await response.json();
   } catch (error) {
-    console.error('[Orchestrator] Failed to spawn OpenClaw agent:', error);
+    logger.error('self-improvement/orchestrator', 'Failed to spawn OpenClaw agent', { error: String(error) });
     throw error;
   }
 }
@@ -242,7 +243,7 @@ async function initializeBudgetTracking(storage: SQLiteStorage): Promise<BudgetT
 
   // Set up alert handler for budget warnings
   budgetTracker.onAlert((alert: BudgetAlert) => {
-    console.log(`[Budget Alert] ${alert.type.toUpperCase()}: ${alert.message}`);
+    logger.warn('self-improvement/orchestrator', 'Budget alert triggered', { type: alert.type, message: alert.message });
     
     // Record budget events
     recordEvent('budget_alert', {
@@ -255,7 +256,7 @@ async function initializeBudgetTracking(storage: SQLiteStorage): Promise<BudgetT
     });
   });
 
-  console.log('[Orchestrator] Budget tracking initialized');
+  logger.info('self-improvement/orchestrator', 'Budget tracking initialized');
   return budgetTracker;
 }
 
@@ -299,7 +300,7 @@ async function trackAgentUsage(
     
     return status;
   } catch (error) {
-    console.error(`[Orchestrator] Failed to track usage for ${agentId}:`, error);
+    logger.error('self-improvement/orchestrator', 'Failed to track usage', { agentId, error: String(error) });
     return null;
   }
 }
@@ -323,18 +324,18 @@ async function pollAgentUsage(
           );
 
           if (status) {
-            console.log(`[Orchestrator] Agent ${agent.agentId}: $${status.totalSpent.toFixed(2)} / $${status.budgetLimit.toFixed(2)} (${(status.percentUsed * 100).toFixed(1)}%)`);
+            logger.info('self-improvement/orchestrator', 'Agent budget status', { agentId: agent.agentId, totalSpent: status.totalSpent, budgetLimit: status.budgetLimit, percentUsed: status.percentUsed });
             
             if (status.isWarning) {
-              console.log(`⚠️ Agent ${agent.agentId} approaching budget limit`);
+              logger.warn('self-improvement/orchestrator', 'Agent approaching budget limit', { agentId: agent.agentId });
             }
           }
         } catch (error) {
           if (error instanceof BudgetExceededError) {
-            console.log(`🚫 Agent ${agent.agentId} exceeded budget`);
+            logger.error('self-improvement/orchestrator', 'Agent exceeded budget', { agentId: agent.agentId });
             agent.status = 'killed';
           } else {
-            console.error(`[Orchestrator] Error polling agent ${agent.agentId}:`, error);
+            logger.error('self-improvement/orchestrator', 'Error polling agent', { agentId: agent.agentId, error: String(error) });
           }
         }
       }
@@ -366,9 +367,9 @@ export interface SelfImprovementSession {
 }
 
 export async function startSelfImprovementSession(): Promise<SelfImprovementSession> {
-  console.log('🚀 Starting Dash Self-Improvement Session');
-  console.log(`   Budget: $${SELF_IMPROVEMENT_CONFIG.maxBudgetUSD}`);
-  console.log(`   Max tokens per agent: ${SELF_IMPROVEMENT_CONFIG.maxTokensPerAgent}`);
+  logger.info('self-improvement/orchestrator', 'Starting Dash Self-Improvement Session');
+  logger.info('self-improvement/orchestrator', 'Budget configuration', { maxBudgetUSD: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD });
+  logger.info('self-improvement/orchestrator', 'Max tokens configuration', { maxTokensPerAgent: SELF_IMPROVEMENT_CONFIG.maxTokensPerAgent });
   
   // Initialize database and budget tracking
   const storage = await getDb({ dbPath: './dash.db' });
@@ -401,8 +402,8 @@ export async function startSelfImprovementSession(): Promise<SelfImprovementSess
     lastImprovementTime: new Date()
   };
   
-  console.log('[Orchestrator] Learning Engine initialized');
-  console.log('[Orchestrator] Improvement Store initialized');
+  logger.info('self-improvement/orchestrator', 'Learning Engine initialized');
+  logger.info('self-improvement/orchestrator', 'Improvement Store initialized');
   
   return { state, budgetTracker, learningEngine, improvementStore };
 }
@@ -417,7 +418,7 @@ export async function runImprovementCycle(
   const swarmConfig = SELF_IMPROVEMENT_SWARMS[area];
   const cycleStartTime = Date.now();
   
-  console.log(`\n📊 Running ${area} improvement cycle...`);
+  logger.info('self-improvement/orchestrator', 'Running improvement cycle', { area });
   
   // Get strategy recommendations if learning engine is available
   let recommendedStrategy: string | undefined;
@@ -425,7 +426,7 @@ export async function runImprovementCycle(
     const recommendations = await learningEngine.recommendStrategies(area, 1);
     if (recommendations.length > 0) {
       recommendedStrategy = recommendations[0].strategy;
-      console.log(`   💡 Recommended strategy: ${recommendedStrategy} (${(recommendations[0].predictedSuccessRate * 100).toFixed(0)}% predicted success)`);
+      logger.info('self-improvement/orchestrator', 'Strategy recommendation', { recommendedStrategy, predictedSuccessRate: recommendations[0].predictedSuccessRate });
     }
   }
   
@@ -451,7 +452,7 @@ export async function runImprovementCycle(
     });
     
     state.swarmId = swarm.id;
-    console.log(`   Created swarm: ${swarm.id}`);
+    logger.info('self-improvement/orchestrator', 'Swarm created', { swarmId: swarm.id });
 
     // Register swarm budget
     await budgetTracker.registerSwarm(swarm.id, {
@@ -464,13 +465,13 @@ export async function runImprovementCycle(
       // Check swarm budget first
       const swarmStatus = await budgetTracker.checkSwarm(swarm.id);
       if (swarmStatus.remaining < agentConfig.budgetLimit) {
-        console.log(`   ⚠️  Skipping ${agentConfig.role} - swarm budget exceeded`);
+        logger.warn('self-improvement/orchestrator', 'Skipping agent - swarm budget exceeded', { role: agentConfig.role });
         continue;
       }
 
       // Check global budget
       if (state.totalBudgetUsed + agentConfig.budgetLimit > SELF_IMPROVEMENT_CONFIG.maxBudgetUSD) {
-        console.log(`   ⚠️  Skipping ${agentConfig.role} - global budget exceeded`);
+        logger.warn('self-improvement/orchestrator', 'Skipping agent - global budget exceeded', { role: agentConfig.role });
         continue;
       }
       
@@ -512,16 +513,16 @@ export async function runImprovementCycle(
         // Track tools used
         toolsUsed.push('read', 'write', 'edit', 'exec');
         
-        console.log(`   ✅ Spawned ${agentConfig.role} (OpenClaw: ${openClawSession.sessionKey})`);
+        logger.info('self-improvement/orchestrator', 'Agent spawned', { role: agentConfig.role, sessionKey: openClawSession.sessionKey });
       } catch (error) {
         const errorMsg = `Failed to spawn ${agentConfig.role}: ${error}`;
-        console.log(`   ❌ ${errorMsg}`);
+        logger.error('self-improvement/orchestrator', 'Error spawning agent', { error: errorMsg });
         result.errors.push(errorMsg);
       }
     }
     
     // Poll agent usage during execution
-    console.log(`   📋 Agents running: ${agents.length}`);
+    logger.info('self-improvement/orchestrator', 'Agents running', { count: agents.length });
     
     // Start polling usage (runs in background)
     pollAgentUsage(budgetTracker, agents).catch(console.error);
@@ -553,7 +554,7 @@ export async function runImprovementCycle(
     
     const cycleDuration = Date.now() - cycleStartTime;
     
-    console.log(`   ✅ ${area} cycle complete: ${result.changes} agents, $${result.budgetUsed.toFixed(2)} used`);
+    logger.info('self-improvement/orchestrator', 'Improvement cycle complete', { area, changes: result.changes, budgetUsed: result.budgetUsed });
     
     // Record improvement to Learning Engine and Improvement Store
     if (learningEngine && improvementStore) {
@@ -607,12 +608,12 @@ export async function runImprovementCycle(
         tags: [area, strategy, result.success ? 'success' : 'failure'],
       });
       
-      console.log(`   📝 Recorded improvement to learning system`);
+      logger.info('self-improvement/orchestrator', 'Recorded improvement to learning system');
     }
     
   } catch (error) {
     const errorMsg = `Improvement cycle failed: ${error}`;
-    console.log(`   ❌ ${errorMsg}`);
+    logger.error('self-improvement/orchestrator', 'Error spawning agent', { error: errorMsg });
     result.errors.push(errorMsg);
   }
   
@@ -737,7 +738,7 @@ if (require.main === module) {
       // Run improvement cycles
       for (const area of ['codeQuality', 'documentation', 'testing'] as const) {
         if (state.totalBudgetUsed >= SELF_IMPROVEMENT_CONFIG.maxBudgetUSD) {
-          console.log(`\n⚠️  Budget exhausted, stopping improvements`);
+          logger.warn('self-improvement/orchestrator', 'Budget exhausted, stopping improvements');
           break;
         }
         
@@ -751,7 +752,7 @@ if (require.main === module) {
         
         // Stop if budget exceeded
         if (state.totalBudgetUsed >= SELF_IMPROVEMENT_CONFIG.maxBudgetUSD) {
-          console.log(`\n⚠️  Budget exhausted after ${area}`);
+          logger.warn('self-improvement/orchestrator', 'Budget exhausted', { area });
           break;
         }
       }
@@ -763,12 +764,12 @@ if (require.main === module) {
         learningEngine,
         improvementStore
       );
-      console.log(report);
+      logger.info('self-improvement/orchestrator', 'Self-improvement report', { report });
       
       // Print learning loop report
       if (learningEngine) {
         const learningReport = await learningEngine.getLearningReport();
-        console.log(learningReport);
+        logger.info('self-improvement/orchestrator', 'Learning report', { learningReport });
       }
       
       // Record completion
@@ -783,8 +784,8 @@ if (require.main === module) {
         clearInterval((global as any).__budgetPollInterval);
       }
       
-      console.log('\n✅ Self-improvement session complete');
-      console.log('Learning data accumulated and available for future cycles');
+      logger.info('self-improvement/orchestrator', 'Self-improvement session complete');
+      logger.info('self-improvement/orchestrator', 'Learning data accumulated');
       
     } catch (error) {
       console.error('Self-improvement failed:', error);

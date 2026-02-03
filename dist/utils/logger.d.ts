@@ -4,23 +4,33 @@
  * Provides structured logging with configurable log levels and output formats.
  * Replaces console.* calls throughout the codebase with consistent, structured output.
  */
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export declare enum LogLevel {
+    DEBUG = 0,
+    INFO = 1,
+    WARN = 2,
+    ERROR = 3
+}
 export interface LogEntry {
     timestamp: string;
     level: LogLevel;
+    module: string;
     message: string;
-    context?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
+export type LogLevelString = 'debug' | 'info' | 'warn' | 'error';
 /**
  * Logger class providing structured logging capabilities
  */
 export declare class Logger {
     private level;
     private format;
+    private logFilePath?;
+    private fileStream?;
+    constructor();
     /**
      * Set the minimum log level
      */
-    setLevel(level: LogLevel): void;
+    setLevel(level: LogLevelString): void;
     /**
      * Set the output format
      */
@@ -28,7 +38,7 @@ export declare class Logger {
     /**
      * Get current log level
      */
-    getLevel(): LogLevel;
+    getLevel(): LogLevelString;
     /**
      * Get current format
      */
@@ -46,22 +56,42 @@ export declare class Logger {
      */
     private formatEntry;
     /**
-     * Log a debug message
+     * Output log entry to console and file
      */
-    debug(message: string, context?: Record<string, unknown>): void;
+    private output;
+    /**
+     * Log a debug message
+     * Supports both signatures:
+     * - debug(module, message, metadata?)
+     * - debug(message, metadata?) [backwards compatible, uses 'app' as module]
+     */
+    debug(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void;
     /**
      * Log an info message
+     * Supports both signatures:
+     * - info(module, message, metadata?)
+     * - info(message, metadata?) [backwards compatible, uses 'app' as module]
      */
-    info(message: string, context?: Record<string, unknown>): void;
+    info(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void;
     /**
      * Log a warning message
+     * Supports both signatures:
+     * - warn(module, message, metadata?)
+     * - warn(message, metadata?) [backwards compatible, uses 'app' as module]
      */
-    warn(message: string, context?: Record<string, unknown>): void;
+    warn(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void;
     /**
      * Log an error message
+     * Supports both signatures:
+     * - error(module, message, metadata?)
+     * - error(message, metadata?) [backwards compatible, uses 'app' as module]
      */
-    error(message: string, context?: Record<string, unknown>): void;
+    error(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void;
+    /**
+     * Close the logger and flush file stream
+     */
+    close(): void;
 }
 export declare const logger: Logger;
-export declare function createLogger(baseContext: Record<string, unknown>): Logger;
+export { LogLevel as LogLevelEnum };
 //# sourceMappingURL=logger.d.ts.map

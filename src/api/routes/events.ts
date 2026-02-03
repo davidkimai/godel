@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import type { Server as WebSocketServer } from 'ws';
 import { EventRepository, type EventFilter } from '../../storage/repositories/EventRepository';
+import { logger } from '../../utils';
 
 const router = Router();
 
@@ -78,7 +79,7 @@ router.get('/stream', (req: Request, res: Response) => {
 // WebSocket handler setup
 export function setupWebSocketEvents(wss: WebSocketServer): void {
   wss.on('connection', (ws, req) => {
-    console.log('WebSocket client connected for events');
+    logger.info('api/routes/events', 'WebSocket client connected for events');
     
     // Send welcome message
     ws.send(JSON.stringify({
@@ -93,7 +94,7 @@ export function setupWebSocketEvents(wss: WebSocketServer): void {
         
         if (message.action === 'subscribe') {
           // Client wants to subscribe to specific events
-          console.log('Client subscribed to:', message.events);
+          logger.info('api/routes/events', 'Client subscribed to events', { events: message.events });
         }
       } catch {
         // Invalid message, ignore
@@ -101,11 +102,11 @@ export function setupWebSocketEvents(wss: WebSocketServer): void {
     });
     
     ws.on('close', () => {
-      console.log('WebSocket client disconnected');
+      logger.info('api/routes/events', 'WebSocket client disconnected');
     });
     
     ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
+      logger.error('api/routes/events', 'WebSocket error', { error: String(error) });
     });
   });
 }

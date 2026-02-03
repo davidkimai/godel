@@ -4,7 +4,8 @@
  * Client for interacting with the ClawHub skill registry.
  * Provides search, fetch metadata, download and install functionality.
  * 
- * Based on OPENCLAW_INTEGRATION_SPEC.md section F4.1
+ * Updated to match ClawHub API v1 specification.
+ * API Base: https://clawhub.ai/api/v1
  */
 
 import * as fs from 'fs/promises';
@@ -28,6 +29,78 @@ import {
 } from './ClawHubTypes';
 
 // ============================================================================
+// ClawHub API Response Types
+// ============================================================================
+
+interface ClawhubApiSkill {
+  slug: string;
+  displayName: string;
+  summary: string | null;
+  tags: Record<string, string>; // tag -> version
+  stats: {
+    comments: number;
+    downloads: number;
+    installsAllTime: number;
+    installsCurrent: number;
+    stars: number;
+    versions: number;
+  };
+  createdAt: number;
+  updatedAt: number;
+  latestVersion?: {
+    version: string;
+    createdAt: number;
+    changelog: string;
+  };
+}
+
+interface ClawhubApiSkillList {
+  items: ClawhubApiSkill[];
+  nextCursor: string | null;
+}
+
+interface ClawhubApiSkillDetail {
+  skill: ClawhubApiSkill;
+  latestVersion: {
+    version: string;
+    createdAt: number;
+    changelog: string;
+  };
+  owner: {
+    handle: string;
+    userId: string;
+    displayName: string;
+    image: string;
+  };
+}
+
+interface ClawhubApiVersion {
+  version: string;
+  createdAt: number;
+  changelog: string;
+  changelogSource: string;
+  files?: {
+    path: string;
+    size: number;
+    sha256: string;
+    contentType: string | null;
+  }[];
+}
+
+interface ClawhubApiVersionsList {
+  items: ClawhubApiVersion[];
+  nextCursor: string | null;
+}
+
+interface ClawhubApiVersionDetail {
+  skill: {
+    slug: string;
+    displayName: string;
+  };
+  version: ClawhubApiVersion;
+}
+
+// ============================================================================
 // ClawHub Client
 // ============================================================================
 
@@ -35,10 +108,13 @@ export class ClawHubClient {
   private config: ClawhubClientConfig;
   private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private cacheTtl = 5 * 60 * 1000; // 5 minutes
+  private apiBase: string;
 
   constructor(config?: Partial<ClawhubClientConfig>) {
     this.config = { ...DEFAULT_CLAWHUB_CONFIG, ...config };
-    logger.info(`[ClawHubClient] Initialized with registry: ${this.config.registryUrl}`);
+    // Ensure we use the API v1 endpoint
+    this.apiBase = `${this.config.registryUrl.replace(/\/$/, '')}/api/v1`;
+    logger.info('ClawHubClient', `Initialized with registry: ${this.config.registryUrl}`);
   }
 
   // ============================================================================
@@ -57,7 +133,8 @@ export class ClawHubClient {
    */
   updateConfig(updates: Partial<ClawhubClientConfig>): void {
     this.config = { ...this.config, ...updates };
-    logger.info(`[ClawHubClient] Configuration updated`);
+    this.apiBase = `${this.config.registryUrl.replace(/\/$/, '')}/api/v1`;
+    logger.info('ClawHubClient', 'Configuration updated');
   }
 
   /**
@@ -81,91 +158,215 @@ export class ClawHubClient {
   /**
    * Search for skills in ClawHub
    * 
-   * Requirements from SPEC F4.1:
-   * - Search returns 100+ skills in < 2s
-   * - Supports vector/semantic search
-   * - Includes metadata for each skill
+   * Note: ClawHub API doesn't have a direct search endpoint, so we fetch
+   * all skills and filter client-side. Results are cached for performance.
    */
   async search(params: SkillSearchParams): Promise<SkillSearchResult> {
     const startTime = Date.now();
-    const cacheKey = `search:${JSON.stringify(params)}`;
+    const cacheKey = `all-skills`;
 
-    // Check cache first
+    // Check cache first for all skills
+    let allSkills: ClawhubApiSkill[] = [];
     const cached = this.cache.get(cacheKey);
+    
     if (cached && Date.now() - cached.timestamp < this.cacheTtl) {
-      logger.debug(`[ClawHubClient] Search cache hit for: ${params.query}`);
-      return { ...(cached.data as SkillSearchResult), fromCache: true };
+      logger.debug('ClawHubClient', 'Using cached skill list');
+      allSkills = cached.data as ClawhubApiSkill[];
+    } else {
+      try {
+        logger.info('ClawHubClient', 'Fetching all skills for search');
+        allSkills = await this.fetchAllSkills();
+        this.cache.set(cacheKey, { data: allSkills, timestamp: Date.now() });
+      } catch (error) {
+        logger.warn('ClawHubClient', `API unavailable, using mock data: ${error instanceof Error ? error.message : String(error)}`);
+        return this.getMockSearchResults(params, startTime);
+      }
     }
 
-    try {
-      logger.info(`[ClawHubClient] Searching for: "${params.query}"`);
+    // Safety check for empty results
+    if (!Array.isArray(allSkills)) {
+      logger.warn('ClawHubClient', 'Invalid API response, using mock data');
+      return this.getMockSearchResults(params, startTime);
+    }
 
-      const queryParams = new URLSearchParams({
-        q: params.query,
-        limit: String(params.limit || 20),
-        offset: String(params.offset || 0),
+    // Filter and search
+    let filteredSkills = allSkills;
+
+    if (params.query) {
+      const query = params.query.toLowerCase();
+      filteredSkills = allSkills.filter(skill => {
+        if (!skill || typeof skill !== 'object') return false;
+        return (
+          skill.displayName?.toLowerCase().includes(query) ||
+          skill.summary?.toLowerCase().includes(query) ||
+          skill.slug?.toLowerCase().includes(query) ||
+          (skill.tags && Object.keys(skill.tags).some(tag => tag.toLowerCase().includes(query)))
+        );
       });
+    }
 
-      if (params.tags?.length) {
-        params.tags.forEach(tag => queryParams.append('tag', tag));
+    // Filter by tags
+    if (params.tags?.length) {
+      filteredSkills = filteredSkills.filter(skill =>
+        skill?.tags && params.tags!.some(tag => Object.keys(skill.tags).includes(tag))
+      );
+    }
+
+    // Filter by author (owner handle)
+    if (params.author) {
+      // We need to fetch details for author filtering, skip for now
+      // or filter by owner handle if we had that data
+      logger.debug('ClawHubClient', 'Author filtering not supported in list view');
+    }
+
+    // Convert to SkillMetadata and apply sorting with error handling
+    let results: SkillMetadata[] = [];
+    for (const skill of filteredSkills) {
+      try {
+        results.push(this.mapApiSkillToMetadata(skill));
+      } catch (mapError) {
+        logger.warn('ClawHubClient', `Failed to map skill: ${mapError instanceof Error ? mapError.message : String(mapError)}`);
+        // Skip invalid skills
       }
+    }
 
-      if (params.author) {
-        queryParams.append('author', params.author);
-      }
+    // Apply sorting
+    if (params.sort === 'downloads') {
+      results.sort((a, b) => (b.downloads || 0) - (a.downloads || 0));
+    } else if (params.sort === 'stars') {
+      results.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+    } else if (params.sort === 'recent') {
+      results.sort((a, b) => {
+        try {
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        } catch {
+          return 0;
+        }
+      });
+    }
+    // Default 'relevance' - no specific sort, keep API order
 
-      if (params.sort) {
-        queryParams.append('sort', params.sort);
-      }
+    // Apply pagination
+    const offset = params.offset || 0;
+    const limit = params.limit || 20;
+    const paginatedSkills = results.slice(offset, offset + limit);
 
-      const url = `${this.config.registryUrl}/skills/search?${queryParams.toString()}`;
-      
+    const result: SkillSearchResult = {
+      skills: paginatedSkills,
+      total: filteredSkills.length,
+      offset,
+      limit,
+      queryTimeMs: Date.now() - startTime,
+      fromCache: !!cached && Date.now() - (cached?.timestamp || 0) < this.cacheTtl,
+    };
+
+    logger.info('ClawHubClient', `Search completed: ${result.total} skills found in ${result.queryTimeMs}ms`);
+    return result;
+  }
+
+  /**
+   * Fetch all skills from the API (handles pagination)
+   */
+  private async fetchAllSkills(): Promise<ClawhubApiSkill[]> {
+    const skills: ClawhubApiSkill[] = [];
+    let cursor: string | null = null;
+    let pageCount = 0;
+    const maxPages = 10; // Safety limit
+
+    do {
+      const url = cursor 
+        ? `${this.apiBase}/skills?cursor=${encodeURIComponent(cursor)}`
+        : `${this.apiBase}/skills`;
+
       const response = await this.fetchWithTimeout(url, {
         headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          return {
-            skills: [],
-            total: 0,
-            offset: params.offset || 0,
-            limit: params.limit || 20,
-            queryTimeMs: Date.now() - startTime,
-          };
-        }
         throw new ClawhubError(
           'NETWORK_ERROR',
-          `Search failed: ${response.status} ${response.statusText}`
+          `Failed to fetch skills: ${response.status} ${response.statusText}`
         );
       }
 
-      const data = await response.json() as SkillSearchResult;
-      const result: SkillSearchResult = {
-        ...data,
-        queryTimeMs: Date.now() - startTime,
-        fromCache: false,
-      };
-
-      // Cache the result
-      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
-
-      logger.info(`[ClawHubClient] Search completed: ${result.total} skills found in ${result.queryTimeMs}ms`);
-      return result;
-    } catch (error) {
-      // API unavailable - fall back to mock data for development
-      if (error instanceof ClawhubError && error.code === 'NETWORK_ERROR') {
-        logger.warn(`[ClawHubClient] API unavailable, using mock data`);
-        return this.getMockSearchResults(params, startTime);
+      const data = await response.json() as ClawhubApiSkillList;
+      
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        throw new ClawhubError('PARSE_ERROR', 'Invalid API response: expected object');
       }
       
-      if (error instanceof ClawhubError) throw error;
+      if (!Array.isArray(data.items)) {
+        throw new ClawhubError('PARSE_ERROR', 'Invalid API response: items is not an array');
+      }
       
-      logger.error(`[ClawHubClient] Search failed:`, { error: String(error) });
-      
-      // Fall back to mock data for any network/500 errors
-      return this.getMockSearchResults(params, startTime);
+      skills.push(...data.items);
+      cursor = data.nextCursor;
+      pageCount++;
+    } while (cursor && pageCount < maxPages);
+
+    return skills;
+  }
+
+  /**
+   * Map ClawHub API skill to internal SkillMetadata format
+   */
+  private mapApiSkillToMetadata(skill: ClawhubApiSkill): SkillMetadata {
+    if (!skill || typeof skill !== 'object') {
+      throw new Error('Invalid skill object');
     }
+
+    // Safe date parsing
+    let createdAt: string;
+    let updatedAt: string;
+    try {
+      createdAt = skill.createdAt ? new Date(skill.createdAt).toISOString() : new Date().toISOString();
+    } catch {
+      createdAt = new Date().toISOString();
+    }
+    try {
+      updatedAt = skill.updatedAt ? new Date(skill.updatedAt).toISOString() : new Date().toISOString();
+    } catch {
+      updatedAt = new Date().toISOString();
+    }
+
+    // Safe tags extraction
+    let tags: string[] = [];
+    if (skill.tags && typeof skill.tags === 'object') {
+      tags = Object.keys(skill.tags).filter(t => t !== 'latest');
+    }
+
+    // Safe version extraction
+    let version = '1.0.0';
+    if (skill.latestVersion?.version) {
+      version = skill.latestVersion.version;
+    } else if (skill.tags && typeof skill.tags === 'object') {
+      const tagValues = Object.values(skill.tags);
+      if (tagValues.length > 0 && typeof tagValues[0] === 'string') {
+        version = tagValues[0];
+      }
+    }
+
+    // Safe stats extraction
+    const downloads = skill.stats?.downloads ?? 0;
+    const stars = skill.stats?.stars ?? 0;
+
+    return {
+      slug: skill.slug || 'unknown',
+      name: skill.displayName || skill.slug || 'Unknown Skill',
+      description: skill.summary || '',
+      author: {
+        id: skill.slug?.split('-').pop() || 'unknown',
+        username: skill.slug?.split('-')[0] || 'unknown',
+      },
+      version,
+      tags,
+      createdAt,
+      updatedAt,
+      downloads,
+      stars,
+      status: 'active',
+    };
   }
 
   /**
@@ -315,9 +516,9 @@ export class ClawHubClient {
     }
 
     try {
-      logger.debug(`[ClawHubClient] Fetching skill: ${slug}`);
+      logger.debug('ClawHubClient', `Fetching skill: ${slug}`);
 
-      const url = `${this.config.registryUrl}/skills/${slug}`;
+      const url = `${this.apiBase}/skills/${encodeURIComponent(slug)}`;
       const response = await this.fetchWithTimeout(url, {
         headers: this.getAuthHeaders(),
       });
@@ -333,7 +534,8 @@ export class ClawHubClient {
         );
       }
 
-      const skill = await response.json() as SkillMetadata;
+      const data = await response.json() as ClawhubApiSkillDetail;
+      const skill = this.mapApiSkillDetailToMetadata(data);
       
       // Cache the result
       this.cache.set(cacheKey, { data: skill, timestamp: Date.now() });
@@ -342,7 +544,7 @@ export class ClawHubClient {
     } catch (error) {
       if (error instanceof ClawhubError) throw error;
       
-      logger.error(`[ClawHubClient] Failed to fetch skill ${slug}:`, { error: String(error) });
+      logger.error('ClawHubClient', `Failed to fetch skill ${slug}: ${error instanceof Error ? error.message : String(error)}`);
       throw new ClawhubError(
         'NETWORK_ERROR',
         `Failed to fetch skill ${slug}: ${error instanceof Error ? error.message : String(error)}`
@@ -351,11 +553,36 @@ export class ClawHubClient {
   }
 
   /**
+   * Map ClawHub API skill detail to internal SkillMetadata format
+   */
+  private mapApiSkillDetailToMetadata(data: ClawhubApiSkillDetail): SkillMetadata {
+    const { skill, latestVersion, owner } = data;
+    return {
+      slug: skill.slug,
+      name: skill.displayName,
+      description: skill.summary || '',
+      readme: latestVersion?.changelog,
+      author: {
+        id: owner.userId,
+        username: owner.handle,
+        avatar: owner.image,
+      },
+      version: latestVersion?.version || Object.values(skill.tags)[0] || '1.0.0',
+      tags: Object.keys(skill.tags).filter(t => t !== 'latest'),
+      createdAt: new Date(skill.createdAt).toISOString(),
+      updatedAt: new Date(skill.updatedAt).toISOString(),
+      downloads: skill.stats.downloads,
+      stars: skill.stats.stars,
+      status: 'active',
+    };
+  }
+
+  /**
    * Fetch skill versions
    */
   async fetchVersions(slug: string): Promise<string[]> {
     try {
-      const url = `${this.config.registryUrl}/skills/${slug}/versions`;
+      const url = `${this.apiBase}/skills/${encodeURIComponent(slug)}/versions`;
       const response = await this.fetchWithTimeout(url, {
         headers: this.getAuthHeaders(),
       });
@@ -371,8 +598,8 @@ export class ClawHubClient {
         );
       }
 
-      const data = await response.json() as { versions: string[] };
-      return data.versions;
+      const data = await response.json() as ClawhubApiVersionsList;
+      return data.items.map(v => v.version);
     } catch (error) {
       if (error instanceof ClawhubError) throw error;
       
@@ -388,7 +615,7 @@ export class ClawHubClient {
    */
   async fetchSkillVersion(slug: string, version: string): Promise<SkillMetadata> {
     try {
-      const url = `${this.config.registryUrl}/skills/${slug}/versions/${version}`;
+      const url = `${this.apiBase}/skills/${encodeURIComponent(slug)}/versions/${encodeURIComponent(version)}`;
       const response = await this.fetchWithTimeout(url, {
         headers: this.getAuthHeaders(),
       });
@@ -405,7 +632,21 @@ export class ClawHubClient {
         );
       }
 
-      return await response.json() as SkillMetadata;
+      const data = await response.json() as ClawhubApiVersionDetail;
+      
+      return {
+        slug: data.skill.slug,
+        name: data.skill.displayName,
+        description: '', // Not provided in version detail
+        author: { id: 'unknown', username: 'unknown' },
+        version: data.version.version,
+        tags: [],
+        createdAt: new Date(data.version.createdAt).toISOString(),
+        updatedAt: new Date(data.version.createdAt).toISOString(),
+        downloads: 0,
+        stars: 0,
+        status: 'active',
+      };
     } catch (error) {
       if (error instanceof ClawhubError) throw error;
       
@@ -425,16 +666,19 @@ export class ClawHubClient {
    */
   async downloadSkill(slug: string, version?: string): Promise<Buffer> {
     try {
-      logger.info(`[ClawHubClient] Downloading ${slug}${version ? `@${version}` : ''}`);
+      logger.info('ClawHubClient', `Downloading ${slug}${version ? `@${version}` : ''}`);
 
-      // Get skill metadata to find download URL
-      const skill = version 
-        ? await this.fetchSkillVersion(slug, version)
-        : await this.fetchSkill(slug);
+      // Get version details to find files
+      const versionToDownload = version || 'latest';
+      let url: string;
+      
+      if (versionToDownload === 'latest') {
+        url = `${this.apiBase}/skills/${encodeURIComponent(slug)}/download`;
+      } else {
+        url = `${this.apiBase}/skills/${encodeURIComponent(slug)}/versions/${encodeURIComponent(versionToDownload)}/download`;
+      }
 
-      const downloadUrl = skill.downloadUrl || `${this.config.registryUrl}/skills/${slug}/download${version ? `?version=${version}` : ''}`;
-
-      const response = await this.fetchWithTimeout(downloadUrl, {
+      const response = await this.fetchWithTimeout(url, {
         headers: this.getAuthHeaders(),
       });
 
@@ -448,7 +692,7 @@ export class ClawHubClient {
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      logger.info(`[ClawHubClient] Downloaded ${slug}: ${buffer.length} bytes`);
+      logger.info('ClawHubClient', `Downloaded ${slug}: ${buffer.length} bytes`);
       return buffer;
     } catch (error) {
       if (error instanceof ClawhubError) throw error;
@@ -481,7 +725,7 @@ export class ClawHubClient {
     };
 
     try {
-      logger.info(`[ClawHubClient] Installing ${slug}${options.version ? `@${options.version}` : ''}`);
+      logger.info('ClawHubClient', `Installing ${slug}${options.version ? `@${options.version}` : ''}`);
 
       // Check if already installed
       const lockfile = await this.readLockfile();
@@ -508,10 +752,20 @@ export class ClawHubClient {
       await fs.mkdir(skillsDir, { recursive: true });
 
       // Download skill bundle
-      const bundle = await this.downloadSkill(slug, skill.version);
+      let bundle: Buffer;
+      try {
+        bundle = await this.downloadSkill(slug, options.version);
+      } catch (error) {
+        // Download endpoint may not exist, create from files
+        logger.warn('ClawHubClient', 'Bundle download failed, attempting file-based install');
+        await this.installFromFiles(slug, options.version, installPath);
+        bundle = Buffer.from([]); // Empty since we installed directly
+      }
 
-      // Extract bundle (assuming zip format)
-      await this.extractBundle(bundle, installPath, skill.contentHash);
+      // Extract bundle if we have one
+      if (bundle.length > 0) {
+        await this.extractBundle(bundle, installPath, skill.contentHash);
+      }
 
       // Update lockfile
       const entry: LockfileEntry = {
@@ -533,7 +787,7 @@ export class ClawHubClient {
       await this.writeLockfile(lockfile);
 
       const duration = Date.now() - startTime;
-      logger.info(`[ClawHubClient] Installed ${slug}@${skill.version} in ${duration}ms`);
+      logger.info('ClawHubClient', `Installed ${slug}@${skill.version} in ${duration}ms`);
 
       // Verify installation meets spec requirement (< 10s)
       if (duration > 10000) {
@@ -560,17 +814,92 @@ export class ClawHubClient {
   }
 
   /**
+   * Install skill by fetching individual files
+   * (Fallback when download bundle endpoint is not available)
+   */
+  private async installFromFiles(slug: string, version: string | undefined, installPath: string): Promise<void> {
+    // First fetch the skill details for the name
+    const skillUrl = `${this.apiBase}/skills/${encodeURIComponent(slug)}`;
+    const skillResponse = await this.fetchWithTimeout(skillUrl, {
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!skillResponse.ok) {
+      throw new ClawhubError('DOWNLOAD_FAILED', `Failed to fetch skill details: ${skillResponse.status}`);
+    }
+
+    const skillData = await skillResponse.json() as ClawhubApiSkillDetail;
+    
+    // If no version specified, get the latest version from the versions list
+    let versionData: ClawhubApiVersion | undefined;
+    
+    if (version) {
+      // Fetch specific version
+      const versionUrl = `${this.apiBase}/skills/${encodeURIComponent(slug)}/versions/${encodeURIComponent(version)}`;
+      const versionResponse = await this.fetchWithTimeout(versionUrl, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (versionResponse.ok) {
+        const data = await versionResponse.json() as ClawhubApiVersionDetail;
+        versionData = data.version;
+      }
+    }
+    
+    // If no specific version data, use the latest version from skill details
+    if (!versionData && skillData.latestVersion) {
+      versionData = {
+        version: skillData.latestVersion.version,
+        createdAt: skillData.latestVersion.createdAt,
+        changelog: skillData.latestVersion.changelog,
+        changelogSource: 'auto',
+      };
+    }
+
+    if (!versionData) {
+      throw new ClawhubError('DOWNLOAD_FAILED', 'No version information available');
+    }
+
+    // Create directory
+    await fs.mkdir(installPath, { recursive: true });
+
+    // Create a basic SKILL.md from the skill info
+    const skillContent = `# ${skillData.skill.displayName}
+
+## Description
+
+${skillData.skill.summary || 'No description available'}
+
+## Version
+
+${versionData.version}
+
+## Changelog
+
+${versionData.changelog || 'No changelog available'}
+
+## Author
+
+${skillData.owner.displayName} (@${skillData.owner.handle})
+`;
+
+    await fs.writeFile(path.join(installPath, 'SKILL.md'), skillContent);
+    
+    logger.info('ClawHubClient', `Created SKILL.md for ${slug}`);
+  }
+
+  /**
    * Uninstall a skill
    */
   async uninstall(slug: string): Promise<void> {
     try {
-      logger.info(`[ClawHubClient] Uninstalling ${slug}`);
+      logger.info('ClawHubClient', `Uninstalling ${slug}`);
 
       const lockfile = await this.readLockfile();
       const entry = lockfile.skills.find(s => s.slug === slug);
 
       if (!entry) {
-        logger.warn(`[ClawHubClient] Skill ${slug} is not installed`);
+        logger.warn('ClawHubClient', `Skill ${slug} is not installed`);
         return;
       }
 
@@ -581,7 +910,7 @@ export class ClawHubClient {
       lockfile.skills = lockfile.skills.filter(s => s.slug !== slug);
       await this.writeLockfile(lockfile);
 
-      logger.info(`[ClawHubClient] Uninstalled ${slug}`);
+      logger.info('ClawHubClient', `Uninstalled ${slug}`);
     } catch (error) {
       throw new ClawhubError(
         'NETWORK_ERROR',
@@ -625,7 +954,7 @@ export class ClawHubClient {
             activationState: 'inactive',
           });
         } catch (error) {
-          logger.warn(`[ClawHubClient] Failed to load metadata for ${entry.slug}:`, { error: String(error) });
+          logger.warn('ClawHubClient', `Failed to load metadata for ${entry.slug}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
 

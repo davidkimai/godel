@@ -20,6 +20,7 @@ export interface OpenClawState {
   port?: number;
   connectedAt?: string;
   lastPing?: string;
+  fallbackReason?: string;
 }
 
 export interface MockSessionData {

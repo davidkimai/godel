@@ -3,6 +3,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 
 export function registerTestsCommand(program: Command): void {
   const tests = program
@@ -18,8 +19,8 @@ export function registerTestsCommand(program: Command): void {
     .action(async (pattern, options) => {
       console.log('🧪 Running tests...');
       if (pattern) console.log('Pattern:', pattern);
-      if (options.watch) console.log('Watch mode enabled');
-      if (options.coverage) console.log('Coverage enabled');
+      if (options.watch) logger.info('tests', 'Watch mode enabled');
+      if (options.coverage) logger.info('tests', 'Coverage enabled');
       console.log('✅ All tests passed');
     });
 
@@ -51,6 +52,6 @@ export function registerTestsCommand(program: Command): void {
     .action(async (pattern) => {
       console.log('👀 Watching tests...');
       if (pattern) console.log('Pattern:', pattern);
-      console.log('(Press Ctrl+C to stop)');
+      logger.info('tests', '(Press Ctrl+C to stop)');
     });
 }

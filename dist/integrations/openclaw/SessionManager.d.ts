@@ -7,6 +7,7 @@
  * @module integrations/openclaw/SessionManager
  */
 import { EventEmitter } from 'events';
+import { GatewayClient } from './GatewayClient';
 export interface GatewayConfig {
     host: string;
     port: number;
@@ -85,6 +86,8 @@ export interface SessionsHistoryResponse {
 export declare class SessionManager extends EventEmitter {
     private ws;
     private config;
+    private gatewayClient;
+    private useGatewayClient;
     private pendingRequests;
     private requestIdCounter;
     private reconnectAttempts;
@@ -92,7 +95,8 @@ export declare class SessionManager extends EventEmitter {
     private isShuttingDown;
     private eventHandlers;
     private activeSessions;
-    constructor(config?: Partial<GatewayConfig>);
+    constructor(config?: Partial<GatewayConfig>, gatewayClient?: GatewayClient);
+    private setupGatewayClientHandlers;
     /**
      * Connect to the OpenClaw Gateway
      */
@@ -184,7 +188,7 @@ export declare class SessionManager extends EventEmitter {
     offEvent(event: string, handler: (payload: unknown) => void): void;
     private sleep;
 }
-export declare function getGlobalSessionManager(config?: Partial<GatewayConfig>): SessionManager;
+export declare function getGlobalSessionManager(config?: Partial<GatewayConfig>, gatewayClient?: GatewayClient): SessionManager;
 export declare function resetGlobalSessionManager(): void;
 export default SessionManager;
 //# sourceMappingURL=SessionManager.d.ts.map

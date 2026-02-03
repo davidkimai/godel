@@ -3,6 +3,7 @@
  */
 
 import { Command } from 'commander';
+import { logger } from '../../utils';
 
 export function registerTasksCommand(program: Command): void {
   const tasks = program
@@ -18,7 +19,7 @@ export function registerTasksCommand(program: Command): void {
       console.log('📋 Listing tasks...');
       if (options.status) console.log('Status filter:', options.status);
       if (options.agent) console.log('Agent filter:', options.agent);
-      console.log('No tasks found');
+      logger.info('tasks', 'No tasks found');
     });
 
   tasks

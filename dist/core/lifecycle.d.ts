@@ -20,7 +20,7 @@ import { EventEmitter } from 'events';
 import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agent';
 import { AgentStorage } from '../storage/memory';
 import { MessageBus } from '../bus/index';
-import { OpenClawIntegration } from './openclaw';
+import { OpenClawCore } from './openclaw';
 export type LifecycleState = 'idle' | 'spawning' | 'running' | 'paused' | 'retrying' | 'completed' | 'failed' | 'escalated' | 'killed';
 export interface AgentState {
     id: string;
@@ -58,14 +58,14 @@ export declare class AgentLifecycle extends EventEmitter {
     private states;
     private storage;
     private messageBus;
-    private openclaw?;
+    private openclaw;
     private active;
     private retryDelays;
     private readonly DEFAULT_MAX_RETRIES;
     private readonly BASE_RETRY_DELAY;
     private mutexes;
     private creationMutex;
-    constructor(storage: AgentStorage, messageBus: MessageBus, openclaw?: OpenClawIntegration);
+    constructor(storage: AgentStorage, messageBus: MessageBus, openclaw: OpenClawCore);
     /**
      * RACE CONDITION FIX: Get or create a mutex for a specific agent
      */
@@ -80,13 +80,10 @@ export declare class AgentLifecycle extends EventEmitter {
      */
     private withAgentLock;
     /**
-     * Set the OpenClaw integration (for late binding)
-     */
-    setOpenClawIntegration(openclaw: OpenClawIntegration): void;
-    /**
      * Start the lifecycle manager
+     * Initializes OpenClaw core primitive as part of startup
      */
-    start(): void;
+    start(): Promise<void>;
     /**
      * Stop the lifecycle manager
      */
@@ -180,7 +177,7 @@ export declare class AgentLifecycle extends EventEmitter {
     private delay;
     private publishAgentEvent;
 }
-export declare function getGlobalLifecycle(storage?: AgentStorage, messageBus?: MessageBus, openclaw?: OpenClawIntegration): AgentLifecycle;
+export declare function getGlobalLifecycle(storage?: AgentStorage, messageBus?: MessageBus, openclaw?: OpenClawCore): AgentLifecycle;
 export declare function resetGlobalLifecycle(): void;
 export default AgentLifecycle;
 //# sourceMappingURL=lifecycle.d.ts.map

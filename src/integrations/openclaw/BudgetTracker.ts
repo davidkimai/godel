@@ -9,6 +9,7 @@
 
 import { UsageMetrics, TokenBreakdown } from './UsageCalculator';
 import { SQLiteStorage } from '../../storage/sqlite';
+import { logger } from '../../utils';
 
 // ============================================================================
 // Types
@@ -113,7 +114,7 @@ export class BudgetTracker {
       await this.storage.run(`CREATE INDEX IF NOT EXISTS idx_budgets_swarm ON openclaw_budgets(swarm_id)`);
       await this.storage.run(`CREATE INDEX IF NOT EXISTS idx_budgets_killed ON openclaw_budgets(killed)`);
     } catch (error) {
-      console.error('Failed to initialize budget tables:', error);
+      logger.error('BudgetTracker', 'Failed to initialize budget tables', { error: String(error) });
       throw error;
     }
   }
@@ -166,7 +167,7 @@ export class BudgetTracker {
       this.updateSwarmSummary(swarmId, config);
     }
 
-    console.log(`[BudgetTracker] Registered agent ${agentId} with budget $${budgetLimit.toFixed(2)}`);
+    logger.info('BudgetTracker', 'Registered agent with budget', { agentId, budgetLimit });
   }
 
   /**
@@ -188,7 +189,7 @@ export class BudgetTracker {
 
     this.swarmBudgets.set(swarmId, summary);
 
-    console.log(`[BudgetTracker] Registered swarm ${swarmId} with budget $${config.totalBudget.toFixed(2)}`);
+    logger.info('BudgetTracker', 'Registered swarm with budget', { swarmId, totalBudget: config.totalBudget });
   }
 
   // ========================================================================
@@ -344,7 +345,12 @@ export class BudgetTracker {
       timestamp: new Date(),
     };
 
-    console.log(`[BudgetTracker] ${alert.message}`);
+    logger.warn('BudgetTracker', 'Budget warning threshold reached', {
+      agentId,
+      percentUsed: status.percentUsed,
+      totalSpent: status.totalSpent,
+      budgetLimit: status.budgetLimit
+    });
     this.emitAlert(alert);
   }
 
@@ -374,7 +380,7 @@ export class BudgetTracker {
 
     // Kill the agent
     if (this.killHandler) {
-      console.log(`[BudgetTracker] Killing agent ${agentId} due to budget exhaustion`);
+      logger.info('BudgetTracker', 'Killing agent due to budget exhaustion', { agentId, totalSpent: status.totalSpent, budgetLimit: status.budgetLimit });
       await this.killHandler(agentId, `Budget exceeded: $${status.totalSpent.toFixed(2)} / $${status.budgetLimit.toFixed(2)}`);
       
       // Emit killed alert
@@ -389,7 +395,7 @@ export class BudgetTracker {
       };
       this.emitAlert(killedAlert);
     } else {
-      console.warn(`[BudgetTracker] No kill handler set for agent ${agentId}. Budget exceeded but agent not killed.`);
+      logger.warn('BudgetTracker', 'No kill handler set for agent. Budget exceeded but agent not killed.', { agentId, totalSpent: status.totalSpent, budgetLimit: status.budgetLimit });
     }
   }
 
@@ -509,7 +515,7 @@ export class BudgetTracker {
       try {
         handler(alert);
       } catch (error) {
-        console.error('Alert handler error:', error);
+        logger.error('BudgetTracker', 'Alert handler error', { error: String(error) });
       }
     }
   }
@@ -600,7 +606,7 @@ export class BudgetTracker {
     
     await this.storage.run(`DELETE FROM openclaw_budgets WHERE agent_id = ?`, agentId);
 
-    console.log(`[BudgetTracker] Unregistered agent ${agentId}`);
+    logger.info('BudgetTracker', 'Unregistered agent', { agentId });
   }
 
   /**
@@ -612,7 +618,7 @@ export class BudgetTracker {
     
     await this.storage.run('DELETE FROM openclaw_budgets');
     
-    console.log('[BudgetTracker] All budgets reset');
+    logger.info('BudgetTracker', 'All budgets reset');
   }
 }
 

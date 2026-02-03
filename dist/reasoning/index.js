@@ -83,14 +83,12 @@ function initReasoning(_agentId) {
     // Initialize empty traces and decisions
     // This is a no-op for in-memory storage
     // Can be extended for persistence
-    console.log(`Reasoning initialized for agent: ${_agentId}`);
 }
 /**
  * Get complete reasoning report for an agent
  */
 function getReasoningReport(agentId, taskId) {
     // taskId is reserved for future task-scoped reasoning reports
-    console.log(`Generating reasoning report for agent: ${agentId}${taskId ? ` (task: ${taskId})` : ''}`);
     return {
         traceStats: (0, traces_2.getTraceStats)(agentId),
         confidenceStats: (0, decisions_3.getConfidenceStats)(agentId),

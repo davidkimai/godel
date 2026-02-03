@@ -13,6 +13,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerAgentsCommand = registerAgentsCommand;
+const utils_1 = require("../../utils");
 const lifecycle_1 = require("../../core/lifecycle");
 const swarm_1 = require("../../core/swarm");
 const index_1 = require("../../bus/index");
@@ -127,7 +128,7 @@ function registerAgentsCommand(program) {
             const messageBus = (0, index_1.getGlobalBus)();
             const lifecycle = (0, lifecycle_1.getGlobalLifecycle)(memory_1.memoryStore.agents, messageBus);
             if (!lifecycle) {
-                console.error('❌ Failed to initialize agent lifecycle');
+                utils_1.logger.error('agents', '❌ Failed to initialize agent lifecycle');
                 process.exit(1);
             }
             lifecycle.start();
@@ -328,7 +329,7 @@ function registerAgentsCommand(program) {
             if (state.agent.childIds.length > 0) {
                 console.log(`   Children:     ${state.agent.childIds.length}`);
             }
-            console.log(`\n   Timestamps:`);
+            utils_1.logger.info('agents', `\n   Timestamps:`);
             console.log(`     Created:    ${state.createdAt.toISOString()}`);
             if (state.startedAt)
                 console.log(`     Started:    ${state.startedAt.toISOString()}`);
@@ -349,7 +350,7 @@ function registerAgentsCommand(program) {
                 console.log(`\n   Budget Limit: $${state.agent.budgetLimit.toFixed(2)} USD`);
             }
             if (options.logs) {
-                console.log(`\n   Recent Logs:`);
+                utils_1.logger.info('agents', `\n   Recent Logs:`);
                 console.log('   (Log retrieval not yet implemented)');
             }
         }
