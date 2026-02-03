@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/50</span>
+                <span class='fraction'>0/72</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/39</span>
+                <span class='fraction'>0/58</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/14</span>
             </div>
         
             
@@ -116,7 +116,19 @@
 <a name='L51'></a><a href='#L51'>51</a>
 <a name='L52'></a><a href='#L52'>52</a>
 <a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -142,6 +154,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -222,6 +246,18 @@ export type { MetricSnapshot, MetricsSummary, TimeSeriesPoint } from './metrics'
 // Verification
 <span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >V</span>erificationPipeline,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >v</span>erificationPipeline,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >q</span>uickVerify,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >g</span>etVerificationStatus </span>} from './verification';</span>
 export type { VerificationResult, VerificationDetail } from './verification';
+&nbsp;
+// Decision Engine - Tiered auto-approve swarms
+<span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >D</span>ecisionEngine,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >d</span>ecisionEngine,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >a</span>uthorizeSwarm,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >c</span>anAutoApprove,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >g</span>etAuthorizationStatus,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >A</span>uthorizationTier </span>} from './decision-engine';</span>
+export type { SwarmAuthorization, DecisionRequest } from './decision-engine';
+&nbsp;
+// Swarm Executor - Concurrent swarm execution
+<span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >S</span>warmExecutor,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >s</span>warmExecutor,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >e</span>xecuteSwarm,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >g</span>etSwarmStatus,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >g</span>etExecutionMetrics </span>} from './swarm-executor';</span>
+export type { SwarmExecutionContext, AgentExecutionResult, ExecutionMetrics } from './swarm-executor';
+&nbsp;
+// Bug Monitor - Recursive bug detection/fix
+<span class="cstat-no" title="statement not covered" >export { <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >B</span>ugMonitor,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >b</span>ugMonitor,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >r</span>eportBug,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >g</span>etBugDashboard,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >s</span>tartBugMonitoring,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >s</span>topBugMonitoring,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >B</span>ugSeverity,</span> <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >B</span>ugStatus </span>} from './bug-monitor';</span>
+export type { BugReport, BugMonitorConfig } from './bug-monitor';
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -229,7 +265,7 @@ export type { VerificationResult, VerificationDetail } from './verification';
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-03T01:41:25.912Z
+                at 2026-02-03T18:36:23.346Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
