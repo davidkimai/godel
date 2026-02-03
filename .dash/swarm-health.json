@@ -1,0 +1,67 @@
+{
+  "swarms": {
+    "52324": {
+      "pid": 52324,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    },
+    "52326": {
+      "pid": 52326,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    },
+    "52328": {
+      "pid": 52328,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    },
+    "52330": {
+      "pid": 52330,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    },
+    "52331": {
+      "pid": 52331,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    },
+    "54478": {
+      "pid": 54478,
+      "cpu": "0.0",
+      "mem": "0.1",
+      "lastCheck": 1770091233274,
+      "silenceDuration": 12000000,
+      "health": "unknown",
+      "status": "running"
+    }
+  },
+  "lastCheck": 1770091233387,
+  "summary": {
+    "total": 6,
+    "healthy": 0,
+    "warning": 0,
+    "stale": 0,
+    "unknown": 6,
+    "lastCheck": 1770091233274
+  }
+}
