@@ -409,14 +409,14 @@ export function startBudgetTracking(
     };
   }
 
-  const { agentId, taskId, projectId, model, swarmId, budgetConfig } = params;
+  const { agentId: pAgentId, taskId: pTaskId, projectId: pProjectId, model: pModel, swarmId: pSwarmId, budgetConfig } = params;
 
   // Find the most specific budget config
   let config = 
-    getBudgetConfig('task', taskId) ||
-    getBudgetConfig('agent', agentId) ||
-    (swarmId && getBudgetConfig('swarm', swarmId)) ||
-    getBudgetConfig('project', projectId) ||
+    getBudgetConfig('task', pTaskId) ||
+    getBudgetConfig('agent', pAgentId) ||
+    (pSwarmId && getBudgetConfig('swarm', pSwarmId)) ||
+    getBudgetConfig('project', pProjectId) ||
     getDefaultBudgetConfig();
 
   // Apply any partial config overrides
@@ -426,11 +426,11 @@ export function startBudgetTracking(
 
   const tracking: BudgetTracking = {
     id: generateId(),
-    agentId,
-    taskId,
-    swarmId,
-    projectId,
-    model,
+    agentId: pAgentId,
+    taskId: pTaskId,
+    swarmId: pSwarmId,
+    projectId: pProjectId,
+    model: pModel,
     tokensUsed: { prompt: 0, completion: 0, total: 0 },
     costUsed: { prompt: 0, completion: 0, total: 0 },
     startedAt: new Date(),
@@ -440,7 +440,7 @@ export function startBudgetTracking(
   };
 
   activeBudgets.set(tracking.id, tracking);
-  logger.info(`Budget tracking started: ${tracking.id}`, { agentId, taskId, projectId });
+  logger.info(`Budget tracking started: ${tracking.id}`, { agentId: pAgentId, taskId: pTaskId, projectId: pProjectId });
 
   return tracking;
 }
@@ -816,7 +816,8 @@ export function trackTokenUsage(
     total = prompt + completion;
   }
 
-  return recordTokenUsage(budgetId, { prompt, completion, total });
+  recordTokenUsage(budgetId, prompt, completion);
+  return tracking;
 }
 
 /**
@@ -863,12 +864,7 @@ export function setBudgetAlert(
     alertMessage = thresholdOrConfig.message || `Budget alert: ${threshold}% threshold reached`;
   }
 
-  return addBudgetAlert({
-    projectId,
-    threshold,
-    message: alertMessage,
-    triggered: false,
-  });
+  return addBudgetAlert(projectId, threshold, { webhookUrl: undefined });
 }
 
 /**
@@ -883,8 +879,7 @@ export function calculateCostForUsage(
   if (typeof promptTokensOrModel === 'string') {
     const tokenCount = completionTokensOrTokenCount as { prompt: number; completion: number; total: number };
     return calculateCost(
-      tokenCount?.prompt || 0,
-      tokenCount?.completion || 0,
+      { prompt: tokenCount?.prompt || 0, completion: tokenCount?.completion || 0, total: tokenCount?.total || 0 },
       promptTokensOrModel
     );
   }
@@ -892,7 +887,7 @@ export function calculateCostForUsage(
   // Handle normal signature: (promptTokens, completionTokens, model?)
   const promptTokens = promptTokensOrModel;
   const completionTokens = completionTokensOrTokenCount as number;
-  return calculateCost(promptTokens, completionTokens, model);
+  return calculateCost({ prompt: promptTokens, completion: completionTokens, total: promptTokens + completionTokens }, model || 'default');
 }
 
 // ============================================================================
