@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastHeartbeat": 1770087155982,
+  "lastHeartbeat": 1770094327419,
   "mode": "normal",
   "activeSwarms": {
     "cli-1770086777645": {
@@ -32,14 +32,24 @@
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770087159302.log",
       "method": "kimi-cli-primary"
+    },
+    "cli-1770094330751": {
+      "started": 1770094330751,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770094330751.log",
+      "method": "kimi-cli-primary"
     }
   },
   "metrics": {
     "current": {
-      "timestamp": 1770087155982,
+      "timestamp": 1770094327419,
       "testCoverage": 0,
       "tsErrors": 0,
-      "swarmCount": 7,
+      "swarmCount": 0,
       "agentCount": 43,
       "budgetSpent": 0,
       "stuckAgents": 0,
@@ -112,12 +122,23 @@
         "stuckAgents": 0,
         "buildPassing": false,
         "lastError": "Build failed with exit code: undefined"
+      },
+      {
+        "timestamp": 1770094327419,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 0,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Build failed with exit code: undefined"
       }
     ]
   },
   "cooldowns": {
     "coverage": 1770088577649,
-    "bugfix": 1770088059306
+    "bugfix": 1770095230757
   },
   "decisions": [
     {
@@ -143,6 +164,11 @@
     },
     {
       "timestamp": 1770087159306,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770094330757,
       "action": "spawn_bugfix",
       "reason": "Build broken"
     }
