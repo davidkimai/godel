@@ -1,0 +1,113 @@
+spec:
+  id: SPEC-SELF-HEAL-001
+  name: Self-Healing System
+  version: 1.0.0
+  status: active
+
+description: |
+  Comprehensive self-healing system for Dash v2.0 that automatically
+  detects, diagnoses, and recovers from failures without human intervention.
+  Includes lifecycle management, health monitoring, queue control, and
+  recursive self-improvement.
+
+requirements:
+  - id: REQ-001
+    description: Lifecycle management with 30-min timeouts
+    priority: P0
+    test: scripts/swarm-lifecycle.js --status | grep "timeout.*30 min"
+
+  - id: REQ-002
+    description: Health monitoring detects stale swarms (>15 min silent)
+    priority: P0
+    test: scripts/swarm-health.js --check silent --threshold 15 | grep "stale\|healthy"
+
+  - id: REQ-003
+    description: Queue control limits concurrent swarms to max 6
+    priority: P0
+    test: scripts/swarm-queue.js --status | grep "max.*6\|current.*[0-6]"
+
+  - id: REQ-004
+    description: Auto-restart unhealthy swarms within 30 seconds
+    priority: P0
+    test: scripts/swarm-self-healing.js --status | grep "restart.*30s\|auto-restart"
+
+  - id: REQ-005
+    description: Pattern analysis for self-improvement
+    priority: P1
+    test: scripts/self-improvement.js --analyze | grep "patterns\|improvements"
+
+  - id: REQ-006
+    description: Health events logged to .dash/swarm-health.json
+    priority: P1
+    test: cat .dash/swarm-health.json | jq '.events' | test "not null"
+
+  - id: REQ-007
+    description: No stale swarms for >1 hour
+    priority: P0
+    test: grep "stale" .dash/swarm-health.json | tail -1 | timestamp - 3600 | test "> 0"
+
+  - id: REQ-008
+    description: Integration with Swarm Watchdog cron job
+    priority: P1
+    test: grep "self-healing\|health" scripts/orchestrator-v3.js | test "not null"
+
+implementation:
+  files:
+    - scripts/swarm-lifecycle.js
+    - scripts/swarm-health.js
+    - scripts/swarm-queue.js
+    - scripts/self-improvement.js
+    - scripts/swarm-self-healing.js
+    - .dash/swarm-health.json
+
+prompt_template: |
+  You are implementing the Self-Healing System for Dash v2.0.
+
+  This system automatically maintains swarm health through 4 pillars:
+
+  1. LIFECYCLE MANAGEMENT (scripts/swarm-lifecycle.js)
+     - 30-minute timeout for all swarms
+     - Checkpoint creation for recovery
+     - Graceful shutdown procedures
+
+  2. HEALTH MONITORING (scripts/swarm-health.js)
+     - Detect stale swarms (>15 min silent)
+     - Monitor CPU/memory usage
+     - Track activity timestamps
+
+  3. QUEUE CONTROL (scripts/swarm-queue.js)
+     - Max 6 concurrent swarms
+     - Priority-based spawning
+     - Overflow handling
+
+  4. SELF-IMPROVEMENT (scripts/self-improvement.js)
+     - Pattern analysis
+     - Failure mode detection
+     - Proactive fixes
+
+  Requirements:
+  - [P0] Detect stale swarm in <20 seconds
+  - [P0] Restart within 30 seconds of detection
+  - [P0] Never exceed 6 concurrent swarms
+  - [P1] Log all health events
+  - [P1] Integrate with watchdog
+
+  Success Criteria:
+  - [ ] Stale swarm detected in <20 seconds
+  - [ ] Restart completes in <30 seconds
+  - [ ] Swarm count never exceeds 6
+  - [ ] All health events logged
+  - [ ] Self-improvement patterns detected
+
+validation:
+  command: node scripts/swarm-self-healing.js --status && node scripts/health-check.js --self-healing
+  coverage_threshold: 95
+
+metadata:
+  created: 2026-02-02
+  author: Overnight Executive
+  tags: [self-healing, autonomous, critical, recovery]
+  related:
+    - specs/active/cron-jobs.yaml
+    - specs/active/recursive-improvement.yaml
+    - scripts/swarm-self-healing.js
