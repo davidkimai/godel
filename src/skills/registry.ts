@@ -171,7 +171,7 @@ export class UnifiedSkillRegistry {
             return null;
         }
       } catch (error) {
-        logger.warn(`[UnifiedSkillRegistry] Search failed for ${source}:`, error);
+        logger.warn(`[UnifiedSkillRegistry] Search failed for ${source}:`, error as string | Record<string, unknown>);
         return { source, result: null };
       }
     });
@@ -508,7 +508,7 @@ export class UnifiedSkillRegistry {
           skills.push(skill);
         }
       } catch (error) {
-        logger.warn(`[UnifiedSkillRegistry] Failed to get info for ${entry.id}:`, error);
+        logger.warn(`[UnifiedSkillRegistry] Failed to get info for ${entry.id}:`, error as string | Record<string, unknown>);
       }
     }
 

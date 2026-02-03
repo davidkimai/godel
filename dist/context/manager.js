@@ -76,7 +76,7 @@ class ContextManager {
             return {
                 exists: stats.isFile(),
                 size: stats.size,
-                lastModified: stats.mtime || new Date(),
+                lastModified: stats.mtime ?? new Date(),
             };
         }, { exists: false, size: 0, lastModified: undefined }, { logError: false, context: 'ContextManager.addFile.stat' });
         exists = fileStats.exists;

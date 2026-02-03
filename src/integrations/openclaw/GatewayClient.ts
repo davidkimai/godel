@@ -154,7 +154,7 @@ export class GatewayClient extends EventEmitter {
       const cleanup = () => {
         clearTimeout(connectTimeout);
         this.off('authenticated', onAuthenticated);
-        this.off('error', onError);
+        this.off('error', onError as EventHandler);
       };
       
       const onAuthenticated = () => {
@@ -179,7 +179,7 @@ export class GatewayClient extends EventEmitter {
       
       // Listen for authentication
       this.on('authenticated', onAuthenticated);
-      this.on('error', onError);
+      this.on('error', onError as EventHandler);
 
       try {
         this.ws = new WebSocket(wsUrl);

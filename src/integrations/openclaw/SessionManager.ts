@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { logger } from '../../utils/logger';
 import { GatewayClient } from './GatewayClient';
+import { EventHandler } from './types';
 
 // ============================================================================
 // Types - Based on OPENCLAW_INTEGRATION_SPEC.md Section 4.2
@@ -186,9 +187,9 @@ export class SessionManager extends EventEmitter {
       this.emit('disconnected', data);
     });
 
-    this.gatewayClient.on('error', (error: Error) => {
+    this.gatewayClient.on('error', ((error: Error) => {
       this.emit('error', { message: error.message });
-    });
+    }) as EventHandler);
   }
 
   // ============================================================================

@@ -212,7 +212,7 @@ export class VercelSkillsClient {
 
       return result;
     } catch (error) {
-      logger.error('[VercelSkillsClient] Search failed:', error);
+      logger.error('[VercelSkillsClient] Search failed:', error as string | Record<string, unknown>);
       throw new UnifiedSkillError(
         'NETWORK_ERROR',
         `Failed to search Vercel skills: ${error instanceof Error ? error.message : String(error)}`
@@ -272,7 +272,7 @@ export class VercelSkillsClient {
 
       return filtered.map(skill => this.skillsShToUnifiedMetadata(skill));
     } catch (error) {
-      logger.debug('[VercelSkillsClient] skills.sh search failed:', error);
+      logger.debug('[VercelSkillsClient] skills.sh search failed:', error as string | Record<string, unknown>);
       return [];
     }
   }
@@ -363,7 +363,7 @@ export class VercelSkillsClient {
       if (error instanceof SkillNotFoundError) {
         throw error;
       }
-      logger.error(`[VercelSkillsClient] Failed to fetch skill ${slug}:`, error);
+      logger.error(`[VercelSkillsClient] Failed to fetch skill ${slug}:`, error as string | Record<string, unknown>);
       throw new UnifiedSkillError(
         'NETWORK_ERROR',
         `Failed to fetch skill ${slug}: ${error instanceof Error ? error.message : String(error)}`
@@ -474,7 +474,7 @@ export class VercelSkillsClient {
         installedDependencies: [],
       };
     } catch (error) {
-      logger.error(`[VercelSkillsClient] Installation failed for ${slug}:`, error);
+      logger.error(`[VercelSkillsClient] Installation failed for ${slug}:`, error as string | Record<string, unknown>);
       
       return {
         success: false,
@@ -502,7 +502,7 @@ export class VercelSkillsClient {
       
       logger.info(`[VercelSkillsClient] Uninstalled ${slug}`);
     } catch (error) {
-      logger.error(`[VercelSkillsClient] Failed to uninstall ${slug}:`, error);
+      logger.error(`[VercelSkillsClient] Failed to uninstall ${slug}:`, error as string | Record<string, unknown>);
       throw new UnifiedSkillError(
         'DOWNLOAD_FAILED',
         `Failed to uninstall ${slug}: ${error instanceof Error ? error.message : String(error)}`
@@ -528,7 +528,7 @@ export class VercelSkillsClient {
             config: entry.config,
           } as UnifiedInstalledSkill);
         } catch (error) {
-          logger.warn(`[VercelSkillsClient] Failed to fetch metadata for ${entry.slug}:`, error);
+          logger.warn(`[VercelSkillsClient] Failed to fetch metadata for ${entry.slug}:`, error as string | Record<string, unknown>);
         }
       }
 

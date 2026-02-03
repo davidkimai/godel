@@ -27,3 +27,5 @@ temp/
 .DS_Store
 Thumbs.db
 coverage/
+.vercel
+.env*.local

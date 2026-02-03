@@ -235,24 +235,39 @@ loadPersistedBudgets();
 /**
  * Set a budget configuration for a specific scope
  */
-export function setBudgetConfig(config: BudgetConfig): BudgetConfig {
-  const key = `${config.type}:${config.scope}`;
-  budgetConfigs.set(key, config);
+export function setBudgetConfig(config: BudgetConfig): BudgetConfig;
+export function setBudgetConfig(type: BudgetType, scope: string, config: Partial<BudgetConfig>): BudgetConfig;
+export function setBudgetConfig(
+  typeOrConfig: BudgetType | BudgetConfig,
+  scopeOrConfig?: string | Partial<BudgetConfig>,
+  config?: Partial<BudgetConfig>
+): BudgetConfig {
+  if (typeof typeOrConfig === 'object') {
+    // Single argument form: setBudgetConfig(config)
+    const fullConfig: BudgetConfig = {
+      type: 'project',
+      scope: 'default',
+      maxTokens: 10_000_000,
+      maxCost: 1000,
+      ...typeOrConfig,
+    };
+    return setBudgetConfig(fullConfig);
+  }
 
-  // Persist to disk immediately
-  savePersistedBudgets();
+  // Three argument form: setBudgetConfig(type, scope, config)
+  const type = typeOrConfig;
+  const scope = scopeOrConfig as string;
+  const partialConfig = config || {};
 
-  // Log to history
-  budgetHistory.push({
-    id: generateId(),
-    budgetId: key,
-    timestamp: new Date(),
-    eventType: 'budget_set',
-    details: { config },
-  });
+  const fullConfig: BudgetConfig = {
+    type,
+    scope,
+    maxTokens: 10_000_000,
+    maxCost: 1000,
+    ...partialConfig,
+  };
 
-  logger.info(`Budget configured: ${key}`, { config });
-  return config;
+  return setBudgetConfig(fullConfig);
 }
 
 /**
@@ -364,14 +379,50 @@ export function startBudgetTracking(
   projectId: string,
   model: string,
   swarmId?: string
+): BudgetTracking;
+export function startBudgetTracking(params: {
+  agentId: string;
+  taskId: string;
+  projectId: string;
+  model: string;
+  budgetConfig?: Partial<BudgetConfig>;
+  swarmId?: string;
+}): BudgetTracking;
+export function startBudgetTracking(
+  agentIdOrParams: string | { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string },
+  taskId?: string,
+  projectId?: string,
+  model?: string,
+  swarmId?: string
 ): BudgetTracking {
+  let params: { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string };
+
+  if (typeof agentIdOrParams === 'object') {
+    params = agentIdOrParams;
+  } else {
+    params = {
+      agentId: agentIdOrParams,
+      taskId: taskId || '',
+      projectId: projectId || '',
+      model: model || 'unknown',
+      swarmId,
+    };
+  }
+
+  const { agentId, taskId, projectId, model, swarmId, budgetConfig } = params;
+
   // Find the most specific budget config
-  const config =
+  let config = 
     getBudgetConfig('task', taskId) ||
     getBudgetConfig('agent', agentId) ||
     (swarmId && getBudgetConfig('swarm', swarmId)) ||
     getBudgetConfig('project', projectId) ||
     getDefaultBudgetConfig();
+
+  // Apply any partial config overrides
+  if (budgetConfig) {
+    config = { ...config, ...budgetConfig };
+  }
 
   const tracking: BudgetTracking = {
     id: generateId(),
@@ -458,7 +509,19 @@ export function recordTokenUsage(
 /**
  * Get current budget usage for a tracking instance
  */
-export function getBudgetUsage(tracking: BudgetTracking): BudgetUsage {
+export function getBudgetUsage(trackingOrId: BudgetTracking | string): BudgetUsage {
+  const tracking = typeof trackingOrId === 'string' 
+    ? activeBudgets.get(trackingOrId) 
+    : trackingOrId;
+    
+  if (!tracking) {
+    return {
+      tokensUsed: { prompt: 0, completion: 0, total: 0 },
+      costUsed: { prompt: 0, completion: 0, total: 0 },
+      percentageUsed: 0,
+    };
+  }
+
   const percentageUsed = (tracking.costUsed.total / tracking.budgetConfig.maxCost) * 100;
 
   return {
@@ -722,6 +785,114 @@ export function getBudgetHistory(
   }
 
   return history.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+}
+
+// ============================================================================
+// Test Compatibility Wrappers
+// ============================================================================
+
+/**
+ * Track token usage and update budget tracking (test compatibility)
+ */
+export function trackTokenUsage(
+  budgetId: string,
+  promptTokensOrTokenCount: number | { prompt: number; completion: number; total: number },
+  completionTokens?: number
+): BudgetTracking | null {
+  const tracking = activeBudgets.get(budgetId);
+  if (!tracking) return null;
+
+  let prompt: number;
+  let completion: number;
+  let total: number;
+
+  if (typeof promptTokensOrTokenCount === 'object') {
+    prompt = promptTokensOrTokenCount.prompt;
+    completion = promptTokensOrTokenCount.completion;
+    total = promptTokensOrTokenCount.total;
+  } else {
+    prompt = promptTokensOrTokenCount;
+    completion = completionTokens || 0;
+    total = prompt + completion;
+  }
+
+  return recordTokenUsage(budgetId, { prompt, completion, total });
+}
+
+/**
+ * Check if budget has been exceeded (test compatibility)
+ */
+export function checkBudgetExceeded(budgetId: string): {
+  exceeded: boolean;
+  percentageUsed: number;
+  budgetConfig: BudgetConfig | undefined;
+} {
+  const tracking = activeBudgets.get(budgetId);
+  const config = tracking?.budgetConfig;
+
+  if (!tracking) {
+    return { exceeded: false, percentageUsed: 0, budgetConfig: config };
+  }
+
+  const usage = getBudgetUsage(tracking);
+  const exceeded = tracking.costUsed.total >= tracking.budgetConfig.maxCost;
+
+  return {
+    exceeded,
+    percentageUsed: usage.percentageUsed,
+    budgetConfig: config,
+  };
+}
+
+/**
+ * Set a budget alert (test compatibility - wraps addBudgetAlert)
+ */
+export function setBudgetAlert(
+  projectId: string,
+  thresholdOrConfig: number | { threshold: number; message?: string },
+  message?: string
+): BudgetAlert {
+  let threshold: number;
+  let alertMessage: string;
+
+  if (typeof thresholdOrConfig === 'number') {
+    threshold = thresholdOrConfig;
+    alertMessage = message || `Budget alert: ${threshold}% threshold reached`;
+  } else {
+    threshold = thresholdOrConfig.threshold;
+    alertMessage = thresholdOrConfig.message || `Budget alert: ${threshold}% threshold reached`;
+  }
+
+  return addBudgetAlert({
+    projectId,
+    threshold,
+    message: alertMessage,
+    triggered: false,
+  });
+}
+
+/**
+ * Calculate cost for token usage (test compatibility)
+ */
+export function calculateCostForUsage(
+  promptTokensOrModel: number | string,
+  completionTokensOrTokenCount?: number | { prompt: number; completion: number; total: number },
+  model?: string
+): { prompt: number; completion: number; total: number } {
+  // Handle test signature: (model, {prompt, completion, total})
+  if (typeof promptTokensOrModel === 'string') {
+    const tokenCount = completionTokensOrTokenCount as { prompt: number; completion: number; total: number };
+    return calculateCost(
+      tokenCount?.prompt || 0,
+      tokenCount?.completion || 0,
+      promptTokensOrModel
+    );
+  }
+
+  // Handle normal signature: (promptTokens, completionTokens, model?)
+  const promptTokens = promptTokensOrModel;
+  const completionTokens = completionTokensOrTokenCount as number;
+  return calculateCost(promptTokens, completionTokens, model);
 }
 
 // ============================================================================

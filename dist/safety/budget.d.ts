@@ -106,6 +106,7 @@ export declare function getBudgetsFilePath(): string;
  * Set a budget configuration for a specific scope
  */
 export declare function setBudgetConfig(config: BudgetConfig): BudgetConfig;
+export declare function setBudgetConfig(type: BudgetType, scope: string, config: Partial<BudgetConfig>): BudgetConfig;
 /**
  * Get budget configuration for a scope
  */
@@ -142,6 +143,14 @@ export declare function setAgentBudget(agentId: string, maxTokens: number, maxCo
  * Start tracking budget for an agent/task
  */
 export declare function startBudgetTracking(agentId: string, taskId: string, projectId: string, model: string, swarmId?: string): BudgetTracking;
+export declare function startBudgetTracking(params: {
+    agentId: string;
+    taskId: string;
+    projectId: string;
+    model: string;
+    budgetConfig?: Partial<BudgetConfig>;
+    swarmId?: string;
+}): BudgetTracking;
 /**
  * Record token usage and update budget tracking
  */
@@ -149,7 +158,7 @@ export declare function recordTokenUsage(budgetId: string, promptTokens: number,
 /**
  * Get current budget usage for a tracking instance
  */
-export declare function getBudgetUsage(tracking: BudgetTracking): BudgetUsage;
+export declare function getBudgetUsage(trackingOrId: BudgetTracking | string): BudgetUsage;
 /**
  * Get budget tracking by ID
  */
@@ -202,5 +211,40 @@ export declare function clearAllBudgetAlerts(): void;
  * Get budget history
  */
 export declare function getBudgetHistory(projectId?: string, since?: Date): BudgetHistoryEntry[];
+/**
+ * Track token usage and update budget tracking (test compatibility)
+ */
+export declare function trackTokenUsage(budgetId: string, promptTokensOrTokenCount: number | {
+    prompt: number;
+    completion: number;
+    total: number;
+}, completionTokens?: number): BudgetTracking | null;
+/**
+ * Check if budget has been exceeded (test compatibility)
+ */
+export declare function checkBudgetExceeded(budgetId: string): {
+    exceeded: boolean;
+    percentageUsed: number;
+    budgetConfig: BudgetConfig | undefined;
+};
+/**
+ * Set a budget alert (test compatibility - wraps addBudgetAlert)
+ */
+export declare function setBudgetAlert(projectId: string, thresholdOrConfig: number | {
+    threshold: number;
+    message?: string;
+}, message?: string): BudgetAlert;
+/**
+ * Calculate cost for token usage (test compatibility)
+ */
+export declare function calculateCostForUsage(promptTokensOrModel: number | string, completionTokensOrTokenCount?: number | {
+    prompt: number;
+    completion: number;
+    total: number;
+}, model?: string): {
+    prompt: number;
+    completion: number;
+    total: number;
+};
 export { DEFAULT_THRESHOLDS, budgetConfigs, activeBudgets, budgetHistory, budgetAlerts, };
 //# sourceMappingURL=budget.d.ts.map

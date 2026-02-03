@@ -76,9 +76,9 @@ class SessionManager extends events_1.EventEmitter {
         this.gatewayClient.on('disconnected', (data) => {
             this.emit('disconnected', data);
         });
-        this.gatewayClient.on('error', (error) => {
+        this.gatewayClient.on('error', ((error) => {
             this.emit('error', { message: error.message });
-        });
+        }));
     }
     // ============================================================================
     // Connection Management

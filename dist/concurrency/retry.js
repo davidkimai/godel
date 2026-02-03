@@ -51,12 +51,13 @@ async function retry(operation, config) {
             };
         }
         catch (error) {
-            lastError = error;
+            const err = error;
+            lastError = err;
             // Check if error is retryable
-            if (!isRetryable(error, cfg)) {
+            if (!isRetryable(err, cfg)) {
                 return {
                     success: false,
-                    error,
+                    error: err,
                     attempts,
                     totalTime: Date.now() - startTime,
                     finalAttempt: true
@@ -66,7 +67,7 @@ async function retry(operation, config) {
             if (attempts >= cfg.maxAttempts) {
                 return {
                     success: false,
-                    error,
+                    error: err,
                     attempts,
                     totalTime: Date.now() - startTime,
                     finalAttempt: true

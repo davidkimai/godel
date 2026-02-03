@@ -211,8 +211,8 @@ export class AgentTools {
   private permissionManager: PermissionManager;
   private budgetTracker!: BudgetTracker;
   private skillInstaller!: SkillInstaller;
-  private sessionManager: SessionManager;
-  private agentExecutor: AgentExecutor;
+  private sessionManager!: SessionManager;
+  private agentExecutor!: AgentExecutor;
   private connected: boolean = false;
   private installedSkills: Map<string, InstalledSkill> = new Map();
   private activeSessions: Map<string, AgentExecutor> = new Map();

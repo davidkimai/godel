@@ -805,7 +805,7 @@ export class OpenClawCore extends EventEmitter {
       logger.info('[OpenClawCore] OpenClaw core primitive initialized and connected');
       this.emit('initialized');
     } catch (error) {
-      logger.error('[OpenClawCore] Failed to initialize OpenClaw:', error);
+      logger.error('[OpenClawCore] Failed to initialize OpenClaw:', error as string | Record<string, unknown>);
       throw new ApplicationError(
         'Failed to initialize OpenClaw core primitive',
         DashErrorCode.INITIALIZATION_FAILED,

@@ -172,7 +172,7 @@ export class ClawHubAdapter {
         },
       };
     } catch (error) {
-      logger.error('[ClawHubAdapter] Search failed:', error);
+      logger.error('[ClawHubAdapter] Search failed:', error as string | Record<string, unknown>);
       throw new UnifiedSkillError(
         'NETWORK_ERROR',
         `Failed to search ClawHub: ${error instanceof Error ? error.message : String(error)}`
@@ -197,7 +197,7 @@ export class ClawHubAdapter {
       if (error instanceof Error && error.message.includes('not found')) {
         throw new SkillNotFoundError(slug, 'clawhub');
       }
-      logger.error(`[ClawHubAdapter] Failed to fetch skill ${slug}:`, error);
+      logger.error(`[ClawHubAdapter] Failed to fetch skill ${slug}:`, error as string | Record<string, unknown>);
       throw new UnifiedSkillError(
         'NETWORK_ERROR',
         `Failed to fetch skill ${slug}: ${error instanceof Error ? error.message : String(error)}`
@@ -256,7 +256,7 @@ export class ClawHubAdapter {
         };
       }
     } catch (error) {
-      logger.error(`[ClawHubAdapter] Installation failed for ${slug}:`, error);
+      logger.error(`[ClawHubAdapter] Installation failed for ${slug}:`, error as string | Record<string, unknown>);
       
       return {
         success: false,
