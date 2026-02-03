@@ -21,7 +21,7 @@
  */
 
 // Core modules
-export * from './swarm';
+// Note: './swarm' types are extended in './swarm-orchestrator', use orchestrator exports
 export * from './lifecycle';
 export * from './openclaw';
 

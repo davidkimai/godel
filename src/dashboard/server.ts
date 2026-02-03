@@ -172,7 +172,7 @@ export class DashboardServer extends EventEmitter {
       const id = req.params['id'] as string;
       const limit = parseInt(req.query['limit'] as string) || 100;
       
-      const events = this.eventBus.getEvents({ swarmId: id, limit });
+      const events = this.eventBus.getEvents({ swarmId: id }).slice(0, limit);
       res.json({ events });
     });
 

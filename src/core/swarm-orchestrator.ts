@@ -32,33 +32,22 @@ import {
   safeExecute,
 } from '../errors';
 import { logger } from '../utils/logger';
-import type {
-  SwarmStrategy,
-  BudgetConfig,
-  SafetyConfig,
-  SwarmConfig,
-  Swarm,
-  SwarmStatusInfo,
-  SwarmState,
-} from './swarm';
-
-// Re-export for convenience
-export type {
-  SwarmStrategy,
-  BudgetConfig,
-  SafetyConfig,
-  SwarmConfig,
-  Swarm,
-  SwarmStatusInfo,
-  SwarmState,
-} from './swarm';
 
 // ============================================================================
-// Enhanced Swarm Types (extension only)
+// Core Swarm Types (previously in swarm.ts, now unified here)
 // ============================================================================
 
-export interface ExtendedSafetyConfig extends SafetyConfig {
-  enableBranching?: boolean;
+export type SwarmStrategy = 'parallel' | 'map-reduce' | 'pipeline' | 'tree';
+
+export interface BudgetConfig {
+  amount: number;
+  currency: string;
+  warningThreshold?: number;
+  criticalThreshold?: number;
+}
+
+export interface SafetyConfig {
+  fileSandbox: boolean;
   networkAllowlist?: string[];
   commandBlacklist?: string[];
   maxExecutionTime?: number;
