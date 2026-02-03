@@ -552,6 +552,13 @@ export class PrometheusMetrics {
   reset(): void {
     register.resetMetrics();
   }
+
+  /**
+   * Static method to get global instance
+   */
+  static getGlobalPrometheusMetrics(): PrometheusMetrics {
+    return getGlobalPrometheusMetrics();
+  }
 }
 
 // ============================================================================

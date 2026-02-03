@@ -203,7 +203,7 @@ interface SerializedEvent {
 
 export class RedisEventBus extends EventEmitter {
   private subscriptions: Map<string, Subscription> = new Map();
-  private config: Required<RedisEventBusConfig>;
+  private config: RedisEventBusConfig & Required<Omit<RedisEventBusConfig, keyof BaseEventBusConfig>> & BaseEventBusConfig;
   private nodeId: string;
   private metrics = {
     eventsEmitted: 0,
@@ -247,7 +247,7 @@ export class RedisEventBus extends EventEmitter {
       persistEvents: true,
       maxListeners: 1000,
       syncDelivery: false,
-      redisUrl: config.redisUrl || process.env.REDIS_URL || 'redis://localhost:6379/0',
+      redisUrl: config.redisUrl || process.env['REDIS_URL'] || 'redis://localhost:6379/0',
       redisOptions: config.redisOptions || {},
       streamKey: config.streamKey || 'dash:events',
       consumerGroup: config.consumerGroup || 'dash:consumers',
@@ -516,7 +516,7 @@ export class RedisEventBus extends EventEmitter {
 
         if (!results || results.length === 0) return;
 
-        for (const [, messages] of results) {
+        for (const [, messages] of results as Array<[string, Array<[string, string[]]>]>) {
           for (const [id, fields] of messages) {
             await this.processStreamMessage(id, fields);
           }
@@ -678,7 +678,7 @@ export class RedisEventBus extends EventEmitter {
       throw new Error(`Event validation failed: ${result.error.message}`);
     }
 
-    return result.data;
+    return result.data as AgentEvent & { nodeId?: string };
   }
 
   // ============================================================================
@@ -719,20 +719,20 @@ export class RedisEventBus extends EventEmitter {
   // ============================================================================
 
   private deliverEventToSubscribers(event: AgentEvent): void {
-    for (const subscription of this.subscriptions.values()) {
+    Array.from(this.subscriptions.values()).forEach(subscription => {
       // Check if subscriber listens to this event type
       if (!subscription.eventTypes.includes(event.type)) {
-        continue;
+        return;
       }
 
       // Apply custom filter if present
       if (subscription.filter && !subscription.filter(event)) {
-        continue;
+        return;
       }
 
       // Deliver event
       this.deliverToSubscription(event, subscription);
-    }
+    });
   }
 
   private deliverToSubscription(event: AgentEvent, subscription: Subscription): void {

@@ -1,0 +1,139 @@
+# Example Dash Swarm Configuration
+# This is a declarative configuration file for defining agent swarms
+
+apiVersion: dash.io/v1
+kind: Swarm
+
+metadata:
+  name: code-review-swarm
+  description: A swarm of agents for code review and quality checks
+  labels:
+    environment: production
+    team: platform
+    project: dash
+  annotations:
+    owner: platform-team@example.com
+    cost-center: engineering
+
+spec:
+  # The main task for the swarm
+  task: Review the codebase for security vulnerabilities, code smells, and performance issues
+  
+  # Swarm execution strategy
+  # Options: parallel, map-reduce, pipeline, tree
+  strategy: parallel
+  
+  # Initial number of agents to spawn
+  initialAgents: 5
+  
+  # Maximum number of agents (for auto-scaling)
+  maxAgents: 20
+  
+  # Model to use for all agents (optional, defaults to system default)
+  model: kimi-k2.5
+  
+  # Budget configuration for cost tracking
+  budget:
+    amount: 50.00
+    currency: USD
+    warningThreshold: 0.75    # Alert at 75% budget
+    criticalThreshold: 0.90   # Stop at 90% budget
+  
+  # Safety and security configuration
+  safety:
+    fileSandbox: true
+    networkAllowlist:
+      - github.com
+      - npmjs.org
+    commandBlacklist:
+      - rm -rf /
+      - mkfs
+      - dd
+    maxExecutionTime: 300000  # 5 minutes
+    ethicsBoundaries:
+      doNotHarm: true
+      preservePrivacy: true
+      noDeception: true
+      authorizedAccessOnly: true
+    dangerousActions:
+      dataDestruction: confirm
+      agentTermination: confirm
+      externalPublishing: confirm
+      resourceExhaustion: block
+  
+  # Auto-scaling configuration
+  scaling:
+    enabled: true
+    minAgents: 2
+    maxAgents: 20
+    scaleUpThreshold: 10      # Scale up when queue > 10
+    scaleDownCooldown: 300    # Wait 5 min before scaling down
+    targetUtilization: 0.8
+  
+  # GitOps configuration for file watching
+  gitops:
+    enabled: true
+    watchInterval: 5000       # Check every 5 seconds
+    autoApply: true           # Automatically apply changes
+    rollbackOnFailure: true   # Rollback if apply fails
+    notifyOnChange: true      # Send notifications
+  
+  # Environment variables (supports substitution)
+  env:
+    # Direct value
+    LOG_LEVEL: info
+    
+    # Environment variable substitution
+    API_KEY: ${API_KEY}
+    
+    # With default value
+    DATABASE_URL: ${DATABASE_URL:-sqlite://./default.db}
+    
+    # 1Password secret (requires 1Password CLI)
+    # SECRET_TOKEN: {{ op://Production/API Keys/secret-token }}
+  
+  # Individual agent overrides (optional)
+  # If specified, these override the default agent configuration
+  agents:
+    - name: security-agent
+      model: claude-sonnet-4-20250514
+      task: Focus on security vulnerabilities and OWASP compliance
+      maxRetries: 5
+      budgetLimit: 15.00
+    
+    - name: performance-agent
+      model: kimi-k2.5
+      task: Focus on performance bottlenecks and optimization opportunities
+      maxRetries: 3
+      budgetLimit: 10.00
+    
+    - name: style-agent
+      model: kimi-k2.5
+      task: Focus on code style, formatting, and best practices
+      maxRetries: 2
+      budgetLimit: 5.00
+
+  # Workflow DAG definition (optional, for future use)
+  # workflow:
+  #   steps:
+  #     - name: extract
+  #       agent: data-extractor
+  #       task: Extract data from source
+  #       next: [transform, validate]
+  #     
+  #     - name: transform
+  #       agent: data-transformer
+  #       task: Transform data format
+  #       dependsOn: [extract]
+  #       next: [load]
+  #     
+  #     - name: validate
+  #       agent: data-validator
+  #       task: Validate data integrity
+  #       dependsOn: [extract]
+  #       next: [load]
+  #     
+  #     - name: load
+  #       agent: data-loader
+  #       task: Load data into destination
+  #       dependsOn: [transform, validate]

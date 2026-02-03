@@ -147,6 +147,15 @@ function registerCoreCommands(program: Command): void {
   } catch {
     // Command not available, skip
   }
+
+  // Register config command (swarmctl alias) - Phase 1E
+  try {
+    const { registerConfigCommand, registerSwarmCtlCommand } = require('./commands/config');
+    registerConfigCommand(program);
+    registerSwarmCtlCommand(program);
+  } catch {
+    // Command not available, skip
+  }
 }
 
 /**

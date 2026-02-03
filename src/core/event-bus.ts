@@ -244,20 +244,20 @@ export class AgentEventBus extends EventEmitter {
   }
 
   private deliverEvent(event: AgentEvent): void {
-    for (const subscription of this.subscriptions.values()) {
+    Array.from(this.subscriptions.values()).forEach(subscription => {
       // Check if subscriber listens to this event type
       if (!subscription.eventTypes.includes(event.type)) {
-        continue;
+        return;
       }
 
       // Apply custom filter if present
       if (subscription.filter && !subscription.filter(event)) {
-        continue;
+        return;
       }
 
       // Deliver event
       this.deliverToSubscription(event, subscription);
-    }
+    });
   }
 
   private deliverToSubscription(event: AgentEvent, subscription: Subscription): void {

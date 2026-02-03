@@ -27,8 +27,13 @@ export * from './openclaw';
 
 // Phase 3: Session Tree + Event Architecture
 export * from './event-bus';
+export * from './event-bus-redis';
 export * from './session-tree';
 export * from './swarm-orchestrator';
+
+// Phase 1D: State Persistence
+export * from './state-persistence';
+export * from './state-aware-orchestrator';
 
 // Budget and limits - explicit exports to avoid duplicates
 export { HARD_LIMITS, SOFT_LIMITS, BUDGET_ALERTS, budgetController, canSpend, canAddAgent, getBudgetStatus } from './budget-controller';

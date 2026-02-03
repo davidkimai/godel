@@ -8,12 +8,13 @@
 import { EventEmitter } from 'events';
 import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { AgentEventBus, AgentEvent, Subscription } from '../core/event-bus';
 import { SessionTree, BranchComparison } from '../core/session-tree';
 import { SwarmOrchestrator } from '../core/swarm-orchestrator';
 import { logger } from '../utils/logger';
+import { PrometheusMetrics, createHealthRouter, HealthCheckConfig } from '../metrics';
 
 // ============================================================================
 // Types
@@ -27,6 +28,12 @@ export interface DashboardConfig {
   heartbeatInterval: number;
   /** Maximum events to buffer per client */
   maxEventBuffer: number;
+  /** Enable Prometheus metrics endpoint */
+  enableMetrics: boolean;
+  /** Path for metrics endpoint */
+  metricsPath: string;
+  /** Health check configuration */
+  healthCheckConfig?: HealthCheckConfig;
 }
 
 export interface DashboardClient {
@@ -68,6 +75,7 @@ export class DashboardServer extends EventEmitter {
   private eventBus: AgentEventBus;
   private orchestrator: SwarmOrchestrator;
   private sessionTree: SessionTree;
+  private metrics: PrometheusMetrics;
 
   private app: express.Application;
   private server?: HttpServer;
@@ -77,6 +85,8 @@ export class DashboardServer extends EventEmitter {
   private heartbeatTimer?: NodeJS.Timeout;
   private eventSubscription?: Subscription;
   private isRunning: boolean = false;
+  private metricsInitialized: boolean = false;
+  private metricsInterval?: NodeJS.Timeout;
 
   constructor(
     eventBus: AgentEventBus,
@@ -96,9 +106,12 @@ export class DashboardServer extends EventEmitter {
       enableCors: true,
       heartbeatInterval: 30000,
       maxEventBuffer: 1000,
+      enableMetrics: true,
+      metricsPath: '/metrics',
       ...config,
     };
 
+    this.metrics = PrometheusMetrics.getGlobalPrometheusMetrics();
     this.app = express();
     this.setupMiddleware();
     this.setupRoutes();
@@ -116,15 +129,42 @@ export class DashboardServer extends EventEmitter {
   }
 
   private setupRoutes(): void {
-    // Health check
-    this.app.get('/health', (_req: Request, res: Response) => {
-      res.json({
-        status: 'ok',
-        timestamp: Date.now(),
-        connections: this.clients.size,
-        uptime: process.uptime(),
+    // Request timing middleware for API metrics
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const start = Date.now();
+      res.on('finish', () => {
+        if (this.config.enableMetrics) {
+          const duration = Date.now() - start;
+          this.metrics.recordApiRequest(
+            req.method,
+            req.route?.path || req.path,
+            res.statusCode,
+            duration
+          );
+        }
       });
+      next();
     });
+
+    // Health check endpoints
+    if (this.config.healthCheckConfig) {
+      const healthRouter = createHealthRouter(this.config.healthCheckConfig);
+      this.app.use(healthRouter);
+    }
+
+    // Prometheus metrics endpoint
+    if (this.config.enableMetrics) {
+      this.app.get(this.config.metricsPath, async (_req: Request, res: Response) => {
+        try {
+          const metrics = await this.metrics.getMetrics();
+          res.set('Content-Type', this.metrics.getContentType());
+          res.end(metrics);
+        } catch (error) {
+          logger.error('[DashboardServer] Failed to get metrics', { error });
+          res.status(500).json({ error: 'Failed to get metrics' });
+        }
+      });
+    }
 
     // Get all swarms
     this.app.get('/api/swarms', (_req: Request, res: Response) => {
@@ -294,6 +334,13 @@ export class DashboardServer extends EventEmitter {
       return;
     }
 
+    // Initialize metrics if enabled
+    if (this.config.enableMetrics && !this.metricsInitialized) {
+      this.metrics.initialize(this.eventBus, this.orchestrator);
+      this.metricsInitialized = true;
+      logger.info('[DashboardServer] Prometheus metrics initialized');
+    }
+
     return new Promise((resolve) => {
       this.server = this.app.listen(this.config.port, this.config.host, () => {
         logger.info(`[DashboardServer] HTTP server running at http://${this.config.host}:${this.config.port}`);
@@ -307,6 +354,9 @@ export class DashboardServer extends EventEmitter {
         // Start heartbeat
         this.startHeartbeat();
 
+        // Start metrics collection
+        this.startMetricsCollection();
+
         this.isRunning = true;
         this.emit('started');
         resolve();
@@ -317,10 +367,22 @@ export class DashboardServer extends EventEmitter {
   async stop(): Promise<void> {
     if (!this.isRunning) return;
 
+    // Stop metrics
+    if (this.metricsInitialized) {
+      this.metrics.stop();
+      this.metricsInitialized = false;
+    }
+
     // Stop heartbeat
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = undefined;
+    }
+
+    // Stop metrics collection
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = undefined;
     }
 
     // Unsubscribe from events
@@ -564,6 +626,29 @@ export class DashboardServer extends EventEmitter {
         }
       }
     }, this.config.heartbeatInterval);
+  }
+
+  // =========================================================================
+  // Metrics Collection
+  // =========================================================================
+
+  private startMetricsCollection(): void {
+    if (!this.config.enableMetrics) return;
+
+    this.metricsInterval = setInterval(() => {
+      // Update WebSocket connection count
+      this.metrics.setWebSocketConnections(this.clients.size);
+
+      // Update event bus metrics
+      const eventMetrics = this.eventBus.getMetrics();
+      this.metrics.setEventBusSubscriptions(eventMetrics.subscriptionsCreated - eventMetrics.subscriptionsRemoved);
+
+      // Update memory metrics
+      const memUsage = process.memoryUsage();
+      this.metrics.memoryUsageGauge.set({ type: 'rss' }, memUsage.rss);
+      this.metrics.memoryUsageGauge.set({ type: 'heap_used' }, memUsage.heapUsed);
+      this.metrics.memoryUsageGauge.set({ type: 'heap_total' }, memUsage.heapTotal);
+    }, 15000); // Every 15 seconds
   }
 
   // =========================================================================
