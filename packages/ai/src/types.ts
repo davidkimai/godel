@@ -22,12 +22,14 @@ export interface ProviderConfig {
   enabled: boolean;
 }
 
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface AIRequest {
   model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }>;
+  messages: Message[];
   maxTokens?: number;
   temperature?: number;
   stream?: boolean;

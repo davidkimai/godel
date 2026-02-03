@@ -1,6 +1,6 @@
 /**
  * Dashboard Integration with Real-Time Event Streaming
- * 
+ *
  * Provides WebSocket-based event streaming and REST API for session tree
  * visualization and branch comparison.
  */
@@ -10,7 +10,7 @@ import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { AgentEventBus, AgentEvent } from '../core/event-bus';
+import { AgentEventBus, AgentEvent, Subscription } from '../core/event-bus';
 import { SessionTree, BranchComparison } from '../core/session-tree';
 import { SwarmOrchestrator } from '../core/swarm-orchestrator';
 import { logger } from '../utils/logger';
@@ -68,14 +68,14 @@ export class DashboardServer extends EventEmitter {
   private eventBus: AgentEventBus;
   private orchestrator: SwarmOrchestrator;
   private sessionTree: SessionTree;
-  
+
   private app: express.Application;
   private server?: HttpServer;
   private wss?: WebSocketServer;
   private clients: Map<string, DashboardClient> = new Map();
-  
+
   private heartbeatTimer?: NodeJS.Timeout;
-  private eventSubscription?: { unsubscribe: () => void };
+  private eventSubscription?: Subscription;
   private isRunning: boolean = false;
 
   constructor(
@@ -85,11 +85,11 @@ export class DashboardServer extends EventEmitter {
     config?: Partial<DashboardConfig>
   ) {
     super();
-    
+
     this.eventBus = eventBus;
     this.orchestrator = orchestrator;
     this.sessionTree = sessionTree;
-    
+
     this.config = {
       port: 7373,
       host: 'localhost',
@@ -144,7 +144,7 @@ export class DashboardServer extends EventEmitter {
 
     // Get specific swarm
     this.app.get('/api/swarms/:id', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params.id);
+      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
       if (!swarm) {
         res.status(404).json({ error: 'Swarm not found' });
         return;
@@ -169,8 +169,8 @@ export class DashboardServer extends EventEmitter {
 
     // Get swarm events
     this.app.get('/api/swarms/:id/events', (req: Request, res: Response) => {
-      const { id } = req.params;
-      const limit = parseInt(req.query.limit as string) || 100;
+      const id = req.params['id'] as string;
+      const limit = parseInt(req.query['limit'] as string) || 100;
       
       const events = this.eventBus.getEvents({ swarmId: id, limit });
       res.json({ events });
@@ -178,7 +178,7 @@ export class DashboardServer extends EventEmitter {
 
     // Get session tree
     this.app.get('/api/swarms/:id/tree', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params.id);
+      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
       if (!swarm || !swarm.config.enableBranching) {
         res.status(404).json({ error: 'Swarm tree not found or branching not enabled' });
         return;
@@ -190,7 +190,7 @@ export class DashboardServer extends EventEmitter {
 
     // Get branches
     this.app.get('/api/swarms/:id/branches', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params.id);
+      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
       if (!swarm || !swarm.config.enableBranching) {
         res.status(404).json({ error: 'Swarm branches not found or branching not enabled' });
         return;
@@ -222,11 +222,11 @@ export class DashboardServer extends EventEmitter {
       }
 
       try {
-        const comparison = this.orchestrator.compareBranches(id, branchIds);
+        const comparison = this.orchestrator.compareBranches(id as string, branchIds);
         res.json(comparison);
       } catch (error) {
-        res.status(500).json({ 
-          error: error instanceof Error ? error.message : 'Comparison failed' 
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'Comparison failed'
         });
       }
     });
@@ -244,14 +244,14 @@ export class DashboardServer extends EventEmitter {
       try {
         let entryId: string;
         if (fromEntryId) {
-          entryId = await this.orchestrator.createBranchAt(id, fromEntryId, name, description);
+          entryId = await this.orchestrator.createBranchAt(id as string, fromEntryId, name, description);
         } else {
-          entryId = await this.orchestrator.createBranch(id, name, description);
+          entryId = await this.orchestrator.createBranch(id as string, name, description);
         }
         res.json({ entryId, name, description });
       } catch (error) {
-        res.status(500).json({ 
-          error: error instanceof Error ? error.message : 'Failed to create branch' 
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'Failed to create branch'
         });
       }
     });
@@ -267,18 +267,18 @@ export class DashboardServer extends EventEmitter {
       }
 
       try {
-        await this.orchestrator.switchBranch(id, branchName);
+        await this.orchestrator.switchBranch(id as string, branchName);
         res.json({ success: true, currentBranch: branchName });
       } catch (error) {
-        res.status(500).json({ 
-          error: error instanceof Error ? error.message : 'Failed to switch branch' 
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'Failed to switch branch'
         });
       }
     });
 
     // Get session tree data
     this.app.get('/api/sessions/:id/tree', (req: Request, res: Response) => {
-      const { id } = req.params;
+      const id = req.params['id'] as string;
       const visualization = this.buildTreeVisualization(id);
       res.json(visualization);
     });
@@ -297,16 +297,16 @@ export class DashboardServer extends EventEmitter {
     return new Promise((resolve) => {
       this.server = this.app.listen(this.config.port, this.config.host, () => {
         logger.info(`[DashboardServer] HTTP server running at http://${this.config.host}:${this.config.port}`);
-        
+
         // Setup WebSocket server
         this.setupWebSocketServer();
-        
+
         // Subscribe to all events
         this.subscribeToEvents();
-        
+
         // Start heartbeat
         this.startHeartbeat();
-        
+
         this.isRunning = true;
         this.emit('started');
         resolve();
@@ -325,7 +325,7 @@ export class DashboardServer extends EventEmitter {
 
     // Unsubscribe from events
     if (this.eventSubscription) {
-      this.eventSubscription.unsubscribe();
+      this.eventBus.unsubscribe(this.eventSubscription);
       this.eventSubscription = undefined;
     }
 
@@ -363,7 +363,7 @@ export class DashboardServer extends EventEmitter {
 
     this.wss.on('connection', (ws: WebSocket) => {
       const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       const client: DashboardClient = {
         id: clientId,
         ws,
@@ -401,7 +401,7 @@ export class DashboardServer extends EventEmitter {
       });
 
       ws.on('error', (error) => {
-        logger.error(`[DashboardServer] WebSocket error for ${clientId}:`, error);
+        logger.error(`[DashboardServer] WebSocket error for ${clientId}: ${error.message}`);
         this.clients.delete(clientId);
       });
     });
@@ -533,7 +533,7 @@ export class DashboardServer extends EventEmitter {
         if (client.eventBuffer.length >= this.config.maxEventBuffer) {
           client.eventBuffer.shift(); // Remove oldest
         }
-        
+
         this.sendToClient(client, {
           type: 'event',
           event,
@@ -573,7 +573,7 @@ export class DashboardServer extends EventEmitter {
   private buildTreeVisualization(sessionId: string): TreeVisualization {
     // Use the current session tree
     const tree = this.sessionTree;
-    
+
     const nodes: TreeVisualizationNode[] = [];
     const treeNodes = tree.getTree();
 

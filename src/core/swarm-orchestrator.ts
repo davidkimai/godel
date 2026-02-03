@@ -32,22 +32,33 @@ import {
   safeExecute,
 } from '../errors';
 import { logger } from '../utils/logger';
+import type {
+  SwarmStrategy,
+  BudgetConfig,
+  SafetyConfig,
+  SwarmConfig,
+  Swarm,
+  SwarmStatusInfo,
+  SwarmState,
+} from './swarm';
+
+// Re-export for convenience
+export type {
+  SwarmStrategy,
+  BudgetConfig,
+  SafetyConfig,
+  SwarmConfig,
+  Swarm,
+  SwarmStatusInfo,
+  SwarmState,
+} from './swarm';
 
 // ============================================================================
-// Enhanced Swarm Types
+// Enhanced Swarm Types (extension only)
 // ============================================================================
 
-export type SwarmStrategy = 'parallel' | 'map-reduce' | 'pipeline' | 'tree';
-
-export interface BudgetConfig {
-  amount: number;
-  currency: string;
-  warningThreshold?: number;
-  criticalThreshold?: number;
-}
-
-export interface SafetyConfig {
-  fileSandbox: boolean;
+export interface ExtendedSafetyConfig extends SafetyConfig {
+  enableBranching?: boolean;
   networkAllowlist?: string[];
   commandBlacklist?: string[];
   maxExecutionTime?: number;
@@ -594,7 +605,8 @@ export class SwarmOrchestrator extends EventEmitter {
    * Get recent events for a swarm
    */
   getSwarmEvents(swarmId: string, limit?: number): AgentEvent[] {
-    return this.eventBus.getEvents({ swarmId, limit });
+    const events = this.eventBus.getEvents({ swarmId });
+    return limit ? events.slice(-limit) : events;
   }
 
   // =========================================================================
