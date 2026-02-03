@@ -59,7 +59,7 @@ router.post('/', validateRequest(createSwarmSchema), async (req: Request, res: R
     
     const swarm = await repo.create({
       name: data.name,
-      status: 'running',
+      status: 'active',
       config: {
         strategy: data.strategy,
         agentCount: data.agents,

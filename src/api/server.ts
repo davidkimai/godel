@@ -91,7 +91,7 @@ function createApiRoutes() {
   router.post('/swarm', validators.createSwarm, async (req: Request, res: Response) => {
     try {
       const { name, config } = req.body;
-      const swarm = await swarmRepo.create({ name, config, status: 'running' });
+      const swarm = await swarmRepo.create({ name, config, status: 'active' });
       res.status(201).json(swarm);
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });

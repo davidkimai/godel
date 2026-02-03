@@ -110,7 +110,7 @@ export const createSwarmSchema = z.object({
 export const updateSwarmSchema = z.object({
   name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9-_]+$/).optional(),
   description: z.string().max(500).optional(),
-  status: z.enum(['running', 'paused', 'completed', 'failed']).optional(),
+  status: z.enum(['creating', 'active', 'scaling', 'paused', 'completed', 'failed', 'destroyed']).optional(),
   config: z.record(z.unknown()).optional(),
 }).refine((data) => {
   // At least one field must be provided
@@ -134,7 +134,7 @@ export const swarmActionSchema = z.object({
 }, { message: 'Scale requires targetAgents; cancel cannot be graceful' });
 
 export const swarmQuerySchema = z.object({
-  status: z.array(z.enum(['running', 'paused', 'completed', 'failed'])).optional(),
+  status: z.array(z.enum(['creating', 'active', 'scaling', 'paused', 'completed', 'failed', 'destroyed'])).optional(),
   ...paginationSchema.shape,
 });
 
