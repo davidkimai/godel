@@ -31,7 +31,10 @@ Dash is infrastructure for agents to work together. As an agent, you can use Das
 # Navigate to Dash project
 cd /Users/jasontang/clawd/projects/dash
 
-# Launch 5 parallel 10-minute sprints
+# Launch orchestrator-managed swarm
+./orchestrator.sh
+
+# Or launch manual sprints
 ./sprint-launcher.sh
 
 # Monitor running swarms
