@@ -1,0 +1,150 @@
+{
+  "version": "3.0",
+  "lastHeartbeat": 1770087155982,
+  "mode": "normal",
+  "activeSwarms": {
+    "cli-1770086777645": {
+      "started": 1770086777645,
+      "area": "coverage",
+      "model": "kimi-coding/k2p5",
+      "priority": "HIGH",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_coverage-1770086777645.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770086799895": {
+      "started": 1770086799895,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770086799895.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770087159302": {
+      "started": 1770087159302,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770087159302.log",
+      "method": "kimi-cli-primary"
+    }
+  },
+  "metrics": {
+    "current": {
+      "timestamp": 1770087155982,
+      "testCoverage": 0,
+      "tsErrors": 0,
+      "swarmCount": 7,
+      "agentCount": 43,
+      "budgetSpent": 0,
+      "stuckAgents": 0,
+      "buildPassing": false,
+      "lastError": "Build failed with exit code: undefined"
+    },
+    "history": [
+      {
+        "timestamp": 1770084266502,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 4,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": true,
+        "lastError": null
+      },
+      {
+        "timestamp": 1770084415848,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 0,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": true,
+        "lastError": null
+      },
+      {
+        "timestamp": 1770084531801,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 5,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": true,
+        "lastError": null
+      },
+      {
+        "timestamp": 1770086774721,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 5,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": true,
+        "lastError": null
+      },
+      {
+        "timestamp": 1770086796320,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 6,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Build failed with exit code: undefined"
+      },
+      {
+        "timestamp": 1770087155982,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 7,
+        "agentCount": 43,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Build failed with exit code: undefined"
+      }
+    ]
+  },
+  "cooldowns": {
+    "coverage": 1770088577649,
+    "bugfix": 1770088059306
+  },
+  "decisions": [
+    {
+      "timestamp": 1770084270323,
+      "action": "spawn_coverage",
+      "reason": "Coverage < 10%",
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_coverage-1770084270323.log"
+    },
+    {
+      "timestamp": 1770084535267,
+      "action": "monitor",
+      "reason": "System healthy"
+    },
+    {
+      "timestamp": 1770086777649,
+      "action": "spawn_coverage",
+      "reason": "Coverage < 10%"
+    },
+    {
+      "timestamp": 1770086799899,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770087159306,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    }
+  ]
+}
