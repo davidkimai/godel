@@ -51,3 +51,15 @@ export type { MetricSnapshot, MetricsSummary, TimeSeriesPoint } from './metrics'
 // Verification
 export { VerificationPipeline, verificationPipeline, quickVerify, getVerificationStatus } from './verification';
 export type { VerificationResult, VerificationDetail } from './verification';
+
+// Decision Engine - Tiered auto-approve swarms
+export { DecisionEngine, decisionEngine, authorizeSwarm, canAutoApprove, getAuthorizationStatus, AuthorizationTier } from './decision-engine';
+export type { SwarmAuthorization, DecisionRequest } from './decision-engine';
+
+// Swarm Executor - Concurrent swarm execution
+export { SwarmExecutor, swarmExecutor, executeSwarm, getSwarmStatus, getExecutionMetrics } from './swarm-executor';
+export type { SwarmExecutionContext, AgentExecutionResult, ExecutionMetrics } from './swarm-executor';
+
+// Bug Monitor - Recursive bug detection/fix
+export { BugMonitor, bugMonitor, reportBug, getBugDashboard, startBugMonitoring, stopBugMonitoring, BugSeverity, BugStatus } from './bug-monitor';
+export type { BugReport, BugMonitorConfig } from './bug-monitor';
