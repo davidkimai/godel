@@ -1,134 +1,64 @@
 /**
- * @dash/ai - Unified LLM API for Dash
+ * @dash/ai - Unified LLM API with provider failover
  * 
- * This package wraps pi-mono's unified LLM API with swarm-specific features:
- * - Cost-optimized model selection for swarms
- * - Automatic provider failover
- * - Budget-aware model resolution
- * - Multi-provider swarm support
- * 
- * @module @dash/ai
+ * Main exports for the Dash AI package
  */
 
-// ============================================================================
-// Re-exports from pi-mono (@mariozechner/pi-ai)
-// ============================================================================
+export * from './types.js';
+export { ModelResolver, modelResolver, AVAILABLE_MODELS } from './model-resolver.js';
+export { ProviderFailover, failover, type FailoverResult } from './provider-failover.js';
 
-export {
-  // Core functions
-  stream,
-  complete,
-  streamSimple,
-  completeSimple,
-  getEnvApiKey,
-  
-  // Model management
-  getModel,
-  getProviders,
-  getModels,
-  calculateCost,
-  supportsXhigh,
-  modelsAreEqual,
-  
-  // API Registry
-  registerApiProvider,
-  getApiProvider,
-  getApiProviders,
-  unregisterApiProviders,
-  clearApiProviders,
-} from '@mariozechner/pi-ai';
+import { modelResolver } from './model-resolver.js';
+import { failover } from './provider-failover.js';
+import type { 
+  ProviderName, 
+  AIRequest, 
+  AIResponse,
+  ProviderConfig,
+  ModelInfo
+} from './types.js';
 
-// Re-export types
-export type {
-  // Core types
-  Api,
-  KnownApi,
-  Provider,
-  KnownProvider,
-  ThinkingLevel,
-  ThinkingBudgets,
-  CacheRetention,
-  StreamOptions,
-  ProviderStreamOptions,
-  SimpleStreamOptions,
-  StreamFunction,
+/**
+ * Get model info by ID (legacy compatibility)
+ * Now uses resolveModel with the model ID as a capability hint
+ */
+export function getModel(modelId: string): ModelInfo | undefined {
+  // Try to find exact match first
+  const exact = modelResolver.getModelsForProvider('openai')
+    .concat(modelResolver.getModelsForProvider('anthropic'))
+    .concat(modelResolver.getModelsForProvider('google'))
+    .concat(modelResolver.getModelsForProvider('deepseek'))
+    .concat(modelResolver.getModelsForProvider('groq'))
+    .find(m => m.id === modelId);
   
-  // Message types
-  TextContent,
-  ThinkingContent,
-  ImageContent,
-  ToolCall,
-  Usage,
-  StopReason,
-  UserMessage,
-  AssistantMessage,
-  ToolResultMessage,
-  Message,
+  if (exact) return exact;
   
-  // Tool and context types
-  Tool,
-  Context,
-  
-  // Event types
-  AssistantMessageEvent,
-  AssistantMessageEventStream,
-  
-  // Model types
-  Model,
-  OpenAICompletionsCompat,
-  OpenAIResponsesCompat,
-  OpenRouterRouting,
-  VercelGatewayRouting,
-  
-  // API Provider types
-  ApiProvider,
-  ApiStreamFunction,
-  ApiStreamSimpleFunction,
-} from '@mariozechner/pi-ai';
+  // Otherwise resolve best model
+  return modelResolver.resolveModel();
+}
 
-// ============================================================================
-// Dash Extensions
-// ============================================================================
+/**
+ * Get the model resolver instance
+ */
+export function getModelResolver(): typeof modelResolver {
+  return modelResolver;
+}
 
-export { SwarmModelResolver } from './swarm-model-resolver';
-export { ProviderFailover, FailoverStrategy } from './provider-failover';
-export { CostTracker, CostTrackingOptions } from './cost-tracker';
-export { 
-  getSwarmModel, 
-  streamWithFailover, 
-  completeWithFailover,
-  createMultiProviderSwarm 
-} from './swarm-llm';
+/**
+ * Execute request with automatic failover
+ */
+export async function execute(request: AIRequest): Promise<{
+  success: boolean;
+  response?: AIResponse;
+  error?: string;
+  providersTried: ProviderName[];
+}> {
+  return failover.execute(request);
+}
 
-// ============================================================================
-// Types
-// ============================================================================
-
-export type { 
-  SwarmModelConfig, 
-  TaskType, 
-  ModelCapability,
-  ModelScore,
-} from './swarm-model-resolver';
-export type { 
-  FailoverConfig, 
-  ProviderHealth,
-  FailoverAttempt,
-  FailoverResult,
-  // FailoverStrategy is exported as value above, don't re-export as type
-} from './provider-failover';
-export type { 
-  // CostTrackingOptions is exported as value above, don't re-export as type
-  CostEntry,
-  CostStatus,
-  ProviderCostSummary,
-  ModelCostSummary,
-  CostReport,
-} from './cost-tracker';
-export type { 
-  SwarmStreamOptions, 
-  SwarmCompleteOptions,
-  MultiProviderSwarmConfig,
-  SwarmAgentConfig,
-  SwarmLLMResult,
-} from './swarm-llm';
+/**
+ * Register a provider configuration
+ */
+export function registerProvider(config: ProviderConfig): void {
+  failover.registerProvider(config);
+}
