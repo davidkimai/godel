@@ -106,11 +106,13 @@ export declare function getBudgetsFilePath(): string;
  * Set a budget configuration for a specific scope
  */
 export declare function setBudgetConfig(config: BudgetConfig): BudgetConfig;
+export declare function setBudgetConfig(scope: string, config: BudgetConfig): BudgetConfig;
 export declare function setBudgetConfig(type: BudgetType, scope: string, config: Partial<BudgetConfig>): BudgetConfig;
 /**
  * Get budget configuration for a scope
  */
 export declare function getBudgetConfig(type: BudgetType, scope: string): BudgetConfig | undefined;
+export declare function getBudgetConfig(scope: string): BudgetConfig | undefined;
 /**
  * List all budget configurations
  */
@@ -218,7 +220,7 @@ export declare function trackTokenUsage(budgetId: string, promptTokensOrTokenCou
     prompt: number;
     completion: number;
     total: number;
-}, completionTokens?: number): BudgetTracking | null;
+}, completionTokens?: number): ThresholdCheckResult | null;
 /**
  * Check if budget has been exceeded (test compatibility)
  */
@@ -233,6 +235,9 @@ export declare function checkBudgetExceeded(budgetId: string): {
 export declare function setBudgetAlert(projectId: string, thresholdOrConfig: number | {
     threshold: number;
     message?: string;
+    webhookUrl?: string;
+    email?: string;
+    sms?: string;
 }, message?: string): BudgetAlert;
 /**
  * Calculate cost for token usage (test compatibility)
