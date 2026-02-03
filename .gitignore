@@ -13,6 +13,8 @@ logs/
 temp/
 .clawhub/
 .claude-worktrees/
+.dash/orchestrator-state.json
+.dash/orchestrator.pid
 
 # Environment
 .env

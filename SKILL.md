@@ -144,11 +144,17 @@ Contains:
 ### Talk to Dash Orchestrator
 
 ```bash
-# Send command to orchestrator
-node .dash/orchestrator-v3.js --command status
+# Start orchestrator
+./orchestrator.sh
 
-# Check health
-node .dash/orchestrator-v3.js --health
+# Check status
+node .dash/orchestrator-v4.js --status
+
+# View health
+node .dash/orchestrator-v4.js --health
+
+# Emergency stop
+node .dash/orchestrator-v4.js --stop
 ```
 
 ### Receive Updates
@@ -213,9 +219,10 @@ cd /Users/jasontang/clawd/projects/dash/.claude-worktrees/sprint-YYYYMMDD-HHMMSS
 |------|---------|
 | `SKILL.md` | This file - agent onboarding |
 | `README.md` | Human-readable overview |
-| `.dash/orchestrator-v3.js` | Main orchestrator |
+| `orchestrator.sh` | Orchestrator launcher script |
+| `.dash/orchestrator-v4.js` | Main orchestrator (v4) |
 | `.swarm/swarm-protocol-v3.md` | Swarm rules |
-| `sprint-launcher.sh` | Swarm launcher script |
+| `sprint-launcher.sh` | Manual swarm launcher script |
 | `.dash/orchestrator-state.json` | Persistent state |
 
 ## Example: Launch Swarm from Agent
@@ -250,6 +257,9 @@ git worktree prune
 
 # Check for running processes
 ps aux | grep "kimi -p"
+
+# Verify orchestrator exists
+ls -la .dash/orchestrator-v4.js
 ```
 
 ### Build Fails
@@ -259,6 +269,9 @@ npm run build 2>&1 | grep "error TS"
 
 # View full output
 npm run build
+
+# Check for missing dependencies
+npm install
 ```
 
 ### Orchestrator Stuck
@@ -268,8 +281,33 @@ cat .dash/orchestrator-state.json
 
 # Restart orchestrator
 pkill -f orchestrator
-node .dash/orchestrator-v3.js &
+./orchestrator.sh
+
+# Check logs
+tail -f .dash/logs/orchestrator.log
 ```
+
+### Worktree Cleanup
+```bash
+# Remove stale worktrees
+git worktree prune
+
+# Remove sprint directories
+find .claude-worktrees -type d -name "sprint-*" -exec rm -rf {} +
+
+# Verify clean state
+git worktree list
+```
+
+### Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `gitdir file points to non-existent location` | Stale worktree | Run `git worktree prune` |
+| `Cannot lock ref` | Git lock conflict | `rm -f .git/*.lock` |
+| `Port already in use` | Another process running | `pkill -f orchestrator` |
+| `Module not found` | Missing dependencies | `npm install` |
+| `Permission denied` | Script not executable | `chmod +x orchestrator.sh` |
 
 ## Learning Resources
 
