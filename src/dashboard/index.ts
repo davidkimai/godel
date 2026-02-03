@@ -1,5 +1,17 @@
-export * from './Dashboard';
-export * from './components/AgentGrid';
-export * from './components/EventStream';
-export * from './components/BudgetPanel';
-export * from './components/StatusBar';
+/**
+ * Dashboard Server
+ * 
+ * Real-time event streaming and session tree visualization.
+ */
+
+export {
+  DashboardServer,
+  getGlobalDashboardServer,
+  resetGlobalDashboardServer,
+} from './server';
+export type {
+  DashboardConfig,
+  DashboardClient,
+  TreeVisualizationNode,
+  TreeVisualization,
+} from './server';
