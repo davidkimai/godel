@@ -1,0 +1,103 @@
+# Alert rules for Dash monitoring
+
+groups:
+  - name: dash_alerts
+    rules:
+      # High error rate
+      - alert: DashHighErrorRate
+        expr: rate(dash_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected in Dash"
+          description: "Error rate is {{ $value }} errors per second"
+
+      # Agent failure rate
+      - alert: DashHighAgentFailureRate
+        expr: rate(dash_agent_failures_total[10m]) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High agent failure rate"
+          description: "{{ $value }} agents failing per second"
+
+      # Budget utilization
+      - alert: DashBudgetCritical
+        expr: dash_budget_utilization_ratio > 0.95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dash budget critically low"
+          description: "Budget utilization is {{ $value | humanizePercentage }}"
+
+      - alert: DashBudgetWarning
+        expr: dash_budget_utilization_ratio > 0.80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dash budget warning"
+          description: "Budget utilization is {{ $value | humanizePercentage }}"
+
+      # Disk space
+      - alert: DashDiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space"
+          description: "Disk is {{ $value | humanizePercentage }} full"
+
+      # Memory usage
+      - alert: DashMemoryHigh
+        expr: dash_memory_usage_bytes{type="rss"} / 1024 / 1024 / 1024 > 4
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}GB"
+
+      # Event processing lag
+      - alert: DashEventProcessingSlow
+        expr: rate(dash_event_processing_duration_seconds_sum[5m]) / rate(dash_event_processing_duration_seconds_count[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow event processing"
+          description: "Average event processing time is {{ $value }}s"
+
+      # Swarm failures
+      - alert: DashSwarmFailureRate
+        expr: rate(dash_swarm_failure_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High swarm failure rate"
+          description: "{{ $value }} swarms failing per second"
+
+      # API latency
+      - alert: DashHighApiLatency
+        expr: histogram_quantile(0.95, rate(dash_api_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile API latency is {{ $value }}s"
+
+      # No metrics received
+      - alert: DashNoMetrics
+        expr: up{job="dash"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dash metrics not available"
+          description: "Prometheus cannot scrape Dash metrics"
