@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@dash/ai": ["./packages/ai/src/index.ts"]
+    }
+  },
+  "include": ["src/cli/commands/openclaw.ts"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
