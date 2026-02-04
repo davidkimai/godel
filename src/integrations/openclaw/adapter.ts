@@ -1,12 +1,13 @@
 /**
  * OpenClaw Adapter
- *
+ * 
  * Translates OpenClaw protocol to Dash API, enabling OpenClaw to use
  * Dash as its native orchestration platform for agent swarms.
- *
+ * 
  * @module integrations/openclaw/adapter
  */
 
+import { EventEmitter } from 'events';
 import { getGlobalClient, type DashApiClient } from '../../cli/lib/client';
 import { getGlobalBus, type MessageBus, type Subscription } from '../../bus/index';
 import { logger } from '../../utils/logger';
@@ -89,7 +90,7 @@ export interface ActiveAgent {
  * Maps OpenClaw sessions to Dash agents and swarms, enabling
  * bidirectional communication between OpenClaw and Dash.
  */
-export class OpenClawAdapter {
+export class OpenClawAdapter extends EventEmitter {
   private config: OpenClawAdapterConfig;
   private client: DashApiClient;
   private messageBus: MessageBus;
@@ -103,9 +104,10 @@ export class OpenClawAdapter {
   /** Tracks agent metadata */
   private agentMetadata: Map<string, { agentType: string; createdAt: Date }>;
   /** Event forwarding handlers */
-  private eventHandlers: Map<string, () => void>;
+  private eventHandlers: Map<string, Subscription>;
 
   constructor(config: OpenClawAdapterConfig) {
+    super();
     this.config = config;
     this.client = getGlobalClient();
     this.messageBus = getGlobalBus();
@@ -145,16 +147,15 @@ export class OpenClawAdapter {
       // Create a swarm for this agent
       const swarmResult = await this.client.createSwarm({
         name: `openclaw-${openclawSessionKey}`,
-        description: `Swarm for OpenClaw session ${openclawSessionKey}`,
-        config: {
-          agentType: options.agentType,
-          task: options.task,
-          model: options.model || 'default',
-          timeout: options.timeout || 300000,
-          ...options.config,
-        },
-        strategy: 'parallel',
+        task: options.task,
+        initialAgents: 1,
         maxAgents: 1,
+        strategy: 'parallel' as const,
+        model: options.model,
+        metadata: {
+          agentType: options.agentType,
+          openclawSessionKey,
+        },
       });
 
       if (!swarmResult.success || !swarmResult.data) {
@@ -175,11 +176,6 @@ export class OpenClawAdapter {
         model: options.model,
         task: options.task,
         swarmId,
-        metadata: {
-          openclawSessionKey,
-          agentType: options.agentType,
-          source: 'openclaw',
-        },
       });
 
       if (!agentResult.success || !agentResult.data) {
@@ -316,8 +312,8 @@ export class OpenClawAdapter {
 
     return {
       status: agent.status,
-      progress: agent.metadata?.progress as number | undefined,
-      result: agent.metadata?.result as unknown,
+      progress: agent.metadata?.['progress'] as number | undefined,
+      result: agent.metadata?.['result'] as unknown,
       error: agent.lastError,
       runtime: agent.runtime,
     };
@@ -441,7 +437,7 @@ export class OpenClawAdapter {
 
     return {
       source: 'dash',
-      type: (msg.payload?.eventType as string) || 'agent.update',
+      type: (msg.payload?.['eventType'] as string) || 'agent.update',
       timestamp: msg.timestamp || new Date(),
       sessionKey: openclawSessionKey,
       data: msg.payload || {},
@@ -571,9 +567,5 @@ export function resetOpenClawAdapter(): void {
 export function isOpenClawAdapterInitialized(): boolean {
   return globalAdapter !== null;
 }
-
-// Apply EventEmitter mixin
-import { EventEmitter } from 'events';
-Object.assign(OpenClawAdapter.prototype, EventEmitter.prototype);
 
 export default OpenClawAdapter;
