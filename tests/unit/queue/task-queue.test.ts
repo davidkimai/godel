@@ -43,6 +43,31 @@ jest.mock('ioredis', () => {
   }));
 });
 
+// Mock prom-client to avoid metric registration conflicts
+jest.mock('prom-client', () => ({
+  register: {
+    registerMetric: jest.fn(),
+    resetMetrics: jest.fn(),
+    metrics: jest.fn().mockResolvedValue(''),
+    contentType: 'text/plain',
+  },
+  Counter: jest.fn().mockImplementation(() => ({
+    inc: jest.fn(),
+    reset: jest.fn(),
+  })),
+  Gauge: jest.fn().mockImplementation(() => ({
+    set: jest.fn(),
+    inc: jest.fn(),
+    dec: jest.fn(),
+    reset: jest.fn(),
+  })),
+  Histogram: jest.fn().mockImplementation(() => ({
+    observe: jest.fn(),
+    reset: jest.fn(),
+  })),
+  collectDefaultMetrics: jest.fn(),
+}));
+
 describe('TaskQueue', () => {
   let queue: TaskQueue;
   const mockRedisConfig = {
