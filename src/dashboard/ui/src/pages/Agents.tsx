@@ -8,25 +8,19 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   Users,
   Search,
-  Filter,
-  Play,
-  Pause,
   RefreshCw,
   Trash2,
-  FileText,
-  Activity,
   ExternalLink,
-  ChevronDown,
-  ChevronRight,
-  Terminal,
   Bug
 } from 'lucide-react';
 import { Card, Button, Badge, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore, useAuthStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useAgentUpdates } from '../services/websocket';
+import { useAgentUpdates } from '../services/websocket.ts';
 import {
   AgentStatus,
+} from '../types/index.ts';
+import {
   formatCurrency,
   formatNumber,
   formatDuration,
@@ -34,16 +28,16 @@ import {
   getStatusColor,
   cn,
   filterAgents
-} from '../types';
-import type { Agent, LogEntry, Trace } from '../types';
+} from '../utils/index.ts';
+import type { Agent, LogEntry, Trace } from '../types/index.ts';
 
 // ============================================================================
 // Agents Page
 // ============================================================================
 
 export function AgentsPage(): React.ReactElement {
-  const { agents, swarms, isLoadingAgents, setAgents, updateAgent, removeAgent } = useDashboardStore();
-  const { view, setSelectedAgent, filters, setFilter } = useUIStore();
+  const { agents, swarms, isLoadingAgents, setAgents, updateAgent } = useDashboardStore();
+  const { filters, setFilter } = useUIStore();
   const { isAdmin } = useAuthStore();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const { addNotification } = useUIStore();

@@ -281,3 +281,6 @@ export type AssignTask = z.infer<typeof AssignTaskSchema>;
 export type TaskAssignment = z.infer<typeof TaskAssignmentSchema>;
 export type CreateCheckpoint = z.infer<typeof CreateCheckpointSchema>;
 export type ListTasksQuery = z.infer<typeof ListTasksQuerySchema>;
+
+/** Type alias for TaskListResponseSchema */
+export type TaskListResponse = z.infer<typeof TaskListResponseSchema>;

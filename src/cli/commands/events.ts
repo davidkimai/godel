@@ -11,6 +11,7 @@ import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatEvents, type OutputFormat } from '../lib/output';
+import type { MessageFilter } from '../../bus/index';
 
 export function registerEventsCommand(program: Command): void {
   const events = program

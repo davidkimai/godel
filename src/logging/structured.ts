@@ -348,12 +348,12 @@ export class StructuredLogger {
     if (this.context.spanId) entry.span_id = this.context.spanId;
     if (this.context.parentSpanId) entry.parent_span_id = this.context.parentSpanId;
     if (this.context.agentId) entry.agent_id = this.context.agentId;
-    if (this.context.swarmId) entry.swarm_id = this.context.swarmId;
-    if (this.context.workflowId) entry.workflow_id = this.context.workflowId;
-    if (this.context.taskId) entry.task_id = this.context.taskId;
-    if (this.context.userId) entry.user_id = this.context.userId;
-    if (this.context.requestId) entry.request_id = this.context.requestId;
-    if (this.context.sessionId) entry.session_id = this.context.sessionId;
+    if (this.context['swarmId']) entry.swarm_id = this.context['swarmId'];
+    if (this.context['workflowId']) entry.workflow_id = this.context['workflowId'];
+    if (this.context['taskId']) entry.task_id = this.context['taskId'];
+    if (this.context['userId']) entry.user_id = this.context['userId'];
+    if (this.context['requestId']) entry.request_id = this.context['requestId'];
+    if (this.context['sessionId']) entry.session_id = this.context['sessionId'];
 
     // Add error if present
     if (error) {

@@ -155,9 +155,9 @@ export async function instrumentEventProcessing<T>(
     'event.id': event.id,
     'event.type': event.type,
     'event.agent_id': event.agentId,
-    'event.swarm_id': event.swarmId || '',
-    'event.session_id': event.sessionId || '',
-    'event.correlation_id': event.correlationId || '',
+    'event.swarm_id': event['swarmId'] || '',
+    'event.session_id': event['sessionId'] || '',
+    'event.correlation_id': event['correlationId'] || '',
     'event.timestamp': event.timestamp,
     'handler.id': handlerId,
   };
@@ -165,8 +165,8 @@ export async function instrumentEventProcessing<T>(
   // Set baggage from event
   setBaggage('event.type', event.type);
   setBaggage('event.agent_id', event.agentId);
-  if (event.correlationId) {
-    setBaggage('event.correlation_id', event.correlationId);
+  if (event['correlationId']) {
+    setBaggage('event.correlation_id', event['correlationId']);
   }
 
   return withSpan(SPAN_NAMES.EVENT_PROCESS, async (span) => {

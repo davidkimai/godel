@@ -10,11 +10,12 @@
  */
 
 import Redis from 'ioredis';
+import type { RedisOptions } from 'ioredis';
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
 
 export interface RedisFallbackConfig {
-  redis: Redis.RedisOptions;
+  redis: RedisOptions;
   fallbackEnabled?: boolean;
   maxQueueSize?: number;
   recoveryCheckIntervalMs?: number;

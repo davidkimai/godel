@@ -17,12 +17,11 @@ import {
   X,
   Bell,
   LogOut,
-  ChevronDown,
   Sun,
   Moon
 } from 'lucide-react';
-import { useAuthStore, useUIStore } from '../contexts/store';
-import { cn } from '../utils';
+import { useAuthStore, useUIStore } from '../contexts/store.ts';
+import { cn } from '../utils/index.ts';
 
 // ============================================================================
 // Sidebar
@@ -39,7 +38,7 @@ const navItems = [
 
 export function Sidebar(): React.ReactElement {
   const { sidebarOpen, toggleSidebar, darkMode, toggleDarkMode } = useUIStore();
-  const { logout, isAdmin } = useAuthStore();
+  const { logout } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -402,6 +401,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
+  icon?: React.ReactNode;
 }
 
 export function Button({
@@ -409,6 +409,7 @@ export function Button({
   variant = 'primary',
   size = 'md',
   isLoading,
+  icon,
   className,
   disabled,
   ...props

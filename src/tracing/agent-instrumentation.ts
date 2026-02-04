@@ -64,15 +64,15 @@ export async function instrumentAgentSpawn<T>(
     'agent.id': agent.id,
     'agent.model': agent.model,
     'agent.task': agent.task.slice(0, 100), // Truncate long tasks
-    'agent.swarm_id': agent.swarmId || '',
+    'agent.swarm_id': agent['swarmId'] || '',
     'agent.parent_id': agent.parentId || '',
     'agent.label': agent.label || '',
   };
 
   // Set baggage for cross-cutting concerns
   setBaggage('agent.id', agent.id);
-  if (agent.swarmId) {
-    setBaggage('swarm.id', agent.swarmId);
+  if (agent['swarmId']) {
+    setBaggage('swarm.id', agent['swarmId']);
   }
 
   return withSpan(SPAN_NAMES.AGENT_SPAWN, async (span) => {
@@ -310,8 +310,8 @@ export function restoreAgentTraceContext(ctx: AgentTraceContext): Context {
   const restoredContext = deserializeContext(ctx.traceContext);
   
   // Set additional baggage
-  if (ctx.swarmId) {
-    setBaggage('swarm.id', ctx.swarmId);
+  if (ctx['swarmId']) {
+    setBaggage('swarm.id', ctx['swarmId']);
   }
   if (ctx.parentAgentId) {
     setBaggage('agent.parent_id', ctx.parentAgentId);

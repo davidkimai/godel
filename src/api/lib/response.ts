@@ -28,6 +28,21 @@ export interface ApiError {
   stack?: string;
 }
 
+/** Success response type */
+export type SuccessResponse<T> = {
+  success: true;
+  data: T;
+  meta?: ResponseMeta;
+  links?: ResponseLinks;
+};
+
+/** Error response type */
+export type ErrorResponse<E = ApiError> = {
+  success: false;
+  error: E;
+  meta?: ResponseMeta;
+};
+
 export interface ResponseMeta {
   /** Current page (for pagination) */
   page?: number;

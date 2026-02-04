@@ -274,3 +274,9 @@ export type AgentCode = z.infer<typeof AgentCodeSchema>;
 export type AgentReasoning = z.infer<typeof AgentReasoningSchema>;
 export type SafetyConfig = z.infer<typeof SafetyConfigSchema>;
 export type ListAgentsQuery = z.infer<typeof ListAgentsQuerySchema>;
+
+/** Type alias for AgentListResponseSchema */
+export type AgentListResponse = z.infer<typeof AgentListResponseSchema>;
+
+/** Type alias for AgentLogResponseSchema */
+export type AgentLogResponse = z.infer<typeof AgentLogResponseSchema>;

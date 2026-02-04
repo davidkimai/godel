@@ -204,15 +204,15 @@ export class SchedulingMetrics {
     });
 
     scheduler.on('scheduling.succeeded', (event) => {
-      this.recordSchedulingSuccess(event);
+      this._recordSchedulingSuccess(event);
     });
 
     scheduler.on('scheduling.failed', (event) => {
-      this.recordSchedulingFailure(event);
+      this._recordSchedulingFailure(event);
     });
 
     scheduler.on('scheduling.preempted', (event) => {
-      this.recordPreemption(event);
+      this._recordPreemption(event);
     });
 
     // Start periodic collection
@@ -273,32 +273,32 @@ export class SchedulingMetrics {
     }
   }
 
-  private recordSchedulingSuccess(event: {
+  private _recordSchedulingSuccess(event: {
     agentId?: string;
     payload: Record<string, unknown>;
   }): void {
-    const latency = (event.payload.latency as number) || 0;
+    const latency = (event.payload['latency'] as number) || 0;
     this.schedulingSuccessesTotal.inc({});
     this.schedulingLatencyHistogram.observe({ result: 'success' }, latency / 1000);
   }
 
-  private recordSchedulingFailure(event: {
+  private _recordSchedulingFailure(event: {
     agentId?: string;
     payload: Record<string, unknown>;
   }): void {
-    const latency = (event.payload.latency as number) || 0;
-    const error = (event.payload.error as string) || 'unknown';
-    
+    const latency = (event.payload['latency'] as number) || 0;
+    const error = (event.payload['error'] as string) || 'unknown';
+
     this.schedulingFailuresTotal.inc({ priority_class: 'unknown', reason: error });
     this.schedulingLatencyHistogram.observe({ result: 'failure' }, latency / 1000);
   }
 
-  private recordPreemption(event: {
+  private _recordPreemption(event: {
     agentId: string;
     preemptedBy: string;
     nodeId: string;
   }): void {
-    this.preemptionTotal.inc({ node_id: event.nodeId });
+    this.preemptionTotal.inc({ node_id: event['nodeId'] });
   }
 
   // ============================================================================
@@ -333,7 +333,7 @@ export class SchedulingMetrics {
       // Update agent counts per node
       for (const node of nodes) {
         this.nodeAgentCount.set(
-          { node_id: node.capacity.nodeId },
+          { node_id: node.capacity['nodeId'] },
           node.agents.length
         );
       }
@@ -351,7 +351,7 @@ export class SchedulingMetrics {
       this.checkpointCountGauge.set(checkpointCount);
 
     } catch (error) {
-      logger.error('[SchedulingMetrics] Error collecting metrics:', error);
+      logger['error']('[SchedulingMetrics] Error collecting metrics:', error);
     }
   }
 

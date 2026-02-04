@@ -15,6 +15,14 @@ const validKeys = new Set<string>();
 const API_KEY_PATTERN = /^dash_[a-z]+_[a-f0-9]{64}$/;
 const API_KEY_PREFIX = 'dash';
 
+/** Authenticated request with API key */
+export interface AuthenticatedRequest extends Request {
+  apiKey: string;
+}
+
+/** Require authentication middleware wrapper */
+export function requireAuth(req: Request, res: Response, next: NextFunction): void;
+
 /**
  * Generate a cryptographically secure API key
  * Format: dash_<prefix>_<64-char-hex>

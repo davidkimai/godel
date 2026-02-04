@@ -294,7 +294,7 @@ export class Scheduler extends EventEmitter {
     }
 
     // No node has available resources - try preemption if enabled
-    if (this.config.policy.enablePreemption && this.preemptionSystem.isEnabled()) {
+    if (this.config.policy['enablePreemption'] && this.preemptionSystem.isEnabled()) {
       const priority = this.agentPriorities.get(agent.id) || {
         priorityClass: this.config.policy.defaultPriorityClass,
         preemptionPolicy: 'PreemptLowerPriority',
@@ -451,7 +451,7 @@ export class Scheduler extends EventEmitter {
     resources: ResourceRequirements,
     nodes: NodeAllocation[]
   ): Promise<NodeAllocation | null> {
-    const strategy = this.config.policy.binPackingStrategy;
+    const strategy = this.config.policy['binPackingStrategy'];
     
     // Filter nodes that can fit the resources
     const candidates: Array<{ node: NodeAllocation; score: number }> = [];

@@ -6,32 +6,26 @@
 
 import React, { useState } from 'react';
 import {
-  Settings,
   User,
   Shield,
   Bell,
   Palette,
-  Globe,
-  Key,
   LogOut,
   Save,
-  RefreshCw,
-  Check,
   Copy,
   ExternalLink
 } from 'lucide-react';
 import { Card, Button, Badge } from '../components/Layout';
 import { useAuthStore, useUIStore } from '../contexts/store';
 import { authApi } from '../services/api';
-import { cn } from '../utils';
-import type { UserRole } from '../types';
+import { cn } from '../utils/index.ts';
 
 // ============================================================================
 // Settings Page
 // ============================================================================
 
 export function SettingsPage(): React.ReactElement {
-  const { user, isAuthenticated, logout, isAdmin } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { darkMode, toggleDarkMode, addNotification } = useUIStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'preferences'>('profile');
 
@@ -223,7 +217,6 @@ function ProfileSettings(): React.ReactElement {
 
 function SecuritySettings(): React.ReactElement {
   const { isAdmin } = useAuthStore();
-  const { addNotification } = useUIStore();
 
   if (!isAdmin()) {
     return (
@@ -519,8 +512,5 @@ function IntegrationRow({ name, description, connected, url }: IntegrationRowPro
     </div>
   );
 }
-
-// Fix unused import
-import { Check } from 'lucide-react';
 
 export default SettingsPage;

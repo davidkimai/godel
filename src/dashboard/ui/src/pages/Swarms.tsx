@@ -26,7 +26,7 @@ import {
 import { Card, Button, Badge, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore, useAuthStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useSwarmUpdates } from '../services/websocket';
+import { useSwarmUpdates } from '../services/websocket.ts';
 import {
   SwarmState,
   formatCurrency,
@@ -34,8 +34,8 @@ import {
   formatRelativeTime,
   getStatusColor,
   cn
-} from '../types';
-import type { Swarm, Agent, SwarmConfig } from '../types';
+} from '../types/index.ts';
+import type { Swarm, Agent, SwarmConfig } from '../types/index.ts';
 
 // ============================================================================
 // Swarms Page

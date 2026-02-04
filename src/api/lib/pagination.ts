@@ -195,6 +195,15 @@ export interface OffsetPaginationResult<T> extends CursorPaginationResult<T> {
   pageSize: number;
 }
 
+/** Alias for CursorPaginationParams */
+export type PaginationParams = CursorPaginationResult<unknown> extends infer T ? CursorPaginationParams : never;
+
+/** Alias for CursorPaginationResult */
+export type PaginatedResult<T> = CursorPaginationResult<T>;
+
+/** Alias for pagination links return type */
+export type PaginationLinks = { self: string; next?: string; prev?: string };
+
 /**
  * Parse offset pagination parameters
  */

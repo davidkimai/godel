@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type {
+import {
   Agent,
   Swarm,
   Task,
@@ -348,7 +348,7 @@ interface RealtimeState {
 
 export const useRealtimeStore = create<RealtimeState>()(
   devtools(
-    (set, get) => ({
+    (set) => ({
       isConnected: false,
       isReconnecting: false,
       lastEventTime: null,

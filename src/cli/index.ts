@@ -97,13 +97,34 @@ program
     }
   });
 
-// Show help if no command provided
-if (process.argv.length <= 2) {
-  program.help();
+// ============================================================================
+// CLI Entry Point - Can be used as module or run directly
+// ============================================================================
+
+export type { RegisterCommandsOptions } from './lib/types';
+
+// Export for use as module
+export function registerCommands(program: Command): void {
+  registerSwarmCommand(program);
+  registerAgentCommand(program);
+  registerTaskCommand(program);
+  registerEventsCommand(program);
+  registerBusCommand(program);
+  registerMetricsCommand(program);
+  registerStatusCommand(program);
+  registerHealthCommand(program);
+  registerConfigCommand(program);
 }
 
-// Parse arguments
-program.parse();
+// Run if executed directly
+if (require.main === module) {
+  // Show help if no command provided
+  if (process.argv.length <= 2) {
+    program.help();
+  }
+  // Parse arguments
+  program.parse();
+}
 
 // ============================================================================
 // Shell Completion Generators

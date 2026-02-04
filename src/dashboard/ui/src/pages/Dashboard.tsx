@@ -4,10 +4,8 @@
  * Main dashboard view with real-time metrics and visualizations
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -25,27 +23,27 @@ import {
 import {
   Users,
   Hexagon,
-  Activity,
   DollarSign,
   TrendingUp,
-  Clock,
-  Zap,
-  AlertCircle
+  Zap
 } from 'lucide-react';
-import { Card, StatsCard, Badge, LoadingSpinner } from './Layout';
+import { Card, StatsCard, Badge, LoadingSpinner } from '../components/Layout';
 import { useDashboardStore, useUIStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useEventStream } from '../services/websocket';
+import { useEventStream } from '../services/websocket.ts';
 import {
   AgentStatus,
   SwarmState,
   formatCurrency,
   formatNumber,
-  formatDuration,
   getStatusColor,
   calculateAgentMetrics
-} from '../types';
-import type { Agent, Swarm, AgentEvent } from '../types';
+} from '../types/index.ts';
+import {
+  formatCurrency,
+  formatNumber
+} from '../utils/index.ts';
+import type { Agent, Swarm, AgentEvent } from '../types/index.ts';
 
 // ============================================================================
 // Dashboard Page

@@ -8,27 +8,26 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   Activity,
   Search,
-  Filter,
   Download,
   RefreshCw,
-  Clock,
   AlertCircle,
   CheckCircle,
   Info,
   XCircle
 } from 'lucide-react';
-import { Card, Button, Badge, LoadingSpinner, EmptyState } from '../components/Layout';
+import { Card, Button, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useEventStream } from '../services/websocket';
-import { EventType, AgentEvent, formatTimestamp, formatRelativeTime, cn } from '../types';
+import { useEventStream } from '../services/websocket.ts';
+import { EventType, AgentEvent } from '../types/index.ts';
+import { formatTimestamp, formatRelativeTime, cn } from '../utils/index.ts';
 
 // ============================================================================
 // Events Page
 // ============================================================================
 
 export function EventsPage(): React.ReactElement {
-  const { events, setEvents, addEvent } = useDashboardStore();
+  const { events, setEvents } = useDashboardStore();
   const { filters, setFilter } = useUIStore();
   const realtimeEvents = useEventStream(200);
   

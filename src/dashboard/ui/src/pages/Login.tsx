@@ -18,7 +18,6 @@ import {
 import { useAuthStore } from '../contexts/store';
 import { authApi } from '../services/api';
 import { Button } from '../components/Layout';
-import { cn } from '../utils';
 
 // ============================================================================
 // Login Page
@@ -45,15 +44,12 @@ export function LoginPage(): React.ReactElement {
     setIsLoading(true);
 
     try {
-      const { token, role } = await authApi.login(username, password);
-      login({
-        id: 'user-1',
-        username,
-        role: role as 'readonly' | 'admin',
-        token,
-        expiresAt: new Date(Date.now() + 86400000).toISOString()
-      });
-      navigate('/');
+      const success = await login(username, password);
+      if (success) {
+        navigate('/');
+      } else {
+        setError('Login failed');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

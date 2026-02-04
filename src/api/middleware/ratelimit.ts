@@ -123,7 +123,7 @@ function checkRateLimit(key: string, config: RateLimitConfig): {
 export function createRateLimitMiddleware(config: Partial<RateLimitConfig> = {}) {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const key = getRateLimitKey(req, finalConfig);
     const result = checkRateLimit(key, finalConfig);
 
@@ -146,6 +146,7 @@ export function createRateLimitMiddleware(config: Partial<RateLimitConfig> = {})
     }
 
     next();
+    return;
   };
 }
 
@@ -164,7 +165,7 @@ export function rateLimitMiddleware(maxRequests?: number) {
  * Prevents brute force attacks
  */
 export function authRateLimitMiddleware() {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const key = getRateLimitKey(req, AUTH_CONFIG);
     const result = checkRateLimit(key, AUTH_CONFIG);
 
@@ -186,6 +187,7 @@ export function authRateLimitMiddleware() {
     }
 
     next();
+    return;
   };
 }
 
@@ -210,7 +212,7 @@ export function smartRateLimitMiddleware(options: {
   
   const authMiddleware = authRateLimitMiddleware();
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     // Check if this is an auth endpoint
     const isAuthEndpoint = req.path.includes('/auth/') || req.path === '/login';
     

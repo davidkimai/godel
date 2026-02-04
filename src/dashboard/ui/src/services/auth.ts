@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { User, UserRole } from '../types';
 
 // ============================================================================
 // Configuration
@@ -26,6 +27,13 @@ const LoginCredentialsSchema = z.object({
   password: z.string().min(8).max(256),
 });
 
+// Map API role string to UserRole enum
+function mapRoleToUserRole(role: 'admin' | 'user' | 'readonly'): UserRole {
+  if (role === 'admin') return UserRole.ADMIN;
+  if (role === 'user') return UserRole.USER;
+  return UserRole.READONLY;
+}
+
 const AuthResponseSchema = z.object({
   success: z.boolean(),
   user: z.object({
@@ -41,13 +49,6 @@ const AuthResponseSchema = z.object({
 // ============================================================================
 // Types
 // ============================================================================
-
-export interface User {
-  id: string;
-  username: string;
-  role: 'admin' | 'user' | 'readonly';
-  email?: string;
-}
 
 export interface AuthResult {
   success: boolean;
@@ -181,9 +182,17 @@ export const authService = {
         // Start token refresh timer
         startTokenRefresh();
 
+        // Map to User type from types/index.ts
         return {
           success: true,
-          user: authData.user,
+          user: {
+            id: authData.user.id,
+            username: authData.user.username,
+            role: mapRoleToUserRole(authData.user.role),
+            email: authData.user.email,
+            token: csrfToken || undefined,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+          },
         };
       }
 
@@ -238,9 +247,17 @@ export const authService = {
           startTokenRefresh();
         }
 
+        // Map to User type from types/index.ts
         return {
           success: true,
-          user: authData.user,
+          user: {
+            id: authData.user.id,
+            username: authData.user.username,
+            role: mapRoleToUserRole(authData.user.role),
+            email: authData.user.email,
+            token: csrfToken || undefined,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          },
         };
       }
 

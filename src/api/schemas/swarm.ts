@@ -286,3 +286,6 @@ export type CreateBranch = z.infer<typeof CreateBranchSchema>;
 export type SwitchBranch = z.infer<typeof SwitchBranchSchema>;
 export type BranchComparison = z.infer<typeof BranchComparisonSchema>;
 export type ListSwarmsQuery = z.infer<typeof ListSwarmsQuerySchema>;
+
+/** Type alias for SwarmListResponseSchema */
+export type SwarmListResponse = z.infer<typeof SwarmListResponseSchema>;

@@ -12,9 +12,6 @@ import {
   Area,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -27,25 +24,22 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  CreditCard,
-  Wallet,
   AlertTriangle
 } from 'lucide-react';
-import { Card, Button, Badge, LoadingSpinner, StatsCard } from '../components/Layout';
+import { Card, StatsCard, LoadingSpinner } from '../components/Layout';
 import { useDashboardStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useCostUpdates } from '../services/websocket';
-import { formatCurrency, formatNumber, formatDuration, cn } from '../types';
-import type { CostMetrics, CostBreakdown } from '../types';
+import { useCostUpdates } from '../services/websocket.ts';
+import { formatCurrency, formatNumber, formatDuration, cn } from '../utils/index.ts';
+import type { CostMetrics, CostBreakdown } from '../types/index.ts';
 
 // ============================================================================
 // Costs Page
 // ============================================================================
 
 export function CostsPage(): React.ReactElement {
-  const { agents, swarms, setCostMetrics } = useDashboardStore();
+  const { agents, swarms } = useDashboardStore();
   const [costMetrics, setLocalCostMetrics] = useState<CostMetrics | null>(null);
-  const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const realtimeCost = useCostUpdates();
 

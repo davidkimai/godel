@@ -137,7 +137,7 @@ export async function busRoutes(fastify: FastifyInstance) {
     async (
       request: FastifyRequest<{ Querystring: { type?: string; target?: string } }>,
       reply: FastifyReply
-    ) => {
+    ): Promise<void> => {
       try {
         const eventType = request.query.type;
         const target = request.query.target;
@@ -205,6 +205,8 @@ export async function busRoutes(fastify: FastifyInstance) {
           createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to subscribe to events')
         );
       }
+
+      return;
     }
   );
 

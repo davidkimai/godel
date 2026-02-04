@@ -45,12 +45,12 @@ export function getTracingContext(request: FastifyRequest): TracingContext {
 export function setupCorrelationMiddleware(fastify: FastifyInstance): void {
   fastify.addHook('preHandler', async (request: FastifyRequest, _reply: FastifyReply) => {
     const context = getTracingContext(request);
-    request.correlationId = context.correlationId;
+    request['correlationId'] = context['correlationId'];
     (request as any).tracingContext = context;
   });
 
   fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
-    const correlationId = request.correlationId;
+    const correlationId = request['correlationId'];
     if (correlationId) {
       reply.header(CORRELATION_ID_HEADER, correlationId);
       reply.header(REQUEST_ID_HEADER, correlationId);
@@ -65,7 +65,7 @@ export function correlationIdHook(): {
   return {
     beforeHandler: (request: FastifyRequest, _reply: FastifyReply, done: () => void) => {
       const context = getTracingContext(request);
-      request.correlationId = context.correlationId;
+      request['correlationId'] = context['correlationId'];
       (request as any).tracingContext = context;
       done();
     },
@@ -87,7 +87,7 @@ export async function tracingRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/trace/context', async (request: FastifyRequest, reply: FastifyReply) => {
     const context = (request as any).tracingContext as TracingContext || getTracingContext(request);
     reply.send({
-      correlationId: context.correlationId,
+      correlationId: context['correlationId'],
       requestId: context.requestId,
       traceId: context.traceId,
       spanId: context.spanId,
@@ -100,7 +100,7 @@ export async function tracingRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   fastify.get('/trace/id', async (request: FastifyRequest, reply: FastifyReply) => {
-    const correlationId = request.correlationId || generateCorrelationId();
+    const correlationId = request['correlationId'] || generateCorrelationId();
     reply.header(CORRELATION_ID_HEADER, correlationId);
     reply.send({ correlationId });
   });

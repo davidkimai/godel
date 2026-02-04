@@ -193,7 +193,7 @@ export function taskToOutput(task: Task): TaskOutput {
     title: task.title,
     description: task.description.slice(0, 60) + (task.description.length > 60 ? '...' : ''),
     status: task.status,
-    priority: task.priority,
+    priority: task['priority'],
     assigneeId: task.assigneeId,
     dependsOn: task.dependsOn,
     createdAt: task.createdAt.toISOString(),
@@ -449,7 +449,7 @@ function getEventSeverity(eventType: string): string {
 }
 
 function getEventMessage(event: Event): string {
-  const payload = event.payload as Record<string, unknown> | undefined;
+  const payload = event['payload'] as Record<string, unknown> | undefined;
   if (!payload) return event.type;
   
   // Extract meaningful message from payload

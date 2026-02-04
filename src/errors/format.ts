@@ -156,7 +156,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
       fastify.log.warn({ err: error, correlationId, path }, 'Handled error');
     }
 
-    reply.status(statusCode).send(response);
+    return reply.status(statusCode).send(response);
   });
 
   fastify.setNotFoundHandler((request, reply) => {

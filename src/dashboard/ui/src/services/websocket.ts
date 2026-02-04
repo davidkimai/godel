@@ -1,4 +1,3 @@
-import { logger } from '../../../../utils/logger';
 /**
  * WebSocket Service
  * 
@@ -7,7 +6,8 @@ import { logger } from '../../../../utils/logger';
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { Agent, Swarm, AgentEvent, CostMetrics, WebSocketMessage, WebSocketMessageType } from '../types';
+import type { Agent, Swarm, AgentEvent, CostMetrics, WebSocketMessage } from '../types';
+import { WebSocketMessageType } from '../types';
 
 type MessageHandler = (message: WebSocketMessage) => void;
 type ConnectionHandler = () => void;

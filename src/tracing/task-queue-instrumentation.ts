@@ -80,7 +80,7 @@ export async function instrumentTaskEnqueue<T>(
 
     // Set correlation ID as baggage if provided
     if (options?.correlationId) {
-      setBaggage('task.correlation_id', options.correlationId);
+      setBaggage('task.correlation_id', options['correlationId']);
     }
     setBaggage('task.type', taskType);
 
@@ -451,8 +451,8 @@ export function restoreTaskTraceContext(ctx: TaskTraceContext): Context {
   const restoredContext = deserializeContext(ctx.traceContext);
   
   // Set task baggage
-  setBaggage('task.id', ctx.taskId);
-  setBaggage('task.type', ctx.taskType);
+  setBaggage('task.id', ctx['taskId']);
+  setBaggage('task.type', ctx['taskType']);
   
   return restoredContext;
 }

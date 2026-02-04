@@ -204,8 +204,8 @@ export interface CostMetrics {
   monthlyEstimate: number;
   budgetRemaining: number;
   budgetAllocated: number;
-  burnRate: number; // dollars per minute
-  timeRemaining: number; // minutes until budget exhausted
+  burnRate: number;
+  timeRemaining: number;
 }
 
 export interface CostBreakdown {
@@ -302,13 +302,15 @@ export interface TraceSpan {
 
 export enum UserRole {
   READONLY = 'readonly',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  USER = 'user'
 }
 
 export interface User {
   id: string;
   username: string;
   role: UserRole;
+  email?: string;
   token: string;
   expiresAt: string;
 }

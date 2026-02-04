@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { getWorkflowEngine } from '../../workflow/engine';
-import { getClient } from '../lib/client';
+import { createWorkflowEngine } from '../../workflow/engine';
+import { getGlobalClient as getClient } from '../lib/client';
 import { formatOutput } from '../lib/output';
 import { logger } from '../../utils/logger';
 

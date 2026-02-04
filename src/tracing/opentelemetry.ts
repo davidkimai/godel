@@ -11,7 +11,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   SEMRESATTRS_SERVICE_NAME,
   SEMRESATTRS_SERVICE_VERSION,
@@ -100,7 +100,7 @@ export function initializeTracing(userConfig?: Partial<TracingConfig>): void {
 
   try {
     // Create resource with service information
-    const resource = new Resource({
+    const resource = resourceFromAttributes({
       [SEMRESATTRS_SERVICE_NAME]: config.serviceName,
       [SEMRESATTRS_SERVICE_VERSION]: config.serviceVersion,
       [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: config.environment,
@@ -130,20 +130,40 @@ export function initializeTracing(userConfig?: Partial<TracingConfig>): void {
       endpoint: `http://${config.jaegerHost}:${config.jaegerPort}/api/traces`,
     });
 
-    // Add batch span processor for efficiency
-    tracerProvider.addSpanProcessor(
+    // Create batch span processor for Jaeger
+    const spanProcessors: import('@opentelemetry/sdk-trace-base').SpanProcessor[] = [
       new BatchSpanProcessor(jaegerExporter, {
         maxQueueSize: config.maxQueueSize,
         maxExportBatchSize: config.maxExportBatchSize,
         scheduledDelayMillis: config.scheduledDelayMillis,
-      })
-    );
+      }),
+    ];
 
     // Add console exporter for debugging if enabled
     if (config.debug) {
       const { ConsoleSpanExporter } = require('@opentelemetry/sdk-trace-base');
-      tracerProvider.addSpanProcessor(new BatchSpanProcessor(new ConsoleSpanExporter()));
+      spanProcessors.push(new BatchSpanProcessor(new ConsoleSpanExporter()));
     }
+
+    // Create tracer provider with span processors
+    tracerProvider = new NodeTracerProvider({
+      resource,
+      spanProcessors,
+      sampler: {
+        shouldSample: (context, traceId, spanName, spanKind, attributes, links) => {
+          // Always sample if trace is already sampled
+          const parentSpan = trace.getSpan(context);
+          if (parentSpan?.spanContext().traceFlags === 1) {
+            return { decision: 1 }; // RECORD_AND_SAMPLED
+          }
+          
+          // Sample based on ratio
+          const shouldSample = Math.random() < config.samplingRatio;
+          return { decision: shouldSample ? 1 : 0 };
+        },
+        toString: () => `ParentBasedRatioSampler{ratio=${config.samplingRatio}}`,
+      },
+    });
 
     // Register tracer provider
     tracerProvider.register();
@@ -154,10 +174,12 @@ export function initializeTracing(userConfig?: Partial<TracingConfig>): void {
     if (config.enableHttpInstrumentation) {
       instrumentations.push(new HttpInstrumentation({
         requestHook: (span, request) => {
-          span.setAttribute('http.request.body.size', request.headers?.['content-length'] || 0);
+          const req = request as { headers?: Record<string, string> };
+          span.setAttribute('http.request.body.size', req.headers?.['content-length'] || 0);
         },
         responseHook: (span, response) => {
-          span.setAttribute('http.response.body.size', response.headers?.['content-length'] || 0);
+          const res = response as { headers?: Record<string, string> };
+          span.setAttribute('http.response.body.size', res.headers?.['content-length'] || 0);
         },
       }));
     }
@@ -383,13 +405,13 @@ export function getCurrentSpanId(): string | undefined {
 // Baggage Helpers
 // ============================================================================
 
-import { propagation, baggage, type Baggage } from '@opentelemetry/api';
+import { propagation, type Baggage } from '@opentelemetry/api';
 
 /**
  * Set baggage value for cross-cutting concerns
  */
 export function setBaggage(key: string, value: string): void {
-  const currentBaggage = propagation.getBaggage(context.active()) || baggage.createBaggage();
+  const currentBaggage = propagation.getBaggage(context.active()) || propagation.createBaggage();
   const newBaggage = currentBaggage.setEntry(key, { value });
   propagation.setBaggage(context.active(), newBaggage);
 }
@@ -406,8 +428,11 @@ export function getBaggage(key: string): string | undefined {
  * Create context with baggage
  */
 export function createContextWithBaggage(entries: Record<string, string>, parentContext?: Context): Context {
-  const entriesList = Object.entries(entries).map(([key, value]) => [key, { value }] as const);
-  const newBaggage = baggage.createBaggage(new Map(entriesList));
+  const baggageEntries: Record<string, { value: string }> = {};
+  Object.entries(entries).forEach(([key, value]) => {
+    baggageEntries[key] = { value };
+  });
+  const newBaggage = propagation.createBaggage(baggageEntries);
   return propagation.setBaggage(parentContext || context.active(), newBaggage);
 }
 

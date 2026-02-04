@@ -371,7 +371,7 @@ export function restoreWorkflowTraceContext(ctx: WorkflowTraceContext) {
   
   // Set workflow baggage
   setBaggage('workflow.id', ctx.workflowId);
-  setBaggage('workflow.execution_id', ctx.executionId);
+  setBaggage('workflow.execution_id', ctx['executionId']);
   
   return restoredContext;
 }

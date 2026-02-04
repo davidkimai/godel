@@ -8,19 +8,19 @@
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuthStore } from '../contexts/store';
-import { getWebSocketService } from '../services/websocket';
+import { useAuthStore } from '../contexts/store.ts';
+import { getWebSocketService } from '../services/websocket.ts';
 import { Layout } from '../components/Layout';
 import { LoadingSpinner } from '../components/Layout';
 
 // Lazy load pages
-const Dashboard = React.lazy(() => import('../pages/Dashboard'));
-const Swarms = React.lazy(() => import('../pages/Swarms'));
-const Agents = React.lazy(() => import('../pages/Agents'));
-const Events = React.lazy(() => import('../pages/Events'));
-const Costs = React.lazy(() => import('../pages/Costs'));
-const Settings = React.lazy(() => import('../pages/Settings'));
-const LoginPage = React.lazy(() => import('../pages/Login'));
+const Dashboard = React.lazy(() => import('../pages/Dashboard.tsx'));
+const Swarms = React.lazy(() => import('../pages/Swarms.tsx'));
+const Agents = React.lazy(() => import('../pages/Agents.tsx'));
+const Events = React.lazy(() => import('../pages/Events.tsx'));
+const Costs = React.lazy(() => import('../pages/Costs.tsx'));
+const Settings = React.lazy(() => import('../pages/Settings.tsx'));
+const LoginPage = React.lazy(() => import('../pages/Login.tsx'));
 
 // Create QueryClient for React Query
 const queryClient = new QueryClient({
@@ -159,7 +159,7 @@ export function App(): React.ReactElement {
   }, [checkAuth]);
 
   // Initialize WebSocket connection when authenticated
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (isAuthenticated) {
       const wsService = getWebSocketService();
       wsService.connect();
@@ -168,6 +168,7 @@ export function App(): React.ReactElement {
         wsService.disconnect();
       };
     }
+    return;
   }, [isAuthenticated]);
 
   return (

@@ -124,7 +124,7 @@ export class ResourceTracker extends EventEmitter {
    * Register a node with its capacity
    */
   async registerNode(capacity: NodeCapacity): Promise<void> {
-    const key = `${NODE_PREFIX}:${capacity.nodeId}`;
+    const key = `${NODE_PREFIX}:${capacity['nodeId']}`;
     const data = {
       ...capacity,
       registeredAt: Date.now(),
@@ -139,7 +139,7 @@ export class ResourceTracker extends EventEmitter {
     );
 
     // Initialize empty allocation
-    const allocationKey = `${RESOURCE_PREFIX}:node:${capacity.nodeId}`;
+    const allocationKey = `${RESOURCE_PREFIX}:node:${capacity['nodeId']}`;
     await this.redis.hset(allocationKey, {
       cpu: 0,
       memory: 0,
@@ -150,8 +150,8 @@ export class ResourceTracker extends EventEmitter {
       agents: JSON.stringify([]),
     });
 
-    this.emit('node.registered', { nodeId: capacity.nodeId, capacity });
-    logger.info(`[ResourceTracker] Registered node ${capacity.nodeId}`);
+    this.emit('node.registered', { nodeId: capacity['nodeId'], capacity });
+    logger.info(`[ResourceTracker] Registered node ${capacity['nodeId']}`);
   }
 
   /**
@@ -169,8 +169,8 @@ export class ResourceTracker extends EventEmitter {
     const data = await this.redis.get(key);
     if (data) {
       const nodeData = JSON.parse(data);
-      nodeData.lastHeartbeat = Date.now();
-      nodeData.healthy = healthy;
+      nodeData['lastHeartbeat'] = Date.now();
+      nodeData['healthy'] = healthy;
       
       await this.redis.setex(key, HEARTBEAT_TTL_SECONDS, JSON.stringify(nodeData));
     }
@@ -190,15 +190,15 @@ export class ResourceTracker extends EventEmitter {
       if (data) {
         const parsed = JSON.parse(data);
         nodes.push({
-          nodeId: parsed.nodeId,
-          labels: parsed.labels || {},
-          cpu: parsed.cpu,
-          memory: parsed.memory,
-          gpuMemory: parsed.gpuMemory,
-          gpuCount: parsed.gpuCount,
-          disk: parsed.disk,
-          network: parsed.network,
-          custom: parsed.custom,
+          nodeId: parsed['nodeId'],
+          labels: parsed['labels'] || {},
+          cpu: parsed['cpu'],
+          memory: parsed['memory'],
+          gpuMemory: parsed['gpuMemory'],
+          gpuCount: parsed['gpuCount'],
+          disk: parsed['disk'],
+          network: parsed['network'],
+          custom: parsed['custom'],
         });
       }
     }
@@ -225,27 +225,27 @@ export class ResourceTracker extends EventEmitter {
 
     return {
       capacity: {
-        nodeId: node.nodeId,
-        labels: node.labels || {},
-        cpu: node.cpu,
-        memory: node.memory,
-        gpuMemory: node.gpuMemory,
-        gpuCount: node.gpuCount,
-        disk: node.disk,
-        network: node.network,
-        custom: node.custom,
+        nodeId: node['nodeId'],
+        labels: node['labels'] || {},
+        cpu: node['cpu'],
+        memory: node['memory'],
+        gpuMemory: node['gpuMemory'],
+        gpuCount: node['gpuCount'],
+        disk: node['disk'],
+        network: node['network'],
+        custom: node['custom'],
       },
       allocated: {
-        cpu: parseFloat(allocationData.cpu || '0'),
-        memory: parseFloat(allocationData.memory || '0'),
-        gpuMemory: parseFloat(allocationData.gpuMemory || '0'),
-        gpuCount: parseInt(allocationData.gpuCount || '0', 10),
-        disk: parseFloat(allocationData.disk || '0'),
-        network: parseFloat(allocationData.network || '0'),
+        cpu: parseFloat(allocationData['cpu'] || '0'),
+        memory: parseFloat(allocationData['memory'] || '0'),
+        gpuMemory: parseFloat(allocationData['gpuMemory'] || '0'),
+        gpuCount: parseInt(allocationData['gpuCount'] || '0', 10),
+        disk: parseFloat(allocationData['disk'] || '0'),
+        network: parseFloat(allocationData['network'] || '0'),
       },
       agents,
-      lastHeartbeat: new Date(node.lastHeartbeat),
-      healthy: node.healthy !== false,
+      lastHeartbeat: new Date(node['lastHeartbeat']),
+      healthy: node['healthy'] !== false,
     };
   }
 
@@ -257,7 +257,7 @@ export class ResourceTracker extends EventEmitter {
     const allocations: NodeAllocation[] = [];
 
     for (const node of nodes) {
-      const allocation = await this.getNodeAllocation(node.nodeId);
+      const allocation = await this.getNodeAllocation(node['nodeId']);
       if (allocation) {
         allocations.push(allocation);
       }
@@ -288,16 +288,16 @@ export class ResourceTracker extends EventEmitter {
     const now = Date.now();
 
     for (const node of nodes) {
-      const nodeKey = `${NODE_PREFIX}:${node.nodeId}`;
+      const nodeKey = `${NODE_PREFIX}:${node['nodeId']}`;
       const data = await this.redis.get(nodeKey);
       
       if (data) {
         const parsed = JSON.parse(data);
-        const lastHeartbeat = parsed.lastHeartbeat || 0;
+        const lastHeartbeat = parsed['lastHeartbeat'] || 0;
         
         if (now - lastHeartbeat > HEARTBEAT_TTL_SECONDS * 1000) {
-          staleNodes.push(node.nodeId);
-          await this.removeNode(node.nodeId);
+          staleNodes.push(node['nodeId']);
+          await this.removeNode(node['nodeId']);
         }
       }
     }
@@ -332,12 +332,12 @@ export class ResourceTracker extends EventEmitter {
     }
 
     const current: ResourceRequirements = {
-      cpu: parseFloat(currentData.cpu || '0'),
-      memory: parseFloat(currentData.memory || '0'),
-      gpuMemory: parseFloat(currentData.gpuMemory || '0'),
-      gpuCount: parseInt(currentData.gpuCount || '0', 10),
-      disk: parseFloat(currentData.disk || '0'),
-      network: parseFloat(currentData.network || '0'),
+      cpu: parseFloat(currentData['cpu'] || '0'),
+      memory: parseFloat(currentData['memory'] || '0'),
+      gpuMemory: parseFloat(currentData['gpuMemory'] || '0'),
+      gpuCount: parseInt(currentData['gpuCount'] || '0', 10),
+      disk: parseFloat(currentData['disk'] || '0'),
+      network: parseFloat(currentData['network'] || '0'),
     };
 
     // Check node capacity
@@ -348,11 +348,11 @@ export class ResourceTracker extends EventEmitter {
     }
 
     // Verify resources are available
-    if (current.cpu + resources.cpu > node.capacity.cpu) {
+    if (current['cpu'] + resources['cpu'] > node.capacity['cpu']) {
       logger.warn(`[ResourceTracker] CPU allocation would exceed capacity on ${nodeId}`);
       return false;
     }
-    if (current.memory + resources.memory > node.capacity.memory) {
+    if (current['memory'] + resources['memory'] > node.capacity['memory']) {
       logger.warn(`[ResourceTracker] Memory allocation would exceed capacity on ${nodeId}`);
       return false;
     }
@@ -362,21 +362,21 @@ export class ResourceTracker extends EventEmitter {
     agents.push(agentId);
 
     const pipeline = this.redis.pipeline();
-    pipeline.hincrbyfloat(allocationKey, 'cpu', resources.cpu);
-    pipeline.hincrbyfloat(allocationKey, 'memory', resources.memory);
-    if (resources.gpuMemory) pipeline.hincrbyfloat(allocationKey, 'gpuMemory', resources.gpuMemory);
-    if (resources.gpuCount) pipeline.hincrby(allocationKey, 'gpuCount', resources.gpuCount);
-    if (resources.disk) pipeline.hincrbyfloat(allocationKey, 'disk', resources.disk);
-    if (resources.network) pipeline.hincrbyfloat(allocationKey, 'network', resources.network);
+    pipeline.hincrbyfloat(allocationKey, 'cpu', resources['cpu']);
+    pipeline.hincrbyfloat(allocationKey, 'memory', resources['memory']);
+    if (resources['gpuMemory']) pipeline.hincrbyfloat(allocationKey, 'gpuMemory', resources['gpuMemory']);
+    if (resources['gpuCount']) pipeline.hincrby(allocationKey, 'gpuCount', resources['gpuCount']);
+    if (resources['disk']) pipeline.hincrbyfloat(allocationKey, 'disk', resources['disk']);
+    if (resources['network']) pipeline.hincrbyfloat(allocationKey, 'network', resources['network']);
     pipeline.hset(allocationKey, 'agents', JSON.stringify(agents));
     
     // Store agent resource assignment
     pipeline.hset(agentKey, {
       nodeId,
-      cpu: resources.cpu,
-      memory: resources.memory,
-      gpuMemory: resources.gpuMemory || 0,
-      gpuCount: resources.gpuCount || 0,
+      cpu: resources['cpu'],
+      memory: resources['memory'],
+      gpuMemory: resources['gpuMemory'] || 0,
+      gpuCount: resources['gpuCount'] || 0,
       allocatedAt: Date.now(),
     });
 
@@ -395,12 +395,12 @@ export class ResourceTracker extends EventEmitter {
     const agentKey = `${AGENT_PREFIX}:${agentId}`;
     const agentData = await this.redis.hgetall(agentKey);
 
-    if (!agentData || !agentData.nodeId) {
+    if (!agentData || !agentData['nodeId']) {
       logger.warn(`[ResourceTracker] No resource allocation found for ${agentId}`);
       return;
     }
 
-    const nodeId = agentData.nodeId;
+    const nodeId = agentData['nodeId'];
     const allocationKey = `${RESOURCE_PREFIX}:node:${nodeId}`;
     const nodeData = await this.redis.hgetall(allocationKey);
 
@@ -415,10 +415,10 @@ export class ResourceTracker extends EventEmitter {
     const updatedAgents = agents.filter((id: string) => id !== agentId);
 
     const pipeline = this.redis.pipeline();
-    pipeline.hincrbyfloat(allocationKey, 'cpu', -parseFloat(agentData.cpu || '0'));
-    pipeline.hincrbyfloat(allocationKey, 'memory', -parseFloat(agentData.memory || '0'));
-    pipeline.hincrbyfloat(allocationKey, 'gpuMemory', -parseFloat(agentData.gpuMemory || '0'));
-    pipeline.hincrby(allocationKey, 'gpuCount', -parseInt(agentData.gpuCount || '0', 10));
+    pipeline.hincrbyfloat(allocationKey, 'cpu', -parseFloat(agentData['cpu'] || '0'));
+    pipeline.hincrbyfloat(allocationKey, 'memory', -parseFloat(agentData['memory'] || '0'));
+    pipeline.hincrbyfloat(allocationKey, 'gpuMemory', -parseFloat(agentData['gpuMemory'] || '0'));
+    pipeline.hincrby(allocationKey, 'gpuCount', -parseInt(agentData['gpuCount'] || '0', 10));
     pipeline.hset(allocationKey, 'agents', JSON.stringify(updatedAgents));
     pipeline.del(agentKey);
 
@@ -435,14 +435,14 @@ export class ResourceTracker extends EventEmitter {
     const agentKey = `${AGENT_PREFIX}:${agentId}`;
     const data = await this.redis.hgetall(agentKey);
 
-    if (!data || !data.nodeId) return null;
+    if (!data || !data['nodeId']) return null;
 
     return {
-      nodeId: data.nodeId,
-      cpu: parseFloat(data.cpu || '0'),
-      memory: parseFloat(data.memory || '0'),
-      gpuMemory: parseFloat(data.gpuMemory || '0'),
-      gpuCount: parseInt(data.gpuCount || '0', 10),
+      nodeId: data['nodeId'],
+      cpu: parseFloat(data['cpu'] || '0'),
+      memory: parseFloat(data['memory'] || '0'),
+      gpuMemory: parseFloat(data['gpuMemory'] || '0'),
+      gpuCount: parseInt(data['gpuCount'] || '0', 10),
     };
   }
 
@@ -454,9 +454,9 @@ export class ResourceTracker extends EventEmitter {
     const usageKey = `${RESOURCE_PREFIX}:usage:${agentId}`;
 
     await this.redis.hset(usageKey, {
-      cpu: usage.cpu,
-      memory: usage.memory,
-      gpuMemory: usage.gpuMemory || 0,
+      cpu: usage['cpu'],
+      memory: usage['memory'],
+      gpuMemory: usage['gpuMemory'] || 0,
       timestamp: usage.timestamp.getTime(),
     });
 
@@ -476,9 +476,9 @@ export class ResourceTracker extends EventEmitter {
     if (!data || Object.keys(data).length === 0) return null;
 
     return {
-      cpu: parseFloat(data.cpu || '0'),
-      memory: parseFloat(data.memory || '0'),
-      gpuMemory: parseFloat(data.gpuMemory || '0'),
+      cpu: parseFloat(data['cpu'] || '0'),
+      memory: parseFloat(data['memory'] || '0'),
+      gpuMemory: parseFloat(data['gpuMemory'] || '0'),
       timestamp: new Date(parseInt(data.timestamp || '0', 10)),
     };
   }
@@ -494,8 +494,8 @@ export class ResourceTracker extends EventEmitter {
     const allocation = await this.getNodeAllocation(nodeId);
     if (!allocation) return null;
 
-    const cpuUtil = allocation.allocated.cpu / allocation.capacity.cpu;
-    const memoryUtil = allocation.allocated.memory / allocation.capacity.memory;
+    const cpuUtil = allocation.allocated['cpu'] / allocation.capacity['cpu'];
+    const memoryUtil = allocation.allocated['memory'] / allocation.capacity['memory'];
     
     // Overall is weighted average (can be customized)
     const overall = (cpuUtil * 0.6) + (memoryUtil * 0.4);
@@ -522,11 +522,11 @@ export class ResourceTracker extends EventEmitter {
     let totalOverall = 0;
 
     for (const node of nodes) {
-      const util = await this.getNodeUtilization(node.nodeId);
+      const util = await this.getNodeUtilization(node['nodeId']);
       if (util) {
-        utilizations[node.nodeId] = util;
-        totalCpu += util.cpu;
-        totalMemory += util.memory;
+        utilizations[node['nodeId']] = util;
+        totalCpu += util['cpu'];
+        totalMemory += util['memory'];
         totalOverall += util.overall;
       }
     }
@@ -553,20 +553,20 @@ export class ResourceTracker extends EventEmitter {
     const allocation = await this.getNodeAllocation(nodeId);
     if (!allocation) return false;
 
-    const availableCpu = allocation.capacity.cpu - allocation.allocated.cpu;
-    const availableMemory = allocation.capacity.memory - allocation.allocated.memory;
+    const availableCpu = allocation.capacity['cpu'] - allocation.allocated['cpu'];
+    const availableMemory = allocation.capacity['memory'] - allocation.allocated['memory'];
 
-    if (availableCpu < requirements.cpu) return false;
-    if (availableMemory < requirements.memory) return false;
+    if (availableCpu < requirements['cpu']) return false;
+    if (availableMemory < requirements['memory']) return false;
 
-    if (requirements.gpuMemory && allocation.capacity.gpuMemory) {
-      const availableGpuMemory = allocation.capacity.gpuMemory - (allocation.allocated.gpuMemory || 0);
-      if (availableGpuMemory < requirements.gpuMemory) return false;
+    if (requirements['gpuMemory'] && allocation.capacity['gpuMemory']) {
+      const availableGpuMemory = allocation.capacity['gpuMemory'] - (allocation.allocated['gpuMemory'] || 0);
+      if (availableGpuMemory < requirements['gpuMemory']) return false;
     }
 
-    if (requirements.gpuCount && allocation.capacity.gpuCount) {
-      const availableGpuCount = allocation.capacity.gpuCount - (allocation.allocated.gpuCount || 0);
-      if (availableGpuCount < requirements.gpuCount) return false;
+    if (requirements['gpuCount'] && allocation.capacity['gpuCount']) {
+      const availableGpuCount = allocation.capacity['gpuCount'] - (allocation.allocated['gpuCount'] || 0);
+      if (availableGpuCount < requirements['gpuCount']) return false;
     }
 
     return true;
