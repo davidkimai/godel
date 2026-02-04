@@ -1,0 +1,188 @@
+#compdef swarmctl
+# swarmctl zsh completion script
+# Install: swarmctl completion zsh > /usr/local/share/zsh/site-functions/_swarmctl
+# Or: source <(swarmctl completion zsh)
+
+_swarmctl() {
+  local curcontext="$curcontext" state line
+  typeset -A opt_args
+
+  local -a commands
+  commands=(
+    'swarm:Manage agent swarms'
+    'agent:Manage AI agents'
+    'task:Manage tasks'
+    'events:Event streaming and management'
+    'bus:Message bus operations'
+    'metrics:System metrics and monitoring'
+    'status:Overall system status'
+    'health:Health check'
+    'config:Configuration management'
+    'completion:Generate shell completion script'
+  )
+
+  _arguments -C \
+    '(-h --help)'{-h,--help}'[Show help]' \
+    '(-V --version)'{-V,--version}'[Show version]' \
+    '--format[Output format]:format:(table json jsonl)' \
+    '1: :->command' \
+    '*:: :->args'
+
+  case "$state" in
+    command)
+      _describe -t commands 'swarmctl commands' commands
+      ;;
+    args)
+      case "$line[1]" in
+        swarm)
+          local -a swarm_cmds
+          swarm_cmds=(
+            'list:List all swarms'
+            'create:Create a new swarm'
+            'get:Get swarm details'
+            'scale:Scale a swarm'
+            'destroy:Destroy a swarm'
+          )
+          _describe -t commands 'swarm commands' swarm_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)' \
+            '--active[Show only active swarms]' \
+            '--page[Page number]:page:' \
+            '--page-size[Items per page]:size:' \
+            '--name[Swarm name]:name:' \
+            '--task[Task description]:task:' \
+            '--count[Initial agent count]:count:' \
+            '--max[Maximum agent count]:max:' \
+            '--strategy[Swarm strategy]:strategy:(parallel map-reduce pipeline tree)' \
+            '--model[Model to use]:model:' \
+            '--budget[Budget limit]:budget:' \
+            '--warning-threshold[Budget warning threshold]:threshold:' \
+            '--critical-threshold[Budget critical threshold]:threshold:' \
+            '--sandbox[Enable file sandboxing]' \
+            '--dry-run[Show configuration without creating]' \
+            '--force[Force destroy without confirmation]' \
+            '--yes[Skip confirmation prompt]'
+          ;;
+        agent)
+          local -a agent_cmds
+          agent_cmds=(
+            'list:List all agents'
+            'spawn:Spawn a new agent'
+            'get:Get agent details'
+            'kill:Kill an agent'
+            'logs:Get agent logs'
+          )
+          _describe -t commands 'agent commands' agent_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)' \
+            '--swarm[Filter by swarm ID]:swarm:' \
+            '--status[Filter by status]:status:(pending running paused completed failed killed)' \
+            '--page[Page number]:page:' \
+            '--page-size[Items per page]:size:' \
+            '--model[Model to use]:model:' \
+            '--label[Agent label]:label:' \
+            '--parent[Parent agent ID]:parent:' \
+            '--retries[Max retry attempts]:retries:' \
+            '--budget[Budget limit]:budget:' \
+            '--dry-run[Show configuration without spawning]' \
+            '--logs[Include recent logs]' \
+            '--follow[Follow log output]' \
+            '--lines[Number of lines]:lines:' \
+            '--force[Force kill without confirmation]' \
+            '--yes[Skip confirmation prompt]'
+          ;;
+        task)
+          local -a task_cmds
+          task_cmds=(
+            'list:List all tasks'
+            'create:Create a new task'
+            'get:Get task details'
+            'assign:Assign task to agent'
+            'complete:Mark task as complete'
+            'cancel:Cancel a task'
+          )
+          _describe -t commands 'task commands' task_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)' \
+            '--status[Filter by status]:status:(pending in_progress completed failed cancelled)' \
+            '--assignee[Filter by assignee]:assignee:' \
+            '--page[Page number]:page:' \
+            '--page-size[Items per page]:size:' \
+            '--title[Task title]:title:' \
+            '--description[Task description]:description:' \
+            '--priority[Priority]:priority:(low medium high critical)' \
+            '--depends-on[Dependencies]:depends:' \
+            '--dry-run[Show configuration without creating]' \
+            '--yes[Skip confirmation prompt]'
+          ;;
+        events)
+          local -a events_cmds
+          events_cmds=(
+            'list:List historical events'
+            'stream:Stream events in real-time'
+            'get:Get event details'
+          )
+          _describe -t commands 'events commands' events_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)' \
+            '--agent[Filter by agent ID]:agent:' \
+            '--task[Filter by task ID]:task:' \
+            '--type[Filter by event type]:type:' \
+            '--since[Time window]:since:' \
+            '--until[End time]:until:' \
+            '--limit[Maximum events]:limit:' \
+            '--severity[Filter by severity]:severity:(debug info warning error critical)' \
+            '--follow[Keep listening]' \
+            '--raw[Output raw JSON]'
+          ;;
+        bus)
+          local -a bus_cmds
+          bus_cmds=(
+            'publish:Publish a message'
+            'subscribe:Subscribe to a topic'
+            'topics:List active topics'
+            'status:Show message bus status'
+          )
+          _describe -t commands 'bus commands' bus_cmds
+          _arguments \
+            '--message[Message payload]:message:' \
+            '--priority[Message priority]:priority:(low medium high critical)' \
+            '--source[Message source]:source:' \
+            '--follow[Keep listening]' \
+            '--raw[Output raw JSON]'
+          ;;
+        metrics)
+          local -a metrics_cmds
+          metrics_cmds=(
+            'show:Show system metrics'
+            'agents:Show agent metrics'
+            'swarms:Show swarm metrics'
+          )
+          _describe -t commands 'metrics commands' metrics_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)'
+          ;;
+        config)
+          local -a config_cmds
+          config_cmds=(
+            'show:Show current configuration'
+            'set:Set configuration value'
+          )
+          _describe -t commands 'config commands' config_cmds
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)'
+          ;;
+        completion)
+          _arguments '1: :(bash zsh)'
+          ;;
+        status|health)
+          _arguments \
+            '--format[Output format]:format:(table json jsonl)' \
+            '--exit-code[Exit with non-zero code if unhealthy]'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_swarmctl "$@"

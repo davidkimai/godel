@@ -240,4 +240,4 @@ export function validationErrorHandler(
   });
 }
 
-export { APIError };
+// APIError is already exported above

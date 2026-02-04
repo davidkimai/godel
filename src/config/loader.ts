@@ -11,14 +11,12 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 import * as YAML from 'yaml';
 import { logger } from '../utils/logger';
 import type { DashConfig, ConfigLoadOptions } from './types';
 import { 
   dashConfigSchema, 
   validateConfig, 
-  validateConfigOrThrow,
   formatValidationErrors 
 } from './schema';
 import { 
@@ -28,7 +26,6 @@ import {
 import { 
   SecretManager, 
   getGlobalSecretManager,
-  substituteEnvVars,
   substituteEnvVarsInObject,
   containsSecretReferences,
   type VaultConfig 
@@ -42,229 +39,6 @@ export interface LoadedConfig {
   config: DashConfig;
   sources: string[];
   warnings: string[];
-}
-
-/**
- * Load configuration from all sources
- */
-export async function loadConfig(options: ConfigLoadOptions = {}): Promise<LoadedConfig> {
-  const env = options.env || process.env['NODE_ENV'] || 'development';
-  const configDir = options.configDir || './config';
-  const sources: string[] = [];
-  const warnings: string[] = [];
-
-  // 1. Start with defaults
-  let config: Partial<DashConfig> = { ...defaultConfig };
-  sources.push('defaults');
-
-  // 2. Apply environment-specific defaults
-  const envDefaults = getEnvironmentDefaults(env);
-  config = deepMerge(config, envDefaults);
-  sources.push(`env-defaults:${env}`);
-
-  // 3. Load from config files (YAML or JSON)
-  const fileConfigs = loadConfigFiles(configDir, env);
-  for (const fileConfig of fileConfigs) {
-    config = deepMerge(config, fileConfig.config);
-    sources.push(fileConfig.source);
-    
-    if (fileConfig.warning) {
-      warnings.push(fileConfig.warning);
-    }
-  }
-
-  // 4. Environment variable substitution in loaded config
-  if (!options.skipEnvSubstitution) {
-    config = substituteEnvVarsInObject(config);
-  }
-
-  // 5. Apply environment variable overrides (highest priority)
-  config = applyEnvVarOverrides(config);
-  sources.push('environment-variables');
-
-  // 6. Set the environment
-  (config as DashConfig).env = env;
-
-  // 7. Validate the configuration
-  const validation = validateConfig(config as DashConfig);
-  if (!validation.success) {
-    const errorMessage = formatValidationErrors(validation.errors!);
-    throw new Error(`Configuration validation failed:\n${errorMessage}`);
-  }
-
-  // 8. Resolve secrets if Vault is enabled
-  if (options.enableVault && config.vault) {
-    const secretManager = getGlobalSecretManager(config.vault as VaultConfig);
-    const configWithSecrets = await resolveSecretsInConfig(
-      validation.data!,
-      secretManager
-    );
-    sources.push('vault-secrets');
-    
-    // Re-validate after secret resolution
-    const finalValidation = validateConfig(configWithSecrets);
-    if (!finalValidation.success) {
-      throw new Error(
-        `Configuration validation failed after secret resolution:\n${formatValidationErrors(finalValidation.errors!)}`
-      );
-    }
-    
-    return {
-      config: finalValidation.data!,
-      sources,
-      warnings,
-    };
-  }
-
-  return {
-    config: validation.data!,
-    sources,
-    warnings,
-  };
-}
-
-/**
- * Load configuration files from the config directory
- */
-function loadConfigFiles(
-  configDir: string,
-  env: string
-): Array<{ config: Partial<DashConfig>; source: string; warning?: string }> {
-  const results: Array<{ config: Partial<DashConfig>; source: string; warning?: string }> = [];
-  
-  // Try environment-specific files first
-  const envFiles = [
-    `${configDir}/dash.${env}.yaml`,
-    `${configDir}/dash.${env}.yml`,
-    `${configDir}/dash.${env}.json`,
-  ];
-  
-  // Then try base config files
-  const baseFiles = [
-    `${configDir}/dash.yaml`,
-    `${configDir}/dash.yml`,
-    `${configDir}/dash.json`,
-  ];
-  
-  // Load environment-specific config (higher priority)
-  for (const filePath of envFiles) {
-    if (existsSync(filePath)) {
-      try {
-        const config = loadConfigFile(filePath);
-        results.push({ config, source: filePath });
-        break; // Only load the first one found
-      } catch (error) {
-        results.push({
-          config: {},
-          source: filePath,
-          warning: `Failed to load ${filePath}: ${(error as Error).message}`,
-        });
-      }
-    }
-  }
-  
-  // Load base config (lower priority)
-  for (const filePath of baseFiles) {
-    if (existsSync(filePath)) {
-      try {
-        const config = loadConfigFile(filePath);
-        results.push({ config, source: filePath });
-        break; // Only load the first one found
-      } catch (error) {
-        results.push({
-          config: {},
-          source: filePath,
-          warning: `Failed to load ${filePath}: ${(error as Error).message}`,
-        });
-      }
-    }
-  }
-  
-  return results;
-}
-
-/**
- * Load a single config file (YAML or JSON)
- */
-function loadConfigFile(filePath: string): Partial<DashConfig> {
-  const content = readFileSync(filePath, 'utf-8');
-  
-  if (filePath.endsWith('.json')) {
-    return JSON.parse(content) as Partial<DashConfig>;
-  } else {
-    return YAML.parse(content) as Partial<DashConfig>;
-  }
-}
-
-/**
- * Apply environment variable overrides
- * Maps environment variables to config paths
- */
-function applyEnvVarOverrides(config: Partial<DashConfig>): Partial<DashConfig> {
-  const overrides: Record<string, string | undefined> = {
-    'server.port': process.env['PORT'],
-    'server.host': process.env['HOST'],
-    'server.rateLimit': process.env['DASH_RATE_LIMIT'],
-    'database.url': process.env['DATABASE_URL'],
-    'redis.url': process.env['REDIS_URL'],
-    'auth.jwtSecret': process.env['DASH_JWT_SECRET'],
-    'logging.level': process.env['LOG_LEVEL'],
-    'metrics.enabled': process.env['METRICS_ENABLED'],
-    'openclaw.gatewayToken': process.env['OPENCLAW_GATEWAY_TOKEN'],
-  };
-
-  for (const [path, value] of Object.entries(overrides)) {
-    if (value !== undefined) {
-      setValueAtPath(config, path, parseValue(value));
-    }
-  }
-
-  return config;
-}
-
-/**
- * Parse a string value into appropriate type
- */
-function parseValue(value: string): unknown {
-  // Try boolean
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  
-  // Try number
-  const num = Number(value);
-  if (!isNaN(num) && value !== '') {
-    return num;
-  }
-  
-  // Try JSON array/object
-  if ((value.startsWith('[') && value.endsWith(']')) ||
-      (value.startsWith('{') && value.endsWith('}'))) {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
-  }
-  
-  return value;
-}
-
-/**
- * Set a value at a dotted path in an object
- */
-function setValueAtPath(obj: Record<string, unknown>, path: string, value: unknown): void {
-  const parts = path.split('.');
-  let current: Record<string, unknown> = obj;
-  
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!(part in current) || typeof current[part] !== 'object') {
-      current[part] = {};
-    }
-    current = current[part] as Record<string, unknown>;
-  }
-  
-  current[parts[parts.length - 1]] = value;
 }
 
 /**
@@ -289,16 +63,123 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
       targetValue !== null &&
       !Array.isArray(targetValue)
     ) {
-      result[key] = deepMerge(
-        targetValue as Record<string, unknown>,
-        sourceValue as Record<string, unknown>
-      );
+      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>);
     } else {
       result[key] = sourceValue;
     }
   }
   
   return result;
+}
+
+/**
+ * Parse a string value into appropriate type
+ */
+function parseValue(value: string): unknown {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  const num = Number(value);
+  if (!isNaN(num) && value !== '') return num;
+  if ((value.startsWith('[') && value.endsWith(']')) ||
+      (value.startsWith('{') && value.endsWith('}'))) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+/**
+ * Load configuration files from the config directory
+ */
+function loadConfigFiles(
+  configDir: string,
+  env: string
+): Array<{ config: Record<string, unknown>; source: string; warning?: string }> {
+  const results: Array<{ config: Record<string, unknown>; source: string; warning?: string }> = [];
+  
+  const envFiles = [
+    `${configDir}/dash.${env}.yaml`,
+    `${configDir}/dash.${env}.yml`,
+    `${configDir}/dash.${env}.json`,
+  ];
+  
+  const baseFiles = [
+    `${configDir}/dash.yaml`,
+    `${configDir}/dash.yml`,
+    `${configDir}/dash.json`,
+  ];
+  
+  // Load environment-specific config (higher priority)
+  for (const filePath of envFiles) {
+    if (existsSync(filePath)) {
+      try {
+        const content = readFileSync(filePath, 'utf-8');
+        const config = filePath.endsWith('.json') ? JSON.parse(content) : YAML.parse(content);
+        results.push({ config: config as Record<string, unknown>, source: filePath });
+        break;
+      } catch (error) {
+        results.push({
+          config: {},
+          source: filePath,
+          warning: `Failed to load ${filePath}: ${(error as Error).message}`,
+        });
+      }
+    }
+  }
+  
+  // Load base config (lower priority)
+  for (const filePath of baseFiles) {
+    if (existsSync(filePath)) {
+      try {
+        const content = readFileSync(filePath, 'utf-8');
+        const config = filePath.endsWith('.json') ? JSON.parse(content) : YAML.parse(content);
+        results.push({ config: config as Record<string, unknown>, source: filePath });
+        break;
+      } catch (error) {
+        results.push({
+          config: {},
+          source: filePath,
+          warning: `Failed to load ${filePath}: ${(error as Error).message}`,
+        });
+      }
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Apply environment variable overrides
+ */
+function applyEnvVarOverrides(config: Record<string, unknown>): void {
+  const overrides: Record<string, string | undefined> = {
+    'server.port': process.env['PORT'],
+    'server.host': process.env['HOST'],
+    'server.rateLimit': process.env['DASH_RATE_LIMIT'],
+    'database.url': process.env['DATABASE_URL'],
+    'redis.url': process.env['REDIS_URL'],
+    'auth.jwtSecret': process.env['DASH_JWT_SECRET'],
+    'logging.level': process.env['LOG_LEVEL'],
+    'metrics.enabled': process.env['METRICS_ENABLED'],
+    'openclaw.gatewayToken': process.env['OPENCLAW_GATEWAY_TOKEN'],
+  };
+
+  for (const [path, value] of Object.entries(overrides)) {
+    if (value !== undefined) {
+      const parts = path.split('.');
+      let current: Record<string, unknown> = config;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!(parts[i] in current) || typeof current[parts[i]] !== 'object') {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]] as Record<string, unknown>;
+      }
+      current[parts[parts.length - 1]] = parseValue(value);
+    }
+  }
 }
 
 /**
@@ -314,16 +195,13 @@ async function resolveSecretsInConfig(
     if (typeof value === 'string' && containsSecretReferences(value)) {
       result[key] = await secretManager.resolveInString(value);
     } else if (typeof value === 'object' && value !== null) {
-      result[key] = await resolveSecretsInObject(
-        value as Record<string, unknown>,
-        secretManager
-      );
+      result[key] = await resolveSecretsInObject(value as Record<string, unknown>, secretManager);
     } else {
       result[key] = value;
     }
   }
   
-  return result as DashConfig;
+  return result as unknown as DashConfig;
 }
 
 /**
@@ -339,16 +217,77 @@ async function resolveSecretsInObject(
     if (typeof value === 'string' && containsSecretReferences(value)) {
       result[key] = await secretManager.resolveInString(value);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = await resolveSecretsInObject(
-        value as Record<string, unknown>,
-        secretManager
-      );
+      result[key] = await resolveSecretsInObject(value as Record<string, unknown>, secretManager);
     } else {
       result[key] = value;
     }
   }
   
   return result;
+}
+
+/**
+ * Load configuration from all sources
+ */
+export async function loadConfig(options: ConfigLoadOptions = {}): Promise<LoadedConfig> {
+  const env = options.env || process.env['NODE_ENV'] || 'development';
+  const configDir = options.configDir || './config';
+  const sources: string[] = [];
+  const warnings: string[] = [];
+
+  // 1. Start with defaults
+  let config = { ...defaultConfig } as Record<string, unknown>;
+  sources.push('defaults');
+
+  // 2. Apply environment-specific defaults
+  const envDefaults = getEnvironmentDefaults(env);
+  config = deepMerge(config, envDefaults as Record<string, unknown>);
+  sources.push(`env-defaults:${env}`);
+
+  // 3. Load from config files (YAML or JSON)
+  const fileConfigs = loadConfigFiles(configDir, env);
+  for (const fileConfig of fileConfigs) {
+    config = deepMerge(config, fileConfig.config);
+    sources.push(fileConfig.source);
+    if (fileConfig.warning) warnings.push(fileConfig.warning);
+  }
+
+  // 4. Environment variable substitution in loaded config
+  if (!options.skipEnvSubstitution) {
+    config = substituteEnvVarsInObject(config);
+  }
+
+  // 5. Apply environment variable overrides (highest priority)
+  applyEnvVarOverrides(config);
+  sources.push('environment-variables');
+
+  // 6. Set the environment
+  config.env = env;
+
+  // 7. Validate the configuration
+  const validation = validateConfig(config);
+  if (!validation.success) {
+    const errorMessage = formatValidationErrors(validation.errors!);
+    throw new Error(`Configuration validation failed:\n${errorMessage}`);
+  }
+
+  // 8. Resolve secrets if Vault is enabled
+  const validConfig = validation.data!;
+  if (options.enableVault && validConfig.vault) {
+    const secretManager = getGlobalSecretManager(validConfig.vault as VaultConfig);
+    const configWithSecrets = await resolveSecretsInConfig(validConfig, secretManager);
+    sources.push('vault-secrets');
+    
+    // Re-validate after secret resolution
+    const finalValidation = validateConfig(configWithSecrets);
+    if (!finalValidation.success) {
+      throw new Error(`Configuration validation failed after secret resolution:\n${formatValidationErrors(finalValidation.errors!)}`);
+    }
+    
+    return { config: finalValidation.data!, sources, warnings };
+  }
+
+  return { config: validConfig, sources, warnings };
 }
 
 // ============================================================================
@@ -390,13 +329,6 @@ export async function reloadConfig(options?: ConfigLoadOptions): Promise<DashCon
 }
 
 /**
- * Get the configuration sources
- */
-export function getConfigSources(): string[] {
-  return [...cachedSources];
-}
-
-/**
  * Clear the cached configuration
  */
 export function clearConfigCache(): void {
@@ -404,11 +336,18 @@ export function clearConfigCache(): void {
   cachedSources = [];
 }
 
+/**
+ * Get the configuration sources
+ */
+export function getConfigSources(): string[] {
+  return [...cachedSources];
+}
+
 // ============================================================================
 // Validation
 // ============================================================================
 
-export { validateConfig, validateConfigOrThrow, formatValidationErrors };
+export { validateConfig, formatValidationErrors };
 
 // ============================================================================
 // Utilities
@@ -417,11 +356,7 @@ export { validateConfig, validateConfigOrThrow, formatValidationErrors };
 /**
  * Get a value from config by path
  */
-export function getConfigValue<T>(
-  config: DashConfig,
-  path: string,
-  defaultValue?: T
-): T | undefined {
+export function getConfigValue<T>(config: DashConfig, path: string, defaultValue?: T): T | undefined {
   const parts = path.split('.');
   let current: unknown = config;
   
@@ -445,11 +380,7 @@ export function isFeatureEnabled(config: DashConfig, feature: string): boolean {
 /**
  * Get configuration as a flat object (for display)
  */
-export function flattenConfig(
-  config: DashConfig,
-  prefix = '',
-  hideSecrets = true
-): Record<string, string> {
+export function flattenConfig(config: DashConfig, prefix = '', hideSecrets = true): Record<string, string> {
   const result: Record<string, string> = {};
   
   for (const [key, value] of Object.entries(config)) {
@@ -460,7 +391,6 @@ export function flattenConfig(
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       Object.assign(result, flattenConfig(value as DashConfig, fullKey, hideSecrets));
     } else {
-      // Hide sensitive values
       if (hideSecrets && isSensitiveKey(fullKey)) {
         result[fullKey] = '***';
       } else if (Array.isArray(value)) {

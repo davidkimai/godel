@@ -9,74 +9,23 @@ import { z } from 'zod';
 import type { ConfigValidationError } from './types';
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Create a schema with environment variable fallback
- */
-function envAwareNumber(
-  envVar: string,
-  defaultValue: number,
-  opts?: { min?: number; max?: number }
-): z.ZodDefault<z.ZodNumber> {
-  let schema = z.coerce.number().default(
-    process.env[envVar] ? parseFloat(process.env[envVar]!) : defaultValue
-  );
-  
-  if (opts?.min !== undefined) {
-    schema = schema.refine((val) => val >= opts.min!, {
-      message: `Must be at least ${opts.min}`,
-    });
-  }
-  if (opts?.max !== undefined) {
-    schema = schema.refine((val) => val <= opts.max!, {
-      message: `Must be at most ${opts.max}`,
-    });
-  }
-  
-  return schema;
-}
-
-function envAwareString(envVar: string, defaultValue: string): z.ZodDefault<z.ZodString> {
-  return z.string().default(process.env[envVar] || defaultValue);
-}
-
-function envAwareBoolean(envVar: string, defaultValue: boolean): z.ZodDefault<z.ZodBoolean> {
-  return z.boolean().default(
-    process.env[envVar] ? process.env[envVar] === 'true' : defaultValue
-  );
-}
-
-function envAwareEnum<T extends string>(
-  envVar: string,
-  values: readonly [string, ...string[]],
-  defaultValue: T
-): z.ZodDefault<z.ZodEnum<[string, ...string[]]>> {
-  return z.enum(values).default(
-    (process.env[envVar] as T) || defaultValue
-  );
-}
-
-// ============================================================================
 // Server Schema
 // ============================================================================
 
 export const serverSchema = z.object({
-  port: envAwareNumber('PORT', 7373, { min: 1, max: 65535 }),
-  host: envAwareString('HOST', 'localhost'),
+  port: z.coerce.number().default(7373).refine((val) => val >= 1 && val <= 65535, {
+    message: 'Must be between 1 and 65535',
+  }),
+  host: z.string().default('localhost'),
   cors: z.object({
     origins: z.union([
       z.string().transform((val) => val.split(',').map((s) => s.trim())),
       z.array(z.string()),
-    ]).default(
-      process.env['DASH_CORS_ORIGINS']?.split(',').map((s) => s.trim()) || 
-      ['http://localhost:3000']
-    ),
-    credentials: envAwareBoolean('DASH_CORS_CREDENTIALS', true),
+    ]).default(['http://localhost:3000']),
+    credentials: z.boolean().default(true),
   }),
-  rateLimit: envAwareNumber('DASH_RATE_LIMIT', 100, { min: 1 }),
-  timeoutMs: envAwareNumber('DASH_REQUEST_TIMEOUT', 30000, { min: 1000 }),
+  rateLimit: z.coerce.number().default(100),
+  timeoutMs: z.coerce.number().default(30000),
 });
 
 export type ServerSchema = z.infer<typeof serverSchema>;
@@ -96,35 +45,24 @@ export const databaseSslSchema = z.union([
 ]);
 
 export const databaseSchema = z.object({
-  url: envAwareString('DATABASE_URL', '').refine(
-    (val) => val.length > 0 || 
-      (process.env['POSTGRES_HOST'] && process.env['POSTGRES_DB']),
-    {
-      message: 'DATABASE_URL or POSTGRES_HOST/POSTGRES_DB must be set',
-    }
-  ),
-  poolSize: envAwareNumber('POSTGRES_POOL_SIZE', 10, { min: 1 }),
-  minPoolSize: envAwareNumber('POSTGRES_MIN_POOL_SIZE', 2, { min: 1 }),
-  maxPoolSize: envAwareNumber('POSTGRES_MAX_POOL_SIZE', 20, { min: 1 }),
-  ssl: databaseSslSchema.default(
-    process.env['POSTGRES_SSL'] === 'true' ? { rejectUnauthorized: false } : false
-  ),
-  connectionTimeoutMs: envAwareNumber('POSTGRES_CONNECTION_TIMEOUT', 5000, { min: 100 }),
-  idleTimeoutMs: envAwareNumber('POSTGRES_IDLE_TIMEOUT', 30000, { min: 1000 }),
-  acquireTimeoutMs: envAwareNumber('POSTGRES_ACQUIRE_TIMEOUT', 5000, { min: 100 }),
-  retryAttempts: envAwareNumber('POSTGRES_RETRY_ATTEMPTS', 3, { min: 0 }),
-  retryDelayMs: envAwareNumber('POSTGRES_RETRY_DELAY', 1000, { min: 100 }),
-}).transform((data) => {
-  // Build URL from components if not provided
-  if (!data.url || data.url === '') {
+  url: z.string().default('').transform((val) => {
+    if (val && val.length > 0) return val;
     const host = process.env['POSTGRES_HOST'] || 'localhost';
     const port = process.env['POSTGRES_PORT'] || '5432';
     const db = process.env['POSTGRES_DB'] || 'dash';
     const user = process.env['POSTGRES_USER'] || 'dash';
     const password = process.env['POSTGRES_PASSWORD'] || 'dash';
-    data.url = `postgresql://${user}:${password}@${host}:${port}/${db}`;
-  }
-  return data;
+    return `postgresql://${user}:${password}@${host}:${port}/${db}`;
+  }),
+  poolSize: z.coerce.number().default(10),
+  minPoolSize: z.coerce.number().default(2),
+  maxPoolSize: z.coerce.number().default(20),
+  ssl: databaseSslSchema.default(false),
+  connectionTimeoutMs: z.coerce.number().default(5000),
+  idleTimeoutMs: z.coerce.number().default(30000),
+  acquireTimeoutMs: z.coerce.number().default(5000),
+  retryAttempts: z.coerce.number().default(3),
+  retryDelayMs: z.coerce.number().default(1000),
 });
 
 export type DatabaseSchema = z.infer<typeof databaseSchema>;
@@ -134,19 +72,19 @@ export type DatabaseSchema = z.infer<typeof databaseSchema>;
 // ============================================================================
 
 export const redisSchema = z.object({
-  url: envAwareString('REDIS_URL', '').transform((val) => {
-    if (val) return val;
+  url: z.string().default('').transform((val) => {
+    if (val && val.length > 0) return val;
     const host = process.env['REDIS_HOST'] || 'localhost';
     const port = process.env['REDIS_PORT'] || '6379';
     const db = process.env['REDIS_DB'] || '0';
     return `redis://${host}:${port}/${db}`;
   }),
-  password: z.string().optional().default(process.env['REDIS_PASSWORD'] || ''),
-  db: envAwareNumber('REDIS_DB', 0),
-  connectTimeoutMs: envAwareNumber('REDIS_CONNECT_TIMEOUT', 10000, { min: 1000 }),
-  commandTimeoutMs: envAwareNumber('REDIS_COMMAND_TIMEOUT', 5000, { min: 1000 }),
-  maxRetriesPerRequest: envAwareNumber('REDIS_MAX_RETRIES', 3, { min: 0 }),
-  enableOfflineQueue: envAwareBoolean('REDIS_OFFLINE_QUEUE', true),
+  password: z.string().optional().default(''),
+  db: z.coerce.number().default(0),
+  connectTimeoutMs: z.coerce.number().default(10000),
+  commandTimeoutMs: z.coerce.number().default(5000),
+  maxRetriesPerRequest: z.coerce.number().default(3),
+  enableOfflineQueue: z.boolean().default(true),
 });
 
 export type RedisSchema = z.infer<typeof redisSchema>;
@@ -159,14 +97,12 @@ export const authSchema = z.object({
   apiKeys: z.union([
     z.string().transform((val) => val.split(',').map((s) => s.trim()).filter(Boolean)),
     z.array(z.string()),
-  ]).default(
-    process.env['DASH_API_KEY'] ? [process.env['DASH_API_KEY']] : ['dash-api-key']
-  ),
-  jwtSecret: envAwareString('DASH_JWT_SECRET', 'change-me-in-production'),
-  tokenExpirySeconds: envAwareNumber('DASH_TOKEN_EXPIRY', 3600, { min: 60 }),
-  refreshTokenExpirySeconds: envAwareNumber('DASH_REFRESH_TOKEN_EXPIRY', 604800, { min: 3600 }),
-  enableApiKeyAuth: envAwareBoolean('DASH_ENABLE_API_KEY_AUTH', true),
-  enableJwtAuth: envAwareBoolean('DASH_ENABLE_JWT_AUTH', false),
+  ]).default(['dash-api-key']),
+  jwtSecret: z.string().default('change-me-in-production'),
+  tokenExpirySeconds: z.coerce.number().default(3600),
+  refreshTokenExpirySeconds: z.coerce.number().default(604800),
+  enableApiKeyAuth: z.boolean().default(true),
+  enableJwtAuth: z.boolean().default(false),
 }).refine(
   (data) => data.enableApiKeyAuth || data.enableJwtAuth,
   {
@@ -182,14 +118,14 @@ export type AuthSchema = z.infer<typeof authSchema>;
 // ============================================================================
 
 export const loggingSchema = z.object({
-  level: envAwareEnum('LOG_LEVEL', ['debug', 'info', 'warn', 'error', 'silent'] , 'info'),
-  format: envAwareEnum('LOG_FORMAT', ['json', 'pretty', 'compact'] , 'pretty'),
-  destination: envAwareEnum('LOG_DESTINATION', ['stdout', 'stderr', 'file', 'loki', 'multiple'] , 'stdout'),
-  filePath: z.string().optional().default(process.env['LOG_FILE_PATH'] || './logs/dash.log'),
-  lokiUrl: z.string().optional().default(process.env['LOKI_URL'] || 'http://localhost:3100'),
-  serviceName: envAwareString('DASH_SERVICE_NAME', 'dash'),
-  includeTimestamp: envAwareBoolean('LOG_INCLUDE_TIMESTAMP', true),
-  includeSourceLocation: envAwareBoolean('LOG_INCLUDE_SOURCE', false),
+  level: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
+  format: z.enum(['json', 'pretty', 'compact']).default('pretty'),
+  destination: z.enum(['stdout', 'stderr', 'file', 'loki', 'multiple']).default('stdout'),
+  filePath: z.string().optional().default('./logs/dash.log'),
+  lokiUrl: z.string().optional().default('http://localhost:3100'),
+  serviceName: z.string().default('dash'),
+  includeTimestamp: z.boolean().default(true),
+  includeSourceLocation: z.boolean().default(false),
 });
 
 export type LoggingSchema = z.infer<typeof loggingSchema>;
@@ -199,13 +135,13 @@ export type LoggingSchema = z.infer<typeof loggingSchema>;
 // ============================================================================
 
 export const metricsSchema = z.object({
-  enabled: envAwareBoolean('METRICS_ENABLED', true),
-  port: envAwareNumber('METRICS_PORT', 9090, { min: 1, max: 65535 }),
-  host: envAwareString('METRICS_HOST', 'localhost'),
-  path: envAwareString('METRICS_PATH', '/metrics'),
-  enableDefaultMetrics: envAwareBoolean('METRICS_DEFAULT_ENABLED', true),
-  prefix: envAwareString('METRICS_PREFIX', 'dash_'),
-  collectIntervalMs: envAwareNumber('METRICS_COLLECT_INTERVAL', 5000, { min: 1000 }),
+  enabled: z.boolean().default(true),
+  port: z.coerce.number().default(9090),
+  host: z.string().default('localhost'),
+  path: z.string().default('/metrics'),
+  enableDefaultMetrics: z.boolean().default(true),
+  prefix: z.string().default('dash_'),
+  collectIntervalMs: z.coerce.number().default(5000),
 });
 
 export type MetricsSchema = z.infer<typeof metricsSchema>;
@@ -215,12 +151,12 @@ export type MetricsSchema = z.infer<typeof metricsSchema>;
 // ============================================================================
 
 export const budgetSchema = z.object({
-  defaultLimit: envAwareNumber('DEFAULT_AGENT_BUDGET', 1.0, { min: 0 }),
-  currency: envAwareString('BUDGET_CURRENCY', 'USD'),
-  warningThreshold: envAwareNumber('BUDGET_WARNING_THRESHOLD', 0.8, { min: 0, max: 1 }),
-  criticalThreshold: envAwareNumber('BUDGET_CRITICAL_THRESHOLD', 0.95, { min: 0, max: 1 }),
-  selfImprovementMaxBudget: envAwareNumber('SELF_IMPROVEMENT_MAX_BUDGET', 10.0, { min: 0 }),
-  maxTokensPerAgent: envAwareNumber('MAX_TOKENS_PER_AGENT', 100000, { min: 1000 }),
+  defaultLimit: z.coerce.number().default(1.0),
+  currency: z.string().default('USD'),
+  warningThreshold: z.coerce.number().default(0.8),
+  criticalThreshold: z.coerce.number().default(0.95),
+  selfImprovementMaxBudget: z.coerce.number().default(10.0),
+  maxTokensPerAgent: z.coerce.number().default(100000),
 });
 
 export type BudgetSchema = z.infer<typeof budgetSchema>;
@@ -230,13 +166,13 @@ export type BudgetSchema = z.infer<typeof budgetSchema>;
 // ============================================================================
 
 export const openclawSchema = z.object({
-  gatewayUrl: envAwareString('OPENCLAW_GATEWAY_URL', 'ws://127.0.0.1:18789'),
-  gatewayToken: z.string().optional().default(process.env['OPENCLAW_GATEWAY_TOKEN'] || ''),
+  gatewayUrl: z.string().default('ws://127.0.0.1:18789'),
+  gatewayToken: z.string().optional().default(''),
   sessionId: z.string().optional(),
-  mode: envAwareEnum('OPENCLAW_MODE', ['restricted', 'full'] , 'restricted'),
-  sandboxMode: envAwareEnum('OPENCLAW_SANDBOX_MODE', ['none', 'non-main', 'docker'] , 'non-main'),
-  mockMode: envAwareBoolean('MOCK_OPENCLAW', false),
-  verbose: envAwareBoolean('VERBOSE_OPENCLAW', false),
+  mode: z.enum(['restricted', 'full']).default('restricted'),
+  sandboxMode: z.enum(['none', 'non-main', 'docker']).default('non-main'),
+  mockMode: z.boolean().default(false),
+  verbose: z.boolean().default(false),
 });
 
 export type OpenClawSchema = z.infer<typeof openclawSchema>;
@@ -246,16 +182,16 @@ export type OpenClawSchema = z.infer<typeof openclawSchema>;
 // ============================================================================
 
 export const eventBusSchema = z.object({
-  type: envAwareEnum('EVENT_BUS_TYPE', ['memory', 'redis'] , 'redis'),
-  streamKey: envAwareString('EVENT_BUS_STREAM_KEY', 'dash:events'),
-  consumerGroup: envAwareString('EVENT_BUS_CONSUMER_GROUP', 'dash:consumers'),
-  compressionThreshold: envAwareNumber('EVENT_BUS_COMPRESSION_THRESHOLD', 1024, { min: 100 }),
-  maxStreamLength: envAwareNumber('EVENT_BUS_MAX_STREAM_LENGTH', 100000, { min: 1000 }),
-  maxQueuedEvents: envAwareNumber('EVENT_BUS_MAX_QUEUED', 10000, { min: 100 }),
+  type: z.enum(['memory', 'redis']).default('redis'),
+  streamKey: z.string().default('dash:events'),
+  consumerGroup: z.string().default('dash:consumers'),
+  compressionThreshold: z.coerce.number().default(1024),
+  maxStreamLength: z.coerce.number().default(100000),
+  maxQueuedEvents: z.coerce.number().default(10000),
   retry: z.object({
-    maxRetries: envAwareNumber('EVENT_BUS_RETRY_MAX', 3, { min: 0 }),
-    retryDelayMs: envAwareNumber('EVENT_BUS_RETRY_DELAY', 1000, { min: 100 }),
-    retryDelayMultiplier: envAwareNumber('EVENT_BUS_RETRY_MULTIPLIER', 2, { min: 1 }),
+    maxRetries: z.coerce.number().default(3),
+    retryDelayMs: z.coerce.number().default(1000),
+    retryDelayMultiplier: z.coerce.number().default(2),
   }),
 });
 
@@ -266,12 +202,12 @@ export type EventBusSchema = z.infer<typeof eventBusSchema>;
 // ============================================================================
 
 export const vaultSchema = z.object({
-  address: envAwareString('VAULT_ADDR', 'http://localhost:8200'),
-  token: z.string().optional().default(process.env['VAULT_TOKEN'] || ''),
+  address: z.string().default('http://localhost:8200'),
+  token: z.string().optional().default(''),
   namespace: z.string().optional(),
-  kvVersion: envAwareEnum('VAULT_KV_VERSION', ['v1', 'v2'] , 'v2'),
-  timeoutMs: envAwareNumber('VAULT_TIMEOUT', 5000, { min: 1000 }),
-  tlsVerify: envAwareBoolean('VAULT_TLS_VERIFY', true),
+  kvVersion: z.enum(['v1', 'v2']).default('v2'),
+  timeoutMs: z.coerce.number().default(5000),
+  tlsVerify: z.boolean().default(true),
 });
 
 export type VaultSchema = z.infer<typeof vaultSchema>;
@@ -281,7 +217,7 @@ export type VaultSchema = z.infer<typeof vaultSchema>;
 // ============================================================================
 
 export const dashConfigSchema = z.object({
-  env: envAwareString('NODE_ENV', 'development'),
+  env: z.string().default('development'),
   server: serverSchema,
   database: databaseSchema,
   redis: redisSchema,
@@ -301,9 +237,6 @@ export type DashConfigSchema = z.infer<typeof dashConfigSchema>;
 // Validation Functions
 // ============================================================================
 
-/**
- * Validate configuration with helpful error messages
- */
 export function validateConfig(config: unknown): {
   success: boolean;
   data?: DashConfigSchema;
@@ -319,7 +252,6 @@ export function validateConfig(config: unknown): {
     const path = err.path.join('.');
     let suggestion: string | undefined;
     
-    // Provide helpful suggestions based on error type
     if (err.code === 'too_small') {
       suggestion = `Value must be at least ${err.minimum}`;
     } else if (err.code === 'too_big') {
@@ -343,9 +275,6 @@ export function validateConfig(config: unknown): {
   return { success: false, errors };
 }
 
-/**
- * Validate configuration and throw on error
- */
 export function validateConfigOrThrow(config: unknown): DashConfigSchema {
   const result = validateConfig(config);
   
@@ -360,9 +289,6 @@ export function validateConfigOrThrow(config: unknown): DashConfigSchema {
   return result.data!;
 }
 
-/**
- * Check if a specific path in config has issues
- */
 export function getPathIssues(
   errors: ConfigValidationError[],
   pathPrefix: string
@@ -370,9 +296,6 @@ export function getPathIssues(
   return errors.filter((e) => e.path.startsWith(pathPrefix));
 }
 
-/**
- * Format validation errors for display
- */
 export function formatValidationErrors(errors: ConfigValidationError[]): string {
   return errors
     .map((e) => {

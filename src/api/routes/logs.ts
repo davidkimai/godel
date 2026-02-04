@@ -101,8 +101,7 @@ export async function logsRoutes(fastify: FastifyInstance) {
           filteredLogs = filteredLogs.filter(l => l.level === level);
         }
         if (source) {
-          filteredLogs = filteredLogs.filter(l =
-003e l.source.toLowerCase().includes(source.toLowerCase()));
+          filteredLogs = filteredLogs.filter(l => l.source.toLowerCase().includes(source.toLowerCase()));
         }
         if (startTime) {
           const start = new Date(startTime).getTime();
@@ -114,8 +113,7 @@ export async function logsRoutes(fastify: FastifyInstance) {
         }
         if (search) {
           const searchLower = search.toLowerCase();
-          filteredLogs = filteredLogs.filter(l =
-003e l.message.toLowerCase().includes(searchLower));
+          filteredLogs = filteredLogs.filter(l => l.message.toLowerCase().includes(searchLower));
         }
         
         // Sort by timestamp descending

@@ -52,7 +52,7 @@ export const securityHeadersConfig = {
   
   // X-Frame-Options (legacy, CSP frame-ancestors is preferred)
   frameguard: {
-    action: 'deny',
+    action: 'deny' as const,
   },
   
   // X-Content-Type-Options
@@ -63,7 +63,7 @@ export const securityHeadersConfig = {
   
   // Referrer Policy
   referrerPolicy: {
-    policy: 'strict-origin-when-cross-origin',
+    policy: 'strict-origin-when-cross-origin' as const,
   },
   
   // Permissions Policy
@@ -82,8 +82,8 @@ export const securityHeadersConfig = {
   
   // Cross-Origin policies
   crossOriginEmbedderPolicy: false, // Can break some resources
-  crossOriginOpenerPolicy: { policy: 'same-origin' },
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin' as const },
+  crossOriginResourcePolicy: true,
   
   // DNS Prefetch Control
   dnsPrefetchControl: {
@@ -132,7 +132,7 @@ export function applySecurityHeaders(app: Express): void {
   const isDev = process.env.NODE_ENV === 'development';
   const config = isDev ? developmentSecurityConfig : securityHeadersConfig;
   
-  app.use(helmet(config));
+  app.use(helmet(config as any));
   
   // Additional custom headers
   app.use((req, res, next) => {

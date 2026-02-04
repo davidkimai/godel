@@ -65,7 +65,7 @@ function isValidKey(key: string): boolean {
   }
   
   // Then check against stored keys (timing-safe)
-  for (const storedKey of validKeys) {
+  for (const storedKey of Array.from(validKeys)) {
     if (secureCompareKeys(key, storedKey)) {
       return true;
     }
@@ -138,5 +138,3 @@ export function listApiKeys(): string[] {
     return `${parts[0]}_${parts[1]}_${'*'.repeat(20)}`;
   });
 }
-
-export { validKeys };

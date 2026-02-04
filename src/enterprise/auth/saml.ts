@@ -14,7 +14,6 @@ export const SAMLConfigSchema = z.object({
   // Service Provider (our app)
   issuer: z.string().min(1).max(256),
   callbackUrl: z.string().url().max(512),
-  logoutUrl: z.string().url().max(512).optional(),
   
   // Identity Provider (IdP)
   entryPoint: z.string().url().max(512),

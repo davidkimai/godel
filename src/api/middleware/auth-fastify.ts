@@ -6,6 +6,7 @@
 
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
+import type { FastifyPluginAsync } from 'fastify';
 
 export interface AuthConfig {
   /** API key for X-API-Key authentication */
@@ -114,7 +115,7 @@ function isPublicRoute(path: string, publicRoutes: string[]): boolean {
 /**
  * Authentication plugin for Fastify
  */
-async function authPlugin(fastify: FastifyInstance, config: AuthConfig) {
+const authPlugin: FastifyPluginAsync<AuthConfig> = async (fastify: FastifyInstance, config: AuthConfig) => {
   const publicRoutes = [...DEFAULT_PUBLIC_ROUTES, ...(config.publicRoutes || [])];
   
   // Add hook to validate authentication
@@ -215,7 +216,7 @@ async function authPlugin(fastify: FastifyInstance, config: AuthConfig) {
     if (request.user.permissions.includes('*')) return true;
     return request.user.permissions.includes(permission);
   });
-}
+};
 
 /**
  * Require specific permission
@@ -264,7 +265,6 @@ export async function requireAdmin(request: AuthenticatedRequest, reply: Fastify
 // Export plugin
 export default fp(authPlugin, {
   name: 'auth',
-  fastify: '5.x',
 });
 
 // Extend Fastify types

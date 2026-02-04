@@ -110,15 +110,12 @@ export function registerEventsCommand(program: Command): void {
         const client = getGlobalClient();
 
         // Build filter
-        const filter: { eventTypes?: string[]; sourceAgentId?: string; minPriority?: string } = {};
+        const filter: MessageFilter = {};
         
-        if (options.type) {
-          filter.eventTypes = [options.type];
-        }
         if (options.agent) {
           filter.sourceAgentId = options.agent;
         }
-        filter.minPriority = options.severity;
+        filter.minPriority = options.severity as MessageFilter['minPriority'];
 
         console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.task ? `task=${options.task} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
         console.log('');

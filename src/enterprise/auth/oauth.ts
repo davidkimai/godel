@@ -428,11 +428,11 @@ export class OAuthAuthStrategy {
    */
   private cleanupExpiredStates(): void {
     const now = Date.now();
-    for (const [key, state] of this.stateStore.entries()) {
+    Array.from(this.stateStore.entries()).forEach(([key, state]) => {
       if (now - state.createdAt > this.config.stateTimeoutMs) {
         this.stateStore.delete(key);
       }
-    }
+    });
   }
 }
 

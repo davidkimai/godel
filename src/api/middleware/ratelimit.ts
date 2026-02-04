@@ -47,11 +47,11 @@ const API_KEY_CONFIG: RateLimitConfig = {
  */
 function cleanupExpiredEntries(): void {
   const now = Date.now();
-  for (const [key, entry] of rateLimits.entries()) {
+  Array.from(rateLimits.entries()).forEach(([key, entry]) => {
     if (now > entry.resetTime) {
       rateLimits.delete(key);
     }
-  }
+  });
 }
 
 // Run cleanup every 5 minutes
