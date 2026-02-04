@@ -302,3 +302,19 @@ export interface WorkflowEngine extends EventEmitter {
   ): void;
   validate(workflow: Workflow): { valid: boolean; errors: string[] };
 }
+
+// Re-export DependencyGraph from dag.ts
+export interface DependencyGraph {
+  nodes: Array<{
+    id: string;
+    name: string;
+    status?: string;
+    layer: number;
+  }>;
+  edges: Array<{
+    from: string;
+    to: string;
+    type: 'dependency' | 'next';
+  }>;
+  layers: string[][];
+}

@@ -339,9 +339,11 @@ describe('Workflow State Machine', () => {
     
     expect(machine.getProgress().percentage).toBe(0);
     
+    machine.startStep('step1');
     machine.completeStep('step1');
     expect(machine.getProgress().percentage).toBe(50);
     
+    machine.startStep('step2');
     machine.completeStep('step2');
     expect(machine.getProgress().percentage).toBe(100);
   });

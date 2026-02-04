@@ -7,7 +7,7 @@
 
 import * as YAML from 'yaml';
 import { readFileSync } from 'fs';
-import { Workflow, WorkflowSchema, WorkflowValidationResult } from './types';
+import { Workflow, WorkflowStep, WorkflowSchema, WorkflowValidationResult } from './types';
 
 // ============================================================================
 // Parse Workflow from YAML
@@ -86,13 +86,14 @@ export function validateWorkflow(workflow: unknown): WorkflowValidationResult {
     return result;
   }
 
-  const validatedWorkflow = schemaResult.data;
+  // Cast zod data to Workflow - it has all required fields after validation
+  const validatedWorkflow = schemaResult.data as Workflow;
 
   // Validate step references
-  const stepIds = new Set(validatedWorkflow.steps.map(s => s.id));
+  const stepIds = new Set(validatedWorkflow.steps!.map(s => s.id));
   const stepNames = new Map<string, string>(); // name -> id mapping for duplicates
 
-  for (const step of validatedWorkflow.steps) {
+  for (const step of validatedWorkflow.steps!) {
     // Check for duplicate step IDs
     if (stepNames.has(step.name)) {
       result.errors.push(`Duplicate step name: ${step.name}`);
@@ -137,7 +138,7 @@ export function validateWorkflow(workflow: unknown): WorkflowValidationResult {
 
   // Check for unreachable steps
   const reachableSteps = findReachableSteps(validatedWorkflow);
-  for (const step of validatedWorkflow.steps) {
+  for (const step of validatedWorkflow.steps!) {
     if (!reachableSteps.has(step.id)) {
       result.warnings.push(`Step '${step.id}' is unreachable from any entry point`);
     }
@@ -156,7 +157,21 @@ function validateAndTransform(parsed: unknown): Workflow {
   if (!result.valid) {
     throw new Error(`Invalid workflow: ${result.errors.join(', ')}`);
   }
-  return parsed as Workflow;
+  
+  // The zod parser already validated the structure
+  // We just need to ensure all required fields are present
+  const data = parsed as Record<string, unknown>;
+  return {
+    name: String(data['name'] || 'unnamed'),
+    version: String(data['version'] || '1.0.0'),
+    steps: (data['steps'] as WorkflowStep[]) || [],
+    onFailure: (data['onFailure'] as 'stop' | 'continue' | 'retry_all') || 'stop',
+    description: data['description'] as string,
+    variables: data['variables'] as Record<string, unknown>,
+    timeout: data['timeout'] as number,
+    metadata: data['metadata'] as Record<string, unknown>,
+    id: data['id'] as string,
+  };
 }
 
 function isEntryStep(workflow: Workflow, stepId: string): boolean {

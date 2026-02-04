@@ -75,3 +75,9 @@ export {
   WorkflowMetricsCollector,
   createWorkflowMetricsCollector,
 } from './metrics';
+
+// Designer
+export {
+  WorkflowDesigner,
+  createWorkflowDesigner,
+} from './designer';
