@@ -1,218 +1,37 @@
 /**
- * Events Command v2 - Event streaming and listing with Message Bus integration
+ * Events Commands
  * 
  * Commands:
- * - dash events stream [--agent <id>] [--type <type>] [--severity <level>]
- * - dash events list [--since <duration>] [--agent <id>] [--limit <n>]
- * - dash events show <event-id>
- * - dash events replay <session-id> [--speed <n>x]
+ * - swarmctl events list [--format json|jsonl|table] [--since <duration>] [--agent <id>]
+ * - swarmctl events stream [--follow] [--agent <id>] [--type <type>]
+ * - swarmctl events get <event-id>
  */
 
 import { Command } from 'commander';
-import { logger } from '../../utils';
-import { getGlobalBus, type Message, type MessageFilter } from '../../bus/index';
-import { getGlobalLifecycle } from '../../core/lifecycle';
-import { getGlobalSwarmManager } from '../../core/swarm';
-import { memoryStore } from '../../storage/memory';
-import { type EventType } from '../../events/types';
-
-interface EventRecord {
-  id: string;
-  timestamp: Date;
-  type: string;
-  source: string;
-  severity: 'debug' | 'info' | 'warning' | 'error' | 'critical';
-  message: string;
-  agentId?: string;
-  swarmId?: string;
-  metadata?: Record<string, unknown>;
-}
-
-// In-memory event store for the v2 implementation
-class EventStore {
-  private events: EventRecord[] = [];
-  private maxSize: number = 10000;
-
-  add(event: EventRecord): void {
-    this.events.push(event);
-    if (this.events.length > this.maxSize) {
-      this.events.shift();
-    }
-  }
-
-  list(options?: { 
-    since?: Date; 
-    agentId?: string; 
-    type?: string; 
-    limit?: number;
-    severity?: string;
-  }): EventRecord[] {
-    let filtered = [...this.events];
-
-    if (options?.since) {
-      filtered = filtered.filter(e => e.timestamp >= options.since!);
-    }
-
-    if (options?.agentId) {
-      filtered = filtered.filter(e => e.agentId === options.agentId);
-    }
-
-    if (options?.type) {
-      filtered = filtered.filter(e => e.type === options.type);
-    }
-
-    if (options?.severity) {
-      filtered = filtered.filter(e => e.severity === options.severity);
-    }
-
-    // Sort by timestamp descending (newest first)
-    filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-    if (options?.limit) {
-      filtered = filtered.slice(0, options.limit);
-    }
-
-    return filtered;
-  }
-
-  getById(id: string): EventRecord | undefined {
-    return this.events.find(e => e.id === id);
-  }
-
-  clear(): void {
-    this.events = [];
-  }
-
-  count(): number {
-    return this.events.length;
-  }
-}
-
-const eventStore = new EventStore();
+import { getGlobalClient } from '../lib/client';
+import { formatEvents, type OutputFormat } from '../lib/output';
 
 export function registerEventsCommand(program: Command): void {
   const events = program
     .command('events')
-    .description('Event streaming and replay');
-
-  // ============================================================================
-  // events stream
-  // ============================================================================
-  events
-    .command('stream')
-    .description('Stream events in real-time from the message bus')
-    .option('-a, --agent <id>', 'Filter by agent ID')
-    .option('-s, --swarm <id>', 'Filter by swarm ID')
-    .option('-t, --type <type>', 'Filter by event type (e.g., agent.spawned)')
-    .option('--severity <level>', 'Filter by severity (debug|info|warning|error|critical)', 'info')
-    .option('--raw', 'Output raw JSON instead of formatted lines')
-    .option('--no-color', 'Disable colored output')
-    .action(async (options) => {
-      try {
-        // Initialize components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
-        const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-
-        console.log('📡 Streaming events...\n');
-        
-        // Build filter
-        const filter: MessageFilter = {
-          minPriority: options.severity,
-        };
-
-        if (options.type) {
-          filter.eventTypes = [options.type as EventType];
-        }
-
-        // Determine topics to subscribe to
-        const topics: string[] = [];
-        
-        if (options.agent) {
-          topics.push(`agent.${options.agent}.events`);
-          topics.push(`agent.${options.agent}.logs`);
-        } else {
-          topics.push('agent.*.events');
-          topics.push('agent.*.logs');
-        }
-
-        if (options.swarm) {
-          topics.push(`swarm.${options.swarm}.broadcast`);
-        } else {
-          topics.push('swarm.*.broadcast');
-        }
-
-        topics.push('system.alerts');
-
-        // Subscribe to events
-        const subscriptions = topics.map(topic => 
-          messageBus.subscribe(topic, (message: Message) => {
-            const event = messageToEventRecord(message);
-            
-            // Apply agent filter
-            if (options.agent && event.agentId !== options.agent) return;
-            
-            // Apply type filter
-            if (options.type && event.type !== options.type) return;
-            
-            // Apply severity filter
-            const severityOrder: Record<string, number> = { debug: 0, info: 1, warning: 2, error: 3, critical: 4 };
-            if (severityOrder[event.severity] < severityOrder[options.severity]) return;
-
-            // Store event
-            eventStore.add(event);
-
-            // Output
-            if (options.raw) {
-              console.log(JSON.stringify(event));
-            } else {
-              console.log(formatEvent(event, !options.noColor));
-            }
-          }, filter)
-        );
-
-        console.log(`Subscribed to ${subscriptions.length} topics`);
-        console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.swarm ? `swarm=${options.swarm} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
-        logger.info('events', '\n(Press Ctrl+C to stop)\n');
-
-        // Keep alive
-        await new Promise(() => {
-          process.on('SIGINT', () => {
-            console.log('\n\n👋 Stopping event stream...');
-            messageBus.unsubscribeAll(subscriptions as any);
-            process.exit(0);
-          });
-        });
-
-      } catch (error) {
-        console.error('❌ Stream error:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
-      }
-    });
+    .description('Event streaming and management');
 
   // ============================================================================
   // events list
   // ============================================================================
   events
     .command('list')
-    .description('List historical events from the message bus')
-    .option('-a, --agent <id>', 'Filter by agent ID')
-    .option('-s, --swarm <id>', 'Filter by swarm ID')
-    .option('-t, --type <type>', 'Filter by event type')
-    .option('--severity <level>', 'Filter by severity (debug|info|warning|error|critical)')
+    .description('List historical events')
+    .option('-f, --format <format>', 'Output format (table|json|jsonl)', 'table')
+    .option('-a, --agent <agent-id>', 'Filter by agent ID')
+    .option('-t, --task <task-id>', 'Filter by task ID')
+    .option('--type <type>', 'Filter by event type')
     .option('--since <duration>', 'Time window (e.g., 1h, 1d, 30m)')
+    .option('--until <iso-date>', 'End time (ISO format)')
     .option('-l, --limit <n>', 'Maximum events to show', '50')
-    .option('-f, --format <format>', 'Output format (table|json)', 'table')
     .action(async (options) => {
       try {
-        // Initialize components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
-        const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-
-        // Calculate since date
+        // Parse since date
         let since: Date | undefined;
         if (options.since) {
           const match = options.since.match(/^(\d+)([mhd])$/);
@@ -220,312 +39,184 @@ export function registerEventsCommand(program: Command): void {
             const [, num, unit] = match;
             const multiplier = unit === 'm' ? 60 * 1000 : unit === 'h' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
             since = new Date(Date.now() - parseInt(num) * multiplier);
+          } else {
+            console.error('❌ Invalid since format. Use: 30m, 1h, 1d');
+            process.exit(1);
           }
         }
 
-        // Fetch from message bus if persistence is enabled
-        const busMessages = messageBus.getAllMessages(parseInt(options.limit, 10));
-        
-        // Convert and filter
-        let events: EventRecord[] = busMessages.map(messageToEventRecord);
-        
-        // Apply filters
-        if (since) {
-          events = events.filter(e => e.timestamp >= since!);
-        }
-        if (options.agent) {
-          events = events.filter(e => e.agentId === options.agent);
-        }
-        if (options.swarm) {
-          events = events.filter(e => e.swarmId === options.swarm);
-        }
-        if (options.type) {
-          events = events.filter(e => e.type === options.type);
-        }
-        if (options.severity) {
-          events = events.filter(e => e.severity === options.severity);
+        // Parse until date
+        let until: Date | undefined;
+        if (options.until) {
+          until = new Date(options.until);
+          if (isNaN(until.getTime())) {
+            console.error('❌ Invalid until date format');
+            process.exit(1);
+          }
         }
 
-        // Sort by timestamp descending
-        events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-        // Limit
-        events = events.slice(0, parseInt(options.limit, 10));
-
-        // Also merge with local event store
-        const storedEvents = eventStore.list({
+        const client = getGlobalClient();
+        const response = await client.listEvents({
           since,
+          until,
           agentId: options.agent,
+          taskId: options.task,
           type: options.type,
-          severity: options.severity,
-          limit: parseInt(options.limit, 10),
+          page: 1,
+          pageSize: parseInt(options.limit, 10),
         });
 
-        // Merge and deduplicate by ID
-        const eventMap = new Map<string, EventRecord>();
-        for (const e of [...storedEvents, ...events]) {
-          eventMap.set(e.id, e);
+        if (!response.success || !response.data) {
+          console.error('❌ Failed to list events:', response.error?.message);
+          process.exit(1);
         }
-        events = Array.from(eventMap.values())
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, parseInt(options.limit, 10));
+
+        const events = response.data.items;
 
         if (events.length === 0) {
           console.log('📭 No events found');
-          console.log('💡 Use "dash events stream" to capture real-time events');
           return;
         }
 
-        if (options.format === 'json') {
-          console.log(JSON.stringify(events, null, 2));
-          return;
+        const format = options.format as OutputFormat;
+        console.log(formatEvents(events, { format }));
+
+        if (response.data.hasMore) {
+          console.log(`\n📄 Showing ${events.length} of ${response.data.total} events`);
         }
-
-        // Table format
-        console.log('📋 Events:\n');
-        logger.info('events', 'Timestamp            Severity   Type                          Source');
-        console.log('───────────────────  ─────────  ────────────────────────────  ──────────────');
-
-        for (const event of events) {
-          const timestamp = event.timestamp.toISOString().slice(0, 19).replace('T', ' ');
-          const severity = getSeverityEmoji(event.severity) + ' ' + event.severity.padEnd(8);
-          const type = event.type.slice(0, 28).padEnd(28);
-          const source = (event.agentId?.slice(0, 14) || event.source?.slice(0, 14) || 'system').padEnd(14);
-
-          console.log(`${timestamp}  ${severity}  ${type}  ${source}`);
-        }
-
-        console.log(`\n📊 Showing ${events.length} events`);
 
       } catch (error) {
         console.error('❌ Failed to list events:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        process.exit(1);
       }
     });
 
   // ============================================================================
-  // events show
+  // events stream
   // ============================================================================
   events
-    .command('show')
-    .description('Show event details')
-    .argument('<event-id>', 'Event ID')
-    .action(async (eventId) => {
+    .command('stream')
+    .description('Stream events in real-time')
+    .option('-a, --agent <agent-id>', 'Filter by agent ID')
+    .option('-t, --task <task-id>', 'Filter by task ID')
+    .option('--type <type>', 'Filter by event type')
+    .option('--severity <level>', 'Filter by severity (debug|info|warning|error|critical)', 'info')
+    .option('--raw', 'Output raw JSON instead of formatted lines')
+    .action(async (options) => {
       try {
-        // Try to find in local store first
-        let event = eventStore.getById(eventId);
+        console.log('📡 Streaming events...\n');
+        console.log('(Press Ctrl+C to stop)\n');
 
-        // Try message bus if not found
-        if (!event) {
-          const messageBus = getGlobalBus();
-          const messages = messageBus.getAllMessages(1000);
-          const message = messages.find((m: Message) => {
-            const payload = m.payload as { id?: string } | undefined;
-            return payload?.id === eventId || m.id === eventId;
-          });
-          if (message) {
-            event = messageToEventRecord(message);
+        const client = getGlobalClient();
+
+        // Build filter
+        const filter: { eventTypes?: string[]; sourceAgentId?: string; minPriority?: string } = {};
+        
+        if (options.type) {
+          filter.eventTypes = [options.type];
+        }
+        if (options.agent) {
+          filter.sourceAgentId = options.agent;
+        }
+        filter.minPriority = options.severity;
+
+        console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.task ? `task=${options.task} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
+        console.log('');
+
+        // Stream events
+        const stream = client.streamEvents({ filter });
+
+        // Handle Ctrl+C
+        process.on('SIGINT', () => {
+          console.log('\n\n👋 Stopping event stream...');
+          process.exit(0);
+        });
+
+        for await (const event of stream) {
+          // Apply filters manually since stream might not filter perfectly
+          if (options.agent && event.entityId !== options.agent && (event.payload as { agentId?: string })?.agentId !== options.agent) {
+            continue;
+          }
+          if (options.task && event.entityId !== options.task) {
+            continue;
+          }
+          if (options.type && event.type !== options.type) {
+            continue;
+          }
+
+          if (options.raw) {
+            console.log(JSON.stringify(event));
+          } else {
+            const timestamp = event.timestamp.toISOString().slice(0, 19);
+            const severity = getSeverityEmoji(event.type);
+            const type = event.type.padEnd(30);
+            const entity = event.entityId.slice(0, 16).padEnd(16);
+            
+            console.log(`[${timestamp}] ${severity} ${type} ${entity} ${event.type}`);
           }
         }
 
-        if (!event) {
+      } catch (error) {
+        console.error('❌ Stream error:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // events get
+  // ============================================================================
+  events
+    .command('get')
+    .description('Get event details')
+    .argument('<event-id>', 'Event ID')
+    .action(async (eventId) => {
+      try {
+        const client = getGlobalClient();
+        const response = await client.getEvent(eventId);
+
+        if (!response.success || !response.data) {
           console.error(`❌ Event ${eventId} not found`);
-          process.exit(2);
+          process.exit(1);
         }
+
+        const event = response.data;
 
         console.log(`📄 Event: ${event.id}\n`);
         console.log(`   Timestamp: ${event.timestamp.toISOString()}`);
         console.log(`   Type:      ${event.type}`);
-        console.log(`   Severity:  ${getSeverityEmoji(event.severity)} ${event.severity}`);
-        console.log(`   Source:    ${event.source}`);
+        console.log(`   Severity:  ${getSeverityEmoji(event.type)} ${getEventSeverity(event.type)}`);
+        console.log(`   Entity:    ${event.entityId} (${event.entityType})`);
         
-        if (event.agentId) {
-          console.log(`   Agent ID:  ${event.agentId}`);
+        if (event.correlationId) {
+          console.log(`   Correlation: ${event.correlationId}`);
         }
         
-        if (event.swarmId) {
-          console.log(`   Swarm ID:  ${event.swarmId}`);
+        if (event.parentEventId) {
+          console.log(`   Parent:    ${event.parentEventId}`);
         }
         
-        if (event.message) {
-          console.log(`\n   Message:   ${event.message}`);
-        }
-        
-        if (event.metadata) {
-          logger.info('events', `\n   Metadata:`);
-          console.log(JSON.stringify(event.metadata, null, 4).replace(/^/gm, '     '));
-        }
+        console.log(`\n   Payload:`);
+        console.log(JSON.stringify(event.payload, null, 4).replace(/^/gm, '     '));
 
       } catch (error) {
-        console.error('❌ Failed to show event:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
-      }
-    });
-
-  // ============================================================================
-  // events replay
-  // ============================================================================
-  events
-    .command('replay')
-    .description('Replay historical events (simulated)')
-    .argument('<session-id>', 'Session or swarm ID to replay')
-    .option('-s, --speed <speed>', 'Playback speed multiplier', '1')
-    .option('--from <time>', 'Start time (ISO format)')
-    .option('--to <time>', 'End time (ISO format)')
-    .action(async (sessionId, options) => {
-      try {
-        const speed = parseFloat(options.speed);
-        if (isNaN(speed) || speed <= 0) {
-          logger.error('events', '❌ Invalid speed');
-          process.exit(2);
-        }
-
-        // Initialize components
-        const messageBus = getGlobalBus();
-        const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
-        const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-
-        // Check if session exists
-        const swarm = swarmManager.getSwarm(sessionId);
-        if (!swarm) {
-          console.error(`❌ Session/Swarm ${sessionId} not found`);
-          process.exit(2);
-        }
-
-        console.log(`▶️  Replaying events for swarm: ${swarm.name}`);
-        console.log(`   Speed: ${speed}x`);
-        console.log(`   From: ${options.from || swarm.createdAt.toISOString()}`);
-        console.log(`   To: ${options.to || new Date().toISOString()}`);
-        logger.info('events', '\n   (Replay functionality would show events with simulated timing)');
-        console.log('   (Press Ctrl+C to stop)\n');
-
-        // In a full implementation, this would:
-        // 1. Load events from persistent storage
-        // 2. Replay them with timing adjusted by speed multiplier
-        // 3. Allow interactive controls (pause, skip, etc.)
-
-        // For now, just show the agents in the swarm
-        const agentStates = swarmManager.getSwarmAgents(sessionId);
-        console.log(`   Swarm had ${agentStates.length} agents:`);
-        for (const state of agentStates) {
-          console.log(`     • ${state.id} - ${state.status}`);
-        }
-
-      } catch (error) {
-        console.error('❌ Replay error:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
-      }
-    });
-
-  // ============================================================================
-  // events clear
-  // ============================================================================
-  events
-    .command('clear')
-    .description('Clear local event cache')
-    .option('--yes', 'Skip confirmation')
-    .action(async (options) => {
-      try {
-        const count = eventStore.count();
-        
-        if (count === 0) {
-          console.log('📭 Event cache is already empty');
-          return;
-        }
-
-        console.log(`⚠️  This will clear ${count} events from local cache`);
-        
-        if (!options.yes) {
-          console.log('🛑 Use --yes to confirm');
-          return;
-        }
-
-        eventStore.clear();
-        console.log('✅ Event cache cleared');
-
-      } catch (error) {
-        console.error('❌ Failed to clear events:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        console.error('❌ Failed to get event:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
       }
     });
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function messageToEventRecord(message: Message): EventRecord {
-  const payload = message.payload as { 
-    eventType?: string; 
-    source?: { agentId?: string; swarmId?: string; };
-    payload?: Record<string, unknown>;
-  } | undefined;
-
-  const eventType = payload?.eventType || 'unknown';
-  const source = message.metadata?.source || payload?.source?.agentId || 'system';
-  const agentId = payload?.source?.agentId;
-  const swarmId = payload?.source?.swarmId;
-
-  // Determine severity based on event type
-  let severity: EventRecord['severity'] = 'info';
-  if (eventType.includes('failed') || eventType.includes('error')) {
-    severity = 'error';
-  } else if (eventType.includes('critical') || eventType.includes('emergency')) {
-    severity = 'critical';
-  } else if (eventType.includes('warning')) {
-    severity = 'warning';
-  } else if (eventType.includes('completed') || eventType.includes('success')) {
-    severity = 'info';
-  } else if (eventType.includes('debug')) {
-    severity = 'debug';
-  }
-
-  return {
-    id: message.id,
-    timestamp: message.timestamp,
-    type: eventType,
-    source,
-    severity,
-    message: getEventDescription(eventType, payload?.payload),
-    agentId,
-    swarmId,
-    metadata: payload?.payload,
-  };
+function getSeverityEmoji(eventType: string): string {
+  if (eventType.includes('failed') || eventType.includes('error')) return '❌';
+  if (eventType.includes('critical') || eventType.includes('emergency')) return '🚨';
+  if (eventType.includes('warning')) return '⚠️';
+  if (eventType.includes('completed') || eventType.includes('success')) return '✅';
+  return 'ℹ️';
 }
 
-function getEventDescription(eventType: string, payload?: Record<string, unknown>): string {
-  const descriptions: Record<string, string> = {
-    'agent.spawned': `Agent spawned: ${payload?.['model'] || 'unknown model'}`,
-    'agent.completed': `Agent completed in ${payload?.['runtime'] || '?'}ms`,
-    'agent.failed': `Agent failed: ${payload?.['error'] || 'unknown error'}`,
-    'agent.killed': `Agent killed${payload?.['force'] ? ' (forced)' : ''}`,
-    'agent.paused': 'Agent paused',
-    'agent.resumed': 'Agent resumed',
-    'agent.status_changed': `Status: ${payload?.['previousStatus']} → ${payload?.['newStatus']}`,
-    'swarm.created': `Swarm created: ${payload?.['name']}`,
-    'swarm.scaled': `Swarm scaled: ${payload?.['previousSize']} → ${payload?.['newSize']}`,
-    'system.emergency_stop': `Emergency stop: ${payload?.['reason']}`,
-  };
-  return descriptions[eventType] || eventType;
-}
-
-function formatEvent(event: EventRecord, useColor: boolean): string {
-  const timestamp = event.timestamp.toISOString().slice(0, 19);
-  const severity = getSeverityEmoji(event.severity);
-  const type = event.type.padEnd(25);
-  const source = (event.agentId?.slice(0, 12) || event.source?.slice(0, 12) || 'system').padEnd(12);
-  
-  return `[${timestamp}] ${severity} ${type} ${source} ${event.message}`;
-}
-
-function getSeverityEmoji(severity: string): string {
-  const emojiMap: Record<string, string> = {
-    debug: '🔍',
-    info: 'ℹ️',
-    warning: '⚠️',
-    error: '❌',
-    critical: '🚨',
-  };
-  return emojiMap[severity] || '•';
+function getEventSeverity(eventType: string): string {
+  if (eventType.includes('failed') || eventType.includes('error')) return 'error';
+  if (eventType.includes('critical') || eventType.includes('emergency')) return 'critical';
+  if (eventType.includes('warning')) return 'warning';
+  if (eventType.includes('completed') || eventType.includes('success')) return 'info';
+  return 'debug';
 }

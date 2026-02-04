@@ -264,7 +264,7 @@ function EventRow({ event, getIcon, getColor }: EventRowProps): React.ReactEleme
 }
 
 // Helper for slow spin
-function animate-spin-slow() {
+function animateSpinSlow() {
   return { animation: 'spin 3s linear infinite' };
 }
 

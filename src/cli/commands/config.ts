@@ -1,578 +1,452 @@
 /**
- * SwarmCTL Configuration Commands
+ * Config CLI Commands
  * 
- * Provides CLI commands for configuration management:
- * - swarmctl apply -f swarm.yaml    : Apply a configuration
- * - swarmctl validate swarm.yaml    : Validate a configuration file
- * - swarmctl diff swarm.yaml        : Show changes compared to running swarm
- * 
- * Note: swarmctl is an alias for "dash config"
+ * Provides CLI commands for managing Dash configuration:
+ * - swarmctl config get <key>
+ * - swarmctl config set <key> <value>
+ * - swarmctl config validate
+ * - swarmctl config list
+ * - swarmctl config sources
  */
 
 import { Command } from 'commander';
-import { resolve } from 'path';
-import { existsSync } from 'fs';
-import { loadConfig, toSwarmConfig } from '../../config/yaml-loader';
-import { getGlobalGitOpsManager, formatDiff, diffConfigs } from '../../config/gitops';
-import { SecretManager, getGlobalSecretManager } from '../../config/secrets';
-import { getGlobalSwarmManager } from '../../core/swarm';
-import { getGlobalLifecycle } from '../../core/lifecycle';
-import { getGlobalBus } from '../../bus/index';
-import { memoryStore, initDatabase } from '../../storage';
-import { logger } from '../../utils/logger';
+import chalk from 'chalk';
+import YAML from 'yaml';
+import {
+  loadConfig,
+  getConfig,
+  reloadConfig,
+  validateConfig,
+  formatValidationErrors,
+  flattenConfig,
+  getConfigSources,
+  getConfigValue,
+  isFeatureEnabled,
+  configMetadata,
+  type DashConfig,
+  type ConfigCliOptions,
+} from '../../config';
 
 // ============================================================================
-// Initialization
+// Config Get Command
 // ============================================================================
 
-async function initializeCore(): Promise<{
-  messageBus: ReturnType<typeof getGlobalBus>;
-  lifecycle: ReturnType<typeof getGlobalLifecycle>;
-  dbPath: string;
-}> {
-  const dataDir = resolve(process.cwd(), '.dash');
-  if (!existsSync(dataDir)) {
-    const { mkdirSync } = await import('fs');
-    mkdirSync(dataDir, { recursive: true });
-  }
+export function createConfigGetCommand(): Command {
+  const command = new Command('get')
+    .description('Get configuration value')
+    .argument('[key]', 'Configuration key (e.g., server.port, database.url)')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .option('-f, --format <format>', 'Output format (json, yaml, value)', 'value')
+    .option('--show-secrets', 'Show secret values (hidden by default)', false)
+    .action(async (key: string | undefined, options) => {
+      try {
+        const config = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
+        });
 
-  const dbPath = resolve(dataDir, 'dash.db');
-  await initDatabase({ dbPath, enableWAL: true });
-
-  const messageBus = getGlobalBus();
-  const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-  lifecycle.start();
-
-  return { messageBus, lifecycle, dbPath };
-}
-
-// ============================================================================
-// Apply Command
-// ============================================================================
-
-interface ApplyOptions {
-  file: string;
-  dryRun?: boolean;
-  watch?: boolean;
-  resolveSecrets?: boolean;
-  yes?: boolean;
-}
-
-async function applyConfig(
-  filePath: string,
-  options: ApplyOptions
-): Promise<void> {
-  console.log(`📄 Loading configuration from ${filePath}...\n`);
-
-  // Check if 1Password is available if secrets need to be resolved
-  if (options.resolveSecrets) {
-    const secretManager = getGlobalSecretManager();
-    const opAvailable = await secretManager.isOpAvailable();
-    if (!opAvailable) {
-      console.warn('⚠️  1Password CLI not available, secrets will not be resolved');
-    }
-  }
-
-  // Load and validate config
-  let configResult;
-  try {
-    configResult = await loadConfig({
-      filePath,
-      substituteEnv: true,
-      resolveSecrets: options.resolveSecrets ?? false,
-      validate: true,
-    });
-  } catch (error) {
-    console.error('❌ Configuration error:');
-    if (error instanceof Error) {
-      console.error(`   ${error.message}`);
-    }
-    process.exit(1);
-  }
-
-  const { config } = configResult;
-  const swarmConfig = toSwarmConfig(config);
-
-  // Dry run mode
-  if (options.dryRun) {
-    console.log('📋 Configuration (dry run):\n');
-    console.log(`   Name:        ${config.metadata.name}`);
-    console.log(`   Description: ${config.metadata.description || 'N/A'}`);
-    console.log(`   Strategy:    ${config.spec.strategy}`);
-    console.log(`   Agents:      ${config.spec.initialAgents} (max: ${config.spec.maxAgents})`);
-    console.log(`   Model:       ${config.spec.model || 'default'}`);
-    
-    if (config.spec.budget) {
-      console.log(`   Budget:      $${config.spec.budget.amount} ${config.spec.budget.currency}`);
-    }
-    
-    if (config.spec.safety) {
-      console.log(`   Sandbox:     ${config.spec.safety.fileSandbox ? 'enabled' : 'disabled'}`);
-    }
-    
-    if (config.spec.gitops?.enabled) {
-      console.log(`   GitOps:      enabled (interval: ${config.spec.gitops.watchInterval}ms)`);
-    }
-
-    if (configResult.resolvedSecrets.length > 0) {
-      console.log(`\n🔐 Resolved secrets:`);
-      for (const secret of configResult.resolvedSecrets) {
-        console.log(`   • ${secret}`);
-      }
-    }
-
-    if (configResult.substitutedEnvVars.length > 0) {
-      console.log(`\n🌍 Environment variables substituted:`);
-      for (const envVar of configResult.substitutedEnvVars) {
-        console.log(`   • ${envVar}`);
-      }
-    }
-
-    return;
-  }
-
-  // Initialize core components
-  const { messageBus, lifecycle } = await initializeCore();
-  const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-  await swarmManager.start();
-
-  // Check if swarm already exists with same name
-  const existingSwarms = swarmManager.listSwarms().filter(
-    s => s.name === config.metadata.name && s.status !== 'destroyed'
-  );
-
-  if (existingSwarms.length > 0) {
-    console.log(`⚠️  Swarm "${config.metadata.name}" already exists:`);
-    for (const swarm of existingSwarms) {
-      console.log(`   ID: ${swarm.id} (status: ${swarm.status})`);
-    }
-    
-    if (!options.yes) {
-      console.log('\n🛑 Use --yes to apply changes to existing swarm');
-      process.exit(1);
-    }
-
-    // Scale existing swarm instead of creating new
-    const existingSwarm = existingSwarms[0];
-    console.log(`\n📊 Scaling existing swarm ${existingSwarm.id}...`);
-    
-    const currentSize = existingSwarm.agents.length;
-    const targetSize = config.spec.initialAgents;
-    
-    if (targetSize !== currentSize) {
-      await swarmManager.scale(existingSwarm.id, targetSize);
-      console.log(`   Scaled from ${currentSize} to ${targetSize} agents`);
-    }
-
-    // Set up GitOps watching if enabled
-    if (options.watch || config.spec.gitops?.enabled) {
-      const gitops = getGlobalGitOpsManager(swarmManager);
-      await gitops.watch(filePath, existingSwarm.id);
-      console.log(`   GitOps watching enabled for ${filePath}`);
-    }
-
-    console.log('\n✅ Configuration applied successfully!');
-    return;
-  }
-
-  // Create new swarm
-  console.log('🐝 Creating swarm...\n');
-  
-  const swarm = await swarmManager.create(swarmConfig);
-  
-  console.log('✅ Swarm created successfully!\n');
-  console.log(`   ID:       ${swarm.id}`);
-  console.log(`   Name:     ${swarm.name}`);
-  console.log(`   Status:   ${swarm.status}`);
-  console.log(`   Agents:   ${swarm.agents.length}`);
-  
-  if (swarm.budget.allocated > 0) {
-    console.log(`   Budget:   $${swarm.budget.allocated.toFixed(2)} USD`);
-  }
-
-  // Set up GitOps watching if enabled
-  if (options.watch || config.spec.gitops?.enabled) {
-    const gitops = getGlobalGitOpsManager(swarmManager);
-    await gitops.watch(filePath, swarm.id);
-    console.log(`\n👁️  GitOps watching enabled for ${filePath}`);
-    
-    // Subscribe to events
-    gitops.onGitOpsEvent((event) => {
-      const emoji = {
-        'config.loaded': '📄',
-        'config.changed': '📝',
-        'config.applied': '✅',
-        'config.failed': '❌',
-        'config.rolledback': '↩️',
-      }[event.type];
-      
-      console.log(`${emoji} ${event.type}: ${event.filePath}`);
-      
-      if (event.error) {
-        console.error(`   Error: ${event.error.message}`);
-      }
-    });
-  }
-
-  console.log(`\n💡 Use 'dash swarm status ${swarm.id}' to monitor progress`);
-}
-
-// ============================================================================
-// Validate Command
-// ============================================================================
-
-interface ValidateOptions {
-  strict?: boolean;
-  verbose?: boolean;
-}
-
-async function validateConfigFile(
-  filePath: string,
-  options: ValidateOptions
-): Promise<void> {
-  console.log(`📄 Validating ${filePath}...\n`);
-
-  if (!existsSync(filePath)) {
-    console.error(`❌ File not found: ${filePath}`);
-    process.exit(1);
-  }
-
-  try {
-    const result = await loadConfig({
-      filePath,
-      substituteEnv: true,
-      resolveSecrets: false, // Don't resolve secrets during validation
-      validate: true,
-    });
-
-    console.log('✅ Configuration is valid!\n');
-
-    if (options.verbose) {
-      const { config } = result;
-      
-      console.log('Configuration details:');
-      console.log(`  API Version: ${config.apiVersion}`);
-      console.log(`  Kind:        ${config.kind}`);
-      console.log(`  Name:        ${config.metadata.name}`);
-      console.log(`  Strategy:    ${config.spec.strategy}`);
-      console.log(`  Agents:      ${config.spec.initialAgents} (max: ${config.spec.maxAgents})`);
-      
-      if (config.metadata.labels) {
-        console.log(`  Labels:`);
-        for (const [key, value] of Object.entries(config.metadata.labels)) {
-          console.log(`    ${key}: ${value}`);
-        }
-      }
-
-      if (result.substitutedEnvVars.length > 0) {
-        console.log(`\n🌍 Environment variables that will be substituted:`);
-        for (const envVar of result.substitutedEnvVars) {
-          console.log(`   • ${envVar}`);
-        }
-      }
-
-      if (result.resolvedSecrets.length > 0) {
-        console.log(`\n🔐 Secrets that will be resolved:`);
-        for (const secret of result.resolvedSecrets) {
-          console.log(`   • ${secret}`);
-        }
-      }
-    }
-
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Validation failed!\n');
-    
-    if (error instanceof Error) {
-      // Check if it's a validation exception with multiple errors
-      const validationError = error as Error & { errors?: Array<{ path: string; message: string; suggestion?: string }> };
-      
-      if (validationError.errors && Array.isArray(validationError.errors)) {
-        for (const err of validationError.errors) {
-          console.error(`   Path: ${err.path}`);
-          console.error(`   Error: ${err.message}`);
-          if (err.suggestion) {
-            console.error(`   Suggestion: ${err.suggestion}`);
+        if (!key) {
+          // List all configuration values
+          const flatConfig = flattenConfig(config.config, '', !options.showSecrets);
+          
+          if (options.format === 'json') {
+            console.log(JSON.stringify(flatConfig, null, 2));
+          } else if (options.format === 'yaml') {
+            console.log(YAML.stringify(flatConfig));
+          } else {
+            // Table format
+            console.log(chalk.bold('\nConfiguration Values:'));
+            console.log(chalk.gray('─'.repeat(80)));
+            
+            const sortedKeys = Object.keys(flatConfig).sort();
+            for (const k of sortedKeys) {
+              const value = flatConfig[k];
+              const meta = configMetadata[k];
+              
+              let displayValue = value;
+              if (meta?.sensitive && !options.showSecrets) {
+                displayValue = '***';
+              }
+              
+              const envVar = meta?.envVar ? chalk.gray(` [${meta.envVar}]`) : '';
+              console.log(`${chalk.cyan(k.padEnd(40))} ${chalk.yellow(displayValue)}${envVar}`);
+            }
+            console.log();
           }
-          console.error('');
+          return;
         }
-      } else {
-        console.error(`   ${error.message}`);
+
+        // Get specific value
+        const value = getConfigValue(config.config, key);
+
+        if (value === undefined) {
+          console.error(chalk.red(`Error: Configuration key '${key}' not found`));
+          process.exit(1);
+        }
+
+        // Output based on format
+        if (options.format === 'json') {
+          console.log(JSON.stringify({ [key]: value }, null, 2));
+        } else if (options.format === 'yaml') {
+          console.log(YAML.stringify({ [key]: value }));
+        } else {
+          if (typeof value === 'object') {
+            console.log(YAML.stringify(value));
+          } else {
+            console.log(String(value));
+          }
+        }
+      } catch (error) {
+        console.error(chalk.red(`Error: ${(error as Error).message}`));
+        process.exit(1);
       }
-    }
-
-    process.exit(1);
-  }
-}
-
-// ============================================================================
-// Diff Command
-// ============================================================================
-
-interface DiffOptions {
-  swarmId?: string;
-  context?: number;
-}
-
-async function diffConfig(
-  filePath: string,
-  options: DiffOptions
-): Promise<void> {
-  console.log(`📄 Comparing ${filePath} with running swarm...\n`);
-
-  // Load the new config
-  let newConfig;
-  try {
-    const result = await loadConfig({
-      filePath,
-      substituteEnv: true,
-      resolveSecrets: false,
-      validate: true,
     });
-    newConfig = result.config;
-  } catch (error) {
-    console.error('❌ Failed to load configuration:');
-    if (error instanceof Error) {
-      console.error(`   ${error.message}`);
-    }
-    process.exit(1);
-  }
 
-  // Initialize core components
-  const { messageBus, lifecycle } = await initializeCore();
-  const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-  await swarmManager.start();
-
-  // Find the swarm to compare against
-  let swarmId = options.swarmId;
-  
-  if (!swarmId) {
-    // Try to find a swarm with matching name
-    const matchingSwarms = swarmManager.listActiveSwarms().filter(
-      s => s.name === newConfig.metadata.name
-    );
-    
-    if (matchingSwarms.length === 0) {
-      console.log('ℹ️  No running swarm found with matching name');
-      console.log(`   Would create new swarm: ${newConfig.metadata.name}`);
-      return;
-    }
-    
-    if (matchingSwarms.length > 1) {
-      console.log('⚠️  Multiple swarms found with matching name:');
-      for (const swarm of matchingSwarms) {
-        console.log(`   ${swarm.id} (${swarm.agents.length} agents)`);
-      }
-      console.log('\nPlease specify a swarm ID with --swarm-id');
-      process.exit(1);
-    }
-    
-    swarmId = matchingSwarms[0].id;
-  }
-
-  const swarm = swarmManager.getSwarm(swarmId);
-  if (!swarm) {
-    console.error(`❌ Swarm ${swarmId} not found`);
-    process.exit(1);
-  }
-
-  // Convert current swarm config to YAML format for comparison
-  const currentConfig = {
-    apiVersion: 'dash.io/v1',
-    kind: 'Swarm',
-    metadata: {
-      name: swarm.name,
-      ...swarm.config.metadata,
-    },
-    spec: {
-      task: swarm.config.task,
-      strategy: swarm.config.strategy,
-      initialAgents: swarm.agents.length,
-      maxAgents: swarm.config.maxAgents,
-      model: swarm.config.model,
-      budget: swarm.config.budget,
-      safety: swarm.config.safety,
-    },
-  } as typeof newConfig;
-
-  // Calculate diff
-  const diff = diffConfigs(currentConfig, newConfig);
-
-  if (diff.identical) {
-    console.log('✅ Configuration is identical to running swarm');
-    return;
-  }
-
-  console.log(`📊 Changes for swarm ${swarmId}:\n`);
-  console.log(formatDiff(diff));
-
-  // Show specific recommendations
-  console.log('\n📝 Recommendations:');
-  
-  const agentDiff = diff.differences.find(d => d.path === 'spec.initialAgents');
-  if (agentDiff) {
-    const oldVal = agentDiff.oldValue as number;
-    const newVal = agentDiff.newValue as number;
-    if (newVal > oldVal) {
-      console.log(`   • Will scale up from ${oldVal} to ${newVal} agents`);
-    } else {
-      console.log(`   • Will scale down from ${oldVal} to ${newVal} agents`);
-    }
-  }
-
-  const strategyDiff = diff.differences.find(d => d.path === 'spec.strategy');
-  if (strategyDiff) {
-    console.log(`   • Strategy will change from ${strategyDiff.oldValue} to ${strategyDiff.newValue}`);
-    console.log(`   ⚠️  This requires recreating the swarm`);
-  }
+  return command;
 }
 
 // ============================================================================
-// Register Commands
+// Config Set Command
 // ============================================================================
 
-export function registerConfigCommand(program: Command): void {
-  const config = program
-    .command('config')
-    .description('Manage swarm configurations (swarmctl)');
+export function createConfigSetCommand(): Command {
+  const command = new Command('set')
+    .description('Set configuration value (requires restart)')
+    .argument('<key>', 'Configuration key (e.g., server.port)')
+    .argument('<value>', 'Configuration value')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .option('--dry-run', 'Show what would be changed without applying')
+    .action(async (key: string, value: string, options) => {
+      try {
+        const config = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
+        });
 
-  // Apply command
-  config
-    .command('apply')
-    .description('Apply a configuration file')
-    .requiredOption('-f, --file <path>', 'Path to configuration file')
-    .option('--dry-run', 'Show changes without applying')
-    .option('--watch', 'Watch file for changes and auto-apply')
-    .option('--resolve-secrets', 'Resolve 1Password secrets')
-    .option('--yes', 'Skip confirmation prompts')
+        // Parse the value
+        let parsedValue: unknown = value;
+        
+        // Try to parse as JSON first
+        if (value.startsWith('{') || value.startsWith('[') || value === 'true' || value === 'false') {
+          try {
+            parsedValue = JSON.parse(value);
+          } catch {
+            // Keep as string
+          }
+        } else if (!isNaN(Number(value)) && value !== '') {
+          parsedValue = Number(value);
+        }
+
+        // Check if key exists
+        const currentValue = getConfigValue(config.config, key);
+        
+        if (currentValue === undefined) {
+          console.error(chalk.red(`Error: Configuration key '${key}' not found`));
+          console.log(chalk.yellow('Available keys:'));
+          const flatConfig = flattenConfig(config.config);
+          Object.keys(flatConfig).sort().forEach((k) => console.log(`  ${k}`));
+          process.exit(1);
+        }
+
+        // Show what would change
+        console.log(chalk.bold('\nConfiguration Change:'));
+        console.log(chalk.gray('─'.repeat(60)));
+        console.log(`${chalk.cyan('Key:')}      ${key}`);
+        console.log(`${chalk.cyan('Current:')}  ${JSON.stringify(currentValue)}`);
+        console.log(`${chalk.cyan('New:')}      ${JSON.stringify(parsedValue)}`);
+        
+        const meta = configMetadata[key];
+        if (meta?.requiresRestart) {
+          console.log(chalk.yellow('\n⚠️  This change requires a restart to take effect'));
+        }
+        if (meta?.sensitive) {
+          console.log(chalk.yellow('🔒 This is a sensitive value'));
+        }
+
+        if (options.dryRun) {
+          console.log(chalk.gray('\n(Dry run - no changes made)'));
+          return;
+        }
+
+        // Note: We're not actually modifying the config file here
+        // In a real implementation, this would update the YAML/JSON file
+        console.log(chalk.yellow('\nNote: To make this change permanent, update your config file:'));
+        console.log(chalk.gray(`  ${options.configDir}/dash.${options.env}.yaml`));
+        console.log(chalk.gray(`\nAdd or update the following:`));
+        
+        const parts = key.split('.');
+        const obj: Record<string, unknown> = {};
+        let current = obj;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current[parts[i]] = {};
+          current = current[parts[i]] as Record<string, unknown>;
+        }
+        current[parts[parts.length - 1]] = parsedValue;
+        
+        console.log(chalk.cyan(YAML.stringify(obj)));
+        
+      } catch (error) {
+        console.error(chalk.red(`Error: ${(error as Error).message}`));
+        process.exit(1);
+      }
+    });
+
+  return command;
+}
+
+// ============================================================================
+// Config Validate Command
+// ============================================================================
+
+export function createConfigValidateCommand(): Command {
+  const command = new Command('validate')
+    .description('Validate configuration')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .option('--enable-vault', 'Enable Vault secret resolution', false)
+    .option('--strict', 'Exit with error on warnings', false)
     .action(async (options) => {
       try {
-        await applyConfig(options.file, {
-          file: options.file,
-          dryRun: options.dryRun,
-          watch: options.watch,
-          resolveSecrets: options.resolveSecrets,
-          yes: options.yes,
+        console.log(chalk.bold(`\nValidating configuration for environment: ${options.env}\n`));
+
+        const loaded = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
+          enableVault: options.enableVault,
         });
+
+        const validation = validateConfig(loaded.config);
+
+        if (!validation.success) {
+          console.log(chalk.red('❌ Configuration validation failed:\n'));
+          console.log(formatValidationErrors(validation.errors!));
+          console.log();
+          process.exit(1);
+        }
+
+        console.log(chalk.green('✅ Configuration is valid\n'));
+
+        // Show configuration sources
+        console.log(chalk.bold('Configuration Sources:'));
+        loaded.sources.forEach((source) => {
+          console.log(`  ${chalk.gray('•')} ${source}`);
+        });
+
+        // Show warnings
+        if (loaded.warnings.length > 0) {
+          console.log(chalk.yellow('\n⚠️  Warnings:'));
+          loaded.warnings.forEach((warning) => {
+            console.log(`  ${chalk.yellow('•')} ${warning}`);
+          });
+          
+          if (options.strict) {
+            process.exit(1);
+          }
+        }
+
+        // Show production readiness check
+        if (options.env === 'production') {
+          console.log(chalk.bold('\nProduction Readiness Check:'));
+          
+          const checks = [
+            {
+              name: 'JWT Secret',
+              pass: loaded.config.auth.jwtSecret !== 'change-me-in-production' &&
+                    loaded.config.auth.jwtSecret !== '',
+              message: 'JWT secret should be changed from default',
+            },
+            {
+              name: 'API Keys',
+              pass: loaded.config.auth.apiKeys.length > 0 &&
+                    !loaded.config.auth.apiKeys.includes('dash-api-key'),
+              message: 'API keys should be configured',
+            },
+            {
+              name: 'Database URL',
+              pass: loaded.config.database.url.includes('localhost') === false,
+              message: 'Database should not use localhost in production',
+            },
+            {
+              name: 'CORS Origins',
+              pass: loaded.config.server.cors.origins.length > 0,
+              message: 'CORS origins should be explicitly configured',
+            },
+          ];
+
+          checks.forEach((check) => {
+            if (check.pass) {
+              console.log(`  ${chalk.green('✓')} ${check.name}`);
+            } else {
+              console.log(`  ${chalk.yellow('⚠')} ${check.name}: ${check.message}`);
+            }
+          });
+        }
+
+        console.log();
       } catch (error) {
-        console.error('❌ Failed to apply configuration:', 
-          error instanceof Error ? error.message : String(error));
+        console.error(chalk.red(`\n❌ Error: ${(error as Error).message}\n`));
         process.exit(1);
       }
     });
 
-  // Validate command
-  config
-    .command('validate')
-    .description('Validate a configuration file')
-    .argument('<file>', 'Path to configuration file')
-    .option('--strict', 'Enable strict validation')
-    .option('--verbose', 'Show detailed information')
-    .action(async (file, options) => {
-      try {
-        await validateConfigFile(file, {
-          strict: options.strict,
-          verbose: options.verbose,
-        });
-      } catch (error) {
-        console.error('❌ Validation failed:', 
-          error instanceof Error ? error.message : String(error));
-        process.exit(1);
-      }
-    });
-
-  // Diff command
-  config
-    .command('diff')
-    .description('Show differences between config and running swarm')
-    .argument('<file>', 'Path to configuration file')
-    .option('--swarm-id <id>', 'Specific swarm ID to compare')
-    .option('-C, --context <lines>', 'Context lines', '3')
-    .action(async (file, options) => {
-      try {
-        await diffConfig(file, {
-          swarmId: options.swarmId,
-          context: parseInt(options.context, 10),
-        });
-      } catch (error) {
-        console.error('❌ Diff failed:', 
-          error instanceof Error ? error.message : String(error));
-        process.exit(1);
-      }
-    });
+  return command;
 }
 
 // ============================================================================
-// SwarmCTL Alias
+// Config List Command
 // ============================================================================
 
-/**
- * Register swarmctl alias commands
- * swarmctl is an alias for "dash config"
- */
-export function registerSwarmCtlCommand(program: Command): void {
-  const swarmctl = program
-    .command('swarmctl')
-    .description('Swarm control (alias for "dash config")');
-
-  // Apply
-  swarmctl
-    .command('apply')
-    .description('Apply a configuration file')
-    .requiredOption('-f, --file <path>', 'Path to configuration file')
-    .option('--dry-run', 'Show changes without applying')
-    .option('--watch', 'Watch file for changes and auto-apply')
-    .option('--resolve-secrets', 'Resolve 1Password secrets')
-    .option('--yes', 'Skip confirmation prompts')
+export function createConfigListCommand(): Command {
+  const command = new Command('list')
+    .description('List all configuration values')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .option('-f, --format <format>', 'Output format (table, json, yaml)', 'table')
+    .option('--show-secrets', 'Show secret values (hidden by default)', false)
+    .option('--filter <pattern>', 'Filter keys by pattern')
     .action(async (options) => {
       try {
-        await applyConfig(options.file, {
-          file: options.file,
-          dryRun: options.dryRun,
-          watch: options.watch,
-          resolveSecrets: options.resolveSecrets,
-          yes: options.yes,
+        const config = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
         });
+
+        const flatConfig = flattenConfig(config.config, '', !options.showSecrets);
+
+        // Apply filter if provided
+        let filteredConfig = flatConfig;
+        if (options.filter) {
+          const regex = new RegExp(options.filter, 'i');
+          filteredConfig = Object.fromEntries(
+            Object.entries(flatConfig).filter(([key]) => regex.test(key))
+          );
+        }
+
+        if (options.format === 'json') {
+          console.log(JSON.stringify(filteredConfig, null, 2));
+        } else if (options.format === 'yaml') {
+          console.log(YAML.stringify(filteredConfig));
+        } else {
+          // Table format
+          console.log(chalk.bold(`\nConfiguration (${options.env}):`));
+          console.log(chalk.gray('─'.repeat(80)));
+          
+          const sortedKeys = Object.keys(filteredConfig).sort();
+          
+          if (sortedKeys.length === 0) {
+            console.log(chalk.gray('No configuration values match the filter'));
+          } else {
+            for (const key of sortedKeys) {
+              const value = filteredConfig[key];
+              const meta = configMetadata[key];
+              
+              const envVar = meta?.envVar ? chalk.gray(` [${meta.envVar}]`) : '';
+              const description = meta?.description ? chalk.gray(` # ${meta.description}`) : '';
+              
+              console.log(
+                `${chalk.cyan(key.padEnd(35))} ${chalk.yellow(String(value).padEnd(30))}${envVar}${description}`
+              );
+            }
+          }
+          console.log();
+        }
       } catch (error) {
-        console.error('❌ Failed to apply configuration:', 
-          error instanceof Error ? error.message : String(error));
+        console.error(chalk.red(`Error: ${(error as Error).message}`));
         process.exit(1);
       }
     });
 
-  // Validate
-  swarmctl
-    .command('validate')
-    .description('Validate a configuration file')
-    .argument('<file>', 'Path to configuration file')
-    .option('--strict', 'Enable strict validation')
-    .action(async (file, options) => {
-      try {
-        await validateConfigFile(file, {
-          strict: options.strict,
-        });
-      } catch (error) {
-        console.error('❌ Validation failed:', 
-          error instanceof Error ? error.message : String(error));
-        process.exit(1);
-      }
-    });
-
-  // Diff
-  swarmctl
-    .command('diff')
-    .description('Show differences between config and running swarm')
-    .argument('<file>', 'Path to configuration file')
-    .option('--swarm-id <id>', 'Specific swarm ID to compare')
-    .action(async (file, options) => {
-      try {
-        await diffConfig(file, {
-          swarmId: options.swarmId,
-        });
-      } catch (error) {
-        console.error('❌ Diff failed:', 
-          error instanceof Error ? error.message : String(error));
-        process.exit(1);
-      }
-    });
+  return command;
 }
+
+// ============================================================================
+// Config Sources Command
+// ============================================================================
+
+export function createConfigSourcesCommand(): Command {
+  const command = new Command('sources')
+    .description('Show configuration sources')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .action(async (options) => {
+      try {
+        const config = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
+        });
+
+        console.log(chalk.bold(`\nConfiguration Sources (${options.env}):`));
+        console.log(chalk.gray('─'.repeat(60)));
+        
+        config.sources.forEach((source, index) => {
+          const priority = config.sources.length - index;
+          console.log(`${chalk.gray(`${priority}.`)} ${source}`);
+        });
+
+        console.log(chalk.gray('\n(Lower number = higher priority)'));
+        console.log();
+      } catch (error) {
+        console.error(chalk.red(`Error: ${(error as Error).message}`));
+        process.exit(1);
+      }
+    });
+
+  return command;
+}
+
+// ============================================================================
+// Config Features Command
+// ============================================================================
+
+export function createConfigFeaturesCommand(): Command {
+  const command = new Command('features')
+    .description('List feature flags')
+    .option('-e, --env <env>', 'Environment', process.env['NODE_ENV'] || 'development')
+    .option('-c, --config-dir <dir>', 'Configuration directory', './config')
+    .action(async (options) => {
+      try {
+        const config = await loadConfig({
+          env: options.env,
+          configDir: options.configDir,
+        });
+
+        console.log(chalk.bold(`\nFeature Flags (${options.env}):`));
+        console.log(chalk.gray('─'.repeat(60)));
+        
+        Object.entries(config.config.features).forEach(([feature, enabled]) => {
+          const status = enabled 
+            ? chalk.green('✓ enabled') 
+            : chalk.red('✗ disabled');
+          console.log(`  ${chalk.cyan(feature.padEnd(20))} ${status}`);
+        });
+        
+        console.log();
+      } catch (error) {
+        console.error(chalk.red(`Error: ${(error as Error).message}`));
+        process.exit(1);
+      }
+    });
+
+  return command;
+}
+
+// ============================================================================
+// Main Config Command
+// ============================================================================
+
+export function createConfigCommand(): Command {
+  const command = new Command('config')
+    .description('Manage Dash configuration')
+    .addCommand(createConfigGetCommand())
+    .addCommand(createConfigSetCommand())
+    .addCommand(createConfigValidateCommand())
+    .addCommand(createConfigListCommand())
+    .addCommand(createConfigSourcesCommand())
+    .addCommand(createConfigFeaturesCommand());
+
+  return command;
+}
+
+export default createConfigCommand;

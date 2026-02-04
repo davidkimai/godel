@@ -3,28 +3,110 @@
  * 
  * Manages database connections with retry logic for transient failures.
  * Uses pg-pool for connection management.
+ * Reads configuration from the centralized config system.
  */
 
 import type { PoolClient } from 'pg';
-import { getPostgresConfig, PostgresConfig } from './config';
 import { logger } from '../../utils/logger';
+import { getConfig, type DatabaseConfig } from '../../config';
 
 // We'll use dynamic import for pg-pool to avoid type issues
 
+export interface PostgresPoolConfig {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  
+  // Pool configuration
+  poolSize: number;
+  minPoolSize: number;
+  maxPoolSize: number;
+  
+  // Connection timeouts
+  connectionTimeoutMs: number;
+  idleTimeoutMs: number;
+  acquireTimeoutMs: number;
+  
+  // Retry configuration
+  retryAttempts: number;
+  retryDelayMs: number;
+  
+  // SSL configuration
+  ssl: boolean | { rejectUnauthorized: boolean; ca?: string; cert?: string; key?: string };
+}
+
+/**
+ * Convert Dash database config to pool config
+ */
+function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
+  // Parse the connection URL if provided
+  let parsedUrl: URL | null = null;
+  try {
+    parsedUrl = new URL(config.url);
+  } catch {
+    // Use individual settings if URL parsing fails
+  }
+
+  if (parsedUrl) {
+    return {
+      host: parsedUrl.hostname,
+      port: parseInt(parsedUrl.port, 10) || 5432,
+      database: parsedUrl.pathname.slice(1),
+      user: decodeURIComponent(parsedUrl.username),
+      password: decodeURIComponent(parsedUrl.password),
+      poolSize: config.poolSize,
+      minPoolSize: config.minPoolSize,
+      maxPoolSize: config.maxPoolSize,
+      connectionTimeoutMs: config.connectionTimeoutMs,
+      idleTimeoutMs: config.idleTimeoutMs,
+      acquireTimeoutMs: config.acquireTimeoutMs,
+      retryAttempts: config.retryAttempts,
+      retryDelayMs: config.retryDelayMs,
+      ssl: config.ssl,
+    };
+  }
+
+  return {
+    host: 'localhost',
+    port: 5432,
+    database: 'dash',
+    user: 'dash',
+    password: 'dash',
+    poolSize: config.poolSize,
+    minPoolSize: config.minPoolSize,
+    maxPoolSize: config.maxPoolSize,
+    connectionTimeoutMs: config.connectionTimeoutMs,
+    idleTimeoutMs: config.idleTimeoutMs,
+    acquireTimeoutMs: config.acquireTimeoutMs,
+    retryAttempts: config.retryAttempts,
+    retryDelayMs: config.retryDelayMs,
+    ssl: config.ssl,
+  };
+}
+
 export class PostgresPool {
   private pool: any | null = null;
-  private config: PostgresConfig;
+  private config: PostgresPoolConfig;
   private isConnected: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
 
-  constructor(config?: Partial<PostgresConfig>) {
-    this.config = { ...getPostgresConfig(), ...config };
+  constructor(config?: Partial<PostgresPoolConfig>) {
+    // Will be set in initialize()
+    this.config = config as PostgresPoolConfig;
   }
 
   /**
    * Initialize the connection pool with retry logic
    */
   async initialize(): Promise<void> {
+    // Load configuration if not provided
+    if (!this.config) {
+      const dashConfig = await getConfig();
+      this.config = toPoolConfig(dashConfig.database);
+    }
+
     let attempts = 0;
     const maxAttempts = this.config.retryAttempts;
     
@@ -266,7 +348,7 @@ let initializationPromise: Promise<PostgresPool> | null = null;
 /**
  * Get or create the global PostgreSQL pool
  */
-export async function getPool(config?: Partial<PostgresConfig>): Promise<PostgresPool> {
+export async function getPool(config?: Partial<PostgresPoolConfig>): Promise<PostgresPool> {
   if (globalPool?.getStats().isConnected) {
     return globalPool;
   }

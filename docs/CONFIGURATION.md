@@ -1,651 +1,682 @@
-# Dash YAML Configuration
+# Dash Configuration System
 
-Dash supports declarative configuration through YAML files, enabling GitOps workflows and infrastructure-as-code practices for managing agent swarms.
+Comprehensive configuration management for Dash with validation, secrets management, and environment-specific configs.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Configuration Sources](#configuration-sources)
+- [Configuration Files](#configuration-files)
+- [Environment Variables](#environment-variables)
+- [Configuration Schema](#configuration-schema)
+- [Secrets Management](#secrets-management)
+- [CLI Commands](#cli-commands)
+- [Programmatic API](#programmatic-api)
+- [Environment-Specific Configs](#environment-specific-configs)
+- [Validation](#validation)
+- [Migration Guide](#migration-guide)
 
 ## Overview
 
-```bash
-# Apply a configuration file
-swarmctl apply -f swarm.yaml
+The Dash configuration system provides:
 
-# Validate a configuration file
-swarmctl validate swarm.yaml
+- **Multiple config sources**: Environment variables, YAML/JSON files, and defaults
+- **Type-safe validation**: Zod schema validation with helpful error messages
+- **Secrets management**: HashiCorp Vault integration with `${VAULT:path}` syntax
+- **Environment-specific configs**: Separate configs for dev, production, and test
+- **CLI tools**: Manage configuration via `swarmctl config` commands
+- **Hot reloading**: Config changes detected and applied automatically
 
-# Show differences between config and running swarm
-swarmctl diff swarm.yaml
+## Configuration Sources
+
+Configuration is loaded in the following priority order (highest to lowest):
+
+1. **Environment Variables** - Override all other sources
+2. **Environment-specific config files** - `config/dash.{env}.yaml`
+3. **Base config files** - `config/dash.yaml`
+4. **Environment-specific defaults** - Built-in defaults for the environment
+5. **Default values** - Built-in fallback values (lowest priority)
+
+## Configuration Files
+
+### Location
+
+Configuration files are stored in the `config/` directory:
+
+```
+config/
+├── dash.yaml              # Base configuration
+├── dash.development.yaml  # Development overrides
+├── dash.production.yaml   # Production overrides
+├── dash.test.yaml         # Test overrides
+└── dash.example.yaml      # Example/template
 ```
 
-## Configuration Format
+### File Formats
 
-### Basic Structure
-
-```yaml
-apiVersion: dash.io/v1
-kind: Swarm
-
-metadata:
-  name: my-swarm
-  description: A swarm of agents for processing
-
-spec:
-  task: Process the input data and generate reports
-  strategy: parallel
-  initialAgents: 5
-  maxAgents: 20
-  model: kimi-k2.5
-```
-
-### Full Example
+Both YAML and JSON are supported:
 
 ```yaml
-apiVersion: dash.io/v1
-kind: Swarm
-
-metadata:
-  name: code-review-swarm
-  description: A swarm of agents for code review
-  labels:
-    environment: production
-    team: platform
-  annotations:
-    owner: platform-team@example.com
-
-spec:
-  task: Review the codebase for security vulnerabilities
-  strategy: parallel
-  initialAgents: 5
-  maxAgents: 20
-  model: kimi-k2.5
+# config/dash.yaml
+server:
+  port: 7373
+  host: localhost
   
-  budget:
-    amount: 50.00
-    currency: USD
-    warningThreshold: 0.75
-    criticalThreshold: 0.90
+database:
+  url: postgresql://dash:dash@localhost:5432/dash
+```
+
+```json
+// config/dash.json
+{
+  "server": {
+    "port": 7373,
+    "host": "localhost"
+  },
+  "database": {
+    "url": "postgresql://dash:dash@localhost:5432/dash"
+  }
+}
+```
+
+### Environment Variable Substitution
+
+Use `$VAR` or `${VAR}` syntax in config files:
+
+```yaml
+database:
+  url: ${DATABASE_URL}
   
-  safety:
-    fileSandbox: true
-    networkAllowlist:
-      - github.com
-    commandBlacklist:
-      - rm -rf /
-    maxExecutionTime: 300000
+auth:
+  jwtSecret: ${DASH_JWT_SECRET}
+```
+
+Default values are supported:
+
+```yaml
+server:
+  port: ${PORT:-7373}        # Use 7373 if PORT not set
+  host: ${HOST:=localhost}   # Set HOST to localhost if not set
+```
+
+## Environment Variables
+
+All configuration values can be set via environment variables:
+
+### Server
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `7373` |
+| `HOST` | Server host | `localhost` |
+| `DASH_CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `http://localhost:3000` |
+| `DASH_RATE_LIMIT` | Rate limit (requests/minute) | `100` |
+
+### Database
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Full PostgreSQL connection URL | - |
+| `POSTGRES_HOST` | PostgreSQL host | `localhost` |
+| `POSTGRES_PORT` | PostgreSQL port | `5432` |
+| `POSTGRES_DB` | Database name | `dash` |
+| `POSTGRES_USER` | Database user | `dash` |
+| `POSTGRES_PASSWORD` | Database password | `dash` |
+| `POSTGRES_POOL_SIZE` | Connection pool size | `10` |
+| `POSTGRES_SSL` | Enable SSL | `false` |
+
+### Redis
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_URL` | Full Redis connection URL | `redis://localhost:6379/0` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `REDIS_PASSWORD` | Redis password | - |
+| `REDIS_DB` | Redis database number | `0` |
+
+### Authentication
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DASH_API_KEY` | API keys (comma-separated) | `dash-api-key` |
+| `DASH_JWT_SECRET` | JWT secret for token signing | `change-me-in-production` |
+
+### Logging
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOG_LEVEL` | Log level (debug, info, warn, error) | `info` |
+| `LOG_FORMAT` | Log format (json, pretty, compact) | `pretty` |
+| `LOG_DESTINATION` | Log destination | `stdout` |
+| `LOKI_URL` | Loki URL for log aggregation | `http://localhost:3100` |
+
+### OpenClaw
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENCLAW_GATEWAY_URL` | Gateway WebSocket URL | `ws://127.0.0.1:18789` |
+| `OPENCLAW_GATEWAY_TOKEN` | Gateway authentication token | - |
+| `OPENCLAW_MODE` | Mode (restricted, full) | `restricted` |
+
+### Vault
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VAULT_ADDR` | Vault server address | `http://localhost:8200` |
+| `VAULT_TOKEN` | Vault authentication token | - |
+| `VAULT_NAMESPACE` | Vault namespace (Enterprise) | - |
+
+## Configuration Schema
+
+### Server Configuration
+
+```typescript
+interface ServerConfig {
+  port: number;              // Server port
+  host: string;              // Server host
+  cors: {
+    origins: string[];       // Allowed origins
+    credentials: boolean;    // Allow credentials
+  };
+  rateLimit: number;         // Requests per minute
+  timeoutMs: number;         // Request timeout
+}
+```
+
+### Database Configuration
+
+```typescript
+interface DatabaseConfig {
+  url: string;               // Connection URL
+  poolSize: number;          // Pool size
+  minPoolSize: number;       // Minimum connections
+  maxPoolSize: number;       // Maximum connections
+  ssl: boolean | SslConfig;  // SSL configuration
+  connectionTimeoutMs: number;
+  idleTimeoutMs: number;
+  acquireTimeoutMs: number;
+  retryAttempts: number;
+  retryDelayMs: number;
+}
+```
+
+### Redis Configuration
+
+```typescript
+interface RedisConfig {
+  url: string;               // Connection URL
+  password?: string;         // Password
+  db: number;                // Database number
+  connectTimeoutMs: number;
+  commandTimeoutMs: number;
+  maxRetriesPerRequest: number;
+  enableOfflineQueue: boolean;
+}
+```
+
+### Authentication Configuration
+
+```typescript
+interface AuthConfig {
+  apiKeys: string[];         // API keys
+  jwtSecret: string;         // JWT secret
+  tokenExpirySeconds: number;
+  refreshTokenExpirySeconds: number;
+  enableApiKeyAuth: boolean;
+  enableJwtAuth: boolean;
+}
+```
+
+### Logging Configuration
+
+```typescript
+interface LoggingConfig {
+  level: 'debug' | 'info' | 'warn' | 'error' | 'silent';
+  format: 'json' | 'pretty' | 'compact';
+  destination: 'stdout' | 'stderr' | 'file' | 'loki' | 'multiple';
+  filePath?: string;
+  lokiUrl?: string;
+  serviceName: string;
+  includeTimestamp: boolean;
+  includeSourceLocation: boolean;
+}
+```
+
+### Metrics Configuration
+
+```typescript
+interface MetricsConfig {
+  enabled: boolean;
+  port: number;
+  host: string;
+  path: string;
+  enableDefaultMetrics: boolean;
+  prefix: string;
+  collectIntervalMs: number;
+}
+```
+
+### Budget Configuration
+
+```typescript
+interface BudgetConfig {
+  defaultLimit: number;      // Default budget per agent (USD)
+  currency: string;          // Currency code
+  warningThreshold: number;  // Warning at % (0-1)
+  criticalThreshold: number; // Critical at % (0-1)
+  selfImprovementMaxBudget: number;
+  maxTokensPerAgent: number;
+}
+```
+
+## Secrets Management
+
+### Vault Integration
+
+Dash supports HashiCorp Vault for secret management:
+
+```yaml
+# Enable Vault in config
+vault:
+  address: https://vault.example.com:8200
+  token: ${VAULT_TOKEN}
+  kvVersion: v2
+  timeoutMs: 5000
+  tlsVerify: true
+```
+
+### Secret Reference Syntax
+
+Reference secrets in configuration using `${VAULT:path}` syntax:
+
+```yaml
+database:
+  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/dash
   
-  scaling:
-    enabled: true
-    minAgents: 2
-    maxAgents: 20
-    scaleUpThreshold: 10
-    scaleDownCooldown: 300
+auth:
+  jwtSecret: ${VAULT:secret/dash/jwt#secret}
   
-  gitops:
-    enabled: true
-    watchInterval: 5000
-    autoApply: true
-    rollbackOnFailure: true
-  
-  env:
-    LOG_LEVEL: info
-    API_KEY: ${API_KEY}
-    DATABASE_URL: ${DATABASE_URL:-sqlite://./default.db}
+openclaw:
+  gatewayToken: ${VAULT:secret/dash/openclaw#token}
 ```
 
-## Field Reference
+### Secret Reference Formats
 
-### apiVersion
-- **Required**: Yes
-- **Value**: `dash.io/v1`
-- **Description**: API version for the configuration schema
+| Format | Description | Example |
+|--------|-------------|---------|
+| `${VAULT:path}` | Full secret value | `${VAULT:secret/db/creds}` |
+| `${VAULT:path#key}` | Specific key from secret | `${VAULT:secret/db/creds#password}` |
+| `${VAULT:path?default=value}` | With default value | `${VAULT:secret/key?default=fallback}` |
 
-### kind
-- **Required**: Yes
-- **Value**: `Swarm`
-- **Description**: Type of resource being defined
+### Environment Variable Secrets
 
-### metadata
-
-#### name
-- **Required**: Yes
-- **Type**: string
-- **Description**: Unique name for the swarm
-
-#### description
-- **Required**: No
-- **Type**: string
-- **Description**: Human-readable description
-
-#### labels
-- **Required**: No
-- **Type**: object (string key-value pairs)
-- **Description**: Labels for organization and filtering
-
-#### annotations
-- **Required**: No
-- **Type**: object (string key-value pairs)
-- **Description**: Metadata for tooling and documentation
-
-### spec
-
-#### task
-- **Required**: Yes
-- **Type**: string
-- **Description**: The main task description for the swarm
-
-#### strategy
-- **Required**: No
-- **Type**: string
-- **Default**: `parallel`
-- **Options**: `parallel`, `map-reduce`, `pipeline`, `tree`
-- **Description**: Execution strategy for the swarm
-
-#### initialAgents
-- **Required**: No
-- **Type**: number
-- **Default**: `5`
-- **Description**: Initial number of agents to spawn
-
-#### maxAgents
-- **Required**: No
-- **Type**: number
-- **Default**: `50`
-- **Description**: Maximum number of agents (for scaling)
-
-#### model
-- **Required**: No
-- **Type**: string
-- **Description**: Default model for all agents
-
-### spec.budget
-
-#### amount
-- **Required**: Yes (if budget specified)
-- **Type**: number
-- **Description**: Budget limit in specified currency
-
-#### currency
-- **Required**: No
-- **Type**: string
-- **Default**: `USD`
-- **Description**: Currency code (ISO 4217)
-
-#### warningThreshold
-- **Required**: No
-- **Type**: number (0-1)
-- **Default**: `0.75`
-- **Description**: Percentage at which to warn about budget
-
-#### criticalThreshold
-- **Required**: No
-- **Type**: number (0-1)
-- **Default**: `0.90`
-- **Description**: Percentage at which to stop the swarm
-
-### spec.safety
-
-#### fileSandbox
-- **Required**: No
-- **Type**: boolean
-- **Default**: `true`
-- **Description**: Enable file sandboxing
-
-#### networkAllowlist
-- **Required**: No
-- **Type**: string[]
-- **Description**: Allowed network domains
-
-#### commandBlacklist
-- **Required**: No
-- **Type**: string[]
-- **Description**: Blacklisted shell commands
-
-#### maxExecutionTime
-- **Required**: No
-- **Type**: number (milliseconds)
-- **Description**: Maximum agent execution time
-
-### spec.scaling
-
-#### enabled
-- **Required**: No
-- **Type**: boolean
-- **Default**: `false`
-- **Description**: Enable auto-scaling
-
-#### minAgents
-- **Required**: No
-- **Type**: number
-- **Default**: `1`
-- **Description**: Minimum agent count
-
-#### maxAgents
-- **Required**: No
-- **Type**: number
-- **Default**: `50`
-- **Description**: Maximum agent count
-
-#### scaleUpThreshold
-- **Required**: No
-- **Type**: number
-- **Default**: `10`
-- **Description**: Queue depth to trigger scale up
-
-#### scaleDownCooldown
-- **Required**: No
-- **Type**: number (seconds)
-- **Default**: `300`
-- **Description**: Cooldown before scaling down
-
-### spec.gitops
-
-#### enabled
-- **Required**: No
-- **Type**: boolean
-- **Default**: `true`
-- **Description**: Enable GitOps file watching
-
-#### watchInterval
-- **Required**: No
-- **Type**: number (milliseconds)
-- **Default**: `5000`
-- **Description**: File check interval
-
-#### autoApply
-- **Required**: No
-- **Type**: boolean
-- **Default**: `true`
-- **Description**: Automatically apply changes
-
-#### rollbackOnFailure
-- **Required**: No
-- **Type**: boolean
-- **Default**: `true`
-- **Description**: Rollback on apply failure
-
-#### notifyOnChange
-- **Required**: No
-- **Type**: boolean
-- **Default**: `true`
-- **Description**: Send notifications on changes
-
-## Environment Variable Substitution
-
-Dash supports environment variable substitution in configuration values using the following syntax:
-
-### Syntax
-
-| Syntax | Description |
-|--------|-------------|
-| `$VAR` | Simple substitution |
-| `${VAR}` | Braced substitution |
-| `${VAR:-default}` | Substitution with default value |
-
-### Examples
+For simpler setups, use environment variables:
 
 ```yaml
-spec:
-  env:
-    # Simple substitution
-    API_KEY: $API_KEY
-    
-    # Braced substitution
-    DATABASE_URL: ${DATABASE_URL}
-    
-    # With default value
-    LOG_LEVEL: ${LOG_LEVEL:-info}
-    
-    # Default with spaces
-    COMPLEX_VAR: ${COMPLEX_VAR:-default value with spaces}
+auth:
+  jwtSecret: ${ENV:DASH_JWT_SECRET}
 ```
 
-### Security Note
+### File-Based Secrets
 
-Environment variables are substituted at load time. The actual values are never stored in the configuration file.
-
-## Secret Management (1Password)
-
-Dash integrates with 1Password CLI for secure secret management.
-
-### Prerequisites
-
-1. Install 1Password CLI: https://developer.1password.com/docs/cli/get-started
-2. Sign in: `op signin`
-
-### Syntax
-
-Use the template syntax to reference secrets:
+Read secrets from files (useful for Docker secrets):
 
 ```yaml
-spec:
-  env:
-    API_KEY: {{ op://vault-name/item-name/field-name }}
+auth:
+  jwtSecret: ${FILE:/run/secrets/jwt_secret}
 ```
-
-### Example
-
-```yaml
-spec:
-  env:
-    GITHUB_TOKEN: {{ op://Production/GitHub/token }}
-    DATABASE_PASSWORD: {{ op://Production/Database/password }}
-```
-
-### Security Features
-
-- Secrets are resolved at load time, not stored in files
-- Secret paths are logged for audit purposes, never values
-- Cache with TTL (5 minutes default) to reduce CLI calls
-- Automatic retry on transient failures
-
-### Resolving Secrets
-
-To resolve secrets during apply:
-
-```bash
-swarmctl apply -f swarm.yaml --resolve-secrets
-```
-
-Or set the environment variable:
-
-```bash
-export DASH_RESOLVE_SECRETS=true
-swarmctl apply -f swarm.yaml
-```
-
-## GitOps Integration
-
-Dash supports GitOps workflows with automatic configuration reloading.
-
-### How It Works
-
-1. Dash watches the configuration file for changes
-2. When changes are detected, the new configuration is validated
-3. Valid changes are automatically applied to the running swarm
-4. Failed changes trigger a rollback to the previous configuration
-
-### Enable GitOps
-
-GitOps is enabled by default. To disable:
-
-```yaml
-spec:
-  gitops:
-    enabled: false
-```
-
-### Configuration Options
-
-```yaml
-spec:
-  gitops:
-    enabled: true
-    watchInterval: 5000        # Check every 5 seconds
-    autoApply: true            # Automatically apply changes
-    rollbackOnFailure: true    # Rollback if apply fails
-    notifyOnChange: true       # Send notifications
-```
-
-### Manual Watch Mode
-
-Apply with watch mode from the CLI:
-
-```bash
-swarmctl apply -f swarm.yaml --watch
-```
-
-This enables file watching even if `spec.gitops.enabled` is false.
 
 ## CLI Commands
 
-### Apply
-
-Apply a configuration file to create or update a swarm:
+### Get Configuration
 
 ```bash
-# Apply configuration
-swarmctl apply -f swarm.yaml
+# Get all configuration values
+swarmctl config list
 
-# Dry run (show what would happen)
-swarmctl apply -f swarm.yaml --dry-run
+# Get specific value
+swarmctl config get server.port
+swarmctl config get database.url
 
-# Watch for changes
-swarmctl apply -f swarm.yaml --watch
+# Output formats
+swarmctl config get server.port --format json
+swarmctl config get server.port --format yaml
+swarmctl config get --format table
 
-# Resolve 1Password secrets
-swarmctl apply -f swarm.yaml --resolve-secrets
-
-# Skip confirmation
-swarmctl apply -f swarm.yaml --yes
+# Show secrets (hidden by default)
+swarmctl config get auth.jwtSecret --show-secrets
 ```
 
-### Validate
-
-Validate a configuration file without applying:
+### Set Configuration
 
 ```bash
-# Basic validation
-swarmctl validate swarm.yaml
+# Show how to set a value
+swarmctl config set server.port 8080
 
-# Strict validation
-swarmctl validate swarm.yaml --strict
-
-# Verbose output
-swarmctl validate swarm.yaml --verbose
+# Dry run
+swarmctl config set server.port 8080 --dry-run
 ```
 
-### Diff
-
-Show differences between a configuration file and a running swarm:
+### Validate Configuration
 
 ```bash
-# Diff against swarm with matching name
-swarmctl diff swarm.yaml
+# Validate current configuration
+swarmctl config validate
 
-# Diff against specific swarm
-swarmctl diff swarm.yaml --swarm-id swarm-123
+# Validate for specific environment
+swarmctl config validate --env production
+
+# Enable Vault secret resolution
+swarmctl config validate --enable-vault
+
+# Strict mode (exit on warnings)
+swarmctl config validate --strict
+```
+
+### List Configuration
+
+```bash
+# List all values
+swarmctl config list
+
+# Filter by pattern
+swarmctl config list --filter "server.*"
+swarmctl config list --filter "auth.*"
+
+# Output formats
+swarmctl config list --format json
+swarmctl config list --format yaml
+swarmctl config list --format table
+```
+
+### Show Sources
+
+```bash
+# Show configuration sources
+swarmctl config sources
+```
+
+### Feature Flags
+
+```bash
+# List feature flags
+swarmctl config features
 ```
 
 ## Programmatic API
 
-### Loading Configurations
+### Loading Configuration
 
 ```typescript
-import { loadConfig, toSwarmConfig } from '@jtan15010/dash/config';
+import { loadConfig, getConfig, reloadConfig } from './config';
 
-// Load and validate
-const result = await loadConfig({
-  filePath: './swarm.yaml',
-  substituteEnv: true,
-  resolveSecrets: true,
-  validate: true,
+// Load configuration
+const { config, sources, warnings } = await loadConfig({
+  env: 'production',
+  configDir: './config',
+  enableVault: true,
 });
 
-// Convert to SwarmConfig
-const swarmConfig = toSwarmConfig(result.config);
+// Get cached configuration
+const cachedConfig = await getConfig();
 
-// Create swarm
-const swarm = await swarmManager.create(swarmConfig);
+// Reload configuration
+const freshConfig = await reloadConfig();
 ```
 
-### GitOps Manager
+### Accessing Values
 
 ```typescript
-import { getGlobalGitOpsManager } from '@jtan15010/dash/config';
+import { getConfig, getConfigValue, isFeatureEnabled } from './config';
 
-const gitops = getGlobalGitOpsManager(swarmManager);
+const config = await getConfig();
 
-// Watch a configuration file
-await gitops.watch('./swarm.yaml', swarm.id);
+// Direct access
+console.log(config.server.port);
+console.log(config.database.url);
 
-// Subscribe to events
-gitops.onGitOpsEvent((event) => {
-  console.log(`${event.type}: ${event.filePath}`);
-});
+// By path
+const port = getConfigValue(config, 'server.port');
+const dbUrl = getConfigValue(config, 'database.url');
 
-// Stop watching
-await gitops.unwatch(swarm.id);
+// Check features
+if (isFeatureEnabled(config, 'metrics')) {
+  // Enable metrics
+}
 ```
 
-### Secret Resolution
+### Validation
 
 ```typescript
-import { getGlobalSecretManager } from '@jtan15010/dash/config';
+import { validateConfig, validateConfigOrThrow } from './config';
 
-const secrets = getGlobalSecretManager();
+// Validate without throwing
+const result = validateConfig(config);
+if (!result.success) {
+  console.error(result.errors);
+}
+
+// Validate and throw on error
+try {
+  const validConfig = validateConfigOrThrow(config);
+} catch (error) {
+  console.error('Invalid configuration:', error.message);
+}
+```
+
+### Secrets
+
+```typescript
+import { 
+  SecretManager, 
+  resolveSecret,
+  hasSecretReferences 
+} from './config';
+
+// Check if value contains secrets
+if (hasSecretReferences(value)) {
+  // Resolve secrets
+}
 
 // Resolve a single secret
-const apiKey = await secrets.resolve('{{ op://Production/API/key }}');
+const password = await resolveSecret('${VAULT:secret/db/password}');
 
-// Resolve all secrets in an object
-const { result } = await secrets.resolveInObject({
-  apiKey: '{{ op://Production/API/key }}',
-  dbPassword: '{{ op://Production/Database/password }}',
+// Using SecretManager
+const manager = new SecretManager(vaultConfig);
+const result = await manager.resolve('${VAULT:secret/db/password}');
+console.log(result.value, result.source);
+```
+
+## Environment-Specific Configs
+
+### Development
+
+```yaml
+# config/dash.development.yaml
+env: development
+
+server:
+  port: 7373
+  cors:
+    origins:
+      - http://localhost:3000
+      - http://localhost:5173
+
+logging:
+  level: debug
+  format: pretty
+
+features:
+  autoScaling: false
+```
+
+### Production
+
+```yaml
+# config/dash.production.yaml
+env: production
+
+server:
+  host: 0.0.0.0
+  cors:
+    origins: []  # Must be explicitly configured
+
+database:
+  ssl:
+    rejectUnauthorized: true
+
+logging:
+  level: info
+  format: json
+  destination: loki
+
+features:
+  autoScaling: true
+```
+
+### Test
+
+```yaml
+# config/dash.test.yaml
+env: test
+
+server:
+  port: 0  # Random port
+
+database:
+  url: postgresql://dash:dash@localhost:5432/dash_test
+
+redis:
+  url: redis://localhost:6379/15  # Use DB 15
+
+eventBus:
+  type: memory  # In-memory for tests
+
+logging:
+  level: error
+
+features:
+  gitops: false
+  autoScaling: false
+  selfImprovement: false
+```
+
+## Validation
+
+### Validation Errors
+
+When validation fails, helpful error messages are provided:
+
+```
+❌ Configuration validation failed:
+
+❌ server.port
+   Number must be less than or equal to 65535
+   💡 Port must be between 1 and 65535
+
+❌ auth.jwtSecret
+   String must contain at least 32 character(s)
+   💡 This is a sensitive value. Consider using ${VAULT:secret/path} syntax
+
+❌ database.url
+   Invalid URL format
+   💡 Provide a valid URL (e.g., postgresql://localhost:5432/dash)
+```
+
+### Production Readiness Check
+
+When validating for production, additional checks are performed:
+
+```bash
+$ swarmctl config validate --env production
+
+✅ Configuration is valid
+
+Production Readiness Check:
+  ✓ JWT Secret
+  ✓ API Keys
+  ⚠ Database URL: Database should not use localhost in production
+  ⚠ CORS Origins: CORS origins should be explicitly configured
+```
+
+## Migration Guide
+
+### From Environment Variables Only
+
+Before:
+```typescript
+const port = process.env.PORT || 7373;
+const dbUrl = process.env.DATABASE_URL;
+```
+
+After:
+```typescript
+import { getConfig } from './config';
+
+const config = await getConfig();
+const port = config.server.port;
+const dbUrl = config.database.url;
+```
+
+### From Custom Config Files
+
+Before:
+```typescript
+import { readFileSync } from 'fs';
+import YAML from 'yaml';
+
+const config = YAML.parse(readFileSync('./config.yaml', 'utf-8'));
+```
+
+After:
+```typescript
+import { loadConfig } from './config';
+
+const { config } = await loadConfig({
+  configDir: './config',
+  env: process.env.NODE_ENV,
 });
+```
+
+### Adding Secrets
+
+Before:
+```typescript
+const dbPassword = process.env.DB_PASSWORD;
+```
+
+After:
+```yaml
+# config/dash.yaml
+database:
+  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/dash
+```
+
+```typescript
+const { config } = await loadConfig({ enableVault: true });
+// Password is automatically resolved from Vault
 ```
 
 ## Best Practices
 
-### 1. Version Control
-
-Store your configuration files in version control:
-
-```bash
-git add swarm.yaml
-git commit -m "Add production swarm configuration"
-```
-
-### 2. Environment-Specific Configs
-
-Use environment variable substitution for environment-specific values:
-
-```yaml
-# swarm.yaml
-spec:
-  env:
-    ENV: ${ENV:-development}
-    LOG_LEVEL: ${LOG_LEVEL:-debug}
-```
-
-### 3. Secret Management
-
-Never commit secrets to version control. Use 1Password references:
-
-```yaml
-# GOOD - Secret reference
-spec:
-  env:
-    API_KEY: {{ op://Production/API/key }}
-
-# BAD - Hardcoded secret
-spec:
-  env:
-    API_KEY: sk-live-12345
-```
-
-### 4. Validation in CI/CD
-
-Validate configurations in your CI/CD pipeline:
-
-```yaml
-# .github/workflows/validate.yml
-- name: Validate Dash configs
-  run: |
-    for f in configs/*.yaml; do
-      swarmctl validate "$f"
-    done
-```
-
-### 5. Configuration Drift Detection
-
-Use `swarmctl diff` to detect configuration drift:
-
-```bash
-# In your monitoring/alerting
-swarmctl diff swarm.yaml --swarm-id production-swarm
-```
+1. **Use environment-specific configs**: Separate configs for dev/staging/production
+2. **Use Vault for secrets**: Never commit secrets to version control
+3. **Validate on startup**: Always validate configuration before starting services
+4. **Use environment variables for containerization**: Override config in containers
+5. **Document your config**: Use `swarmctl config list` to see all available options
+6. **Test config changes**: Use `--dry-run` to preview changes
+7. **Monitor feature flags**: Use `swarmctl config features` to track enabled features
 
 ## Troubleshooting
 
-### Validation Errors
+### Configuration not loading
 
-```bash
-# Get detailed error information
-swarmctl validate swarm.yaml --verbose
-```
+1. Check file paths: `swarmctl config sources`
+2. Verify file syntax: `swarmctl config validate`
+3. Check environment: `echo $NODE_ENV`
 
-Common validation errors:
+### Secrets not resolving
 
-- `initialAgents > maxAgents`: Ensure initialAgents <= maxAgents
-- `apiVersion` mismatch: Must be exactly `dash.io/v1`
-- `strategy` invalid: Must be one of: parallel, map-reduce, pipeline, tree
+1. Verify Vault is accessible: `curl $VAULT_ADDR/v1/sys/health`
+2. Check token permissions
+3. Enable Vault in config: `enableVault: true`
 
-### Secret Resolution Failures
+### Validation errors
 
-```bash
-# Check 1Password CLI is available
-op --version
-
-# Check you're signed in
-op account list
-
-# Test secret resolution
-op read "op://vault/item/field"
-```
-
-### GitOps Not Detecting Changes
-
-1. Check the watch interval is reasonable (> 100ms)
-2. Ensure the file path is absolute or relative to working directory
-3. Check file permissions
-4. Review logs for watcher errors
-
-```yaml
-spec:
-  gitops:
-    enabled: true
-    watchInterval: 5000  # 5 seconds
-```
-
-## Migration from TypeScript Config
-
-If you're migrating from TypeScript configuration:
-
-### Before (TypeScript)
-
-```typescript
-const config: SwarmConfig = {
-  name: 'my-swarm',
-  task: 'Process data',
-  initialAgents: 5,
-  maxAgents: 20,
-  strategy: 'parallel',
-  budget: {
-    amount: 50,
-    currency: 'USD',
-  },
-};
-```
-
-### After (YAML)
-
-```yaml
-apiVersion: dash.io/v1
-kind: Swarm
-metadata:
-  name: my-swarm
-spec:
-  task: Process data
-  initialAgents: 5
-  maxAgents: 20
-  strategy: parallel
-  budget:
-    amount: 50
-    currency: USD
-```
-
-## Examples
-
-See the `examples/` directory for complete configuration examples:
-
-- `examples/swarm.yaml` - Basic swarm configuration
-- `examples/production-swarm.yaml` - Production-ready with all features
-- `examples/scaling-swarm.yaml` - Auto-scaling configuration
+1. Run validation: `swarmctl config validate`
+2. Check error messages for suggestions
+3. Review the example config: `config/dash.example.yaml`

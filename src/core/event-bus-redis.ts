@@ -4,6 +4,8 @@
  * This module provides a Redis-backed event bus for horizontal scaling
  * with pub/sub for real-time events, Redis Streams for persistence,
  * and automatic fallback to in-memory when Redis is unavailable.
+ * 
+ * Uses the centralized configuration system.
  */
 
 import { EventEmitter } from 'events';
@@ -12,6 +14,7 @@ import { promisify } from 'util';
 import { gzip, gunzip } from 'zlib';
 import Redis, { RedisOptions } from 'ioredis';
 import { z } from 'zod';
+import { getConfig, type EventBusConfig, type RedisConfig } from '../config';
 import {
   AgentEvent,
   AgentEventType,
@@ -195,6 +198,50 @@ interface SerializedEvent {
   timestamp: number;
   nodeId: string;
   eventType: string;
+}
+
+// ============================================================================
+// Configuration Conversion
+// ============================================================================
+
+/**
+ * Convert Dash config to Redis event bus config
+ */
+async function createEventBusConfig(): Promise<RedisEventBusConfig> {
+  const config = await getConfig();
+  
+  return {
+    persistEvents: true,
+    maxListeners: 1000,
+    syncDelivery: false,
+    redisUrl: config.redis.url,
+    redisOptions: {
+      password: config.redis.password || undefined,
+      db: config.redis.db,
+      connectTimeout: config.redis.connectTimeoutMs,
+      commandTimeout: config.redis.commandTimeoutMs,
+      maxRetriesPerRequest: config.redis.maxRetriesPerRequest,
+      enableOfflineQueue: config.redis.enableOfflineQueue,
+    },
+    streamKey: config.eventBus.streamKey,
+    consumerGroup: config.eventBus.consumerGroup,
+    compressionThreshold: config.eventBus.compressionThreshold,
+    maxStreamLength: config.eventBus.maxStreamLength,
+    retryConfig: {
+      maxRetries: config.eventBus.retry.maxRetries,
+      retryDelayMs: config.eventBus.retry.retryDelayMs,
+      retryDelayMultiplier: config.eventBus.retry.retryDelayMultiplier,
+    },
+    fallbackConfig: {
+      maxQueuedEvents: config.eventBus.maxQueuedEvents,
+      onFallback: (err) => console.warn('[RedisEventBus] Fallback mode activated:', err.message),
+      onRecovered: () => console.info('[RedisEventBus] Recovered from fallback mode'),
+    },
+    versioning: {
+      currentVersion: 1,
+      strictVersioning: false,
+    },
+  };
 }
 
 // ============================================================================
@@ -987,17 +1034,30 @@ export class RedisEventBus extends EventEmitter {
 // ============================================================================
 
 let globalRedisEventBus: RedisEventBus | null = null;
+let globalEventBusPromise: Promise<RedisEventBus> | null = null;
 
-export function getGlobalRedisEventBus(config?: RedisEventBusConfig): RedisEventBus {
-  if (!globalRedisEventBus) {
-    globalRedisEventBus = new RedisEventBus(config);
+export async function getGlobalRedisEventBus(): Promise<RedisEventBus> {
+  if (globalRedisEventBus) {
+    return globalRedisEventBus;
   }
-  return globalRedisEventBus;
+
+  if (globalEventBusPromise) {
+    return globalEventBusPromise;
+  }
+
+  globalEventBusPromise = (async () => {
+    const config = await createEventBusConfig();
+    globalRedisEventBus = new RedisEventBus(config);
+    return globalRedisEventBus;
+  })();
+
+  return globalEventBusPromise;
 }
 
 export function resetGlobalRedisEventBus(): void {
   globalRedisEventBus?.shutdown().catch(console.error);
   globalRedisEventBus = null;
+  globalEventBusPromise = null;
 }
 
 // ============================================================================
@@ -1007,7 +1067,8 @@ export function resetGlobalRedisEventBus(): void {
 /**
  * Create a new Redis event bus with the given configuration
  */
-export function createRedisEventBus(config?: RedisEventBusConfig): RedisEventBus {
+export async function createRedisEventBus(): Promise<RedisEventBus> {
+  const config = await createEventBusConfig();
   return new RedisEventBus(config);
 }
 

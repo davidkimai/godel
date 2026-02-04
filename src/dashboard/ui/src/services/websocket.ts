@@ -2,6 +2,7 @@
  * WebSocket Service
  * 
  * Real-time WebSocket connection management for the Dash Dashboard
+ * Uses httpOnly cookies for authentication (no localStorage).
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -58,10 +59,9 @@ class WebSocketService {
     this.isIntentionallyClosed = false;
     
     try {
-      const token = localStorage.getItem('dash_token');
-      const url = token ? `${WS_URL}?token=${token}` : WS_URL;
-      
-      this.ws = new WebSocket(url);
+      // Use WebSocket with credentials (cookies are sent automatically)
+      // The server validates the session cookie for authentication
+      this.ws = new WebSocket(WS_URL);
       
       this.ws.onopen = this.handleOpen.bind(this);
       this.ws.onmessage = this.handleMessage.bind(this);
@@ -125,6 +125,14 @@ class WebSocketService {
       if (message.type === WebSocketMessageType.HEARTBEAT) {
         return;
       }
+
+      // Handle authentication errors
+      if (message.type === 'error' && message.payload?.code === 'UNAUTHORIZED') {
+        console.error('[WebSocket] Authentication failed');
+        // Redirect to login on auth failure
+        window.location.href = '/login';
+        return;
+      }
       
       // Notify type-specific handlers
       const handlers = this.messageHandlers.get(message.type);
@@ -159,6 +167,13 @@ class WebSocketService {
     
     this.stopHeartbeat();
     this.disconnectionHandlers.forEach(handler => handler());
+    
+    // Handle authentication failure (1008 = policy violation)
+    if (event.code === 1008) {
+      console.error('[WebSocket] Authentication failed, not reconnecting');
+      window.location.href = '/login';
+      return;
+    }
     
     if (!this.isIntentionallyClosed && this.options.autoReconnect) {
       this.scheduleReconnect();

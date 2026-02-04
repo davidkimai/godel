@@ -2,6 +2,7 @@
  * Express REST API Server for Dash v3
  * 
  * Production-ready API with authentication, rate limiting, and CORS.
+ * Uses the centralized configuration system.
  */
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -16,6 +17,7 @@ import { rateLimitMiddleware } from './middleware/ratelimit';
 import { errorHandler } from './middleware/error';
 import { validators } from './middleware/validation';
 import { startWebSocketServer } from './websocket';
+import { getConfig, type DashConfig } from '../config';
 
 export interface ServerConfig {
   port: number;
@@ -25,20 +27,17 @@ export interface ServerConfig {
   rateLimit: number;
 }
 
-const DEFAULT_CONFIG: ServerConfig = {
-  port: 7373,
-  host: 'localhost',
-  apiKey: process.env['DASH_API_KEY'] || 'dash-api-key',
-  corsOrigins: parseCorsOrigins(process.env['DASH_CORS_ORIGINS']),
-  rateLimit: parseInt(process.env['DASH_RATE_LIMIT'] || '100', 10)
-};
-
-function parseCorsOrigins(envValue: string | undefined): string[] {
-  if (!envValue) {
-    return ['http://localhost:3000'];
-  }
-  // Split by comma and trim whitespace
-  return envValue.split(',').map(origin => origin.trim());
+/**
+ * Create server configuration from Dash config
+ */
+function createServerConfig(config: DashConfig): ServerConfig {
+  return {
+    port: config.server.port,
+    host: config.server.host,
+    apiKey: config.auth.apiKeys[0] || 'dash-api-key',
+    corsOrigins: config.server.cors.origins,
+    rateLimit: config.server.rateLimit,
+  };
 }
 
 function getIdParam(req: Request): string {
@@ -46,39 +45,70 @@ function getIdParam(req: Request): string {
   return Array.isArray(id) ? id[0] : (id || '');
 }
 
-export function createApp(config: Partial<ServerConfig> = {}) {
-  const cfg = { ...DEFAULT_CONFIG, ...config };
-  const app = express();
+export function createApp(serverConfig?: ServerConfig) {
+  return async function(): Promise<express.Application> {
+    // Load configuration if not provided
+    let cfg: ServerConfig;
+    if (serverConfig) {
+      cfg = serverConfig;
+    } else {
+      const dashConfig = await getConfig();
+      cfg = createServerConfig(dashConfig);
+    }
+    
+    const app = express();
 
-  // Security middleware (disabled for now)
-  // app.use(helmet());
-  app.use(cors({
-    origin: cfg.corsOrigins,
-    credentials: true
-  }));
-  
-  // Body parsing
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
+    // Security middleware (disabled for now)
+    // app.use(helmet());
+    app.use(cors({
+      origin: cfg.corsOrigins,
+      credentials: true
+    }));
+    
+    // Body parsing
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true }));
 
-  // Rate limiting
-  app.use(rateLimitMiddleware(cfg.rateLimit));
+    // Rate limiting
+    app.use(rateLimitMiddleware(cfg.rateLimit));
 
-  // Authentication
-  app.use(authMiddleware(cfg.apiKey));
+    // Authentication
+    app.use(authMiddleware(cfg.apiKey));
 
-  // Health check (no auth required)
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', version: '3.0.0' });
-  });
+    // Health check (no auth required)
+    app.get('/health', (_req: Request, res: Response) => {
+      res.json({ status: 'ok', version: '3.0.0' });
+    });
 
-  // API Routes
-  app.use('/api', createApiRoutes());
+    // Config endpoint (for debugging, requires auth)
+    app.get('/config', async (_req: Request, res: Response) => {
+      const dashConfig = await getConfig();
+      // Return non-sensitive config values
+      res.json({
+        env: dashConfig.env,
+        server: {
+          port: dashConfig.server.port,
+          host: dashConfig.server.host,
+        },
+        features: dashConfig.features,
+        logging: {
+          level: dashConfig.logging.level,
+          format: dashConfig.logging.format,
+        },
+        metrics: {
+          enabled: dashConfig.metrics.enabled,
+        },
+      });
+    });
 
-  // Error handling
-  app.use(errorHandler);
+    // API Routes
+    app.use('/api', createApiRoutes());
 
-  return app;
+    // Error handling
+    app.use(errorHandler);
+
+    return app;
+  };
 }
 
 function createApiRoutes() {
@@ -209,14 +239,16 @@ function createApiRoutes() {
   return router;
 }
 
-export async function startServer(config: Partial<ServerConfig> = {}): Promise<HttpServer> {
-  const cfg = { ...DEFAULT_CONFIG, ...config };
+export async function startServer(serverConfig?: Partial<ServerConfig>): Promise<HttpServer> {
+  // Load configuration
+  const dashConfig = await getConfig();
+  const cfg = { ...createServerConfig(dashConfig), ...serverConfig };
   
   // Initialize database first
   const { getDb } = require('../storage/sqlite');
   await getDb({ dbPath: './dash.db' });
   
-  const app = createApp(cfg);
+  const app = await createApp(cfg)();
   const server = createServer(app);
 
   // Start WebSocket server
@@ -227,7 +259,8 @@ export async function startServer(config: Partial<ServerConfig> = {}): Promise<H
       logger.info('api/server', 'Dash API server started', { 
         host: cfg.host, 
         port: cfg.port,
-        websocket: `ws://${cfg.host}:${cfg.port}/events`
+        websocket: `ws://${cfg.host}:${cfg.port}/events`,
+        env: dashConfig.env
       });
       resolve(server);
     });

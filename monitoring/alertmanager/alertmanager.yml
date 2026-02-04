@@ -1,46 +1,199 @@
-global:
-  resolve_timeout: 5m
+# Alertmanager Configuration for Dash
+# 
+# This configuration routes alerts based on severity and service type.
+# Replace placeholder values with your actual endpoints.
 
+global:
+  # Time to wait before resolving an alert
+  resolve_timeout: 5m
+  
+  # SMTP settings (for email notifications)
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@dash.local'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: true
+
+# Root route - all alerts enter here
 route:
-  group_by: ['alertname', 'severity']
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity', 'service']
+  
+  # Wait before sending first notification for a group
   group_wait: 30s
+  
+  # Minimum interval between notifications for the same group
   group_interval: 5m
+  
+  # Minimum interval before repeating a notification
   repeat_interval: 4h
+  
+  # Default receiver
   receiver: 'default'
+  
+  # Child routes
   routes:
+    # Critical alerts go to PagerDuty + Slack
     - match:
         severity: critical
       receiver: 'critical'
       continue: true
+      routes:
+        # Database-specific critical alerts
+        - match_re:
+            alertname: 'DashDatabase.*'
+          receiver: 'dba-critical'
+          continue: true
+        
+        # Infrastructure alerts
+        - match_re:
+            service: 'redis|postgres'
+          receiver: 'infra-critical'
+          continue: true
+    
+    # Warning alerts go to Slack
     - match:
         severity: warning
       receiver: 'warning'
+      continue: false
+    
+    # Budget alerts go to finance team
+    - match:
+        alertname: 'DashBudget.*'
+      receiver: 'finance'
+      continue: true
+    
+    # Agent storm alerts go to platform team
+    - match:
+        alertname: 'DashAgentStorm.*'
+      receiver: 'platform'
       continue: true
 
+# Receivers - where alerts are sent
 receivers:
+  # Default receiver (log only)
   - name: 'default'
-    # Configure your default notification channel here
-    # Examples: email, slack, pagerduty, etc.
+    webhook_configs:
+      - url: 'http://localhost:5001/webhook'
+        send_resolved: true
 
+  # Critical alerts - PagerDuty + Slack
   - name: 'critical'
-    # Configure critical alert notifications
-    # slack_configs:
-    #   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
-    #     channel: '#alerts-critical'
-    #     title: 'Dash Critical Alert'
-    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        severity: '{{ .GroupLabels.severity }}'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-critical'
+        title: '🔴 Dash Critical Alert'
+        title_link: 'http://grafana.dash.local/alerts'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          {{ end }}
+        send_resolved: true
 
+  # DBA Critical - Database alerts
+  - name: 'dba-critical'
+    email_configs:
+      - to: 'dba-oncall@company.com'
+        subject: '[CRITICAL] Dash Database Alert'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#dba-alerts'
+        title: '🚨 Dash Database Critical'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+  # Infrastructure Critical
+  - name: 'infra-critical'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#infrastructure'
+        title: '⚠️ Dash Infrastructure Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    opsgenie_configs:
+      - api_key: 'YOUR_OPSGENIE_API_KEY'
+        message: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        priority: 'P1'
+
+  # Warning alerts
   - name: 'warning'
-    # Configure warning alert notifications
-    # slack_configs:
-    #   - api_url: 'YOUR_SLACK_WEBHOOK_URL'
-    #     channel: '#alerts-warning'
-    #     title: 'Dash Warning'
-    #     text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-warning'
+        title: '⚠️ Dash Warning'
+        text: |
+          {{ range .Alerts }}
+          {{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
 
+  # Finance team - Budget alerts
+  - name: 'finance'
+    email_configs:
+      - to: 'finance@company.com'
+        subject: 'Dash Budget Alert'
+        body: |
+          Budget alert details:
+          {{ range .Alerts }}
+          Swarm: {{ .Labels.swarm_id }}
+          Consumed: {{ .Annotations.consumed }}
+          Allocated: {{ .Annotations.allocated }}
+          {{ end }}
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#finance'
+        title: '💰 Dash Budget Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+  # Platform team
+  - name: 'platform'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#platform-team'
+        title: '🤖 Dash Platform Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+# Inhibition rules - suppress certain alerts when others fire
 inhibit_rules:
+  # If a critical alert fires, suppress warnings with the same alertname
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
-    equal: ['alertname']
+    equal: ['alertname', 'service']
+  
+  # If database is down, suppress connection alerts
+  - source_match:
+      alertname: 'DashDatabaseConnectionFailed'
+    target_match_re:
+      alertname: 'Dash.*Database.*'
+    equal: ['service']
+  
+  # If Redis is down, suppress cache-related alerts
+  - source_match:
+      alertname: 'DashRedisConnectionFailed'
+    target_match_re:
+      alertname: 'DashRedis.*'
+    equal: ['service']
+
+# Time intervals for muted alerts (optional)
+time_intervals:
+  - name: maintenance_windows
+    time_intervals:
+      - times:
+          - start_time: '02:00'
+            end_time: '04:00'
+        weekdays: ['sunday']
+        location: 'UTC'
