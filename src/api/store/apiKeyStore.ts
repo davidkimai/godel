@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
 import { EventEmitter } from 'events';
+import { hashApiKey, compareApiKey } from '../../utils/crypto';
 import { logger } from '../logging/logger';
 
 export interface ApiKey {
@@ -30,12 +30,11 @@ export interface ApiKeyValidationResult {
 
 export class ApiKeyStore extends EventEmitter {
   private keys: Map<string, ApiKey> = new Map();
-  private readonly SALT_ROUNDS = 12;
 
   async createKey(options: CreateApiKeyOptions): Promise<{ key: ApiKey; plaintext: string }> {
     const id = this.generateKeyId();
     const plaintext = this.generatePlaintextKey();
-    const hash = await bcrypt.hash(plaintext, this.SALT_ROUNDS);
+    const hash = await hashApiKey(plaintext);
 
     const key: ApiKey = {
       id,
@@ -59,35 +58,20 @@ export class ApiKeyStore extends EventEmitter {
   }
 
   async validateKey(plaintextKey: string): Promise<ApiKeyValidationResult> {
-    // Extract key ID from plaintext (format: dash_xxx_id)
-    const keyId = this.extractKeyId(plaintextKey);
-    if (!keyId) {
-      return { valid: false, error: 'Invalid key format' };
+    // Check all keys for matching hash
+    for (const key of this.keys.values()) {
+      if (key.isRevoked) continue;
+      if (key.expiresAt && key.expiresAt < new Date()) continue;
+      
+      const isValid = await compareApiKey(plaintextKey, key.hash);
+      if (isValid) {
+        key.lastUsedAt = new Date();
+        logger.debug(`API key validated: ${key.id}`);
+        return { valid: true, key };
+      }
     }
-
-    const key = this.keys.get(keyId);
-    if (!key) {
-      return { valid: false, error: 'Key not found' };
-    }
-
-    if (key.isRevoked) {
-      return { valid: false, error: 'Key has been revoked' };
-    }
-
-    if (key.expiresAt && key.expiresAt < new Date()) {
-      return { valid: false, error: 'Key has expired' };
-    }
-
-    const isValid = await bcrypt.compare(plaintextKey, key.hash);
-    if (!isValid) {
-      return { valid: false, error: 'Invalid key' };
-    }
-
-    // Update last used
-    key.lastUsedAt = new Date();
     
-    logger.debug(`API key validated: ${keyId}`);
-    return { valid: true, key };
+    return { valid: false, error: 'Invalid key' };
   }
 
   revokeKey(keyId: string): boolean {
