@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+// bcrypt now imported from crypto utils
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
 import { ApiKeyRepository } from '../../storage/repositories/ApiKeyRepository';

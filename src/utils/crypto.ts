@@ -5,7 +5,7 @@
  * Uses timingSafeEqual for constant-time comparisons where applicable.
  */
 
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 import { timingSafeEqual } from 'crypto';
 
 // Salt rounds for bcrypt (12 = ~250ms/hash, good balance of security/performance)
