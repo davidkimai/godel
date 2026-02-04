@@ -1,122 +1,79 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: dash-postgres
+  dash:
+    image: dash:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dash-dev
     restart: unless-stopped
+    ports:
+      - "7373:7373"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-dash}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - NODE_ENV=development
+      - PORT=7373
+      - DASH_API_KEY=dash-api-key
+      - DATABASE_PATH=/data/dash.db
+      - LOG_LEVEL=debug
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - dash-network
-
-  # Redis for Event Bus and Caching
-  redis:
-    image: redis:7-alpine
-    container_name: dash-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - dash-network
-
-  # Redis Commander (optional - Redis UI)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: dash-redis-commander
-    restart: unless-stopped
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    ports:
-      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+      - ./dash.db:/data/dash.db
+      - ./logs:/app/logs
     depends_on:
       - redis
     networks:
       - dash-network
-    profiles:
-      - tools
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7373/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  # pgAdmin (optional - PostgreSQL UI)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: dash-pgadmin
+  redis:
+    image: redis:7-alpine
+    container_name: dash-redis
     restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
+      - "6379:6379"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-    networks:
-      - dash-network
-    profiles:
-      - tools
-
-  # Jaeger - Distributed Tracing
-  jaeger:
-    image: jaegertracing/all-in-one:1.50
-    container_name: dash-jaeger
-    restart: unless-stopped
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-      # Sampling strategy: 1% for high traffic
-      SAMPLING_STRATEGIES_FILE: /etc/jaeger/sampling-strategies.json
-    ports:
-      # Jaeger UI
-      - "${JAEGER_UI_PORT:-16686}:16686"
-      # OTLP gRPC
-      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
-      # OTLP HTTP
-      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
-      # Jaeger Thrift Compact
-      - "${JAEGER_AGENT_PORT:-6831}:6831/udp"
-      # Jaeger Thrift Binary
-      - "6832:6832/udp"
-      # Health check
-      - "14269:14269"
-    volumes:
-      - ./monitoring/jaeger/sampling-strategies.json:/etc/jaeger/sampling-strategies.json:ro
+      - redis-data:/data
     networks:
       - dash-network
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Admin UI
+  admin-ui:
+    image: dash-admin:latest
+    container_name: dash-admin
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DASH_API_URL=http://dash:7373
+      - DASH_API_KEY=dash-api-key
+    depends_on:
+      - dash
+    networks:
+      - dash-network
+    profiles:
+      - ui
 
 volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  pgadmin_data:
+  redis-data:
     driver: local
 
 networks:
   dash-network:
     driver: bridge
+
+# Development shortcuts
+# Start: docker-compose up -d
+# Stop: docker-compose down
+# View logs: docker-compose logs -f dash
+# Restart: docker-compose restart dash
+# Scale: docker-compose up -d --scale dash=3
