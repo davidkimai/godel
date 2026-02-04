@@ -151,7 +151,7 @@ function isSensitiveField(field: string): boolean {
  * Log error securely (avoid logging sensitive data)
  */
 function logError(error: Error, req: Request): void {
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env['NODE_ENV'] === 'development';
   
   // In production, only log essential information
   const logEntry: Record<string, unknown> = {
@@ -163,8 +163,8 @@ function logError(error: Error, req: Request): void {
   };
 
   if (isDev) {
-    logEntry.message = error.message;
-    logEntry.stack = error.stack;
+    logEntry.message = (error as any).message || (error as any)['message'];
+    logEntry.stack = (error as any).stack || (error as any)['stack'];
   } else {
     // In production, only log that an error occurred
     logEntry.errorCode = error instanceof APIError ? error.code : 'UNKNOWN';
@@ -185,7 +185,7 @@ export function errorHandler(
   // Log the error
   logError(err, req);
 
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env['NODE_ENV'] === 'development';
   
   // Determine status code
   const statusCode = err instanceof APIError ? err.statusCode : 500;

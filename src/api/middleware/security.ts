@@ -129,7 +129,7 @@ export const developmentSecurityConfig = {
  * Apply security headers to Express app
  */
 export function applySecurityHeaders(app: Express): void {
-  const isDev = process.env.NODE_ENV === 'development';
+  const isDev = process.env['NODE_ENV'] === 'development';
   const config = isDev ? developmentSecurityConfig : securityHeadersConfig;
   
   app.use(helmet(config as any));
@@ -153,8 +153,8 @@ export function applySecurityHeaders(app: Express): void {
  * CORS configuration with security considerations
  */
 export function getCorsConfig() {
-  const allowedOrigins = process.env.DASH_CORS_ORIGINS
-    ? process.env.DASH_CORS_ORIGINS.split(',').map(o => o.trim())
+  const allowedOrigins = process.env['DASH_CORS_ORIGINS']
+    ? process.env['DASH_CORS_ORIGINS'].split(',').map(o => o.trim())
     : ['http://localhost:3000'];
 
   return {
@@ -162,7 +162,7 @@ export function getCorsConfig() {
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      if (allowedOrigins.includes(origin) || process.env['NODE_ENV'] === 'development') {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));

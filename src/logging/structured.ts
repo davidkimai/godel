@@ -112,7 +112,7 @@ const DEFAULT_CONFIG: LoggerConfig = {
   enableSampling: false,
   sampleRate: 1.0,
   redactFields: ['password', 'token', 'secret', 'api_key', 'apikey', 'authorization', 'cookie'],
-  prettyPrint: process.env.NODE_ENV === 'development',
+  prettyPrint: process.env['NODE_ENV'] === 'development',
   addSource: true
 };
 
@@ -175,7 +175,7 @@ function parseLogLevel(level: LogLevel | string): LogLevel {
 }
 
 function getLogLevelFromEnv(): LogLevel {
-  const envLevel = process.env.LOG_LEVEL || process.env.DASH_LOG_LEVEL;
+  const envLevel = process.env['LOG_LEVEL'] || process.env['DASH_LOG_LEVEL'];
   if (envLevel) {
     return parseLogLevel(envLevel);
   }
@@ -246,7 +246,7 @@ export class StructuredLogger {
     this.config = {
       ...DEFAULT_CONFIG,
       ...options,
-      service: options.service || process.env.DASH_SERVICE_NAME || DEFAULT_CONFIG.service,
+      service: options.service || process.env['DASH_SERVICE_NAME'] || DEFAULT_CONFIG.service,
       level: options.level !== undefined ? parseLogLevel(options.level) : getLogLevelFromEnv(),
       redactFields: [...DEFAULT_CONFIG.redactFields, ...(options.redactFields || [])]
     };

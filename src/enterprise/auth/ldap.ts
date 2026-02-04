@@ -85,7 +85,7 @@ export class LDAPAuthStrategy {
     this.config = result.data;
     
     // Security: Require ldaps:// in production
-    if (process.env.NODE_ENV === 'production' && !this.config.url.startsWith('ldaps://')) {
+    if (process.env['NODE_ENV'] === 'production' && !this.config.url.startsWith('ldaps://')) {
       throw new Error('LDAP authentication in production requires LDAPS (TLS)');
     }
   }

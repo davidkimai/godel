@@ -112,7 +112,7 @@ export class SAMLAuthStrategy {
     this.config = result.data;
 
     // Security: Enforce HTTPS in production
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env['NODE_ENV'] === 'production') {
       if (!this.config.callbackUrl.startsWith('https://')) {
         throw new Error('SAML callback URL must use HTTPS in production');
       }

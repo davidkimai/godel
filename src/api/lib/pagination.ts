@@ -106,18 +106,18 @@ export const MAX_PAGE_LIMIT = 500;
  * Parse pagination parameters from request
  */
 export function parsePaginationParams(
-  query: Record<string, unknown>
+  query: Record<string, unknown> | CursorPaginationParams
 ): Required<CursorPaginationParams> {
   const limit = Math.min(
-    Math.max(1, parseInt(String(query.limit || DEFAULT_PAGE_LIMIT), 10)),
+    Math.max(1, parseInt(String(query["limit"] || DEFAULT_PAGE_LIMIT), 10)),
     MAX_PAGE_LIMIT
   );
   
   return {
-    cursor: query.cursor ? String(query.cursor) : undefined,
+    cursor: query["cursor"] ? String(query["cursor"]) : undefined,
     limit,
-    sort: String(query.sort || 'created_at'),
-    direction: (query.direction === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
+    sort: String(query["sort"] || 'created_at'),
+    direction: (query["direction"] === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
   };
 }
 
@@ -149,20 +149,20 @@ export function paginateArray<T extends { id: string; created_at?: Date | string
   // Get page
   const pageItems = filtered.slice(0, limit + 1);
   const hasMore = pageItems.length > limit;
-  const items = pageItems.slice(0, limit);
+  const resultItems = pageItems.slice(0, limit);
   
   // Generate cursors
-  const nextCursor = hasMore && items.length > 0
+  const nextCursor = hasMore && resultItems.length > 0
     ? encodeCursor({
-        timestamp: items[items.length - 1].created_at 
-          ? new Date(items[items.length - 1].created_at!).getTime() 
+        timestamp: resultItems[resultItems.length - 1].created_at 
+          ? new Date(resultItems[resultItems.length - 1].created_at!).getTime() 
           : Date.now(),
-        id: items[items.length - 1].id,
+        id: resultItems[resultItems.length - 1].id,
       })
     : undefined;
   
   return {
-    items,
+    items: resultItems,
     hasMore,
     nextCursor,
   };
@@ -199,12 +199,12 @@ export interface OffsetPaginationResult<T> extends CursorPaginationResult<T> {
  * Parse offset pagination parameters
  */
 export function parseOffsetPaginationParams(
-  query: Record<string, unknown>
+  query: Record<string, unknown> | OffsetPaginationParams
 ): Required<OffsetPaginationParams> {
   return {
-    page: Math.max(1, parseInt(String(query.page || 1), 10)),
+    page: Math.max(1, parseInt(String(query["page"] || 1), 10)),
     pageSize: Math.min(
-      Math.max(1, parseInt(String(query.pageSize || DEFAULT_PAGE_LIMIT), 10)),
+      Math.max(1, parseInt(String(query["pageSize"] || DEFAULT_PAGE_LIMIT), 10)),
       MAX_PAGE_LIMIT
     ),
   };

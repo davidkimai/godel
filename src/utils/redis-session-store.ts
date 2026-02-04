@@ -1,16 +1,14 @@
-import { createClient } from 'redis';
-import { logger } from '../utils/logger';
+import Redis from 'ioredis';
+import { logger } from './logger';
 
 // Redis client for sessions
-let redisClient: ReturnType<typeof createClient> | null = null;
+let redisClient: Redis | null = null;
 
-async function getRedisClient(): Promise<ReturnType<typeof createClient>> {
+async function getRedisClient(): Promise<Redis> {
   if (!redisClient) {
-    redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
-    });
+    redisClient = new Redis(process.env['REDIS_URL'] || 'redis://localhost:6379');
     
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: Error) => {
       logger.error('Redis session error', { error: err.message });
     });
     
@@ -44,7 +42,7 @@ export class RedisSessionStore {
     };
 
     const key = this.keyPrefix + session.id;
-    await redis.setEx(
+    await redis.setex(
       key,
       this.defaultTtl,
       JSON.stringify(session)
@@ -91,7 +89,7 @@ export class RedisSessionStore {
     const key = this.keyPrefix + sessionId;
     const ttl = Math.floor((new Date(existing.expiresAt).getTime() - Date.now()) / 1000);
     
-    await redis.setEx(key, Math.max(ttl, 60), JSON.stringify(updated));
+    await redis.setex(key, Math.max(ttl, 60), JSON.stringify(updated));
     
     logger.debug('Session updated', { sessionId });
   }

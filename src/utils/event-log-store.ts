@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { logger } from '../logging/logger';
+import { logger } from '../utils/logger';
 
 export interface EventLogEntry {
   id: string;

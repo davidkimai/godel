@@ -13,7 +13,7 @@ import {
   WorkflowStatus,
   StepStatus,
   WorkflowStepState,
-} from '../workflow/types';
+} from '../../workflow/types';
 
 // ============================================================================
 // Database Row Types

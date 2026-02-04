@@ -142,7 +142,7 @@ export class OAuthAuthStrategy {
     this.config = result.data;
 
     // Security: Enforce HTTPS in production
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env['NODE_ENV'] === 'production') {
       if (!this.config.callbackURL.startsWith('https://')) {
         throw new Error('OAuth callback URL must use HTTPS in production');
       }

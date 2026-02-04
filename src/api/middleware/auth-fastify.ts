@@ -157,10 +157,10 @@ const authPlugin: FastifyPluginAsync<AuthConfig> = async (fastify: FastifyInstan
         if (valid && payload) {
           request.authType = 'bearer';
           request.user = {
-            id: String(payload.sub || 'unknown'),
-            role: String(payload.role || 'user'),
-            permissions: Array.isArray(payload.permissions) 
-              ? payload.permissions.map(String)
+            id: String((payload as any).sub || (payload as any)['sub'] || 'unknown'),
+            role: String((payload as any).role || (payload as any)['role'] || 'user'),
+            permissions: Array.isArray((payload as any).permissions || (payload as any)['permissions']) 
+              ? ((payload as any).permissions || (payload as any)['permissions']).map(String)
               : ['read'],
           };
           return;

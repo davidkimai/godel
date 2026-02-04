@@ -50,7 +50,7 @@ function createServerConfig(config: DashConfig): ServerConfig {
     apiKey: apiKey,
     corsOrigins: config.server.cors.origins,
     rateLimit: config.server.rateLimit,
-    sessionSecret: process.env.SESSION_SECRET || generateApiKey('session'),
+    sessionSecret: process.env['SESSION_SECRET'] || generateApiKey('session'),
   };
 }
 
@@ -128,7 +128,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     const csrfToken = generateApiKey('csrf').slice(0, 32);
     res.cookie('csrf_token', csrfToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env['NODE_ENV'] === 'production',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
@@ -159,7 +159,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     // SECURITY: Set httpOnly session cookie (not accessible to JavaScript)
     res.cookie('session', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env['NODE_ENV'] === 'production',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
@@ -167,7 +167,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     // Set CSRF token cookie (readable by JS for requests)
     res.cookie('csrf_token', csrfToken, {
       httpOnly: false, // Client needs to read this
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env['NODE_ENV'] === 'production',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -223,7 +223,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
 
     res.cookie('csrf_token', newCsrfToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env['NODE_ENV'] === 'production',
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -242,7 +242,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
 function validateCredentials(username: string, password: string): boolean {
   // This is a placeholder - implement actual credential validation
   // For now, accept any non-empty credentials in development
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env['NODE_ENV'] === 'development') {
     return username.length > 0 && password.length >= 8;
   }
   return false;

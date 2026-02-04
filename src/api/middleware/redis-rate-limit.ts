@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
-import { logger } from '../logging/logger';
+import { logger } from '../../utils/logger';
 
 // Redis client
 let redisClient: ReturnType<typeof createClient> | null = null;
@@ -9,7 +9,7 @@ let redisClient: ReturnType<typeof createClient> | null = null;
 async function getRedisClient(): Promise<ReturnType<typeof createClient>> {
   if (!redisClient) {
     redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
+      url: process.env['REDIS_URL'] || 'redis://localhost:6379'
     });
     
     redisClient.on('error', (err) => {
