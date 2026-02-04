@@ -2,24 +2,24 @@
  * Checkpoint System Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { CheckpointManager, CheckpointProvider } from './checkpoint';
 
 // Mock the postgres pool
-const mockQuery = vi.fn();
+const mockQuery = jest.fn();
 const mockPool = {
   query: mockQuery,
 };
 
-vi.mock('../storage/postgres/pool', () => ({
-  getPool: vi.fn(() => Promise.resolve(mockPool)),
+jest.mock('../storage/postgres/pool', () => ({
+  getPool: jest.fn(() => Promise.resolve(mockPool)),
 }));
 
 describe('CheckpointManager', () => {
   let manager: CheckpointManager;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     mockQuery.mockResolvedValue({ rows: [] });
     
     manager = new CheckpointManager({
@@ -83,7 +83,7 @@ describe('CheckpointManager', () => {
 
     it('should emit checkpoint.created event', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
-      const listener = vi.fn();
+      const listener = jest.fn();
       manager.on('checkpoint.created', listener);
 
       await manager.createCheckpoint('agent', 'agent-123', { status: 'running' });
@@ -278,8 +278,8 @@ describe('CheckpointManager', () => {
       const stats = await manager.getStats();
 
       expect(stats.totalCheckpoints).toBe(10);
-      expect(stats.checkpointsByType.agent).toBe(8);
-      expect(stats.checkpointsByType.swarm).toBe(2);
+      expect(stats.checkpointsByType['agent']).toBe(8);
+      expect(stats.checkpointsByType['swarm']).toBe(2);
       expect(stats.storageSizeBytes).toBe(1024000);
     });
   });
