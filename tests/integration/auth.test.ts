@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { createHash } from 'crypto';
 
-const API_URL = process.env.TEST_API_URL || 'http://localhost:3001';
+const API_URL = process.env['TEST_API_URL'] || 'http://localhost:3001';
 
 describe('Dash Authentication Integration', () => {
   let apiKey: string;
@@ -16,7 +16,7 @@ describe('Dash Authentication Integration', () => {
 
   beforeAll(async () => {
     // Set up test credentials
-    apiKey = process.env.TEST_API_KEY || 'test-api-key-' + Date.now();
+    apiKey = process.env['TEST_API_KEY'] || 'test-api-key-' + Date.now();
   });
 
   describe('API Key Authentication', () => {
@@ -58,8 +58,8 @@ describe('Dash Authentication Integration', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: process.env.TEST_USERNAME || 'test',
-          password: process.env.TEST_PASSWORD || 'test',
+          username: process.env['TEST_USERNAME'] || 'test',
+          password: process.env['TEST_PASSWORD'] || 'test',
         }),
       });
 
@@ -100,7 +100,7 @@ describe('Dash Authentication Integration', () => {
 
   describe('Webhook Authentication', () => {
     it('should verify webhook signature', async () => {
-      const webhookSecret = process.env.WEBHOOK_SECRET || 'test-secret';
+      const webhookSecret = process.env['WEBHOOK_SECRET'] || 'test-secret';
       const payload = JSON.stringify({ event: 'test', data: { id: 1 } });
       
       // Generate HMAC signature

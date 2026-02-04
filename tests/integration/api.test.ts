@@ -11,8 +11,8 @@ import { Pool } from 'pg';
 import Redis from 'ioredis';
 
 // Test configuration
-const TEST_DB_URL = process.env.TEST_DATABASE_URL || 'postgresql://dash_user:dash_password@localhost:5432/dash_test';
-const TEST_REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1';
+const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://dash_user:dash_password@localhost:5432/dash_test';
+const TEST_REDIS_URL = process.env['TEST_REDIS_URL'] || 'redis://localhost:6379/1';
 
 describe('Dash API Integration', () => {
   let db: Pool;
@@ -27,7 +27,7 @@ describe('Dash API Integration', () => {
     redis = new Redis(TEST_REDIS_URL);
     
     // Set API URL (adjust for your test setup)
-    apiUrl = process.env.TEST_API_URL || 'http://localhost:3001';
+    apiUrl = process.env['TEST_API_URL'] || 'http://localhost:3001';
   });
 
   afterAll(async () => {
