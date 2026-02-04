@@ -272,7 +272,7 @@ export async function loadConfig(options: ConfigLoadOptions = {}): Promise<Loade
   }
 
   // 8. Resolve secrets if Vault is enabled
-  const validConfig = validation.data!;
+  const validConfig = validation.data! as DashConfig;
   if (options.enableVault && validConfig.vault) {
     const secretManager = getGlobalSecretManager(validConfig.vault as VaultConfig);
     const configWithSecrets = await resolveSecretsInConfig(validConfig, secretManager);
@@ -284,10 +284,10 @@ export async function loadConfig(options: ConfigLoadOptions = {}): Promise<Loade
       throw new Error(`Configuration validation failed after secret resolution:\n${formatValidationErrors(finalValidation.errors!)}`);
     }
     
-    return { config: finalValidation.data!, sources, warnings };
+    return { config: finalValidation.data! as DashConfig, sources, warnings };
   }
 
-  return { config: validConfig, sources, warnings };
+  return { config: validConfig as DashConfig, sources, warnings };
 }
 
 // ============================================================================
