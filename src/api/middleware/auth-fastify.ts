@@ -35,9 +35,9 @@ export interface AuthenticatedRequest extends FastifyRequest {
 const DEFAULT_PUBLIC_ROUTES = [
   '/health',
   '/health/detailed',
-  '/api/openapi.json',
-  '/api/docs',
-  '/api/docs/*',
+  '/api/v1/openapi.json',
+  '/api/v1/docs',
+  '/api/v1/docs/*',
 ];
 
 /**

@@ -99,11 +99,11 @@ export function createApp(serverConfig?: ServerConfig) {
     });
 
     // SECURITY: Auth endpoints with stricter rate limiting
-    app.use('/api/auth', authRateLimitMiddleware());
+    app.use('/api/v1/auth', authRateLimitMiddleware());
     setupAuthRoutes(app, cfg);
 
     // API Routes
-    app.use('/api', createApiRoutes());
+    app.use('/api/v1', createApiRoutes());
 
     // 404 handler
     app.use((_req: Request, res: Response) => {
@@ -232,7 +232,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     res.json({ success: true, csrfToken: newCsrfToken });
   });
 
-  app.use('/api/auth', authRouter);
+  app.use('/api/v1/auth', authRouter);
 }
 
 /**

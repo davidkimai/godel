@@ -172,7 +172,7 @@ export async function createFastifyServer(
     });
     
     await fastify.register(swaggerUi, {
-      routePrefix: '/api/docs',
+      routePrefix: '/api/v1/docs',
       uiConfig: {
         docExpansion: 'list',
         deepLinking: true,
@@ -189,10 +189,10 @@ export async function createFastifyServer(
       publicRoutes: [
         '/health',
         '/health/detailed',
-        '/api/openapi.json',
-        '/api/docs',
-        '/api/docs/*',
-        '/api/capabilities',
+        '/api/v1/openapi.json',
+        '/api/v1/docs',
+        '/api/v1/docs/*',
+        '/api/v1/capabilities',
       ],
     };
     await fastify.register(authPlugin, authConfig);
@@ -250,17 +250,17 @@ export async function createFastifyServer(
   await fastify.register(healthRoutes, { prefix: '/health' });
   
   // API routes
-  await fastify.register(capabilitiesRoutes, { prefix: '/api/capabilities' });
-  await fastify.register(healthRoutes, { prefix: '/api/health' });
-  await fastify.register(agentRoutes, { prefix: '/api/agents' });
-  await fastify.register(swarmRoutes, { prefix: '/api/swarms' });
-  await fastify.register(taskRoutes, { prefix: '/api/tasks' });
-  await fastify.register(busRoutes, { prefix: '/api/bus' });
-  await fastify.register(metricsRoutes, { prefix: '/api/metrics' });
-  await fastify.register(logsRoutes, { prefix: '/api/logs' });
+  await fastify.register(capabilitiesRoutes, { prefix: '/api/v1/capabilities' });
+  await fastify.register(healthRoutes, { prefix: '/api/v1/health' });
+  await fastify.register(agentRoutes, { prefix: '/api/v1/agents' });
+  await fastify.register(swarmRoutes, { prefix: '/api/v1/swarms' });
+  await fastify.register(taskRoutes, { prefix: '/api/v1/tasks' });
+  await fastify.register(busRoutes, { prefix: '/api/v1/bus' });
+  await fastify.register(metricsRoutes, { prefix: '/api/v1/metrics' });
+  await fastify.register(logsRoutes, { prefix: '/api/v1/logs' });
   
   // OpenAPI JSON endpoint
-  fastify.get('/api/openapi.json', async (_request, reply) => {
+  fastify.get('/api/v1/openapi.json', async (_request, reply) => {
     return reply.send(fastify.swagger());
   });
   
@@ -283,8 +283,8 @@ export async function startFastifyServer(
     logger.info('api/fastify', 'Dash Fastify API server started', {
       host: cfg.host,
       port: cfg.port,
-      swagger: cfg.enableSwagger ? `http://${cfg.host}:${cfg.port}/api/docs` : 'disabled',
-      openapi: `http://${cfg.host}:${cfg.port}/api/openapi.json`,
+      swagger: cfg.enableSwagger ? `http://${cfg.host}:${cfg.port}/api/v1/docs` : 'disabled',
+      openapi: `http://${cfg.host}:${cfg.port}/api/v1/openapi.json`,
     });
     
     return fastify;
