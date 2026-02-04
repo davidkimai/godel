@@ -11,22 +11,22 @@ import {
   OpenClawAdapter,
   getOpenClawAdapter,
   resetOpenClawAdapter,
-} from '../../src/integrations/openclaw/adapter';
+} from '../../../src/integrations/openclaw/adapter';
 
 import {
   OpenClawEventBridge,
   getOpenClawEventBridge,
   resetOpenClawEventBridge,
-} from '../../src/integrations/openclaw/event-bridge';
+} from '../../../src/integrations/openclaw/event-bridge';
 
-import { DashOrchestrationSkill } from '../../skills/dash-orchestration/index';
-import { getGlobalClient, type DashApiClient } from '../../src/cli/lib/client';
-import { getGlobalBus, type MessageBus } from '../../src/bus/index';
+import { DashOrchestrationSkill } from '../../../skills/dash-orchestration/index';
+import { getGlobalClient } from '../../../src/cli/lib/client';
+import { getGlobalBus, type MessageBus } from '../../../src/bus/index';
 
 // Mock dependencies
-jest.mock('../../src/cli/lib/client');
-jest.mock('../../src/bus/index');
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('../../../src/cli/lib/client');
+jest.mock('../../../src/bus/index');
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -42,7 +42,7 @@ describe('OpenClaw-Dash Integration', () => {
   let adapter: OpenClawAdapter;
   let eventBridge: OpenClawEventBridge;
   let skill: DashOrchestrationSkill;
-  let mockClient: jest.Mocked<DashApiClient>;
+  let mockClient: any; // Use any to bypass strict typing in tests
   let mockBus: {
     subscribe: jest.Mock;
     publish: jest.Mock;
@@ -70,7 +70,7 @@ describe('OpenClaw-Dash Integration', () => {
       getAgent: jest.fn(),
       listAgents: jest.fn(),
       getAgentLogs: jest.fn(),
-    } as unknown as jest.Mocked<DashApiClient>;
+    } as unknown as any;
 
     // Create mock message bus
     mockBus = {
@@ -109,15 +109,39 @@ describe('OpenClaw-Dash Integration', () => {
       // Setup mock responses
       mockClient.createSwarm.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-test-123' },
+        data: {
+          id: 'swarm-test-123',
+          name: 'test-swarm',
+          status: 'active' as const,
+          config: {
+            name: 'test',
+            task: 'test',
+            initialAgents: 1,
+            maxAgents: 5,
+            strategy: 'parallel' as const,
+          },
+          agents: [],
+          createdAt: new Date(),
+          budget: { allocated: 0, consumed: 0, remaining: 0 },
+          metrics: { totalAgents: 0, completedAgents: 0, failedAgents: 0 },
+        },
       });
 
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
         data: {
           id: 'agent-test-456',
-          status: 'running',
+          label: 'test-agent',
+          status: 'running' as const,
+          model: 'claude-3',
+          task: 'test',
           swarmId: 'swarm-test-123',
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          progress: 0,
+          maxRetries: 3,
+          retryCount: 0,
         },
       });
 
@@ -126,25 +150,52 @@ describe('OpenClaw-Dash Integration', () => {
           success: true,
           data: {
             id: 'agent-test-456',
-            status: 'running',
+            label: 'test-agent',
+            status: 'running' as const,
+            model: 'claude-3',
+            task: 'test',
+            swarmId: 'swarm-test-123',
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
             progress: 0,
+            maxRetries: 3,
+            retryCount: 0,
           },
         })
         .mockResolvedValueOnce({
           success: true,
           data: {
             id: 'agent-test-456',
-            status: 'running',
+            label: 'test-agent',
+            status: 'running' as const,
+            model: 'claude-3',
+            task: 'test',
+            swarmId: 'swarm-test-123',
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
             progress: 50,
+            maxRetries: 3,
+            retryCount: 0,
           },
         })
         .mockResolvedValueOnce({
           success: true,
           data: {
             id: 'agent-test-456',
-            status: 'completed',
+            label: 'test-agent',
+            status: 'completed' as const,
+            model: 'claude-3',
+            task: 'test',
+            swarmId: 'swarm-test-123',
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
             progress: 100,
             result: { output: 'Task completed successfully' },
+            maxRetries: 3,
+            retryCount: 0,
           },
         });
 
@@ -197,14 +248,39 @@ describe('OpenClaw-Dash Integration', () => {
     it('should stream events to webhook', async () => {
       mockClient.createSwarm.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-event-123' },
+        data: {
+          id: 'swarm-event-123',
+          name: 'test-swarm',
+          status: 'active' as const,
+          config: {
+            name: 'test',
+            task: 'test',
+            initialAgents: 1,
+            maxAgents: 5,
+            strategy: 'parallel' as const,
+          },
+          agents: [],
+          createdAt: new Date(),
+          budget: { allocated: 0, consumed: 0, remaining: 0 },
+          metrics: { totalAgents: 0, completedAgents: 0, failedAgents: 0 },
+        },
       });
 
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
         data: {
           id: 'agent-event-456',
-          status: 'running',
+          label: 'test-agent',
+          status: 'running' as const,
+          model: 'claude-3',
+          task: 'test',
+          swarmId: 'swarm-event-123',
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          progress: 0,
+          maxRetries: 3,
+          retryCount: 0,
         },
       });
 

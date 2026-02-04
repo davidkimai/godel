@@ -10,12 +10,12 @@ import {
   getOpenClawEventBridge,
   resetOpenClawEventBridge,
   isOpenClawEventBridgeInitialized,
-} from '../../src/integrations/openclaw/event-bridge';
-import { getGlobalBus } from '../../src/bus/index';
+} from '../../../src/integrations/openclaw/event-bridge';
+import { getGlobalBus } from '../../../src/bus/index';
 
 // Mock dependencies
-jest.mock('../../src/bus/index');
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('../../../src/bus/index');
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -557,6 +557,14 @@ describe('OpenClawEventBridge', () => {
 });
 
 describe('Singleton Functions', () => {
+  const mockConfig = {
+    webhookUrl: 'http://localhost:8080/webhook',
+    filter: ['agent.spawned', 'agent.completed'],
+    authToken: 'test-token-123',
+    batchInterval: 0,
+    maxBatchSize: 10,
+  };
+
   beforeEach(() => {
     resetOpenClawEventBridge();
   });

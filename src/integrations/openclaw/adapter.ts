@@ -1,20 +1,20 @@
 /**
  * OpenClaw Adapter
- * 
+ *
  * Translates OpenClaw protocol to Dash API, enabling OpenClaw to use
  * Dash as its native orchestration platform for agent swarms.
- * 
+ *
  * @module integrations/openclaw/adapter
  */
 
-import { getGlobalClient, type DashApiClient } from '@/cli/lib/client';
-import { getGlobalBus, type MessageBus } from '@/bus/index';
-import { logger } from '@/utils/logger';
+import { getGlobalClient, type DashApiClient } from '../../cli/lib/client';
+import { getGlobalBus, type MessageBus, type Subscription } from '../../bus/index';
+import { logger } from '../../utils/logger';
 import {
   ApplicationError,
   NotFoundError,
   DashErrorCode,
-} from '@/errors';
+} from '../../errors';
 
 // ============================================================================
 // Types
@@ -85,7 +85,7 @@ export interface ActiveAgent {
 
 /**
  * OpenClaw Adapter - Protocol translation layer
- * 
+ *
  * Maps OpenClaw sessions to Dash agents and swarms, enabling
  * bidirectional communication between OpenClaw and Dash.
  */
@@ -93,7 +93,7 @@ export class OpenClawAdapter {
   private config: OpenClawAdapterConfig;
   private client: DashApiClient;
   private messageBus: MessageBus;
-  
+
   /** Maps OpenClaw session keys to Dash agent IDs */
   private agentIdMap: Map<string, string>;
   /** Maps Dash agent IDs to OpenClaw session keys */
@@ -109,7 +109,7 @@ export class OpenClawAdapter {
     this.config = config;
     this.client = getGlobalClient();
     this.messageBus = getGlobalBus();
-    
+
     this.agentIdMap = new Map();
     this.sessionKeyMap = new Map();
     this.swarmIdMap = new Map();
@@ -128,7 +128,7 @@ export class OpenClawAdapter {
 
   /**
    * Spawn an agent in Dash from OpenClaw session
-   * 
+   *
    * Creates a swarm and spawns an agent within it, mapping the OpenClaw
    * session key to the Dash agent ID for future operations.
    */
@@ -160,7 +160,7 @@ export class OpenClawAdapter {
       if (!swarmResult.success || !swarmResult.data) {
         throw new ApplicationError(
           'Failed to create swarm',
-          DashErrorCode.SWARM_CREATION_FAILED,
+          DashErrorCode.SWARM_CREATE_FAILED,
           500,
           { error: swarmResult.error }
         );
@@ -221,7 +221,7 @@ export class OpenClawAdapter {
 
   /**
    * Send message to Dash agent from OpenClaw
-   * 
+   *
    * Routes messages from an OpenClaw session to the corresponding
    * Dash agent.
    */
@@ -251,7 +251,7 @@ export class OpenClawAdapter {
 
   /**
    * Kill Dash agent from OpenClaw
-   * 
+   *
    * Terminates the agent and cleans up associated resources.
    */
   async killAgent(openclawSessionKey: string, force = false): Promise<void> {
@@ -268,7 +268,7 @@ export class OpenClawAdapter {
     try {
       // Kill the agent
       const result = await this.client.killAgent(dashAgentId, force);
-      
+
       if (!result.success) {
         logger.warn(`[OpenClawAdapter] Kill agent returned error:`, result.error);
       }
@@ -296,7 +296,7 @@ export class OpenClawAdapter {
 
   /**
    * Get status of Dash agent
-   * 
+   *
    * Returns current status, progress, and result (if completed).
    */
   async getStatus(openclawSessionKey: string): Promise<AgentStatus> {
@@ -316,16 +316,16 @@ export class OpenClawAdapter {
 
     return {
       status: agent.status,
-      progress: agent.progress,
-      result: agent.result,
-      error: agent.error,
+      progress: agent.metadata?.progress as number | undefined,
+      result: agent.metadata?.result as unknown,
+      error: agent.lastError,
       runtime: agent.runtime,
     };
   }
 
   /**
    * List all active OpenClaw-managed agents
-   * 
+   *
    * Returns all agents currently mapped from OpenClaw sessions.
    */
   async listAgents(): Promise<ActiveAgent[]> {
@@ -333,7 +333,7 @@ export class OpenClawAdapter {
 
     for (const [sessionKey, agentId] of this.agentIdMap.entries()) {
       const metadata = this.agentMetadata.get(sessionKey);
-      
+
       // Get current status
       const statusResult = await this.client.getAgent(agentId);
       const status = statusResult.success ? statusResult.data?.status : 'unknown';
@@ -356,7 +356,7 @@ export class OpenClawAdapter {
 
   /**
    * Set up event forwarding for an agent
-   * 
+   *
    * Subscribes to Dash events for this agent and forwards them
    * to the configured webhook or internal handlers.
    */
@@ -367,30 +367,32 @@ export class OpenClawAdapter {
     logger.info(`[OpenClawAdapter] Setting up event forwarding for agent ${dashAgentId}`);
 
     // Subscribe to agent events
-    const unsubscribe = this.messageBus.subscribe(
+    const subscription = this.messageBus.subscribe(
       `agent.${dashAgentId}.events`,
       (message) => {
         this.forwardEvent(openclawSessionKey, dashAgentId, message);
       }
     );
 
-    this.eventHandlers.set(openclawSessionKey, unsubscribe);
+    if (!Array.isArray(subscription)) {
+      this.eventHandlers.set(openclawSessionKey, subscription);
+    }
   }
 
   /**
    * Clean up event forwarding for a session
    */
   private cleanupEventForwarding(openclawSessionKey: string): void {
-    const unsubscribe = this.eventHandlers.get(openclawSessionKey);
-    if (unsubscribe) {
-      unsubscribe();
+    const subscription = this.eventHandlers.get(openclawSessionKey);
+    if (subscription) {
+      this.messageBus.unsubscribe(subscription);
       this.eventHandlers.delete(openclawSessionKey);
     }
   }
 
   /**
    * Forward an event to OpenClaw
-   * 
+   *
    * Transforms Dash events to OpenClaw format and sends them
    * to the configured webhook URL.
    */
@@ -543,7 +545,7 @@ export function getOpenClawAdapter(config?: OpenClawAdapterConfig): OpenClawAdap
   if (!globalAdapter && config) {
     globalAdapter = new OpenClawAdapter(config);
   }
-  
+
   if (!globalAdapter) {
     throw new ApplicationError(
       'OpenClawAdapter not initialized. Provide config on first call.',
@@ -552,7 +554,7 @@ export function getOpenClawAdapter(config?: OpenClawAdapterConfig): OpenClawAdap
       {}
     );
   }
-  
+
   return globalAdapter;
 }
 

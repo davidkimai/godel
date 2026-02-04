@@ -9,12 +9,12 @@
  */
 
 import { EventEmitter } from 'events';
-import { getGlobalBus, type MessageBus, type Message } from '@/bus/index';
-import { logger } from '@/utils/logger';
+import { getGlobalBus, type MessageBus, type Message, type Subscription } from '../../bus/index';
+import { logger } from '../../utils/logger';
 import {
   ApplicationError,
   DashErrorCode,
-} from '@/errors';
+} from '../../errors';
 
 // ============================================================================
 // Types
@@ -81,7 +81,7 @@ export interface EventBridgeStats {
 export class OpenClawEventBridge extends EventEmitter {
   private config: EventBridgeConfig;
   private messageBus: MessageBus;
-  private subscriptions: Map<string, () => void>;
+  private subscriptions: Map<string, Subscription>;
   private eventBuffer: BridgedEvent[];
   private batchTimer: NodeJS.Timeout | null;
   private stats: EventBridgeStats;
@@ -150,11 +150,13 @@ export class OpenClawEventBridge extends EventEmitter {
       this.subscribeToTopic('system.events');
       
       // Subscribe to all events (catch-all)
-      const unsubscribeAll = this.messageBus.subscribe('*', (message) => {
+      const allSubscription = this.messageBus.subscribe('*', (message) => {
         this.handleDashEvent(message);
       });
       
-      this.subscriptions.set('__all__', unsubscribeAll);
+      if (!Array.isArray(allSubscription)) {
+        this.subscriptions.set('__all__', allSubscription);
+      }
 
       this.isRunning = true;
       this.stats.isRunning = true;
@@ -196,9 +198,9 @@ export class OpenClawEventBridge extends EventEmitter {
     await this.flushBuffer();
 
     // Unsubscribe from all events
-    for (const [name, unsubscribe] of this.subscriptions) {
+    for (const [name, subscription] of this.subscriptions) {
       try {
-        unsubscribe();
+        this.messageBus.unsubscribe(subscription);
         logger.debug(`[OpenClawEventBridge] Unsubscribed from ${name}`);
       } catch (error) {
         logger.warn(`[OpenClawEventBridge] Error unsubscribing from ${name}:`, error);
@@ -230,21 +232,23 @@ export class OpenClawEventBridge extends EventEmitter {
    * Subscribe to a specific topic pattern
    */
   subscribeToTopic(pattern: string): void {
-    const unsubscribe = this.messageBus.subscribe(pattern, (message) => {
+    const subscription = this.messageBus.subscribe(pattern, (message) => {
       this.handleDashEvent(message);
     });
 
-    this.subscriptions.set(pattern, unsubscribe);
-    logger.debug(`[OpenClawEventBridge] Subscribed to ${pattern}`);
+    if (!Array.isArray(subscription)) {
+      this.subscriptions.set(pattern, subscription);
+      logger.debug(`[OpenClawEventBridge] Subscribed to ${pattern}`);
+    }
   }
 
   /**
    * Unsubscribe from a specific topic
    */
   unsubscribeFromTopic(pattern: string): void {
-    const unsubscribe = this.subscriptions.get(pattern);
-    if (unsubscribe) {
-      unsubscribe();
+    const subscription = this.subscriptions.get(pattern);
+    if (subscription) {
+      this.messageBus.unsubscribe(subscription);
       this.subscriptions.delete(pattern);
       logger.debug(`[OpenClawEventBridge] Unsubscribed from ${pattern}`);
     }
@@ -305,7 +309,7 @@ export class OpenClawEventBridge extends EventEmitter {
 
     return {
       source: 'dash',
-      type: (payload.eventType as string) || message.topic,
+      type: (payload['eventType'] as string) || message.topic,
       timestamp: message.timestamp.toISOString(),
       data: payload,
       metadata: {

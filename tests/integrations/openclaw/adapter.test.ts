@@ -1,6 +1,6 @@
 /**
  * OpenClaw Adapter Tests
- * 
+ *
  * Unit tests for the OpenClaw Adapter - protocol translation layer
  * between OpenClaw and Dash.
  */
@@ -10,14 +10,15 @@ import {
   getOpenClawAdapter,
   resetOpenClawAdapter,
   isOpenClawAdapterInitialized,
-} from '../../src/integrations/openclaw/adapter';
-import { getGlobalClient } from '../../src/cli/lib/client';
-import { getGlobalBus } from '../../src/bus/index';
+} from '../../../src/integrations/openclaw/adapter';
+import { getGlobalClient } from '../../../src/cli/lib/client';
+import { getGlobalBus } from '../../../src/bus/index';
+import { AgentStatus } from '../../../src/models/agent';
 
 // Mock dependencies
-jest.mock('../../src/cli/lib/client');
-jest.mock('../../src/bus/index');
-jest.mock('../../src/utils/logger', () => ({
+jest.mock('../../../src/cli/lib/client');
+jest.mock('../../../src/bus/index');
+jest.mock('../../../src/utils/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -28,8 +29,8 @@ jest.mock('../../src/utils/logger', () => ({
 
 describe('OpenClawAdapter', () => {
   let adapter: OpenClawAdapter;
-  let mockClient: jest.Mocked<ReturnType<typeof getGlobalClient>>;
-  let mockBus: jest.Mocked<ReturnType<typeof getGlobalBus>>;
+  let mockClient: any; // Use any to bypass strict typing in tests
+  let mockBus: any;
 
   const mockConfig = {
     dashApiUrl: 'http://localhost:7373',
@@ -97,8 +98,8 @@ describe('OpenClawAdapter', () => {
       };
       const mockAgent = {
         success: true,
-        data: { 
-          id: 'agent-xyz789', 
+        data: {
+          id: 'agent-xyz789',
           status: 'spawning',
           swarmId: 'swarm-abc123',
         },
@@ -429,6 +430,12 @@ describe('OpenClawAdapter', () => {
 });
 
 describe('Singleton Functions', () => {
+  const mockConfig = {
+    dashApiUrl: 'http://localhost:7373',
+    dashApiKey: 'dash_test_key_1234567890123456789012345678901234567890123456789012345678901234',
+    openclawSessionKey: 'test-session-123',
+  };
+
   beforeEach(() => {
     resetOpenClawAdapter();
   });
