@@ -1,6 +1,6 @@
-// bcrypt now imported from crypto utils
 import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
+import { hashApiKey, compareApiKey } from '../../utils/crypto';
 import { ApiKeyRepository } from '../../storage/repositories/ApiKeyRepository';
 
 export interface ApiKey {
@@ -32,7 +32,6 @@ export interface ApiKeyValidationResult {
 export class ApiKeyStore extends EventEmitter {
   private repository: ApiKeyRepository | null = null;
   private isInitialized: boolean = false;
-  private readonly SALT_ROUNDS = 12;
 
   /**
    * Initialize the API key store with database connection
@@ -61,7 +60,7 @@ export class ApiKeyStore extends EventEmitter {
 
     const id = this.generateKeyId();
     const plaintext = this.generatePlaintextKey();
-    const hash = await bcrypt.hash(plaintext, this.SALT_ROUNDS);
+    const hash = await hashApiKey(plaintext);
 
     const expiresAt = options.expiresInDays
       ? new Date(Date.now() + options.expiresInDays * 24 * 60 * 60 * 1000)
@@ -95,7 +94,7 @@ export class ApiKeyStore extends EventEmitter {
 
     // Try to find a matching key by comparing hashes
     for (const dbKey of keys) {
-      const isValid = await bcrypt.compare(plaintextKey, dbKey.key_hash);
+      const isValid = await compareApiKey(plaintextKey, dbKey.key_hash);
       if (isValid) {
         // Update last used timestamp
         await this.repository!.updateLastUsed(dbKey.id);
@@ -135,7 +134,7 @@ export class ApiKeyStore extends EventEmitter {
 
     // Generate new key
     const plaintext = this.generatePlaintextKey();
-    const newKeyHash = await bcrypt.hash(plaintext, this.SALT_ROUNDS);
+    const newKeyHash = await hashApiKey(plaintext);
 
     // Use repository rotate method
     const { oldKey: revokedKey, newKey } = await this.repository!.rotate(keyId, newKeyHash);
