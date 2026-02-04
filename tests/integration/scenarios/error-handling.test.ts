@@ -284,8 +284,8 @@ describe('Scenario 9: Error Handling', () => {
       
       // Error response should have details
       if (response.data && typeof response.data === 'object') {
-        const data = response.data as Record<string, any>;
-        expect(data.error || data.message || data.detail).toBeDefined();
+        const data = response.data as Record<string, unknown>;
+        expect(data['error'] || data['message'] || data['detail']).toBeDefined();
       }
     }, testConfig.testTimeout);
   });
