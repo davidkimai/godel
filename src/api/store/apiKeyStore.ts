@@ -133,12 +133,6 @@ export class ApiKeyStore extends EventEmitter {
     const random = require('crypto').randomBytes(32).toString('base64url');
     return `${prefix}_${random}`;
   }
-
-  private extractKeyId(plaintextKey: string): string | null {
-    // For now, use hash lookup since we don't embed ID in plaintext
-    // In production with DB, we'd use a prefix or separate ID field
-    return null; // Will match against all keys in validateKey
-  }
 }
 
 // Singleton instance

@@ -25,3 +25,15 @@ export {
   resetState,
 } from './cli-state';
 export type { CLIState, OpenClawState } from './cli-state';
+
+// Crypto utilities
+export {
+  SALT_ROUNDS,
+  hashPassword,
+  comparePassword,
+  hashApiKey,
+  compareApiKey,
+  timingSafeCompare,
+  generateSecureToken,
+  generateRandomString,
+} from './crypto';
