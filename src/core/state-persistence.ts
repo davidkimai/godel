@@ -124,8 +124,9 @@ export class StatePersistence extends EventEmitter {
   private dbReady: Promise<void>;
   private lockConfig: OptimisticLockConfig;
   private operationMutexes: Map<string, Mutex> = new Map();
+  private storageConfig?: StorageConfig;
 
-  constructor(lockConfig: Partial<OptimisticLockConfig> = {}) {
+  constructor(lockConfig: Partial<OptimisticLockConfig> = {}, storageConfig?: StorageConfig) {
     super();
     this.lockConfig = {
       maxRetries: 5,
@@ -133,12 +134,17 @@ export class StatePersistence extends EventEmitter {
       maxDelayMs: 1000,
       ...lockConfig,
     };
+    this.storageConfig = storageConfig;
 
     this.dbReady = this.initializeDb();
   }
 
   private async initializeDb(): Promise<void> {
-    this.db = await getDb();
+    if (this.storageConfig) {
+      this.db = await initDatabase(this.storageConfig);
+    } else {
+      this.db = await getDb();
+    }
     await this.createSchema();
   }
 

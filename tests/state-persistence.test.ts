@@ -31,11 +31,14 @@ describe('StatePersistence', () => {
     resetGlobalSQLiteStorage();
 
     // Create new persistence instance with test DB
-    persistence = new StatePersistence({
-      maxRetries: 3,
-      baseDelayMs: 10,
-      maxDelayMs: 100,
-    });
+    persistence = new StatePersistence(
+      {
+        maxRetries: 3,
+        baseDelayMs: 10,
+        maxDelayMs: 100,
+      },
+      { dbPath: testDbPath }
+    );
 
     // Initialize DB
     const { getGlobalSQLiteStorage } = await import('../src/storage/sqlite');
@@ -470,11 +473,14 @@ describe('OptimisticLocking', () => {
     resetGlobalStatePersistence();
     resetGlobalSQLiteStorage();
 
-    persistence = new StatePersistence({
-      maxRetries: 2,
-      baseDelayMs: 5,
-      maxDelayMs: 50,
-    });
+    persistence = new StatePersistence(
+      {
+        maxRetries: 2,
+        baseDelayMs: 5,
+        maxDelayMs: 50,
+      },
+      { dbPath: testDbPath }
+    );
 
     const { getGlobalSQLiteStorage } = await import('../src/storage/sqlite');
     await getGlobalSQLiteStorage({ dbPath: testDbPath });

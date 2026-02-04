@@ -6,7 +6,7 @@
  */
 
 import { SwarmOrchestrator, Swarm, SwarmConfig, SwarmState, SwarmStatusInfo } from './swarm-orchestrator';
-import { StatePersistence, PersistedSwarmState, PersistedAgentState, RecoveryResult } from './state-persistence';
+import { StatePersistence, PersistedSwarmState, PersistedAgentState, RecoveryResult, getGlobalStatePersistence } from './state-persistence';
 import { AgentLifecycle, AgentState, LifecycleState } from './lifecycle';
 import { MessageBus } from '../bus/index';
 import { AgentStorage } from '../storage/memory';
@@ -193,7 +193,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
         id: persistedSwarm.id,
         name: persistedSwarm.name,
         status: persistedSwarm.status as SwarmState,
-        config: persistedSwarm.config as SwarmConfig,
+        config: persistedSwarm.config as unknown as SwarmConfig,
         agents: persistedSwarm.agents,
         createdAt: new Date(persistedSwarm.createdAt),
         completedAt: persistedSwarm.completedAt ? new Date(persistedSwarm.completedAt) : undefined,
@@ -246,15 +246,14 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
           task: persistedAgent.task,
           status: persistedAgent.status as AgentStatus,
           swarmId: persistedAgent.swarmId,
-          sessionId: persistedAgent.sessionId,
-          createdAt: new Date(persistedAgent.createdAt),
+          spawnedAt: new Date(persistedAgent.createdAt),
           completedAt: persistedAgent.completedAt ? new Date(persistedAgent.completedAt) : undefined,
           metadata: persistedAgent.metadata || {},
           // Required Agent fields
-          label: persistedAgent.metadata?.label as string,
-          parentId: persistedAgent.metadata?.parentId as string,
-          childIds: (persistedAgent.metadata?.childIds as string[]) || [],
-          context: persistedAgent.metadata?.context as Agent['context'] || {
+          label: persistedAgent.metadata?.['label'] as string,
+          parentId: persistedAgent.metadata?.['parentId'] as string,
+          childIds: (persistedAgent.metadata?.['childIds'] as string[]) || [],
+          context: persistedAgent.metadata?.['context'] as Agent['context'] || {
             inputContext: [],
             outputContext: [],
             sharedContext: [],
@@ -262,21 +261,20 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
             contextWindow: 100000,
             contextUsage: 0,
           },
-          code: persistedAgent.metadata?.code as Agent['code'],
-          reasoning: persistedAgent.metadata?.reasoning as Agent['reasoning'] || {
+          code: persistedAgent.metadata?.['code'] as Agent['code'],
+          reasoning: persistedAgent.metadata?.['reasoning'] as Agent['reasoning'] || {
             traces: [],
             decisions: [],
             confidence: 1.0,
           },
           retryCount: persistedAgent.retryCount,
           maxRetries: persistedAgent.maxRetries,
-          budgetLimit: persistedAgent.metadata?.budgetLimit as number,
-          safetyBoundaries: persistedAgent.metadata?.safetyBoundaries as Agent['safetyBoundaries'],
+          budgetLimit: persistedAgent.metadata?.['budgetLimit'] as number,
+          safetyBoundaries: persistedAgent.metadata?.['safetyBoundaries'] as Agent['safetyBoundaries'],
           runtime: persistedAgent.runtime || 0,
           pauseTime: persistedAgent.pausedAt ? new Date(persistedAgent.pausedAt) : undefined,
-          pausedBy: persistedAgent.metadata?.pausedBy as string,
+          pausedBy: persistedAgent.metadata?.['pausedBy'] as string,
           lastError: persistedAgent.lastError,
-          swarm: persistedAgent.swarmId,
         },
         sessionId: persistedAgent.sessionId,
         retryCount: persistedAgent.retryCount,
@@ -333,7 +331,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
         id: swarm.id,
         name: swarm.name,
         status: swarm.status,
-        config: swarm.config as Record<string, unknown>,
+        config: swarm.config as unknown as Record<string, unknown>,
         agents: swarm.agents,
         createdAt: swarm.createdAt.toISOString(),
         completedAt: swarm.completedAt?.toISOString(),
@@ -476,12 +474,12 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
         id: s.id,
         name: s.name,
         status: s.status,
-        config: s.config as Record<string, unknown>,
+        config: s.config as unknown as Record<string, unknown>,
         agents: s.agents,
         createdAt: s.createdAt,
         completedAt: s.completedAt,
         budget: s.budget,
-        metrics: s.metrics as Record<string, unknown>,
+        metrics: s.metrics as unknown as Record<string, unknown>,
         sessionTreeId: s.sessionTreeId,
         currentBranch: s.currentBranch,
       })),
