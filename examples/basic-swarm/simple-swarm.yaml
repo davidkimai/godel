@@ -1,0 +1,48 @@
+# Simple Swarm Configuration
+# Basic example of Dash swarm creation
+
+apiVersion: dash.io/v1
+kind: Swarm
+
+metadata:
+  name: simple-analysis-swarm
+  description: A simple swarm for basic code analysis
+
+spec:
+  # The main task for all agents
+  task: Analyze the codebase structure and identify main components
+  
+  # Execution strategy
+  strategy: parallel
+  
+  # Number of agents to spawn
+  initialAgents: 5
+  
+  # Maximum agents (for auto-scaling)
+  maxAgents: 20
+  
+  # Default model
+  model: kimi-k2.5
+  
+  # Budget configuration
+  budget:
+    amount: 25.00
+    currency: USD
+    warningThreshold: 75
+    criticalThreshold: 90
+  
+  # Safety settings
+  safety:
+    fileSandbox: true
+    maxExecutionTime: 300000  # 5 minutes
+    commandBlacklist:
+      - rm -rf /
+      - mkfs
+  
+  # Auto-scaling
+  scaling:
+    enabled: true
+    minAgents: 2
+    maxAgents: 20
+    scaleUpThreshold: 10
+    scaleDownCooldown: 300

@@ -1,0 +1,123 @@
+# Data Pipeline Workflow
+# ETL workflow with DAG execution
+
+name: data-pipeline
+description: Extract, transform, and load data with parallel processing
+version: "1.0.0"
+
+# Variables that can be overridden
+variables:
+  sourceUrl: "https://api.example.com/data"
+  batchSize: 1000
+  enableAnalytics: true
+
+# Error handling
+onFailure: stop
+timeout: 3600000  # 1 hour
+
+steps:
+  # Step 1: Extract data from source
+  - id: extract
+    name: Extract Data
+    description: Fetch data from the source API
+    agent: data-extractor
+    task: |
+      Extract data from {{sourceUrl}} with batch size {{batchSize}}
+      Store results in ./data/extracted/
+    dependsOn: []
+    next: [validate, transform]
+    retry:
+      maxAttempts: 3
+      backoff: exponential
+      delayMs: 5000
+    timeout: 300000  # 5 minutes
+    outputs: [extractedRecords, extractTime]
+
+  # Step 2a: Validate data (parallel with transform)
+  - id: validate
+    name: Validate Data
+    description: Validate data integrity and schema
+    agent: data-validator
+    task: Validate the extracted data records for completeness and correctness
+    dependsOn: [extract]
+    next: [load]
+    condition:
+      variable: enableAnalytics
+      equals: true
+    parallel: true
+    retry:
+      maxAttempts: 2
+      backoff: fixed
+      delayMs: 1000
+    outputs: [validationReport]
+
+  # Step 2b: Transform data (parallel with validate)
+  - id: transform
+    name: Transform Data
+    description: Transform data to target schema
+    agent: data-transformer
+    task: Transform records to normalized format using batch size {{batchSize}}
+    dependsOn: [extract]
+    next: [load]
+    parallel: true
+    retry:
+      maxAttempts: 3
+      backoff: exponential
+      delayMs: 2000
+    outputs: [transformedRecords]
+
+  # Step 3: Load data (depends on both validate and transform)
+  - id: load
+    name: Load to Database
+    description: Load transformed data into the database
+    agent: db-loader
+    task: Load transformed records to the target database
+    dependsOn: [validate, transform]
+    next: [analyze, notify]
+    retry:
+      maxAttempts: 5
+      backoff: exponential
+      delayMs: 5000
+    timeout: 600000  # 10 minutes
+    outputs: [loadedRecords, loadTime]
+
+  # Step 4a: Analyze data (parallel with notify)
+  - id: analyze
+    name: Analyze Data
+    description: Run analytics on loaded data
+    agent: data-analyzer
+    task: Generate analytics report from loaded data
+    dependsOn: [load]
+    next: [report]
+    condition:
+      variable: enableAnalytics
+      equals: true
+    parallel: true
+    outputs: [analyticsReport]
+
+  # Step 4b: Send notification (parallel with analyze)
+  - id: notify
+    name: Send Notification
+    description: Notify stakeholders of completion
+    agent: notifier
+    task: Send completion notification to team
+    dependsOn: [load]
+    next: [report]
+    parallel: true
+    outputs: [notificationSent]
+
+  # Step 5: Generate final report
+  - id: report
+    name: Generate Report
+    description: Compile final execution report
+    agent: report-generator
+    task: Generate comprehensive execution report
+    dependsOn: [analyze, notify]
+    next: []
+    outputs: [finalReport]
+
+# Metadata
+metadata:
+  owner: data-team
+  priority: high
+  tags: [etl, data-pipeline, scheduled]

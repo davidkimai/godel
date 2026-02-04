@@ -1,0 +1,138 @@
+# CI/CD Pipeline Workflow
+# GitHub Actions style CI/CD pipeline
+
+name: ci-cd-pipeline
+description: Full CI/CD pipeline with build, test, and deploy stages
+version: "1.0.0"
+
+variables:
+  gitRef: main
+  environment: staging
+  nodeVersion: "20"
+
+onFailure: stop
+timeout: 1800000  # 30 minutes
+
+steps:
+  # Stage 1: Checkout and Setup
+  - id: checkout
+    name: Checkout Code
+    description: Clone the repository
+    agent: git-agent
+    task: Clone repository at ref {{gitRef}}
+    dependsOn: []
+    next: [install-dependencies]
+    timeout: 120000
+
+  - id: install-dependencies
+    name: Install Dependencies
+    description: Install npm packages
+    agent: node-agent
+    task: Install dependencies with npm, using Node.js {{nodeVersion}}
+    dependsOn: [checkout]
+    next: [lint]
+    timeout: 300000
+
+  # Stage 2: Quality Checks
+  - id: lint
+    name: Lint Code
+    description: Run ESLint and Prettier
+    agent: node-agent
+    task: Run ESLint and Prettier checks on TypeScript files
+    dependsOn: [install-dependencies]
+    next: [typecheck]
+    parallel: true
+    timeout: 120000
+
+  - id: typecheck
+    name: Type Check
+    description: Run TypeScript compiler
+    agent: node-agent
+    task: Run TypeScript type checking with tsc --noEmit
+    dependsOn: [install-dependencies]
+    next: [test-unit]
+    parallel: true
+    timeout: 120000
+
+  # Stage 3: Testing
+  - id: test-unit
+    name: Unit Tests
+    description: Run unit tests
+    agent: node-agent
+    task: Run Jest unit tests with coverage
+    dependsOn: [typecheck]
+    next: [test-integration]
+    parallel: true
+    retry:
+      maxAttempts: 2
+      backoff: fixed
+      delayMs: 5000
+    timeout: 300000
+
+  - id: test-integration
+    name: Integration Tests
+    description: Run integration tests
+    agent: node-agent
+    task: Run integration tests with real database
+    dependsOn: [test-unit]
+    next: [build]
+    timeout: 300000
+
+  # Stage 4: Build
+  - id: build
+    name: Build Application
+    description: Build production bundle
+    agent: node-agent
+    task: Build production bundle with npm run build
+    dependsOn: [test-integration]
+    next: [security-scan, deploy-staging]
+    timeout: 300000
+
+  # Stage 5: Security
+  - id: security-scan
+    name: Security Scan
+    description: Scan for vulnerabilities
+    agent: security-agent
+    task: Run npm audit and Snyk security scan
+    dependsOn: [build]
+    next: [deploy-staging]
+    parallel: true
+    timeout: 180000
+
+  # Stage 6: Deployment
+  - id: deploy-staging
+    name: Deploy to Staging
+    description: Deploy to staging environment
+    agent: deploy-agent
+    task: Deploy to {{environment}} environment
+    dependsOn: [build, security-scan]
+    next: [test-staging]
+    timeout: 300000
+
+  - id: test-staging
+    name: Smoke Test Staging
+    description: Quick smoke test of deployed app
+    agent: qa-agent
+    task: Run smoke tests on staging deployment
+    dependsOn: [deploy-staging]
+    next: [deploy-production]
+    condition:
+      variable: environment
+      equals: staging
+    timeout: 120000
+
+  - id: deploy-production
+    name: Deploy to Production
+    description: Deploy to production
+    agent: deploy-agent
+    task: Deploy to production environment with zero-downtime deployment
+    dependsOn: [test-staging, deploy-staging]
+    condition:
+      variable: environment
+      equals: production
+    timeout: 300000
+
+metadata:
+  owner: platform-team
+  priority: critical
+  tags: [ci-cd, automated-testing]

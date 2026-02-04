@@ -1,0 +1,37 @@
+# Parallel Processing Swarm
+# Demonstrates parallel execution pattern
+
+apiVersion: dash.io/v1
+kind: Swarm
+
+metadata:
+  name: parallel-processing-swarm
+  description: Parallel processing of independent tasks
+
+spec:
+  task: Process multiple files in parallel for analysis
+  
+  strategy: map-reduce
+  initialAgents: 10
+  maxAgents: 50
+  
+  budget:
+    amount: 100.00
+    currency: USD
+  
+  scaling:
+    enabled: true
+    minAgents: 5
+    maxAgents: 50
+    scaleUpThreshold: 5
+    scaleDownCooldown: 600
+
+  # Configuration for parallel processing
+  parallel:
+    batchSize: 5
+    maxConcurrentPerAgent: 3
+
+  # Reduce step configuration
+  reduce:
+    agent: result-aggregator
+    task: Aggregate all results and generate final report

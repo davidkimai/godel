@@ -12,7 +12,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import YAML from 'yaml';
+import * as YAML from 'yaml';
 import { logger } from '../utils/logger';
 import type { DashConfig, ConfigLoadOptions } from './types';
 import { 
@@ -83,10 +83,10 @@ export async function loadConfig(options: ConfigLoadOptions = {}): Promise<Loade
   sources.push('environment-variables');
 
   // 6. Set the environment
-  config.env = env;
+  (config as DashConfig).env = env;
 
   // 7. Validate the configuration
-  const validation = validateConfig(config);
+  const validation = validateConfig(config as DashConfig);
   if (!validation.success) {
     const errorMessage = formatValidationErrors(validation.errors!);
     throw new Error(`Configuration validation failed:\n${errorMessage}`);
@@ -271,7 +271,7 @@ function setValueAtPath(obj: Record<string, unknown>, path: string, value: unkno
  * Deep merge two objects
  */
 function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...target };
+  const result: Record<string, unknown> = { ...target };
   
   for (const key of Object.keys(source)) {
     const sourceValue = source[key];

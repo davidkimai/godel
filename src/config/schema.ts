@@ -19,7 +19,7 @@ function envAwareNumber(
   envVar: string,
   defaultValue: number,
   opts?: { min?: number; max?: number }
-): z.ZodEffects<z.ZodDefault<z.ZodNumber>> {
+): z.ZodDefault<z.ZodNumber> {
   let schema = z.coerce.number().default(
     process.env[envVar] ? parseFloat(process.env[envVar]!) : defaultValue
   );
@@ -50,9 +50,9 @@ function envAwareBoolean(envVar: string, defaultValue: boolean): z.ZodDefault<z.
 
 function envAwareEnum<T extends string>(
   envVar: string,
-  values: readonly T[],
+  values: readonly [string, ...string[]],
   defaultValue: T
-): z.ZodDefault<z.ZodEnum<readonly [T, ...T[]]>> {
+): z.ZodDefault<z.ZodEnum<[string, ...string[]]>> {
   return z.enum(values).default(
     (process.env[envVar] as T) || defaultValue
   );
@@ -182,9 +182,9 @@ export type AuthSchema = z.infer<typeof authSchema>;
 // ============================================================================
 
 export const loggingSchema = z.object({
-  level: envAwareEnum('LOG_LEVEL', ['debug', 'info', 'warn', 'error', 'silent'] as const, 'info'),
-  format: envAwareEnum('LOG_FORMAT', ['json', 'pretty', 'compact'] as const, 'pretty'),
-  destination: envAwareEnum('LOG_DESTINATION', ['stdout', 'stderr', 'file', 'loki', 'multiple'] as const, 'stdout'),
+  level: envAwareEnum('LOG_LEVEL', ['debug', 'info', 'warn', 'error', 'silent'] , 'info'),
+  format: envAwareEnum('LOG_FORMAT', ['json', 'pretty', 'compact'] , 'pretty'),
+  destination: envAwareEnum('LOG_DESTINATION', ['stdout', 'stderr', 'file', 'loki', 'multiple'] , 'stdout'),
   filePath: z.string().optional().default(process.env['LOG_FILE_PATH'] || './logs/dash.log'),
   lokiUrl: z.string().optional().default(process.env['LOKI_URL'] || 'http://localhost:3100'),
   serviceName: envAwareString('DASH_SERVICE_NAME', 'dash'),
@@ -233,8 +233,8 @@ export const openclawSchema = z.object({
   gatewayUrl: envAwareString('OPENCLAW_GATEWAY_URL', 'ws://127.0.0.1:18789'),
   gatewayToken: z.string().optional().default(process.env['OPENCLAW_GATEWAY_TOKEN'] || ''),
   sessionId: z.string().optional(),
-  mode: envAwareEnum('OPENCLAW_MODE', ['restricted', 'full'] as const, 'restricted'),
-  sandboxMode: envAwareEnum('OPENCLAW_SANDBOX_MODE', ['none', 'non-main', 'docker'] as const, 'non-main'),
+  mode: envAwareEnum('OPENCLAW_MODE', ['restricted', 'full'] , 'restricted'),
+  sandboxMode: envAwareEnum('OPENCLAW_SANDBOX_MODE', ['none', 'non-main', 'docker'] , 'non-main'),
   mockMode: envAwareBoolean('MOCK_OPENCLAW', false),
   verbose: envAwareBoolean('VERBOSE_OPENCLAW', false),
 });
@@ -246,7 +246,7 @@ export type OpenClawSchema = z.infer<typeof openclawSchema>;
 // ============================================================================
 
 export const eventBusSchema = z.object({
-  type: envAwareEnum('EVENT_BUS_TYPE', ['memory', 'redis'] as const, 'redis'),
+  type: envAwareEnum('EVENT_BUS_TYPE', ['memory', 'redis'] , 'redis'),
   streamKey: envAwareString('EVENT_BUS_STREAM_KEY', 'dash:events'),
   consumerGroup: envAwareString('EVENT_BUS_CONSUMER_GROUP', 'dash:consumers'),
   compressionThreshold: envAwareNumber('EVENT_BUS_COMPRESSION_THRESHOLD', 1024, { min: 100 }),
@@ -269,7 +269,7 @@ export const vaultSchema = z.object({
   address: envAwareString('VAULT_ADDR', 'http://localhost:8200'),
   token: z.string().optional().default(process.env['VAULT_TOKEN'] || ''),
   namespace: z.string().optional(),
-  kvVersion: envAwareEnum('VAULT_KV_VERSION', ['v1', 'v2'] as const, 'v2'),
+  kvVersion: envAwareEnum('VAULT_KV_VERSION', ['v1', 'v2'] , 'v2'),
   timeoutMs: envAwareNumber('VAULT_TIMEOUT', 5000, { min: 1000 }),
   tlsVerify: envAwareBoolean('VAULT_TLS_VERIFY', true),
 });

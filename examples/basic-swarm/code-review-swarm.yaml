@@ -1,0 +1,52 @@
+# Code Review Swarm Configuration
+# Specialized swarm with multiple agent types
+
+apiVersion: dash.io/v1
+kind: Swarm
+
+metadata:
+  name: code-review-swarm
+  description: Comprehensive code review with specialized agents
+
+spec:
+  task: Review all TypeScript files in the codebase for quality, security, and performance
+  
+  strategy: parallel
+  initialAgents: 3
+  maxAgents: 10
+  
+  budget:
+    amount: 50.00
+    currency: USD
+    warningThreshold: 75
+    criticalThreshold: 90
+  
+  # Individual agent configurations
+  agents:
+    - name: security-reviewer
+      type: security-scanner
+      model: claude-sonnet-4-20250514
+      task: Focus on security vulnerabilities, OWASP compliance, and potential exploits
+      maxRetries: 3
+      budgetLimit: 20.00
+    
+    - name: performance-reviewer
+      type: code-analyzer
+      model: kimi-k2.5
+      task: Focus on performance bottlenecks, algorithmic complexity, and optimization opportunities
+      maxRetries: 2
+      budgetLimit: 15.00
+    
+    - name: style-reviewer
+      type: code-analyzer
+      model: kimi-k2.5
+      task: Focus on code style, formatting, TypeScript best practices, and readability
+      maxRetries: 2
+      budgetLimit: 15.00
+  
+  safety:
+    fileSandbox: true
+    networkAllowlist:
+      - github.com
+      - npmjs.org
+    maxExecutionTime: 600000  # 10 minutes
