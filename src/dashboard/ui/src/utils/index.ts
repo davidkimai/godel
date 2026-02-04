@@ -75,7 +75,7 @@ export function formatTimestamp(date: string | Date): string {
 
 export function getStatusColor(status: AgentStatus | SwarmState | string): string {
   const colors: Record<string, string> = {
-    // Agent statuses
+    // Agent statuses (also covers overlapping SwarmState values)
     [AgentStatus.PENDING]: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
     [AgentStatus.RUNNING]: 'text-green-500 bg-green-500/10 border-green-500/20',
     [AgentStatus.PAUSED]: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
@@ -85,13 +85,10 @@ export function getStatusColor(status: AgentStatus | SwarmState | string): strin
     [AgentStatus.KILLED]: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
     [AgentStatus.OFFLINE]: 'text-gray-400 bg-gray-400/10 border-gray-400/20',
     [AgentStatus.BUSY]: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-    // Swarm states
+    // Swarm-only states (not overlapping with AgentStatus)
     [SwarmState.CREATING]: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
     [SwarmState.ACTIVE]: 'text-green-500 bg-green-500/10 border-green-500/20',
     [SwarmState.SCALING]: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-    [SwarmState.PAUSED]: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
-    [SwarmState.COMPLETED]: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-    [SwarmState.FAILED]: 'text-red-500 bg-red-500/10 border-red-500/20',
     [SwarmState.DESTROYED]: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
     // Health
     healthy: 'text-green-500 bg-green-500/10 border-green-500/20',

@@ -139,7 +139,7 @@ export function AgentsPage(): React.ReactElement {
         
         <select
           value={filters.status}
-          onChange={(e) => setFilter('status', e.target.value)}
+          onChange={(e) => setFilter('status', e.target.value as AgentStatus | 'all')}
           className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <option value="all">All Statuses</option>

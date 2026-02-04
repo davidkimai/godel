@@ -36,10 +36,10 @@ export function EventsPage(): React.ReactElement {
 
   // Merge real-time and fetched events
   useEffect(() => {
-    const mergedEvents = Array.from(new Map([
-      ...realtimeEvents.map(e => [e.id, e]),
-      ...events.map(e => [e.id, e])
-    ].slice(0, 200)).values());
+    const eventMap = new Map<string, AgentEvent>();
+    for (const e of events) eventMap.set(e.id, e);
+    for (const e of realtimeEvents) eventMap.set(e.id, e);
+    const mergedEvents = Array.from(eventMap.values()).slice(0, 200);
     
     if (mergedEvents.length !== events.length) {
       setEvents(mergedEvents);

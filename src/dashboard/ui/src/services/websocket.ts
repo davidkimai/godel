@@ -8,7 +8,14 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { Agent, Swarm, AgentEvent, CostMetrics, WebSocketMessage } from '../types';
 import { WebSocketMessageType } from '../types';
-import { logger } from '../../../../utils/logger';
+
+// Simple logger for browser environment
+const logger = {
+  debug: (...args: unknown[]) => console.debug('[WS]', ...args),
+  info: (...args: unknown[]) => console.info('[WS]', ...args),
+  warn: (...args: unknown[]) => console.warn('[WS]', ...args),
+  error: (...args: unknown[]) => console.error('[WS]', ...args),
+};
 
 type MessageHandler = (message: WebSocketMessage) => void;
 type ConnectionHandler = () => void;

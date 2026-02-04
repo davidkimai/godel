@@ -336,7 +336,7 @@ export interface DashboardStats {
 }
 
 export interface FilterState {
-  status: AgentStatus | 'all';
+  status: AgentStatus | SwarmState | 'all';
   swarmId: string | 'all';
   search: string;
   timeRange: '1h' | '24h' | '7d' | '30d' | 'all';
@@ -358,5 +358,5 @@ export interface Notification {
   timestamp: string;
   dismissible: boolean;
 }
-export { getStatusColor } from "../utils/index";
+export { getStatusColor, formatRelativeTime, calculateAgentMetrics, cn } from "../utils/index";
 export { formatNumber, formatCurrency } from "../utils/index";

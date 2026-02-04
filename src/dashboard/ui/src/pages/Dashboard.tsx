@@ -25,7 +25,8 @@ import {
   Hexagon,
   DollarSign,
   TrendingUp,
-  Zap
+  Zap,
+  Activity
 } from 'lucide-react';
 import { Card, StatsCard, Badge, LoadingSpinner } from '../components/Layout';
 import { useDashboardStore, useUIStore } from '../contexts/store';

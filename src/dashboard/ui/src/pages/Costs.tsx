@@ -12,6 +12,9 @@ import {
   Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,9 +29,7 @@ import {
   Clock,
   AlertTriangle,
   CreditCard,
-  Wallet,
-  PieChart,
-  Pie
+  Wallet
 } from 'lucide-react';
 import { Card, StatsCard, LoadingSpinner, Button } from '../components/Layout';
 import { useDashboardStore } from '../contexts/store';
@@ -44,6 +45,7 @@ import type { CostMetrics, CostBreakdown } from '../types/index';
 export function CostsPage(): React.ReactElement {
   const { agents, swarms } = useDashboardStore();
   const [costMetrics, setLocalCostMetrics] = useState<CostMetrics | null>(null);
+  const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const realtimeCost = useCostUpdates();
 

@@ -25,7 +25,7 @@ import { cn } from '../utils/index';
 // ============================================================================
 
 export function SettingsPage(): React.ReactElement {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAdmin } = useAuthStore();
   const { darkMode, toggleDarkMode, addNotification } = useUIStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications' | 'preferences'>('profile');
 
