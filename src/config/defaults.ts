@@ -218,6 +218,7 @@ export const productionConfig: Partial<DashConfig> = {
   env: 'production',
   server: {
     ...defaultServerConfig,
+    framework: 'express',
     host: '0.0.0.0',
     cors: {
       origins: [], // Must be explicitly configured
@@ -251,6 +252,7 @@ export const testConfig: Partial<DashConfig> = {
   env: 'test',
   server: {
     ...defaultServerConfig,
+    framework: 'express',
     port: 0, // Random port for tests
   },
   database: {
@@ -310,6 +312,11 @@ export interface ConfigMetadata {
 }
 
 export const configMetadata: Record<string, ConfigMetadata> = {
+  'server.framework': {
+    description: 'Server framework: express or fastify',
+    requiresRestart: true,
+    envVar: 'DASH_SERVER_FRAMEWORK',
+  },
   'server.port': {
     description: 'Server port number',
     requiresRestart: true,
