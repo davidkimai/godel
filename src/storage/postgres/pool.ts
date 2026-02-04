@@ -28,13 +28,23 @@ export interface PostgresPoolConfig {
   connectionTimeoutMs: number;
   idleTimeoutMs: number;
   acquireTimeoutMs: number;
+  statementTimeoutMs: number;
   
   // Retry configuration
   retryAttempts: number;
   retryDelayMs: number;
+  retryMaxDelayMs: number;
   
   // SSL configuration
   ssl: boolean | { rejectUnauthorized: boolean; ca?: string; cert?: string; key?: string };
+  
+  // Performance settings
+  keepAlive: boolean;
+  keepAliveInitialDelayMs: number;
+  maxUses: number;
+  
+  // Application name for debugging
+  applicationName: string;
 }
 
 /**
@@ -62,9 +72,15 @@ function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
       connectionTimeoutMs: config.connectionTimeoutMs,
       idleTimeoutMs: config.idleTimeoutMs,
       acquireTimeoutMs: config.acquireTimeoutMs,
+      statementTimeoutMs: config.statementTimeoutMs ?? 30000,
       retryAttempts: config.retryAttempts,
       retryDelayMs: config.retryDelayMs,
+      retryMaxDelayMs: config.retryMaxDelayMs ?? 10000,
       ssl: config.ssl,
+      keepAlive: config.keepAlive ?? true,
+      keepAliveInitialDelayMs: config.keepAliveInitialDelayMs ?? 0,
+      maxUses: config.maxUses ?? 7500,
+      applicationName: config.applicationName ?? 'dash',
     };
   }
 
@@ -80,9 +96,15 @@ function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
     connectionTimeoutMs: config.connectionTimeoutMs,
     idleTimeoutMs: config.idleTimeoutMs,
     acquireTimeoutMs: config.acquireTimeoutMs,
+    statementTimeoutMs: config.statementTimeoutMs ?? 30000,
     retryAttempts: config.retryAttempts,
     retryDelayMs: config.retryDelayMs,
+    retryMaxDelayMs: config.retryMaxDelayMs ?? 10000,
     ssl: config.ssl,
+    keepAlive: config.keepAlive ?? true,
+    keepAliveInitialDelayMs: config.keepAliveInitialDelayMs ?? 0,
+    maxUses: config.maxUses ?? 7500,
+    applicationName: config.applicationName ?? 'dash',
   };
 }
 
@@ -150,7 +172,16 @@ export class PostgresPool {
       connectionTimeoutMillis: this.config.connectionTimeoutMs,
       ssl: this.config.ssl,
       Client: Client,
+      keepAlive: this.config.keepAlive,
+      keepAliveInitialDelayMillis: this.config.keepAliveInitialDelayMs,
+      maxUses: this.config.maxUses,
     });
+
+    // Set application_name for debugging
+    await this.pool.query(`SET application_name = '${this.config.applicationName}'`);
+
+    // Set statement timeout
+    await this.pool.query(`SET statement_timeout = ${this.config.statementTimeoutMs}`);
 
     // Set up event handlers
     this.pool.on('error', (err: Error) => {
@@ -201,7 +232,7 @@ export class PostgresPool {
     }
 
     const maxAttempts = retryOptions?.attempts ?? 3;
-    const delayMs = retryOptions?.delayMs ?? 500;
+    const baseDelayMs = retryOptions?.delayMs ?? 500;
     let attempts = 0;
 
     while (attempts < maxAttempts) {
@@ -216,8 +247,9 @@ export class PostgresPool {
         
         // Only retry on transient errors
         if (this.isTransientError(error) && attempts < maxAttempts) {
-          logger.warn(`Query failed with transient error, retrying (${attempts}/${maxAttempts})...`);
-          await this.delay(delayMs * attempts); // Exponential backoff
+          const delayMs = Math.min(baseDelayMs * Math.pow(2, attempts - 1), this.config.retryMaxDelayMs);
+          logger.warn(`Query failed with transient error, retrying (${attempts}/${maxAttempts}) in ${delayMs}ms...`);
+          await this.delay(delayMs);
           continue;
         }
         
@@ -227,6 +259,109 @@ export class PostgresPool {
 
     throw new Error('Query failed after max retries');
   }
+
+  // ============================================================================
+  // Bulk Operations
+  // ============================================================================
+
+  /**
+   * Execute multiple queries in a single batch (for performance)
+   * All queries are executed in a single transaction
+   */
+  async batch<T = unknown>(
+    queries: Array<{ text: string; params?: unknown[] }>
+  ): Promise<Array<{ rows: T[]; rowCount: number }>> {
+    if (!this.pool) {
+      throw new Error('Pool not initialized. Call initialize() first.');
+    }
+
+    const client = await this.pool.connect() as PoolClient;
+    try {
+      await client.query('BEGIN');
+      const results: Array<{ rows: T[]; rowCount: number }> = [];
+
+      for (const query of queries) {
+        const result = await client.query(query.text, query.params);
+        results.push({
+          rows: result.rows as T[],
+          rowCount: result.rowCount || 0,
+        });
+      }
+
+      await client.query('COMMIT');
+      return results;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Execute a bulk insert with a single query
+   * Uses VALUES clause with multiple value sets
+   */
+  async bulkInsert<T = unknown>(
+    table: string,
+    columns: string[],
+    values: unknown[][]
+  ): Promise<{ rows: T[]; rowCount: number }> {
+    if (!this.pool) {
+      throw new Error('Pool not initialized. Call initialize() first.');
+    }
+
+    if (values.length === 0) {
+      return { rows: [], rowCount: 0 };
+    }
+
+    const valuePlaceholders: string[] = [];
+    const allParams: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const row of values) {
+      const placeholders = row.map(() => `$${paramIndex++}`).join(', ');
+      valuePlaceholders.push(`(${placeholders})`);
+      allParams.push(...row);
+    }
+
+    const query = `
+      INSERT INTO ${table} (${columns.join(', ')})
+      VALUES ${valuePlaceholders.join(', ')}
+      RETURNING *
+    `;
+
+    const result = await this.pool.query(query, allParams);
+    return {
+      rows: result.rows as T[],
+      rowCount: result.rowCount || 0,
+    };
+  }
+
+  /**
+   * Execute queries in parallel (for independent operations)
+   */
+  async parallel<T = unknown>(
+    queries: Array<{ text: string; params?: unknown[] }>
+  ): Promise<Array<{ rows: T[]; rowCount: number }>> {
+    if (!this.pool) {
+      throw new Error('Pool not initialized. Call initialize() first.');
+    }
+
+    const promises = queries.map(async (query) => {
+      const result = await this.pool.query(query.text, query.params);
+      return {
+        rows: result.rows as T[],
+        rowCount: result.rowCount || 0,
+      };
+    });
+
+    return Promise.all(promises);
+  }
+
+  // ============================================================================
+  // Transaction Helpers
+  // ============================================================================
 
   /**
    * Get a client from the pool for transaction handling

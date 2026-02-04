@@ -5,5 +5,7 @@ export * from './repositories/SessionRepository';
 export * from './repositories/BudgetRepository';
 export * from './postgres';
 export * from './memory';
+export * from './cache';
 export { getDb, initDatabase, closeDatabase, memoryStore } from './sqlite';
+export * from './query-optimizer';
 export { RedisFallback, FallbackState, type RedisFallbackConfig, type FallbackStats } from './redis-fallback';

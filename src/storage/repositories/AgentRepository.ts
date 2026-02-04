@@ -471,6 +471,204 @@ export class AgentRepository {
   }
 
   // ============================================================================
+  // Bulk Operations
+  // ============================================================================
+
+  /**
+   * Create multiple agents in a single transaction
+   * Uses batch insert for improved performance
+   */
+  async createMany(inputs: AgentCreateInput[]): Promise<Agent[]> {
+    this.ensureInitialized();
+    
+    if (inputs.length === 0) return [];
+
+    const client = await this.pool!.getClient();
+    try {
+      await client.query('BEGIN');
+
+      const created: Agent[] = [];
+      const batchSize = 100; // Process in batches to avoid parameter limits
+
+      for (let i = 0; i < inputs.length; i += batchSize) {
+        const batch = inputs.slice(i, i + batchSize);
+        const promises = batch.map(async (input) => {
+          const result = await client.query<AgentRow>(
+            `INSERT INTO agents (
+              swarm_id, label, status, lifecycle_state, model, task, config,
+              context, code, reasoning, safety_boundaries, max_retries, budget_limit, metadata
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING *`,
+            [
+              input.swarm_id || null,
+              input.label || null,
+              input.status || 'pending',
+              input.lifecycle_state || 'initializing',
+              input.model,
+              input.task,
+              JSON.stringify(input.config || {}),
+              input.context ? JSON.stringify(input.context) : null,
+              input.code ? JSON.stringify(input.code) : null,
+              input.reasoning ? JSON.stringify(input.reasoning) : null,
+              input.safety_boundaries ? JSON.stringify(input.safety_boundaries) : null,
+              input.max_retries || 3,
+              input.budget_limit || null,
+              JSON.stringify(input.metadata || {}),
+            ]
+          );
+          return this.mapRow(result.rows[0]);
+        });
+
+        const batchResults = await Promise.all(promises);
+        created.push(...batchResults);
+      }
+
+      await client.query('COMMIT');
+      return created;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update multiple agents atomically by IDs
+   * Returns the number of updated records
+   */
+  async updateMany(ids: string[], input: AgentUpdateInput): Promise<number> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return 0;
+    if (Object.keys(input).length === 0) return 0;
+
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    const jsonFields = ['config', 'context', 'code', 'reasoning', 'safety_boundaries', 'metadata'];
+    
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) {
+        updates.push(`${key} = $${paramIndex++}`);
+        if (jsonFields.includes(key)) {
+          values.push(JSON.stringify(value));
+        } else if (value instanceof Date) {
+          values.push(value.toISOString());
+        } else {
+          values.push(value);
+        }
+      }
+    }
+
+    if (updates.length === 0) return 0;
+
+    // Add IDs as a parameterized array
+    const idArray = ids;
+    values.push(JSON.stringify(idArray));
+
+    const query = `
+      UPDATE agents 
+      SET ${updates.join(', ')}
+      WHERE id = ANY($${paramIndex})
+    `;
+
+    const result = await this.pool!.query(query, values);
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Delete multiple agents by IDs
+   * Returns the number of deleted records
+   */
+  async deleteMany(ids: string[]): Promise<number> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return 0;
+
+    const result = await this.pool!.query(
+      'DELETE FROM agents WHERE id = ANY($1)',
+      [JSON.stringify(ids)]
+    );
+
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Find multiple agents by IDs
+   * Returns a map of ID to Agent for efficient lookup
+   */
+  async findByIds(ids: string[]): Promise<Map<string, Agent>> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return new Map();
+
+    const result = await this.pool!.query<AgentRow>(
+      'SELECT * FROM agents WHERE id = ANY($1)',
+      [JSON.stringify(ids)]
+    );
+
+    const map = new Map<string, Agent>();
+    for (const row of result.rows) {
+      map.set(row.id, this.mapRow(row));
+    }
+    return map;
+  }
+
+  /**
+   * Bulk update status for multiple agents
+   * Optimized for high-throughput status changes
+   */
+  async updateStatusMany(
+    ids: string[],
+    status: AgentStatus
+  ): Promise<number> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return 0;
+
+    const updates = ['status = $1'];
+    const values: unknown[] = [status];
+    
+    if (status === 'completed' || status === 'failed') {
+      updates.push('completed_at = NOW()');
+    }
+
+    values.push(JSON.stringify(ids));
+
+    const result = await this.pool!.query(
+      `UPDATE agents SET ${updates.join(', ')} WHERE id = ANY($${values.length})`,
+      values
+    );
+
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Count agents with multiple status filters
+   * More efficient than multiple count queries
+   */
+  async countByStatuses(statuses: AgentStatus[]): Promise<Map<AgentStatus, number>> {
+    this.ensureInitialized();
+    
+    if (statuses.length === 0) return new Map();
+
+    const result = await this.pool!.query<{ status: AgentStatus; count: string }>(
+      `SELECT status, COUNT(*) as count FROM agents 
+       WHERE status = ANY($1) 
+       GROUP BY status`,
+      [JSON.stringify(statuses)]
+    );
+
+    const map = new Map<AgentStatus, number>();
+    for (const row of result.rows) {
+      map.set(row.status, parseInt(row.count, 10));
+    }
+    return map;
+  }
+
+  // ============================================================================
   // Private helpers
   // ============================================================================
 
