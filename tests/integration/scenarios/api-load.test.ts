@@ -130,7 +130,7 @@ describe('Scenario 4: API Load Testing', () => {
       const swarmRes = await apiClient.post('/api/swarms', {
         name: `agent-load-test-${Date.now()}`,
       });
-      const swarmId = swarmRes.data.id;
+      const swarmId = (swarmRes.data as any).id;
       createdSwarmIds.push(swarmId);
 
       const concurrentCount = 20;
@@ -317,7 +317,7 @@ describe('Scenario 4: API Load Testing', () => {
       const requestCount = 50;
       const errors: number[] = [];
 
-      const requests = Array(requestCount).fill(null).map((_, i) =
+      const requests = Array(requestCount).fill(null).map((_, i) =>
         async () => {
           try {
             // Mix of valid and invalid requests

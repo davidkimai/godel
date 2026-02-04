@@ -71,7 +71,7 @@ describe('Scenario 7: Database Consistency', () => {
       expect(swarmId).toBeDefined();
 
       // Concurrent agent inserts
-      const insertPromises = Array(concurrentCount).fill(null).map((_, i) =
+      const insertPromises = Array(concurrentCount).fill(null).map((_, i) =>
         db!.query(`
           INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
           VALUES ($1, $2, 'pending', 'test-model', 'Test task', NOW(), NOW())
@@ -83,14 +83,14 @@ describe('Scenario 7: Database Consistency', () => {
 
       // All inserts should succeed
       expect(results).toHaveLength(concurrentCount);
-      expect(results.every(r => r.rows[0]?.id)).toBe(true);
+      expect(results.every((r: any) => r.rows[0]?.id)).toBe(true);
 
       // Verify all agents exist
       const countResult = await db.query(`
         SELECT COUNT(*) as count FROM agents WHERE swarm_id = $1
       `, [swarmId]);
 
-      expect(parseInt(countResult.rows[0].count)).toBe(concurrentCount);
+      expect(parseInt((countResult.rows[0] as any).count)).toBe(concurrentCount);
     }, testConfig.testTimeout);
 
     it('should handle concurrent updates to same record', async () => {
@@ -111,7 +111,7 @@ describe('Scenario 7: Database Consistency', () => {
       const swarmId = swarmResult.rows[0].id;
 
       // Concurrent status updates
-      const updatePromises = Array(20).fill(null).map((_, i) =
+      const updatePromises = Array(20).fill(null).map((_, i) =>
         db!.query(`
           UPDATE swarms 
           SET status = $1, updated_at = NOW()
@@ -123,7 +123,7 @@ describe('Scenario 7: Database Consistency', () => {
       const results = await Promise.all(updatePromises);
 
       // All updates should succeed (last write wins)
-      expect(results.every(r => r.rowCount === 1)).toBe(true);
+      expect(results.every((r: any) => r.rowCount === 1)).toBe(true);
 
       // Final status should be one of the valid states
       const finalResult = await db.query(`
@@ -150,7 +150,7 @@ describe('Scenario 7: Database Consistency', () => {
       const swarmId = swarmResult.rows[0].id;
 
       // Mix of reads and writes
-      const operations = Array(30).fill(null).map((_, i) =
+      const operations = Array(30).fill(null).map((_, i) =>
         async () => {
           if (i % 3 === 0) {
             // Write
