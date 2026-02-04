@@ -1,10 +1,133 @@
-export * from './fastify-server';
-export * from './lib/response';
-export * from './lib/pagination';
-export * from './middleware/auth-fastify';
+/**
+ * Dash API - Unified Server Exports
+ * 
+ * This module provides a unified interface to the Dash API server.
+ * Express is the primary framework, eliminating port conflicts.
+ * 
+ * @example
+ * ```typescript
+ * import { startServer } from './api';
+ * 
+ * // Start the unified server
+ * const server = await startServer();
+ * ```
+ */
 
+// ============================================================================
+// Server Factory (Primary)
+// ============================================================================
+
+export {
+  // Main server creation
+  startServer,
+  createExpressApp,
+  createServerConfigForTesting,
+  
+  // Types
+  type UnifiedServerConfig,
+  type ServerFramework,
+} from './server-factory';
+
+// ============================================================================
+// Legacy Exports (for backwards compatibility)
+// ============================================================================
+
+// Express server exports (legacy - use server-factory instead)
+export { createApp, startServer as startExpressServer } from './server';
+export type { ServerConfig } from './server';
+
+// ============================================================================
+// Response Utilities
+// ============================================================================
+
+export {
+  createSuccessResponse,
+  createErrorResponse,
+  ErrorCodes,
+  type SuccessResponse,
+  type ErrorResponse,
+  type ApiResponse,
+} from './lib/response';
+
+// ============================================================================
+// Pagination Utilities
+// ============================================================================
+
+export {
+  paginateArray,
+  parsePaginationParams,
+  createPaginationLinks,
+  type PaginationParams,
+  type PaginatedResult,
+  type PaginationLinks,
+} from './lib/pagination';
+
+// ============================================================================
+// Middleware
+// ============================================================================
+
+// Auth middleware
+export {
+  authMiddleware,
+  generateApiKey,
+  requireAuth,
+  type AuthenticatedRequest,
+} from './middleware/auth';
+
+// Fastify auth (legacy)
+export {
+  default as authPlugin,
+  type AuthConfig,
+} from './middleware/auth-fastify';
+
+// ============================================================================
 // Schemas
-export * from './schemas/common';
-export * from './schemas/agent';
-export * from './schemas/swarm';
-export * from './schemas/task';
+// ============================================================================
+
+export {
+  HealthStatusSchema,
+  DetailedHealthSchema,
+  IdParamSchema,
+  PaginationQuerySchema,
+  type HealthStatus,
+  type DetailedHealth,
+  type IdParam,
+  type PaginationQuery,
+} from './schemas/common';
+
+export {
+  CreateAgentSchema,
+  UpdateAgentSchema,
+  ListAgentsQuerySchema,
+  AgentSchema,
+  AgentListResponseSchema,
+  AgentLogResponseSchema,
+  type CreateAgent,
+  type UpdateAgent,
+  type ListAgentsQuery,
+  type Agent,
+  type AgentListResponse,
+  type AgentLogResponse,
+} from './schemas/agent';
+
+export {
+  CreateSwarmSchema,
+  UpdateSwarmSchema,
+  SwarmSchema,
+  SwarmListResponseSchema,
+  type CreateSwarm,
+  type UpdateSwarm,
+  type Swarm,
+  type SwarmListResponse,
+} from './schemas/swarm';
+
+export {
+  CreateTaskSchema,
+  UpdateTaskSchema,
+  TaskSchema,
+  TaskListResponseSchema,
+  type CreateTask,
+  type UpdateTask,
+  type Task,
+  type TaskListResponse,
+} from './schemas/task';

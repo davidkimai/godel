@@ -13,7 +13,8 @@ import type { ConfigValidationError } from './types';
 // ============================================================================
 
 export const serverSchema = z.object({
-  port: z.coerce.number().default(7373).refine((val) => val >= 1 && val <= 65535, {
+  framework: z.enum(['express', 'fastify']).default('express'),
+  port: z.coerce.number().default(3000).refine((val) => val >= 1 && val <= 65535, {
     message: 'Must be between 1 and 65535',
   }),
   host: z.string().default('localhost'),
