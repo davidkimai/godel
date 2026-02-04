@@ -1,353 +1,288 @@
-# Dash
+# Dash Phase 2 Documentation
 
-[![npm version](https://img.shields.io/npm/v/@jtan15010/dash.svg)](https://www.npmjs.com/package/@jtan15010/dash)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+This is the documentation worktree for Dash Phase 2, containing API specifications and development guides.
 
-Dash is a powerful agent orchestration platform for AI-powered development workflows. It enables you to coordinate multiple AI agents working together on complex tasks, manage swarms of agents, define DAG-based workflows, and maintain quality and budget control across your entire AI-assisted development process.
+## Project Overview
 
-## ✨ Features
+Dash is a multi-agent orchestration platform designed to coordinate multiple AI agents for complex tasks. It provides:
 
-### Core Capabilities
-- **🐝 Multi-Agent Swarms** - Spawn and coordinate multiple AI agents working in parallel
-- **📊 DAG Workflows** - Define complex workflows with dependencies using directed acyclic graphs
-- **🎯 Task Management** - Create, assign, and track tasks across your agent fleet
-- **🛡️ Safety & Security** - Built-in sandboxing, permission system, and safety guardrails
-- **💰 Budget Control** - Token usage tracking and budget enforcement per session
-- **✅ Quality Assurance** - Built-in code quality checks, tests, and enforcement
+- **Agent Management**: Spawn, monitor, and terminate AI agents
+- **Swarm Orchestration**: Coordinate groups of agents working together
+- **Session Tracking**: Maintain state and history of orchestration sessions
+- **Workflow Engine**: Define and execute multi-step workflows
+- **Real-time Events**: WebSocket-based event streaming
 
-### Advanced Features
-- **🔧 Extension System** - TypeScript-based plugin architecture for custom tools and integrations
-- **🧠 Skills System** - Auto-loading agent skills based on context (Agent Skills standard)
-- **📈 Event Streaming** - Real-time event system for monitoring and integration
-- **🔄 GitOps Integration** - Automatic file watching and deployment
-- **📊 OpenTelemetry** - Full observability with tracing and metrics
-- **🗄️ State Persistence** - PostgreSQL/SQLite backends for workflow state
+## Architecture
 
-## 🚀 Quick Start (5 Minutes)
-
-### 1. Install Dash
-
-```bash
-# Using npm (recommended)
-npm install -g @jtan15010/dash
-
-# Using npx (no install)
-npx @jtan15010/dash <command>
-
-# From source
-git clone https://github.com/davidkimai/dash.git
-cd dash
-npm install
-npm run build
-npm link
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Dash Architecture                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                   │
+│  │   Client    │     │   Client    │     │   Client    │                   │
+│  │   (HTTP)    │     │  (WebSocket)│     │   (CLI)     │                   │
+│  └──────┬──────┘     └──────┬──────┘     └──────┬──────┘                   │
+│         │                  │                  │                             │
+│         └──────────────────┼──────────────────┘                             │
+│                            │                                                │
+│                   ┌────────▼────────┐                                       │
+│                   │   API Gateway   │                                       │
+│                   │  (Express.js)   │                                       │
+│                   │  :7373          │                                       │
+│                   └────────┬────────┘                                       │
+│                            │                                                │
+│         ┌──────────────────┼──────────────────┐                             │
+│         │                  │                  │                             │
+│  ┌──────▼──────┐    ┌──────▼──────┐    ┌──────▼──────┐                     │
+│  │   Agent     │    │   Swarm     │    │  Workflow   │                     │
+│  │  Manager    │    │ Orchestrator│    │   Engine    │                     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘                     │
+│         │                  │                  │                             │
+│  ┌──────▼──────┐    ┌──────▼──────┐    ┌──────▼──────┐                     │
+│  │  Agent      │    │   Session   │    │   Event     │                     │
+│  │  Pool       │    │   Store     │    │   Bus       │                     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘                     │
+│         │                  │                  │                             │
+│         └──────────────────┼──────────────────┘                             │
+│                            │                                                │
+│                   ┌────────▼────────┐                                       │
+│                   │   SQLite DB     │                                       │
+│                   │  (dash.db)      │                                       │
+│                   └─────────────────┘                                       │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                            External Services                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                     │
+│  │  AI Model   │    │  Message    │    │   OpenClaw  │                     │
+│  │  Providers  │    │   Queue     │    │   Gateway   │                     │
+│  │ (Kimi, GPT) │    │  (Bull)     │    │             │                     │
+│  └─────────────┘    └─────────────┘    └─────────────┘                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Configure Environment
+### Components
 
-```bash
-# Copy the example environment file
-cp .env.example .env
+| Component | Description | Technology |
+|-----------|-------------|------------|
+| API Gateway | REST API endpoint handling | Express.js |
+| Agent Manager | Spawns and monitors individual agents | TypeScript |
+| Swarm Orchestrator | Coordinates groups of agents | TypeScript |
+| Workflow Engine | Executes multi-step workflows | TypeScript |
+| Session Store | Persists session state | SQLite |
+| Event Bus | Real-time event distribution | WebSocket/SSE |
 
-# Edit with your settings
-# Minimum required: DASH_PROJECT_PATH
-```
-
-### 3. Create Your First Swarm
-
-```bash
-# Create a swarm of agents to work on a task
-dash swarm create --name "code-review" --task "Review the codebase for security issues"
-
-# Monitor the swarm
-dash dashboard
-```
-
-### 4. Define a Workflow (Optional)
-
-Create a `workflow.yaml` file:
-
-```yaml
-name: data-pipeline
-steps:
-  - id: extract
-    name: Extract Data
-    agent: data-extractor
-    task: Fetch data from API
-    next: [transform]
-
-  - id: transform
-    name: Transform Data
-    agent: transformer
-    task: Normalize data format
-    dependsOn: [extract]
-    next: [load]
-
-  - id: load
-    name: Load to Database
-    agent: db-loader
-    task: Insert into database
-    dependsOn: [transform]
-```
-
-Run it:
-```bash
-dash workflow run workflow.yaml
-```
-
-## 📖 Installation
+## Quickstart
 
 ### Prerequisites
 
-- **Node.js** 18+ with npm
-- **Git** 2.35+ with worktree support
-- **PostgreSQL** 14+ (optional, for production)
-- **Redis** 7+ (optional, for caching)
+- Node.js >= 20.0.0
+- npm >= 10.0.0
+- SQLite 3
 
-### Methods
-
-#### npm Global Install
-```bash
-npm install -g @jtan15010/dash
-dash --version
-```
-
-#### Docker
-```bash
-docker pull dashai/dash:latest
-docker run -it --rm dashai/dash --help
-```
-
-#### From Source
-```bash
-git clone https://github.com/davidkimai/dash.git
-cd dash
-npm install
-npm run build
-npm link  # Makes 'dash' available globally
-```
-
-## 📚 Usage Examples
-
-### Agent Management
+### Installation
 
 ```bash
-# List all running agents
-dash agents list
-
-# Spawn a new agent for a specific task
-dash agents spawn "Implement user authentication" --model kimi-k2.5
-
-# Check agent status
-dash agents status <agent-id>
-
-# Pause and resume agents
-dash agents pause <agent-id>
-dash agents resume <agent-id>
-```
-
-### Swarm Management
-
-```bash
-# Create a swarm with multiple agents
-dash swarm create \
-  --name "security-audit" \
-  --task "Audit codebase for security vulnerabilities" \
-  --initial-agents 5 \
-  --max-agents 20 \
-  --strategy parallel \
-  --budget 50.00
-
-# List active swarms
-dash swarm list
-
-# Destroy a swarm
-dash swarm destroy <swarm-id>
-```
-
-### Workflow Execution
-
-```bash
-# Run a workflow from YAML
-dash workflow run ./workflows/my-workflow.yaml
-
-# Check workflow status
-dash workflow status <workflow-id>
-
-# Cancel a running workflow
-dash workflow cancel <workflow-id>
-```
-
-### Quality & Testing
-
-```bash
-# Run all quality checks
-dash quality run
-
-# Run specific checks
-dash quality lint
-dash quality types
-dash quality security
-
-# Run tests
-dash tests run
-dash tests coverage
-```
-
-### Budget Management
-
-```bash
-# Set session budget
-dash budget set --amount 100.00 --currency USD
-
-# Check current usage
-dash budget status
-
-# Set up alerts
-dash budget alerts --warning 75 --critical 90
-```
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Dash Platform                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │  CLI Layer  │  │  TUI Dash   │  │    API Server           │ │
-│  │  (Commander)│  │   (Blessed) │  │    (Express)            │ │
-│  └──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘ │
-│         └─────────────────┴─────────────────────┘               │
-│                            │                                    │
-│  ┌─────────────────────────┴─────────────────────────┐          │
-│  │              Core Services Layer                   │          │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │          │
-│  │  │  Agent  │ │  Swarm  │ │ Workflow│ │  Task   │ │          │
-│  │  │ Manager │ │ Manager │ │ Engine  │ │ Manager │ │          │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ │          │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │          │
-│  │  │  Skill  │ │Extension│ │  Event  │ │  Budget │ │          │
-│  │  │Registry │ │ Loader  │ │  Bus    │ │ Manager │ │          │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ │          │
-│  └───────────────────────────────────────────────────┘          │
-│                            │                                    │
-│  ┌─────────────────────────┴─────────────────────────┐          │
-│  │              Infrastructure Layer                  │          │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │          │
-│  │  │PostgreSQL│ │  Redis  │ │ SQLite  │ │OpenClaw │ │          │
-│  │  │ (State) │ │ (Cache) │ │ (Local) │ │Gateway  │ │          │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ │          │
-│  └───────────────────────────────────────────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Key Components
-
-| Component | Purpose | Documentation |
-|-----------|---------|---------------|
-| **Agent Manager** | Spawns and manages individual AI agents | [docs/AGENT_FIRST_ARCHITECTURE_REVIEW.md](docs/AGENT_FIRST_ARCHITECTURE_REVIEW.md) |
-| **Swarm Manager** | Orchestrates multi-agent coordination | [CLI Reference](docs/CLI_COMMAND_REFERENCE.md#swarm) |
-| **Workflow Engine** | DAG-based execution with dependencies | [docs/WORKFLOW_ENGINE.md](docs/WORKFLOW_ENGINE.md) |
-| **Skill Registry** | Auto-loading agent capabilities | [docs/skills.md](docs/skills.md) |
-| **Extension System** | TypeScript plugin architecture | [docs/extensions.md](docs/extensions.md) |
-| **Event Bus** | Real-time event streaming | [docs/events.md](docs/events.md) |
-
-## 📁 Project Structure
-
-```
-dash/
-├── src/                    # Core source code
-│   ├── commands/           # CLI command implementations
-│   ├── core/               # Core services (agent, swarm, workflow)
-│   ├── storage/            # Database repositories
-│   ├── skills/             # Built-in agent skills
-│   └── types/              # TypeScript type definitions
-├── docs/                   # Documentation
-│   ├── GETTING_STARTED.md  # Complete getting started guide
-│   ├── ARCHITECTURE.md     # System architecture details
-│   ├── DEPLOYMENT.md       # Production deployment
-│   ├── TROUBLESHOOTING.md  # Common issues and solutions
-│   └── CONTRIBUTING.md     # Contribution guidelines
-├── examples/               # Example configurations and code
-│   ├── basic-swarm/        # Simple swarm examples
-│   ├── workflow-dag/       # DAG workflow examples
-│   ├── ci-cd-integration/  # CI/CD integration examples
-│   ├── custom-agent/       # Custom agent implementations
-│   └── api-client/         # API client usage examples
-├── skills/                 # Built-in skills
-│   ├── deployment/
-│   ├── testing/
-│   ├── code-review/
-│   └── refactoring/
-├── monitoring/             # Observability configuration
-│   ├── docker-compose.yml  # Grafana + Loki setup
-│   └── dashboards/         # Pre-built dashboards
-├── scripts/                # Utility scripts
-├── tests/                  # Test suites
-├── package.json
-├── docker-compose.yml      # Local development stack
-└── README.md               # This file
-```
-
-## 🔗 Documentation Links
-
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](docs/GETTING_STARTED.md) | Complete setup and first steps guide |
-| [Architecture](docs/ARCHITECTURE.md) | System design and component details |
-| [CLI Reference](docs/CLI_COMMAND_REFERENCE.md) | Complete command reference |
-| [API Documentation](docs/API_ENDPOINT_REFERENCE.md) | REST API endpoints |
-| [Deployment](docs/DEPLOYMENT.md) | Production deployment guide |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and debugging |
-| [Contributing](docs/CONTRIBUTING.md) | How to contribute to Dash |
-| [Skills](docs/skills.md) | Agent skills system |
-| [Extensions](docs/extensions.md) | Extension system |
-| [Workflows](docs/WORKFLOW_ENGINE.md) | Workflow engine |
-
-## 🛠️ Built With
-
-- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe development
-- **[Commander.js](https://github.com/tj/commander.js/)** - CLI framework
-- **[Blessed](https://github.com/chjj/blessed)** - Terminal UI
-- **[TypeBox](https://github.com/sinclairzx81/typebox)** - Runtime type validation
-- **[Zod](https://zod.dev/)** - Schema validation
-- **[OpenTelemetry](https://opentelemetry.io/)** - Observability
-- **[PostgreSQL](https://www.postgresql.org/)** - Primary database
-- **[Redis](https://redis.io/)** - Caching and pub/sub
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for details.
-
-Quick start for contributors:
-```bash
-# Fork and clone
-git clone https://github.com/your-username/dash.git
+# Clone the repository
+git clone https://github.com/jasontang/clawd/projects/dash.git
 cd dash
 
 # Install dependencies
 npm install
 
-# Run tests
-npm test
+# Copy environment file
+cp .env.example .env
 
-# Start development
+# Start the server
 npm run dev
 ```
 
-## 📜 License
+### Configuration
 
-Dash is licensed under the [MIT License](LICENSE).
+Create a `.env` file with the following variables:
 
-Copyright (c) 2026 Dash Contributors
+```env
+# Server Configuration
+PORT=7373
+NODE_ENV=development
 
-## 💬 Community
+# API Authentication
+DASH_API_KEY=dash-api-key
 
-- **GitHub Discussions** - [github.com/davidkimai/dash/discussions](https://github.com/davidkimai/dash/discussions)
-- **Issues** - [github.com/davidkimai/dash/issues](https://github.com/davidkimai/dash/issues)
-- **Discord** - [discord.gg/dash-ai](https://discord.gg/dash-ai) (coming soon)
+# Database
+DATABASE_PATH=./dash.db
 
----
+# AI Model Providers
+KIMI_API_KEY=your-kimi-key
+OPENAI_API_KEY=your-openai-key
+```
 
-**Ready to orchestrate your AI agents?** [Get Started →](docs/GETTING_STARTED.md)
+### Running with Docker
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f dash
+
+# Stop services
+docker-compose down
+```
+
+### API Examples
+
+#### Health Check
+
+```bash
+curl http://localhost:7373/health
+```
+
+#### List Agents
+
+```bash
+curl -H "X-API-Key: dash-api-key" \
+  "http://localhost:7373/api/agents?status=running"
+```
+
+#### Create an Agent
+
+```bash
+curl -X POST -H "X-API-Key: dash-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "kimi-k2.5",
+    "task": "Analyze this dataset",
+    "label": "analyzer-1"
+  }' \
+  "http://localhost:7373/api/agents"
+```
+
+#### Stream Events (WebSocket)
+
+```javascript
+const ws = new WebSocket('ws://localhost:7373/events', {
+  headers: { 'X-API-Key': 'dash-api-key' }
+});
+
+ws.onmessage = (event) => {
+  console.log('Event:', JSON.parse(event.data));
+};
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [OpenAPI Spec](docs/openapi.yaml) | Complete API specification |
+| [Error Codes](docs/error-codes.md) | Reference for all error codes |
+| [Architecture](docs/ARCHITECTURE.md) | Detailed architecture documentation |
+
+## Troubleshooting
+
+### Common Issues
+
+#### Server Won't Start
+
+**Symptoms:**
+- Port already in use error
+- Database lock errors
+
+**Solutions:**
+```bash
+# Kill processes on port 7373
+lsof -ti:7373 | xargs kill -9
+
+# Remove database lock
+rm -f dash.db-shm dash.db-wal
+
+# Restart with fresh database
+npm run db:migrate:fresh
+```
+
+#### Agents Not Spawning
+
+**Symptoms:**
+- Agents stuck in "pending" status
+- No errors in logs
+
+**Solutions:**
+1. Check API key validity
+2. Verify model provider credentials
+3. Check system resources (memory, CPU)
+
+```bash
+# Check server logs
+tail -f logs/dash.log
+
+# Verify environment variables
+npm run env:check
+```
+
+#### WebSocket Connection Failed
+
+**Symptoms:**
+- Cannot connect to event stream
+- Connection timeout errors
+
+**Solutions:**
+1. Verify WebSocket URL is correct
+2. Check firewall rules
+3. Ensure authentication header is passed
+
+```javascript
+// Correct WebSocket connection with auth
+const ws = new WebSocket('ws://localhost:7373/events', {
+  headers: { 'X-API-Key': 'dash-api-key' }
+});
+```
+
+#### Database Migration Failures
+
+**Symptoms:**
+- "Database is locked" errors
+- Missing table errors
+
+**Solutions:**
+```bash
+# Backup database
+cp dash.db dash.db.backup
+
+# Run migrations fresh
+npm run db:migrate:fresh
+
+# Seed if needed
+npm run db:seed
+```
+
+### Log Locations
+
+| Log | Location | Purpose |
+|-----|----------|---------|
+| Application | `logs/dash.log` | Main application logs |
+| Error | `logs/error.log` | Error-only logs |
+| Access | `logs/access.log` | HTTP access logs |
+
+### Performance Tuning
+
+For production deployments:
+
+```bash
+# Increase worker threads
+DASH_WORKERS=4 npm start
+
+# Configure connection pool
+DB_POOL_SIZE=20
+
+# Enable compression
+ENABLE_COMPRESSION=true
+```
+
+## Support
+
+- **Documentation**: [docs/](docs/)
+- **Issues**: GitHub Issues
+- **Discord**: [OpenClaw Discord](https://discord.gg/openclaw)
