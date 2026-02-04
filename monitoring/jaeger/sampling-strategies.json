@@ -1,0 +1,52 @@
+{
+  "service_strategies": [
+    {
+      "service": "dash-orchestrator",
+      "type": "probabilistic",
+      "param": 0.01,
+      "operation_strategies": [
+        {
+          "operation": "agent.spawn",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "operation": "agent.execute",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "operation": "workflow.execute",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "step.execute",
+          "type": "probabilistic",
+          "param": 0.2
+        },
+        {
+          "operation": "task.enqueue",
+          "type": "probabilistic",
+          "param": 0.1
+        },
+        {
+          "operation": "task.dequeue",
+          "type": "probabilistic",
+          "param": 0.1
+        }
+      ]
+    }
+  ],
+  "default_strategy": {
+    "type": "probabilistic",
+    "param": 0.01,
+    "operation_strategies": [
+      {
+        "operation": "health",
+        "type": "probabilistic",
+        "param": 0.0
+      }
+    ]
+  }
+}
