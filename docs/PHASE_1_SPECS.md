@@ -3,7 +3,14 @@
 
 ---
 
-## Subagent 1: dash-reliability-engineer
+## 🚀 PHASE 1 LAUNCH: CODEX-LED SUBAGENTS
+
+**CLI Strategy:**
+- **Codex CLI** → Code implementation (primary)
+- **Claude Code CLI** → Architecture/design reviews (secondary)
+- **Kimi CLI** → Research/fallback (tertiary)
+
+### Subagent 1: dash-reliability-engineer (Codex CLI)
 
 ### Mission
 Implement circuit breaker pattern for all LLM API calls to prevent cascading failures
@@ -34,7 +41,7 @@ Implement circuit breaker pattern for all LLM API calls to prevent cascading fai
 
 ---
 
-## Subagent 2: dash-observability-engineer
+## Subagent 2: dash-observability-engineer (Codex CLI)
 
 ### Mission
 Migrate 1,105 console.log statements to structured logging with Pino
@@ -68,7 +75,7 @@ Migrate 1,105 console.log statements to structured logging with Pino
 
 ---
 
-## Subagent 3: dash-test-engineer
+## Subagent 3: dash-test-engineer (Codex CLI)
 
 ### Mission
 Achieve >80% test coverage with integration tests
@@ -102,7 +109,7 @@ Achieve >80% test coverage with integration tests
 
 ---
 
-## Subagent 4: dash-security-engineer-2
+## Subagent 4: dash-security-engineer-2 (Codex CLI)
 
 ### Mission
 Security hardening - remove all hardcoded credentials and secrets

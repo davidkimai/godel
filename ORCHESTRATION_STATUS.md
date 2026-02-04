@@ -3,6 +3,22 @@
 
 ---
 
+## 🤖 AGENT CLI CONFIGURATION
+
+**Model Priority (Updated):**
+| Priority | CLI | Use Case |
+|----------|-----|----------|
+| 🥇 PRIMARY | **Codex CLI** | All coding tasks, subagents, swarms |
+| 🥈 SECONDARY | **Claude Code CLI** | Complex reasoning, architecture decisions |
+| 🥉 TERTIARY | **Kimi CLI** | Quick tasks, fallback, research |
+
+**Phase 1+ Subagents will use:**
+- `codex --approval-mode full-auto` for code implementation
+- `claude -p` for design/architecture reviews
+- `kimi -p` for lightweight research
+
+---
+
 ## ✅ PHASE 0: FOUNDATION - COMPLETE
 
 All 4 Phase 0 subagents have finished successfully:
