@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dash-config
+  namespace: default
+data:
+  NODE_ENV: "production"
+  NEXT_PUBLIC_API_URL: "https://api.dash.example.com"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dash-secrets
+  namespace: default
+type: Opaque
+stringData:
+  DATABASE_URL: "postgres://user:password@postgres:5432/dash"
+  NEXTAUTH_SECRET: "your-secret-here"
+  # Note: Add other secrets via GitHub Actions or external secrets manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dash
+  namespace: default
+  labels:
+    app: dash
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dash
+  template:
+    metadata:
+      labels:
+        app: dash
+        version: v1
+    spec:
+      containers:
+        - name: dash
+          image: ghcr.io/org/dash:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: dash-config
+            - secretRef:
+                name: dash-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dash
+  namespace: default
+spec:
+  selector:
+    app: dash
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: dash
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dash
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dash
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - dash.example.com
+      secretName: dash-tls
+  rules:
+    - host: dash.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dash
+                port:
+                  number: 80
