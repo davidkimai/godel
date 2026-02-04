@@ -57,13 +57,13 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (agents.length === 0) {
-          console.log('📭 No agents found');
-          console.log('💡 Use "dash agents spawn" or "dash swarm create" to create agents');
+          logger.info('📭 No agents found');
+          logger.info('💡 Use "dash agents spawn" or "dash swarm create" to create agents');
           return;
         }
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(agents.map((a) => ({
+          logger.info(JSON.stringify(agents.map((a) => ({
             id: a.id,
             status: a.status,
             model: a.model,
@@ -78,9 +78,9 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         // Table format
-        console.log('🤖 Agents:\n');
-        console.log('ID                   Swarm                Status     Model           Runtime  Retries');
-        console.log('───────────────────  ───────────────────  ─────────  ──────────────  ───────  ───────');
+        logger.info('🤖 Agents:\n');
+        logger.info('ID                   Swarm                Status     Model           Runtime  Retries');
+        logger.info('───────────────────  ───────────────────  ─────────  ──────────────  ───────  ───────');
 
         for (const agent of agents) {
           const swarmName = agent.swarmId 
@@ -91,7 +91,7 @@ export function registerAgentsCommand(program: Command): void {
             ? formatDuration(agent.runtime)
             : '-';
 
-          console.log(
+          logger.info(
             `${agent.id.slice(0, 19).padEnd(19)}  ` +
             `${swarmName.padEnd(19)}  ` +
             `${getStatusEmoji(agent.status)} ${agent.status.padEnd(8)}  ` +
@@ -101,7 +101,7 @@ export function registerAgentsCommand(program: Command): void {
           );
         }
 
-        console.log(`\n📊 Total: ${agents.length} agents`);
+        logger.info(`\n📊 Total: ${agents.length} agents`);
 
       } catch (error) {
         console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
@@ -125,17 +125,17 @@ export function registerAgentsCommand(program: Command): void {
     .option('--dry-run', 'Show configuration without spawning')
     .action(async (task, options) => {
       try {
-        console.log('🚀 Spawning agent...\n');
+        logger.info('🚀 Spawning agent...\n');
 
         if (options.dryRun) {
-          console.log('📋 Configuration (dry run):');
-          console.log(`   Task: ${task}`);
-          console.log(`   Model: ${options.model}`);
-          console.log(`   Label: ${options.label || '(auto)'}`);
-          console.log(`   Swarm: ${options.swarm || '(none)'}`);
-          console.log(`   Parent: ${options.parent || '(none)'}`);
-          console.log(`   Max Retries: ${options.retries}`);
-          if (options.budget) console.log(`   Budget: $${options.budget} USD`);
+          logger.info('📋 Configuration (dry run):');
+          logger.info(`   Task: ${task}`);
+          logger.info(`   Model: ${options.model}`);
+          logger.info(`   Label: ${options.label || '(auto)'}`);
+          logger.info(`   Swarm: ${options.swarm || '(none)'}`);
+          logger.info(`   Parent: ${options.parent || '(none)'}`);
+          logger.info(`   Max Retries: ${options.retries}`);
+          if (options.budget) logger.info(`   Budget: $${options.budget} USD`);
           return;
         }
 
@@ -186,14 +186,14 @@ export function registerAgentsCommand(program: Command): void {
           metadata: agent.metadata,
         });
 
-        console.log('✅ Agent spawned successfully!\n');
-        console.log(`   ID: ${agent.id}`);
-        console.log(`   Status: ${agent.status}`);
-        console.log(`   Model: ${agent.model}`);
+        logger.info('✅ Agent spawned successfully!\n');
+        logger.info(`   ID: ${agent.id}`);
+        logger.info(`   Status: ${agent.status}`);
+        logger.info(`   Model: ${agent.model}`);
         if (options.swarm) {
-          console.log(`   Swarm: ${options.swarm}`);
+          logger.info(`   Swarm: ${options.swarm}`);
         }
-        console.log(`\n💡 Use 'dash agents status ${agent.id}' to check progress`);
+        logger.info(`\n💡 Use 'dash agents status ${agent.id}' to check progress`);
 
       } catch (error) {
         console.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
@@ -222,7 +222,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (state.status === AgentStatus.PAUSED) {
-          console.log(`⏸️  Agent ${agentId.slice(0, 16)}... is already paused`);
+          logger.info(`⏸️  Agent ${agentId.slice(0, 16)}... is already paused`);
           return;
         }
 
@@ -231,9 +231,9 @@ export function registerAgentsCommand(program: Command): void {
           process.exit(2);
         }
 
-        console.log(`⏸️  Pausing agent ${agentId.slice(0, 16)}...`);
+        logger.info(`⏸️  Pausing agent ${agentId.slice(0, 16)}...`);
         await lifecycle.pause(agentId);
-        console.log('✅ Agent paused');
+        logger.info('✅ Agent paused');
 
       } catch (error) {
         console.error('❌ Failed to pause agent:', error instanceof Error ? error.message : String(error));
@@ -262,13 +262,13 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (state.status !== AgentStatus.PAUSED) {
-          console.log(`▶️  Agent ${agentId.slice(0, 16)}... is not paused (status: ${state.status})`);
+          logger.info(`▶️  Agent ${agentId.slice(0, 16)}... is not paused (status: ${state.status})`);
           return;
         }
 
-        console.log(`▶️  Resuming agent ${agentId.slice(0, 16)}...`);
+        logger.info(`▶️  Resuming agent ${agentId.slice(0, 16)}...`);
         await lifecycle.resume(agentId);
-        console.log('✅ Agent resumed');
+        logger.info('✅ Agent resumed');
 
       } catch (error) {
         console.error('❌ Failed to resume agent:', error instanceof Error ? error.message : String(error));
@@ -299,22 +299,22 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (state.status === AgentStatus.KILLED || state.status === AgentStatus.COMPLETED) {
-          console.log(`ℹ️  Agent ${agentId.slice(0, 16)}... is already ${state.status}`);
+          logger.info(`ℹ️  Agent ${agentId.slice(0, 16)}... is already ${state.status}`);
           return;
         }
 
-        console.log(`⚠️  You are about to kill agent: ${agentId}`);
-        console.log(`   Status: ${state.status}`);
-        console.log(`   Task: ${state.agent.task.slice(0, 50)}${state.agent.task.length > 50 ? '...' : ''}`);
+        logger.info(`⚠️  You are about to kill agent: ${agentId}`);
+        logger.info(`   Status: ${state.status}`);
+        logger.info(`   Task: ${state.agent.task.slice(0, 50)}${state.agent.task.length > 50 ? '...' : ''}`);
 
         if (!options.yes && !options.force) {
-          console.log('\n🛑 Use --yes to confirm kill');
+          logger.info('\n🛑 Use --yes to confirm kill');
           return;
         }
 
-        console.log('\n☠️  Killing agent...');
+        logger.info('\n☠️  Killing agent...');
         await lifecycle.kill(agentId, options.force);
-        console.log('✅ Agent killed');
+        logger.info('✅ Agent killed');
 
       } catch (error) {
         console.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
@@ -350,53 +350,53 @@ export function registerAgentsCommand(program: Command): void {
             ...state,
             swarm: state.agent.swarmId ? swarmManager.getSwarm(state.agent.swarmId) : null,
           };
-          console.log(JSON.stringify(output, null, 2));
+          logger.info(JSON.stringify(output, null, 2));
           return;
         }
 
-        console.log(`🤖 Agent: ${agentId}\n`);
-        console.log(`   Status:       ${getStatusEmoji(state.status)} ${state.status}`);
-        console.log(`   Lifecycle:    ${state.lifecycleState}`);
-        console.log(`   Model:        ${state.agent.model}`);
-        console.log(`   Task:         ${state.agent.task}`);
+        logger.info(`🤖 Agent: ${agentId}\n`);
+        logger.info(`   Status:       ${getStatusEmoji(state.status)} ${state.status}`);
+        logger.info(`   Lifecycle:    ${state.lifecycleState}`);
+        logger.info(`   Model:        ${state.agent.model}`);
+        logger.info(`   Task:         ${state.agent.task}`);
         
         if (state.agent.swarmId) {
           const swarm = swarmManager.getSwarm(state.agent.swarmId);
-          console.log(`   Swarm:        ${swarm?.name || state.agent.swarmId}`);
+          logger.info(`   Swarm:        ${swarm?.name || state.agent.swarmId}`);
         }
         
         if (state.agent.parentId) {
-          console.log(`   Parent:       ${state.agent.parentId}`);
+          logger.info(`   Parent:       ${state.agent.parentId}`);
         }
         
         if (state.agent.childIds.length > 0) {
-          console.log(`   Children:     ${state.agent.childIds.length}`);
+          logger.info(`   Children:     ${state.agent.childIds.length}`);
         }
 
         logger.info('agents', `\n   Timestamps:`);
-        console.log(`     Created:    ${state.createdAt.toISOString()}`);
-        if (state.startedAt) console.log(`     Started:    ${state.startedAt.toISOString()}`);
-        if (state.pausedAt) console.log(`     Paused:     ${state.pausedAt.toISOString()}`);
-        if (state.resumedAt) console.log(`     Resumed:    ${state.resumedAt.toISOString()}`);
-        if (state.completedAt) console.log(`     Completed:  ${state.completedAt.toISOString()}`);
+        logger.info(`     Created:    ${state.createdAt.toISOString()}`);
+        if (state.startedAt) logger.info(`     Started:    ${state.startedAt.toISOString()}`);
+        if (state.pausedAt) logger.info(`     Paused:     ${state.pausedAt.toISOString()}`);
+        if (state.resumedAt) logger.info(`     Resumed:    ${state.resumedAt.toISOString()}`);
+        if (state.completedAt) logger.info(`     Completed:  ${state.completedAt.toISOString()}`);
 
         if (state.agent.runtime > 0) {
-          console.log(`\n   Runtime:      ${formatDuration(state.agent.runtime)}`);
+          logger.info(`\n   Runtime:      ${formatDuration(state.agent.runtime)}`);
         }
 
-        console.log(`\n   Retries:      ${state.retryCount}/${state.maxRetries}`);
+        logger.info(`\n   Retries:      ${state.retryCount}/${state.maxRetries}`);
         
         if (state.lastError) {
-          console.log(`\n   Last Error:   ${state.lastError}`);
+          logger.info(`\n   Last Error:   ${state.lastError}`);
         }
 
         if (state.agent.budgetLimit) {
-          console.log(`\n   Budget Limit: $${state.agent.budgetLimit.toFixed(2)} USD`);
+          logger.info(`\n   Budget Limit: $${state.agent.budgetLimit.toFixed(2)} USD`);
         }
 
         if (options.logs) {
           logger.info('agents', `\n   Recent Logs:`);
-          console.log('   (Log retrieval not yet implemented)');
+          logger.info('   (Log retrieval not yet implemented)');
         }
 
       } catch (error) {
@@ -428,11 +428,11 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (state.status !== AgentStatus.FAILED && state.status !== AgentStatus.KILLED) {
-          console.log(`ℹ️  Agent ${agentId.slice(0, 16)}... is ${state.status} (no retry needed)`);
+          logger.info(`ℹ️  Agent ${agentId.slice(0, 16)}... is ${state.status} (no retry needed)`);
           return;
         }
 
-        console.log(`🔄 Retrying agent ${agentId.slice(0, 16)}...`);
+        logger.info(`🔄 Retrying agent ${agentId.slice(0, 16)}...`);
 
         const retryOptions: RetryOptions = {};
         if (options.model) {
@@ -444,7 +444,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         await lifecycle.retry(agentId, retryOptions);
-        console.log('✅ Agent retry initiated');
+        logger.info('✅ Agent retry initiated');
 
       } catch (error) {
         console.error('❌ Failed to retry agent:', error instanceof Error ? error.message : String(error));
@@ -469,22 +469,22 @@ export function registerAgentsCommand(program: Command): void {
         const metrics = lifecycle.getMetrics();
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(metrics, null, 2));
+          logger.info(JSON.stringify(metrics, null, 2));
           return;
         }
 
-        console.log('📊 Agent Lifecycle Metrics\n');
-        console.log(`   Total Spawned:   ${metrics.totalSpawned}`);
-        console.log(`   Active Agents:   ${metrics.activeAgents}`);
-        console.log(`   Paused Agents:   ${metrics.pausedAgents}`);
-        console.log(`   Completed:       ${metrics.totalCompleted}`);
-        console.log(`   Failed:          ${metrics.totalFailed}`);
-        console.log(`   Killed:          ${metrics.totalKilled}`);
+        logger.info('📊 Agent Lifecycle Metrics\n');
+        logger.info(`   Total Spawned:   ${metrics.totalSpawned}`);
+        logger.info(`   Active Agents:   ${metrics.activeAgents}`);
+        logger.info(`   Paused Agents:   ${metrics.pausedAgents}`);
+        logger.info(`   Completed:       ${metrics.totalCompleted}`);
+        logger.info(`   Failed:          ${metrics.totalFailed}`);
+        logger.info(`   Killed:          ${metrics.totalKilled}`);
 
         const successRate = metrics.totalSpawned > 0 
           ? (metrics.totalCompleted / metrics.totalSpawned * 100).toFixed(1)
           : '0.0';
-        console.log(`\n   Success Rate:    ${successRate}%`);
+        logger.info(`\n   Success Rate:    ${successRate}%`);
 
       } catch (error) {
         console.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));

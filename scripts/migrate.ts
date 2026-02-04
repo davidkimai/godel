@@ -1,3 +1,4 @@
+import { logger } from '../src/utils/logger';
 /**
  * PostgreSQL Migration Runner
  * 
@@ -81,7 +82,7 @@ async function applyMigration(
   client: Client, 
   migration: Migration
 ): Promise<void> {
-  console.log(`Applying migration: ${migration.name}...`);
+  logger.info(`Applying migration: ${migration.name}...`);
 
   try {
     // Run the migration in a transaction
@@ -95,7 +96,7 @@ async function applyMigration(
     );
     
     await client.query('COMMIT');
-    console.log(`✅ Applied: ${migration.name}`);
+    logger.info(`✅ Applied: ${migration.name}`);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -109,30 +110,30 @@ async function runMigrations(): Promise<void> {
   const connectionString = getConnectionString();
   const migrationsDir = join(__dirname, '..', 'migrations');
 
-  console.log('🔌 Connecting to PostgreSQL...');
+  logger.info('🔌 Connecting to PostgreSQL...');
   const client = new Client({ connectionString });
 
   try {
     await client.connect();
-    console.log('✅ Connected\n');
+    logger.info('✅ Connected\n');
 
     // Get all available migrations
     const migrations = getMigrations(migrationsDir);
-    console.log(`Found ${migrations.length} migration(s)\n`);
+    logger.info(`Found ${migrations.length} migration(s)\n`);
 
     // Get already applied migrations
     const applied = await getAppliedMigrations(client);
-    console.log(`Already applied: ${applied.size}\n`);
+    logger.info(`Already applied: ${applied.size}\n`);
 
     // Find pending migrations
     const pending = migrations.filter(m => !applied.has(m.name));
 
     if (pending.length === 0) {
-      console.log('✨ All migrations are up to date!');
+      logger.info('✨ All migrations are up to date!');
       return;
     }
 
-    console.log(`Applying ${pending.length} pending migration(s):\n`);
+    logger.info(`Applying ${pending.length} pending migration(s):\n`);
 
     // Apply each pending migration
     for (const migration of pending) {
@@ -147,7 +148,7 @@ async function runMigrations(): Promise<void> {
       await applyMigration(client, migration);
     }
 
-    console.log('\n✅ All migrations completed successfully!');
+    logger.info('\n✅ All migrations completed successfully!');
   } catch (error) {
     console.error('\n❌ Migration failed:', error);
     process.exit(1);
@@ -171,9 +172,9 @@ async function showStatus(): Promise<void> {
     const migrations = getMigrations(migrationsDir);
     const applied = await getAppliedMigrations(client);
 
-    console.log('\n📊 Migration Status:\n');
-    console.log('Name'.padEnd(30), 'Status'.padEnd(12), 'Applied At');
-    console.log('─'.repeat(70));
+    logger.info('\n📊 Migration Status:\n');
+    logger.info(`${'Name'.padEnd(30)} ${'Status'.padEnd(12)} Applied At`);
+    logger.info('─'.repeat(70));
 
     for (const migration of migrations) {
       const app = applied.get(migration.name);
@@ -182,12 +183,12 @@ async function showStatus(): Promise<void> {
         ? new Date(app.applied_at).toLocaleString() 
         : '-';
       
-      console.log(migration.name.padEnd(30), status.padEnd(12), date);
+      logger.info(`${migration.name.padEnd(30)} ${status.padEnd(12)} ${date}`);
     }
 
     const pendingCount = migrations.length - applied.size;
-    console.log('\n' + '─'.repeat(70));
-    console.log(`Total: ${migrations.length} | Applied: ${applied.size} | Pending: ${pendingCount}`);
+    logger.info('\n' + '─'.repeat(70));
+    logger.info(`Total: ${migrations.length} | Applied: ${applied.size} | Pending: ${pendingCount}`);
   } finally {
     await client.end();
   }
@@ -211,7 +212,7 @@ async function createMigration(name: string): Promise<void> {
 
   const { writeFileSync } = await import('fs');
   writeFileSync(filepath, template);
-  console.log(`✅ Created migration: ${filename}`);
+  logger.info(`✅ Created migration: ${filename}`);
 }
 
 /**
@@ -221,19 +222,19 @@ async function rollbackMigrations(steps: number = 1): Promise<void> {
   const connectionString = getConnectionString();
   const migrationsDir = join(__dirname, '..', 'migrations');
 
-  console.log('🔌 Connecting to PostgreSQL...');
+  logger.info('🔌 Connecting to PostgreSQL...');
   const client = new Client({ connectionString });
 
   try {
     await client.connect();
-    console.log('✅ Connected\n');
+    logger.info('✅ Connected\n');
 
     // Get all migrations
     const migrations = getMigrations(migrationsDir);
     const applied = await getAppliedMigrations(client);
 
     if (applied.size === 0) {
-      console.log('ℹ️  No migrations to rollback');
+      logger.info('ℹ️  No migrations to rollback');
       return;
     }
 
@@ -242,10 +243,10 @@ async function rollbackMigrations(steps: number = 1): Promise<void> {
       .sort((a, b) => new Date(b[1].applied_at).getTime() - new Date(a[1].applied_at).getTime())
       .slice(0, steps);
 
-    console.log(`Rolling back ${appliedList.length} migration(s):\n`);
+    logger.info(`Rolling back ${appliedList.length} migration(s):\n`);
 
     for (const [name, app] of appliedList) {
-      console.log(`Rolling back: ${name}...`);
+      logger.info(`Rolling back: ${name}...`);
       
       // Find the migration file to get the down SQL
       const migration = migrations.find(m => m.name === name);
@@ -268,7 +269,7 @@ async function rollbackMigrations(steps: number = 1): Promise<void> {
         await client.query(downSql);
         await client.query('DELETE FROM _migrations WHERE name = $1', [name]);
         await client.query('COMMIT');
-        console.log(`✅ Rolled back: ${name}`);
+        logger.info(`✅ Rolled back: ${name}`);
       } catch (error) {
         await client.query('ROLLBACK');
         console.error(`❌ Failed to rollback ${name}:`, error);
@@ -276,7 +277,7 @@ async function rollbackMigrations(steps: number = 1): Promise<void> {
       }
     }
 
-    console.log('\n✅ Rollback completed successfully!');
+    logger.info('\n✅ Rollback completed successfully!');
   } catch (error) {
     console.error('\n❌ Rollback failed:', error);
     process.exit(1);

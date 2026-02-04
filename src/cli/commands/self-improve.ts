@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Self-Improvement CLI Command
  * 
@@ -35,7 +36,7 @@ export function registerSelfImproveCommand(program: Command): void {
             const targetArea = options.area;
             
             for (let i = 0; i < iterations; i++) {
-              console.log(`\n🔄 Iteration ${i + 1}/${iterations}`);
+              logger.info(`\n🔄 Iteration ${i + 1}/${iterations}`);
               
               const areas = targetArea === 'all' 
                 ? ['codeQuality', 'documentation', 'testing'] as const
@@ -49,7 +50,7 @@ export function registerSelfImproveCommand(program: Command): void {
             }
             
             const report = await getSelfImprovementReport(state, budgetTracker);
-            console.log(report);
+            logger.info(report);
             
           } catch (error) {
             console.error('❌ Self-improvement failed:', error instanceof Error ? error.message : String(error));
@@ -61,17 +62,17 @@ export function registerSelfImproveCommand(program: Command): void {
       new Command('status')
         .description('Check self-improvement status')
         .action(async () => {
-          console.log('📊 Self-improvement status:');
-          console.log('   API: http://localhost:7373');
-          console.log('   Status: Running');
-          console.log('   Ready for self-improvement commands');
+          logger.info('📊 Self-improvement status:');
+          logger.info('   API: http://localhost:7373');
+          logger.info('   Status: Running');
+          logger.info('   Ready for self-improvement commands');
         })
     )
     .addCommand(
       new Command('report')
         .description('Generate self-improvement report')
         .action(async () => {
-          console.log('📝 Self-improvement report would go here');
+          logger.info('📝 Self-improvement report would go here');
         })
     );
 }

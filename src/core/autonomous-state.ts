@@ -256,17 +256,17 @@ function createDefaultState(): StateVersion {
 
 // CLI interface for testing
 if (require.main === module) {
-  console.log('=== Autonomous State Manager ===');
+  logger.info('=== Autonomous State Manager ===');
   const state = loadState();
   if (state) {
-    console.log('State loaded successfully');
-    console.log(`Version: ${state.version}`);
-    console.log(`Mode: ${state.mode}`);
-    console.log(`Status: ${state.status}`);
-    console.log(`Active Swarms: ${state.operationalState.activeSwarms}`);
+    logger.info('State loaded successfully');
+    logger.info(`Version: ${state.version}`);
+    logger.info(`Mode: ${state.mode}`);
+    logger.info(`Status: ${state.status}`);
+    logger.info(`Active Swarms: ${state.operationalState.activeSwarms}`);
   } else {
-    console.log('No state file found, creating default...');
+    logger.info('No state file found, creating default...');
     saveState(createDefaultState());
-    console.log('Default state created');
+    logger.info('Default state created');
   }
 }

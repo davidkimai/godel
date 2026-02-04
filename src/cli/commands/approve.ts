@@ -81,10 +81,10 @@ function createListCommand(): Command {
           riskLevel: options.risk as RiskLevel | undefined,
           limit: parseInt(options.limit || '50', 10)
         });
-        console.log(formatListForDisplay(requests, options.format));
+        logger.info(formatListForDisplay(requests, options.format));
         if (options.format === 'table') {
           const stats = getStats();
-          console.log(`\nStats: ${stats.pending} pending, ${stats.approved} approved, ${stats.denied} denied`);
+          logger.info(`\nStats: ${stats.pending} pending, ${stats.approved} approved, ${stats.denied} denied`);
         }
       } catch (error) {
         logger.error('Failed to list approvals', { error });
@@ -105,7 +105,7 @@ function createGetCommand(): Command {
           console.error(`Approval request not found: ${id}`);
           process.exit(1);
         }
-        console.log(formatDetailsForDisplay(request));
+        logger.info(formatDetailsForDisplay(request));
       } catch (error) {
         logger.error('Failed to get approval details', { error });
         process.exit(1);
@@ -144,14 +144,14 @@ function createRespondCommand(): Command {
           displayName: 'Current User'
         };
         const response = respondToRequest(request, decision, approver, options.justification || '', options.notes);
-        console.log(`\n✅ Request ${id} ${decision}d`);
-        console.log(`Decision: ${response.decision.toUpperCase()}`);
-        console.log(`Responded at: ${response.respondedAt.toISOString()}`);
+        logger.info(`\n✅ Request ${id} ${decision}d`);
+        logger.info(`Decision: ${response.decision.toUpperCase()}`);
+        logger.info(`Responded at: ${response.respondedAt.toISOString()}`);
         if (response.justification) {
-          console.log(`Justification: ${response.justification}`);
+          logger.info(`Justification: ${response.justification}`);
         }
         if (response.notes) {
-          console.log(`Notes: ${response.notes}`);
+          logger.info(`Notes: ${response.notes}`);
         }
       } catch (error) {
         logger.error('Failed to respond to approval', { error });
@@ -181,12 +181,12 @@ function createApproveAllCommand(): Command {
           logger.info('approve', 'No matching pending requests found.');
           return;
         }
-        console.log(`Found ${requests.length} matching request(s):\n`);
+        logger.info(`Found ${requests.length} matching request(s):\n`);
         for (const request of requests) {
-          console.log(`  - ${request.id}: ${request.operation.type} - ${request.operation.target}`);
+          logger.info(`  - ${request.id}: ${request.operation.type} - ${request.operation.target}`);
         }
         if (options.dryRun) {
-          console.log('\n🔍 Dry run - no approvals were made.');
+          logger.info('\n🔍 Dry run - no approvals were made.');
           return;
         }
         logger.info('approve', '\n⏳ Approving all...');
@@ -206,7 +206,7 @@ function createApproveAllCommand(): Command {
             logger.warn('Failed to approve request', { requestId: request.id, error });
           }
         }
-        console.log(`\n✅ Approved: ${approved}, Skipped: ${skipped}`);
+        logger.info(`\n✅ Approved: ${approved}, Skipped: ${skipped}`);
       } catch (error) {
         logger.error('Failed to batch approve', { error });
         process.exit(1);
@@ -251,27 +251,27 @@ function createAuditCommand(): Command {
           return;
         }
         if (options.format === 'json') {
-          console.log(JSON.stringify(logs, null, 2));
+          logger.info(JSON.stringify(logs, null, 2));
         } else {
           logger.info('approve', 'APPROVAL AUDIT TRAIL');
-          console.log('═'.repeat(80));
+          logger.info('═'.repeat(80));
           for (const log of logs) {
-            console.log(`\nID: ${log.id}`);
-            console.log(`Request: ${log.requestId}`);
-            console.log(`Agent: ${log.requestingAgent.agentId}`);
-            console.log(`Operation: ${log.operation.type} - ${log.operation.target}`);
-            console.log(`Risk: ${log.risk.level}`);
-            console.log(`Created: ${log.createdAt.toISOString()}`);
+            logger.info(`\nID: ${log.id}`);
+            logger.info(`Request: ${log.requestId}`);
+            logger.info(`Agent: ${log.requestingAgent.agentId}`);
+            logger.info(`Operation: ${log.operation.type} - ${log.operation.target}`);
+            logger.info(`Risk: ${log.risk.level}`);
+            logger.info(`Created: ${log.createdAt.toISOString()}`);
             if (log.respondedAt) {
-              console.log(`Responded: ${log.respondedAt.toISOString()}`);
+              logger.info(`Responded: ${log.respondedAt.toISOString()}`);
             }
             if (log.decision) {
-              console.log(`Decision: ${log.decision.decision.toUpperCase()}`);
-              console.log(`Approver: ${log.decision.approver.identity}`);
+              logger.info(`Decision: ${log.decision.decision.toUpperCase()}`);
+              logger.info(`Approver: ${log.decision.approver.identity}`);
             }
-            console.log('─'.repeat(40));
+            logger.info('─'.repeat(40));
           }
-          console.log(`\nTotal: ${logs.length} entries`);
+          logger.info(`\nTotal: ${logs.length} entries`);
         }
       } catch (error) {
         logger.error('Failed to query audit logs', { error });
@@ -297,11 +297,11 @@ function createEscalateCommand(): Command {
           process.exit(1);
         }
         const escalated = escalateRequest(request, options.reason);
-        console.log(`✅ Request ${id} escalated`);
-        console.log(`New status: ${escalated.status}`);
-        console.log(`Escalation count: ${escalated.escalationCount}/${escalated.maxEscalations}`);
+        logger.info(`✅ Request ${id} escalated`);
+        logger.info(`New status: ${escalated.status}`);
+        logger.info(`Escalation count: ${escalated.escalationCount}/${escalated.maxEscalations}`);
         if (escalated.expiresAt) {
-          console.log(`New expiration: ${escalated.expiresAt.toISOString()}`);
+          logger.info(`New expiration: ${escalated.expiresAt.toISOString()}`);
         }
       } catch (error) {
         logger.error('Failed to escalate request', { error });
@@ -330,14 +330,14 @@ function createEmergencyCommand(): Command {
           reason: options.reason,
           justification: options.justification
         });
-        console.log(`🚨 EMERGENCY OVERRIDE EXECUTED`);
-        console.log(`Request: ${id}`);
-        console.log(`Operation: ${overridden.operation.type} - ${overridden.operation.target}`);
-        console.log(`Override by: ${approver.identity}`);
-        console.log(`Reason: ${options.reason}`);
-        console.log(`Justification: ${options.justification}`);
+        logger.info(`🚨 EMERGENCY OVERRIDE EXECUTED`);
+        logger.info(`Request: ${id}`);
+        logger.info(`Operation: ${overridden.operation.type} - ${overridden.operation.target}`);
+        logger.info(`Override by: ${approver.identity}`);
+        logger.info(`Reason: ${options.reason}`);
+        logger.info(`Justification: ${options.justification}`);
         // Log warning
-        console.log('\n⚠️  WARNING: Emergency override has been logged with enhanced audit trail.');
+        logger.info('\n⚠️  WARNING: Emergency override has been logged with enhanced audit trail.');
         logger.info('approve', 'This action will be reviewed in the next security audit.');
       } catch (error) {
         logger.error('Failed to execute emergency override', { error });
@@ -359,23 +359,23 @@ function createMonitorCommand(): Command {
           const status = isMonitoring();
           const config = getEscalationConfig();
           logger.info('approve', 'ESCALATION MONITOR STATUS');
-          console.log('═'.repeat(40));
-          console.log(`Monitoring: ${status ? 'RUNNING' : 'STOPPED'}`);
+          logger.info('═'.repeat(40));
+          logger.info(`Monitoring: ${status ? 'RUNNING' : 'STOPPED'}`);
           if (status) {
-            console.log(`Check interval: ${config.checkInterval}ms`);
-            console.log(`Auto-deny: ${config.enableAutoDeny ? 'enabled' : 'disabled'}`);
-            console.log(`Notifications: ${config.notifyOnEscalation ? 'enabled' : 'disabled'}`);
+            logger.info(`Check interval: ${config.checkInterval}ms`);
+            logger.info(`Auto-deny: ${config.enableAutoDeny ? 'enabled' : 'disabled'}`);
+            logger.info(`Notifications: ${config.notifyOnEscalation ? 'enabled' : 'disabled'}`);
           }
           return;
         }
         if (options.start) {
           const interval = options.interval ? parseInt(options.interval, 10) : undefined;
           startMonitoring({ checkInterval: interval });
-          console.log('✅ Escalation monitoring started');
+          logger.info('✅ Escalation monitoring started');
         }
         if (options.stop) {
           stopMonitoring();
-          console.log('✅ Escalation monitoring stopped');
+          logger.info('✅ Escalation monitoring stopped');
         }
       } catch (error) {
         logger.error('Failed to manage monitoring', { error });
@@ -394,32 +394,32 @@ function createStatsCommand(): Command {
       try {
         const stats = getStats();
         if (options.format === 'json') {
-          console.log(JSON.stringify(stats, null, 2));
+          logger.info(JSON.stringify(stats, null, 2));
         } else {
           logger.info('approve', 'APPROVAL STATISTICS');
-          console.log('═'.repeat(40));
-          console.log(`Total Requests:  ${stats.total}`);
-          console.log(`  Pending:   ${stats.pending}`);
-          console.log(`  Approved:  ${stats.approved}`);
-          console.log(`  Denied:    ${stats.denied}`);
-          console.log(`  Expired:   ${stats.expired}`);
-          console.log(`  Escalated: ${stats.escalated}`);
-          console.log('');
+          logger.info('═'.repeat(40));
+          logger.info(`Total Requests:  ${stats.total}`);
+          logger.info(`  Pending:   ${stats.pending}`);
+          logger.info(`  Approved:  ${stats.approved}`);
+          logger.info(`  Denied:    ${stats.denied}`);
+          logger.info(`  Expired:   ${stats.expired}`);
+          logger.info(`  Escalated: ${stats.escalated}`);
+          logger.info('');
           logger.info('approve', 'By Risk Level:');
-          console.log(`  Critical: ${stats.byRisk.critical}`);
-          console.log(`  High:     ${stats.byRisk.high}`);
-          console.log(`  Medium:   ${stats.byRisk.medium}`);
-          console.log(`  Low:      ${stats.byRisk.low}`);
-          console.log('');
+          logger.info(`  Critical: ${stats.byRisk.critical}`);
+          logger.info(`  High:     ${stats.byRisk.high}`);
+          logger.info(`  Medium:   ${stats.byRisk.medium}`);
+          logger.info(`  Low:      ${stats.byRisk.low}`);
+          logger.info('');
           logger.info('approve', 'By Operation Type:');
-          console.log(`  File Write:      ${stats.byType.file_write}`);
-          console.log(`  File Delete:     ${stats.byType.file_delete}`);
-          console.log(`  API Call:        ${stats.byType.api_call}`);
-          console.log(`  Budget Overrun:  ${stats.byType.budget_overrun}`);
-          console.log(`  Agent Term:      ${stats.byType.agent_termination}`);
+          logger.info(`  File Write:      ${stats.byType.file_write}`);
+          logger.info(`  File Delete:     ${stats.byType.file_delete}`);
+          logger.info(`  API Call:        ${stats.byType.api_call}`);
+          logger.info(`  Budget Overrun:  ${stats.byType.budget_overrun}`);
+          logger.info(`  Agent Term:      ${stats.byType.agent_termination}`);
           if (stats.avgResponseTime) {
-            console.log('');
-            console.log(`Avg Response Time: ${stats.avgResponseTime.toFixed(2)} minutes`);
+            logger.info('');
+            logger.info(`Avg Response Time: ${stats.avgResponseTime.toFixed(2)} minutes`);
           }
         }
       } catch (error) {

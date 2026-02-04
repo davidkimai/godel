@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Agent Commands
  * 
@@ -47,16 +48,16 @@ export function registerAgentCommand(program: Command): void {
         const agents = response.data.items;
 
         if (agents.length === 0) {
-          console.log('📭 No agents found');
-          console.log('💡 Use "swarmctl agent spawn" or "swarmctl swarm create" to create agents');
+          logger.info('📭 No agents found');
+          logger.info('💡 Use "swarmctl agent spawn" or "swarmctl swarm create" to create agents');
           return;
         }
 
         const format = options.format as OutputFormat;
-        console.log(formatAgents(agents, { format }));
+        logger.info(formatAgents(agents, { format }));
 
         if (response.data.hasMore) {
-          console.log(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
+          logger.info(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
         }
       } catch (error) {
         console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
@@ -80,17 +81,17 @@ export function registerAgentCommand(program: Command): void {
     .option('--dry-run', 'Show configuration without spawning')
     .action(async (task, options) => {
       try {
-        console.log('🚀 Spawning agent...\n');
+        logger.info('🚀 Spawning agent...\n');
 
         if (options.dryRun) {
-          console.log('📋 Configuration (dry run):');
-          console.log(`   Task: ${task}`);
-          console.log(`   Model: ${options.model}`);
-          console.log(`   Label: ${options.label || '(auto)'}`);
-          console.log(`   Swarm: ${options.swarm || '(none)'}`);
-          console.log(`   Parent: ${options.parent || '(none)'}`);
-          console.log(`   Max Retries: ${options.retries}`);
-          if (options.budget) console.log(`   Budget: $${options.budget} USD`);
+          logger.info('📋 Configuration (dry run):');
+          logger.info(`   Task: ${task}`);
+          logger.info(`   Model: ${options.model}`);
+          logger.info(`   Label: ${options.label || '(auto)'}`);
+          logger.info(`   Swarm: ${options.swarm || '(none)'}`);
+          logger.info(`   Parent: ${options.parent || '(none)'}`);
+          logger.info(`   Max Retries: ${options.retries}`);
+          if (options.budget) logger.info(`   Budget: $${options.budget} USD`);
           return;
         }
 
@@ -122,14 +123,14 @@ export function registerAgentCommand(program: Command): void {
 
         const newAgent = response.data;
 
-        console.log('✅ Agent spawned successfully!\n');
-        console.log(`   ID: ${newAgent.id}`);
-        console.log(`   Status: ${newAgent.status}`);
-        console.log(`   Model: ${newAgent.model}`);
+        logger.info('✅ Agent spawned successfully!\n');
+        logger.info(`   ID: ${newAgent.id}`);
+        logger.info(`   Status: ${newAgent.status}`);
+        logger.info(`   Model: ${newAgent.model}`);
         if (options.swarm) {
-          console.log(`   Swarm: ${options.swarm}`);
+          logger.info(`   Swarm: ${options.swarm}`);
         }
-        console.log(`\n💡 Use 'swarmctl agent get ${newAgent.id}' to check progress`);
+        logger.info(`\n💡 Use 'swarmctl agent get ${newAgent.id}' to check progress`);
 
       } catch (error) {
         console.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
@@ -159,35 +160,35 @@ export function registerAgentCommand(program: Command): void {
         const agent = response.data;
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(agent, null, 2));
+          logger.info(JSON.stringify(agent, null, 2));
           return;
         }
 
-        console.log(`🤖 Agent: ${agentId}\n`);
-        console.log(`   Status:       ${agent.status}`);
-        console.log(`   Model:        ${agent.model}`);
-        console.log(`   Task:         ${agent.task}`);
+        logger.info(`🤖 Agent: ${agentId}\n`);
+        logger.info(`   Status:       ${agent.status}`);
+        logger.info(`   Model:        ${agent.model}`);
+        logger.info(`   Task:         ${agent.task}`);
         
         if (agent.label) {
-          console.log(`   Label:        ${agent.label}`);
+          logger.info(`   Label:        ${agent.label}`);
         }
         
         if (agent.swarmId) {
-          console.log(`   Swarm:        ${agent.swarmId}`);
+          logger.info(`   Swarm:        ${agent.swarmId}`);
         }
         
         if (agent.parentId) {
-          console.log(`   Parent:       ${agent.parentId}`);
+          logger.info(`   Parent:       ${agent.parentId}`);
         }
         
         if (agent.childIds.length > 0) {
-          console.log(`   Children:     ${agent.childIds.length}`);
+          logger.info(`   Children:     ${agent.childIds.length}`);
         }
 
-        console.log(`\n   Timestamps:`);
-        console.log(`     Spawned:    ${agent.spawnedAt.toISOString()}`);
+        logger.info(`\n   Timestamps:`);
+        logger.info(`     Spawned:    ${agent.spawnedAt.toISOString()}`);
         if (agent.completedAt) {
-          console.log(`     Completed:  ${agent.completedAt.toISOString()}`);
+          logger.info(`     Completed:  ${agent.completedAt.toISOString()}`);
         }
 
         if (agent.runtime > 0) {
@@ -195,30 +196,30 @@ export function registerAgentCommand(program: Command): void {
           const minutes = Math.floor(seconds / 60);
           const hours = Math.floor(minutes / 60);
           const duration = hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m ${seconds % 60}s`;
-          console.log(`\n   Runtime:      ${duration}`);
+          logger.info(`\n   Runtime:      ${duration}`);
         }
 
-        console.log(`\n   Retries:      ${agent.retryCount}/${agent.maxRetries}`);
+        logger.info(`\n   Retries:      ${agent.retryCount}/${agent.maxRetries}`);
         
         if (agent.lastError) {
-          console.log(`\n   Last Error:   ${agent.lastError}`);
+          logger.info(`\n   Last Error:   ${agent.lastError}`);
         }
 
         if (agent.budgetLimit) {
-          console.log(`\n   Budget Limit: $${agent.budgetLimit.toFixed(2)} USD`);
+          logger.info(`\n   Budget Limit: $${agent.budgetLimit.toFixed(2)} USD`);
         }
 
-        console.log(`\n   Context Usage: ${(agent.context.contextUsage * 100).toFixed(1)}%`);
+        logger.info(`\n   Context Usage: ${(agent.context.contextUsage * 100).toFixed(1)}%`);
 
         if (options.logs) {
-          console.log(`\n   Recent Logs:`);
+          logger.info(`\n   Recent Logs:`);
           const logsResponse = await client.getAgentLogs(agentId, { lines: 20 });
           if (logsResponse.success && logsResponse.data && logsResponse.data.length > 0) {
             for (const log of logsResponse.data) {
-              console.log(`     ${log}`);
+              logger.info(`     ${log}`);
             }
           } else {
-            console.log('     (No logs available)');
+            logger.info('     (No logs available)');
           }
         }
 
@@ -250,20 +251,20 @@ export function registerAgentCommand(program: Command): void {
         const agent = getResponse.data;
 
         if (agent.status === 'killed' || agent.status === 'completed') {
-          console.log(`ℹ️  Agent ${agentId.slice(0, 16)}... is already ${agent.status}`);
+          logger.info(`ℹ️  Agent ${agentId.slice(0, 16)}... is already ${agent.status}`);
           return;
         }
 
-        console.log(`⚠️  You are about to kill agent: ${agentId}`);
-        console.log(`   Status: ${agent.status}`);
-        console.log(`   Task: ${agent.task.slice(0, 50)}${agent.task.length > 50 ? '...' : ''}`);
+        logger.info(`⚠️  You are about to kill agent: ${agentId}`);
+        logger.info(`   Status: ${agent.status}`);
+        logger.info(`   Task: ${agent.task.slice(0, 50)}${agent.task.length > 50 ? '...' : ''}`);
 
         if (!options.yes && !options.force) {
-          console.log('\n🛑 Use --yes to confirm kill');
+          logger.info('\n🛑 Use --yes to confirm kill');
           return;
         }
 
-        console.log('\n☠️  Killing agent...');
+        logger.info('\n☠️  Killing agent...');
         const response = await client.killAgent(agentId, options.force);
 
         if (!response.success) {
@@ -271,7 +272,7 @@ export function registerAgentCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log('✅ Agent killed');
+        logger.info('✅ Agent killed');
 
       } catch (error) {
         console.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
@@ -300,8 +301,8 @@ export function registerAgentCommand(program: Command): void {
         }
 
         if (options.follow) {
-          console.log(`📜 Following logs for agent ${agentId}...`);
-          console.log('(Press Ctrl+C to stop)\n');
+          logger.info(`📜 Following logs for agent ${agentId}...`);
+          logger.info('(Press Ctrl+C to stop)\n');
 
           let lastLineCount = 0;
 
@@ -312,7 +313,7 @@ export function registerAgentCommand(program: Command): void {
               if (logs.length > lastLineCount) {
                 const newLogs = logs.slice(lastLineCount);
                 for (const log of newLogs) {
-                  console.log(log);
+                  logger.info(log);
                 }
                 lastLineCount = logs.length;
               }
@@ -322,7 +323,7 @@ export function registerAgentCommand(program: Command): void {
           // Handle Ctrl+C
           process.on('SIGINT', () => {
             clearInterval(interval);
-            console.log('\n\n👋 Stopped following logs');
+            logger.info('\n\n👋 Stopped following logs');
             process.exit(0);
           });
 
@@ -339,13 +340,13 @@ export function registerAgentCommand(program: Command): void {
           const logs = logsResponse.data || [];
 
           if (logs.length === 0) {
-            console.log('📭 No logs found for this agent');
+            logger.info('📭 No logs found for this agent');
             return;
           }
 
-          console.log(`📜 Logs for agent ${agentId}:\n`);
+          logger.info(`📜 Logs for agent ${agentId}:\n`);
           for (const log of logs) {
-            console.log(log);
+            logger.info(log);
           }
         }
 

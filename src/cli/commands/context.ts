@@ -16,13 +16,13 @@ export function registerContextCommand(program: Command): void {
     .argument('[agent-id]', 'Agent ID')
     .option('-d, --depth <n>', 'Max depth')
     .action(async (agentId, options) => {
-      console.log('📁 Context tree:');
-      if (agentId) console.log(`Agent: ${agentId}`);
-      if (options.depth) console.log(`Depth: ${options.depth}`);
+      logger.info('📁 Context tree:');
+      if (agentId) logger.info(`Agent: ${agentId}`);
+      if (options.depth) logger.info(`Depth: ${options.depth}`);
       logger.info('context', '.');
-      console.log('├── src/');
-      console.log('├── tests/');
-      console.log('└── package.json');
+      logger.info('├── src/');
+      logger.info('├── tests/');
+      logger.info('└── package.json');
     });
 
   context
@@ -30,7 +30,7 @@ export function registerContextCommand(program: Command): void {
     .description('Analyze context usage')
     .argument('<agent-id>', 'Agent ID')
     .action(async (agentId) => {
-      console.log(`📊 Analyzing context for agent ${agentId}...`);
+      logger.info(`📊 Analyzing context for agent ${agentId}...`);
       logger.info('context', 'Total size: 1.2MB');
       logger.info('context', 'Files: 47');
       logger.info('context', 'Compression: 15%');
@@ -42,9 +42,9 @@ export function registerContextCommand(program: Command): void {
     .argument('<agent-id>', 'Agent ID')
     .option('--aggressive', 'Aggressive optimization')
     .action(async (agentId, options) => {
-      console.log(`⚡ Optimizing context for agent ${agentId}...`);
+      logger.info(`⚡ Optimizing context for agent ${agentId}...`);
       if (options.aggressive) logger.info('context', 'Aggressive mode enabled');
-      console.log('✅ Optimization complete');
+      logger.info('✅ Optimization complete');
     });
 
   context
@@ -52,7 +52,7 @@ export function registerContextCommand(program: Command): void {
     .description('Compact context storage')
     .argument('<agent-id>', 'Agent ID')
     .action(async (agentId) => {
-      console.log(`🗜️  Compacting context for agent ${agentId}...`);
-      console.log('✅ Compaction complete');
+      logger.info(`🗜️  Compacting context for agent ${agentId}...`);
+      logger.info('✅ Compaction complete');
     });
 }

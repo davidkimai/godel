@@ -16,9 +16,9 @@ export function registerTasksCommand(program: Command): void {
     .option('-s, --status <status>', 'Filter by status')
     .option('-a, --agent <agent-id>', 'Filter by agent')
     .action(async (options) => {
-      console.log('📋 Listing tasks...');
-      if (options.status) console.log('Status filter:', options.status);
-      if (options.agent) console.log('Agent filter:', options.agent);
+      logger.info('📋 Listing tasks...');
+      if (options.status) logger.info('Status filter:', options.status);
+      if (options.agent) logger.info('Agent filter:', options.agent);
       logger.info('tasks', 'No tasks found');
     });
 
@@ -29,9 +29,9 @@ export function registerTasksCommand(program: Command): void {
     .option('-d, --description <desc>', 'Task description')
     .option('-p, --priority <priority>', 'Priority (low|medium|high)', 'medium')
     .action(async (title, options) => {
-      console.log('✅ Creating task:', title);
-      console.log('Description:', options.description);
-      console.log('Priority:', options.priority);
+      logger.info('✅ Creating task:', title);
+      logger.info('Description:', options.description);
+      logger.info('Priority:', options.priority);
     });
 
   tasks
@@ -40,7 +40,7 @@ export function registerTasksCommand(program: Command): void {
     .argument('<task-id>', 'Task ID')
     .argument('<agent-id>', 'Agent ID')
     .action(async (taskId, agentId) => {
-      console.log(`📤 Assigning task ${taskId} to agent ${agentId}...`);
+      logger.info(`📤 Assigning task ${taskId} to agent ${agentId}...`);
     });
 
   tasks
@@ -48,7 +48,7 @@ export function registerTasksCommand(program: Command): void {
     .description('Mark task as complete')
     .argument('<task-id>', 'Task ID')
     .action(async (taskId) => {
-      console.log(`✅ Marking task ${taskId} as complete...`);
+      logger.info(`✅ Marking task ${taskId} as complete...`);
     });
 
   tasks
@@ -56,8 +56,8 @@ export function registerTasksCommand(program: Command): void {
     .description('Show task details')
     .argument('<task-id>', 'Task ID')
     .action(async (taskId) => {
-      console.log(`📄 Task ${taskId} details:`);
-      console.log('  Status: pending');
-      console.log('  Assigned to: none');
+      logger.info(`📄 Task ${taskId} details:`);
+      logger.info('  Status: pending');
+      logger.info('  Assigned to: none');
     });
 }

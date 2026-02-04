@@ -61,7 +61,7 @@ export function createWorkflowCommand(): Command {
         const client = getClient();
         const workflow = await client.workflows.create(workflowDef);
         
-        console.log(`✅ Workflow created: ${workflow.id}`);
+        logger.info(`✅ Workflow created: ${workflow.id}`);
         formatOutput(workflow, options.format);
       } catch (error) {
         logger.error('Failed to create workflow', { error });
@@ -89,7 +89,7 @@ export function createWorkflowCommand(): Command {
         const client = getClient();
         const execution = await client.workflows.run(id, input);
         
-        console.log(`🚀 Workflow execution started: ${execution.id}`);
+        logger.info(`🚀 Workflow execution started: ${execution.id}`);
         formatOutput(execution, options.format);
       } catch (error) {
         logger.error('Failed to run workflow', { error });
@@ -105,7 +105,7 @@ export function createWorkflowCommand(): Command {
         const client = getClient();
         await client.workflows.stop(executionId);
         
-        console.log(`🛑 Workflow execution stopped: ${executionId}`);
+        logger.info(`🛑 Workflow execution stopped: ${executionId}`);
       } catch (error) {
         logger.error('Failed to stop workflow', { error });
         process.exit(1);
@@ -119,14 +119,14 @@ export function createWorkflowCommand(): Command {
     .action(async (id, options) => {
       try {
         if (!options.yes) {
-          console.log('⚠️  Are you sure? Use --yes to confirm');
+          logger.info('⚠️  Are you sure? Use --yes to confirm');
           process.exit(1);
         }
         
         const client = getClient();
         await client.workflows.delete(id);
         
-        console.log(`🗑️  Workflow deleted: ${id}`);
+        logger.info(`🗑️  Workflow deleted: ${id}`);
       } catch (error) {
         logger.error('Failed to delete workflow', { error });
         process.exit(1);
@@ -146,7 +146,7 @@ export function createWorkflowCommand(): Command {
           // Stream logs
           const stream = await client.workflows.streamLogs(executionId);
           stream.on('data', (log) => {
-            console.log(`[${log.timestamp}] ${log.level}: ${log.message}`);
+            logger.info(`[${log.timestamp}] ${log.level}: ${log.message}`);
           });
         } else {
           const logs = await client.workflows.getLogs(executionId);

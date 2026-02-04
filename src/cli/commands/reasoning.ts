@@ -17,9 +17,9 @@ export function registerReasoningCommand(program: Command): void {
     .option('-t, --type <type>', 'Filter by trace type')
     .option('-l, --limit <n>', 'Limit results', '10')
     .action(async (agentId, options) => {
-      console.log(`🧠 Reasoning traces for agent ${agentId}:`);
-      if (options.type) console.log('Type filter:', options.type);
-      console.log(`Showing last ${options.limit} traces...`);
+      logger.info(`🧠 Reasoning traces for agent ${agentId}:`);
+      if (options.type) logger.info('Type filter:', options.type);
+      logger.info(`Showing last ${options.limit} traces...`);
       logger.info('reasoning', 'No traces found');
     });
 
@@ -29,8 +29,8 @@ export function registerReasoningCommand(program: Command): void {
     .argument('<agent-id>', 'Agent ID')
     .option('-f, --format <format>', 'Output format', 'table')
     .action(async (agentId, options) => {
-      console.log(`🎯 Decisions for agent ${agentId}:`);
-      console.log('Format:', options.format);
+      logger.info(`🎯 Decisions for agent ${agentId}:`);
+      logger.info('Format:', options.format);
       logger.info('reasoning', 'No decisions recorded');
     });
 
@@ -40,9 +40,9 @@ export function registerReasoningCommand(program: Command): void {
     .argument('<agent-id>', 'Agent ID')
     .option('--confidence', 'Check confidence alignment')
     .action(async (agentId, options) => {
-      console.log(`🔍 Analyzing reasoning for agent ${agentId}...`);
+      logger.info(`🔍 Analyzing reasoning for agent ${agentId}...`);
       if (options.confidence) logger.info('reasoning', 'Checking confidence-evidence alignment...');
-      console.log('✅ Analysis complete');
+      logger.info('✅ Analysis complete');
     });
 
   reasoning
@@ -50,7 +50,7 @@ export function registerReasoningCommand(program: Command): void {
     .description('Summarize reasoning for a task')
     .argument('<task-id>', 'Task ID')
     .action(async (taskId) => {
-      console.log(`📝 Summarizing reasoning for task ${taskId}...`);
-      console.log('Summary: Task completed successfully');
+      logger.info(`📝 Summarizing reasoning for task ${taskId}...`);
+      logger.info('Summary: Task completed successfully');
     });
 }

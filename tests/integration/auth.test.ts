@@ -1,3 +1,4 @@
+import { logger } from '../../src/utils/logger';
 /**
  * Authentication Integration Tests
  * 
@@ -65,7 +66,7 @@ describe('Dash Authentication Integration', () => {
 
       // If auth is not implemented, skip
       if (loginRes.status === 404) {
-        console.log('JWT auth not implemented, skipping');
+        logger.info('JWT auth not implemented, skipping');
         return;
       }
 

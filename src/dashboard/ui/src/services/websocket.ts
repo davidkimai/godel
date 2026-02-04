@@ -1,3 +1,4 @@
+import { logger } from '../../../../utils/logger';
 /**
  * WebSocket Service
  * 
@@ -52,7 +53,7 @@ class WebSocketService {
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      console.log('[WebSocket] Already connected');
+      logger.info('[WebSocket] Already connected');
       return;
     }
 
@@ -68,7 +69,7 @@ class WebSocketService {
       this.ws.onclose = this.handleClose.bind(this);
       this.ws.onerror = this.handleError.bind(this);
       
-      console.log('[WebSocket] Connecting...');
+      logger.info('[WebSocket] Connecting...');
     } catch (error) {
       console.error('[WebSocket] Connection error:', error);
       this.handleError(error as Error);
@@ -110,7 +111,7 @@ class WebSocketService {
   // ========================================================================
 
   private handleOpen(): void {
-    console.log('[WebSocket] Connected');
+    logger.info('[WebSocket] Connected');
     this.reconnectAttempts = 0;
     this.connectionHandlers.forEach(handler => handler());
     this.startHeartbeat();
@@ -163,7 +164,7 @@ class WebSocketService {
   }
 
   private handleClose(event: CloseEvent): void {
-    console.log(`[WebSocket] Closed: ${event.code} ${event.reason}`);
+    logger.info(`[WebSocket] Closed: ${event.code} ${event.reason}`);
     
     this.stopHeartbeat();
     this.disconnectionHandlers.forEach(handler => handler());
@@ -198,7 +199,7 @@ class WebSocketService {
     this.reconnectAttempts++;
     const delay = this.options.reconnectInterval * Math.min(this.reconnectAttempts, 5);
     
-    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+    logger.info(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
     
     this.reconnectTimer = setTimeout(() => {
       this.connect();

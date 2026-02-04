@@ -1,3 +1,4 @@
+import { logger } from '../../src/utils/logger';
 /**
  * Load Testing Harness for Dash
  * 
@@ -238,8 +239,8 @@ export class LoadTestGenerator {
    * Run the load test
    */
   async run(): Promise<LoadTestResult> {
-    console.log(`\n🚀 Starting load test: ${this.config.agentCount} agents`);
-    console.log(`   Duration: ${this.config.durationMs}ms | Event rate: ${this.config.eventRate}/sec`);
+    logger.info(`\n🚀 Starting load test: ${this.config.agentCount} agents`);
+    logger.info(`   Duration: ${this.config.durationMs}ms | Event rate: ${this.config.eventRate}/sec`);
 
     const startTime = performance.now();
     const startMemory = process.memoryUsage();
@@ -254,7 +255,7 @@ export class LoadTestGenerator {
 
     // Warmup phase
     if (this.config.warmupMs > 0) {
-      console.log(`   Warmup: ${this.config.warmupMs}ms...`);
+      logger.info(`   Warmup: ${this.config.warmupMs}ms...`);
       await this.warmup();
     }
 
@@ -262,7 +263,7 @@ export class LoadTestGenerator {
     this.clearMetrics();
 
     // Run main test
-    console.log(`   Executing test...`);
+    logger.info(`   Executing test...`);
     const testPromise = this.executeTest();
     const monitorPromise = this.monitorMemory();
 
@@ -283,7 +284,7 @@ export class LoadTestGenerator {
       endMemory
     );
 
-    console.log(`   ✅ Test complete: ${result.success ? 'PASSED' : 'FAILED'}`);
+    logger.info(`   ✅ Test complete: ${result.success ? 'PASSED' : 'FAILED'}`);
     
     return result;
   }

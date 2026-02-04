@@ -146,8 +146,8 @@ Examples:
           }
           const taskId = options.agent ? `task-${options.agent}` : `task-${Date.now()}`;
           const config = setTaskBudget(taskId, options.task, options.cost);
-          console.log(`✅ Task budget set: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
-          console.log(`   Task ID: ${taskId}`);
+          logger.info(`✅ Task budget set: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
+          logger.info(`   Task ID: ${taskId}`);
         }
 
         if (options.daily) {
@@ -168,9 +168,9 @@ Examples:
             options.cost,
             options.resetHour
           );
-          console.log(`✅ Project daily budget set: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
-          console.log(`   Project: ${options.project}`);
-          console.log(`   Reset: ${config.resetHour}:00 UTC`);
+          logger.info(`✅ Project daily budget set: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
+          logger.info(`   Project: ${options.project}`);
+          logger.info(`   Reset: ${config.resetHour}:00 UTC`);
         }
       } catch (error) {
         logger.error('budget', 'Failed to set budget', { error: String(error) });
@@ -196,25 +196,25 @@ function createStatusCommand(): Command {
         if (options.agent) {
           const budgets = getAgentBudgetStatus(options.agent);
           if (budgets.length === 0) {
-            console.log(`No active budgets for agent: ${options.agent}`);
+            logger.info(`No active budgets for agent: ${options.agent}`);
             return;
           }
 
           if (options.format === 'json') {
-            console.log(JSON.stringify(budgets, null, 2));
+            logger.info(JSON.stringify(budgets, null, 2));
           } else {
-            console.log(`\nBUDGET STATUS: Agent ${options.agent}`);
-            console.log('═'.repeat(60));
+            logger.info(`\nBUDGET STATUS: Agent ${options.agent}`);
+            logger.info('═'.repeat(60));
             for (const budget of budgets) {
               const percentage = ((budget.costUsed.total / budget.budgetConfig.maxCost) * 100).toFixed(1);
-              console.log(`\nBudget: ${budget.id}`);
-              console.log(`  Task: ${budget.taskId}`);
-              console.log(`  Project: ${budget.projectId}`);
-              console.log(`  Status: ${budget.completedAt ? 'Completed' : 'Running'}`);
-              console.log(`  Cost: ${formatCurrency(budget.costUsed.total)} / ${formatCurrency(budget.budgetConfig.maxCost)} (${percentage}%)`);
-              console.log(`  Tokens: ${formatTokens(budget.tokensUsed.total)}`);
+              logger.info(`\nBudget: ${budget.id}`);
+              logger.info(`  Task: ${budget.taskId}`);
+              logger.info(`  Project: ${budget.projectId}`);
+              logger.info(`  Status: ${budget.completedAt ? 'Completed' : 'Running'}`);
+              logger.info(`  Cost: ${formatCurrency(budget.costUsed.total)} / ${formatCurrency(budget.budgetConfig.maxCost)} (${percentage}%)`);
+              logger.info(`  Tokens: ${formatTokens(budget.tokensUsed.total)}`);
               if (budget.thresholdHistory.length > 0) {
-                console.log(`  Warnings: ${budget.thresholdHistory.length}`);
+                logger.info(`  Warnings: ${budget.thresholdHistory.length}`);
               }
             }
           }
@@ -222,33 +222,33 @@ function createStatusCommand(): Command {
           const { budgets, totalUsed, config } = getProjectBudgetStatus(options.project);
           
           if (options.format === 'json') {
-            console.log(JSON.stringify({ budgets, totalUsed, config }, null, 2));
+            logger.info(JSON.stringify({ budgets, totalUsed, config }, null, 2));
           } else {
-            console.log(`\nBUDGET STATUS: Project ${options.project}`);
-            console.log('═'.repeat(60));
+            logger.info(`\nBUDGET STATUS: Project ${options.project}`);
+            logger.info('═'.repeat(60));
             
             if (config) {
               const percentage = ((totalUsed.total / config.maxCost) * 100).toFixed(1);
-              console.log(`\nBudget: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
-              console.log(`Used: ${formatCurrency(totalUsed.total)} (${percentage}%)`);
-              console.log(`Remaining: ${formatCurrency(Math.max(0, config.maxCost - totalUsed.total))}`);
+              logger.info(`\nBudget: ${formatTokens(config.maxTokens)} tokens / ${formatCurrency(config.maxCost)}`);
+              logger.info(`Used: ${formatCurrency(totalUsed.total)} (${percentage}%)`);
+              logger.info(`Remaining: ${formatCurrency(Math.max(0, config.maxCost - totalUsed.total))}`);
             } else {
               logger.info('budget', '\nNo budget configured for this project');
-              console.log(`Total used: ${formatCurrency(totalUsed.total)}`);
+              logger.info(`Total used: ${formatCurrency(totalUsed.total)}`);
             }
             
-            console.log(`\nActive Budgets: ${budgets.length}`);
+            logger.info(`\nActive Budgets: ${budgets.length}`);
             if (budgets.length > 0) {
-              console.log('\nAgent Breakdown:');
-              console.log('─'.repeat(60));
+              logger.info('\nAgent Breakdown:');
+              logger.info('─'.repeat(60));
               for (const budget of budgets.slice(0, 10)) {
                 const percentage = budget.budgetConfig.maxCost > 0 
                   ? ((budget.costUsed.total / budget.budgetConfig.maxCost) * 100).toFixed(0)
                   : '0';
-                console.log(`  ${budget.agentId.padEnd(20)} ${formatCurrency(budget.costUsed.total).padStart(10)} ${percentage.padStart(4)}%`);
+                logger.info(`  ${budget.agentId.padEnd(20)} ${formatCurrency(budget.costUsed.total).padStart(10)} ${percentage.padStart(4)}%`);
               }
               if (budgets.length > 10) {
-                console.log(`  ... and ${budgets.length - 10} more`);
+                logger.info(`  ... and ${budgets.length - 10} more`);
               }
             }
           }
@@ -257,17 +257,17 @@ function createStatusCommand(): Command {
           const allBudgets = Array.from(activeBudgets.values());
           
           if (options.format === 'json') {
-            console.log(JSON.stringify(allBudgets, null, 2));
+            logger.info(JSON.stringify(allBudgets, null, 2));
           } else {
             logger.info('budget', `\nBUDGET STATUS: All Active Budgets`);
-            console.log('═'.repeat(60));
-            console.log(`Total active budgets: ${allBudgets.length}`);
+            logger.info('═'.repeat(60));
+            logger.info(`Total active budgets: ${allBudgets.length}`);
             
             const totalCost = allBudgets.reduce((sum, b) => sum + b.costUsed.total, 0);
             const totalTokens = allBudgets.reduce((sum, b) => sum + b.tokensUsed.total, 0);
             
-            console.log(`Total cost: ${formatCurrency(totalCost)}`);
-            console.log(`Total tokens: ${formatTokens(totalTokens)}`);
+            logger.info(`Total cost: ${formatCurrency(totalCost)}`);
+            logger.info(`Total tokens: ${formatTokens(totalTokens)}`);
             
             // Group by project
             const byProject = new Map<string, typeof allBudgets>();
@@ -278,10 +278,10 @@ function createStatusCommand(): Command {
             }
             
             logger.info('budget', `\nBy Project:`);
-            console.log('─'.repeat(60));
+            logger.info('─'.repeat(60));
             for (const [project, budgets] of byProject) {
               const projectCost = budgets.reduce((sum, b) => sum + b.costUsed.total, 0);
-              console.log(`  ${project.padEnd(20)} ${formatCurrency(projectCost).padStart(10)} (${budgets.length} budgets)`);
+              logger.info(`  ${project.padEnd(20)} ${formatCurrency(projectCost).padStart(10)} (${budgets.length} budgets)`);
             }
           }
         }
@@ -314,22 +314,22 @@ function createUsageCommand(): Command {
         const costHistory = getCostHistory({ projectId: options.project, since });
         
         if (options.format === 'json') {
-          console.log(JSON.stringify({ report, costHistory }, null, 2));
+          logger.info(JSON.stringify({ report, costHistory }, null, 2));
         } else {
-          console.log(`\nBUDGET USAGE: ${options.project}`);
-          console.log('═'.repeat(70));
-          console.log(`Period: ${report.period} (${report.startDate.toISOString().split('T')[0]} to ${report.endDate.toISOString().split('T')[0]})`);
-          console.log(`\nTotal Budget: ${formatCurrency(report.totalBudget)}`);
-          console.log(`Total Used: ${formatCurrency(report.totalUsed)} (${report.percentageUsed.toFixed(1)}%)`);
-          console.log(`Remaining: ${formatCurrency(report.totalRemaining)}`);
+          logger.info(`\nBUDGET USAGE: ${options.project}`);
+          logger.info('═'.repeat(70));
+          logger.info(`Period: ${report.period} (${report.startDate.toISOString().split('T')[0]} to ${report.endDate.toISOString().split('T')[0]})`);
+          logger.info(`\nTotal Budget: ${formatCurrency(report.totalBudget)}`);
+          logger.info(`Total Used: ${formatCurrency(report.totalUsed)} (${report.percentageUsed.toFixed(1)}%)`);
+          logger.info(`Remaining: ${formatCurrency(report.totalRemaining)}`);
           
           if (report.agentBreakdown.length > 0) {
             logger.info('budget', `\nAgent Breakdown:`);
-            console.log('─'.repeat(70));
-            console.log(`${'Agent'.padEnd(20)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)} ${'%'.padStart(6)} ${'Status'.padStart(10)}`);
-            console.log('─'.repeat(70));
+            logger.info('─'.repeat(70));
+            logger.info(`${'Agent'.padEnd(20)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)} ${'%'.padStart(6)} ${'Status'.padStart(10)}`);
+            logger.info('─'.repeat(70));
             for (const agent of report.agentBreakdown) {
-              console.log(
+              logger.info(
                 `${agent.agentId.slice(0, 20).padEnd(20)} ` +
                 `${formatCurrency(agent.costUsed).padStart(12)} ` +
                 `${formatTokens(agent.tokensUsed).padStart(12)} ` +
@@ -341,11 +341,11 @@ function createUsageCommand(): Command {
           
           if (report.dailyUsage.length > 0) {
             logger.info('budget', `\nDaily Usage:`);
-            console.log('─'.repeat(50));
-            console.log(`${'Date'.padEnd(12)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)}`);
-            console.log('─'.repeat(50));
+            logger.info('─'.repeat(50));
+            logger.info(`${'Date'.padEnd(12)} ${'Cost'.padStart(12)} ${'Tokens'.padStart(12)}`);
+            logger.info('─'.repeat(50));
             for (const day of report.dailyUsage.slice(-14)) { // Show last 14 days
-              console.log(
+              logger.info(
                 `${day.date.padEnd(12)} ` +
                 `${formatCurrency(day.cost).padStart(12)} ` +
                 `${formatTokens(day.tokens).padStart(12)}`
@@ -357,11 +357,11 @@ function createUsageCommand(): Command {
           const byModel = aggregateCostsByModel(costHistory);
           if (byModel.size > 0) {
             logger.info('budget', `\nUsage by Model:`);
-            console.log('─'.repeat(50));
-            console.log(`${'Model'.padEnd(25)} ${'Cost'.padStart(12)} ${'Requests'.padStart(10)}`);
-            console.log('─'.repeat(50));
+            logger.info('─'.repeat(50));
+            logger.info(`${'Model'.padEnd(25)} ${'Cost'.padStart(12)} ${'Requests'.padStart(10)}`);
+            logger.info('─'.repeat(50));
             for (const [model, stats] of byModel) {
-              console.log(
+              logger.info(
                 `${model.slice(0, 25).padEnd(25)} ` +
                 `${formatCurrency(stats.cost).padStart(12)} ` +
                 `${stats.count.toString().padStart(10)}`
@@ -407,12 +407,12 @@ function createAlertCommand(): Command {
               sms: options.sms,
             });
 
-            console.log(`✅ Alert added: ${options.threshold}% threshold`);
-            console.log(`   Project: ${options.project}`);
-            console.log(`   Alert ID: ${alert.id}`);
-            if (options.webhook) console.log(`   Webhook: ${options.webhook}`);
-            if (options.email) console.log(`   Email: ${options.email}`);
-            if (options.sms) console.log(`   SMS: ${options.sms}`);
+            logger.info(`✅ Alert added: ${options.threshold}% threshold`);
+            logger.info(`   Project: ${options.project}`);
+            logger.info(`   Alert ID: ${alert.id}`);
+            if (options.webhook) logger.info(`   Webhook: ${options.webhook}`);
+            if (options.email) logger.info(`   Email: ${options.email}`);
+            if (options.sms) logger.info(`   SMS: ${options.sms}`);
           } catch (error) {
             logger.error('budget', 'Failed to add alert', { error: String(error) });
             process.exit(1);
@@ -431,20 +431,20 @@ function createAlertCommand(): Command {
           if (options.project) {
             const alerts = getBudgetAlerts(options.project);
             if (options.format === 'json') {
-              console.log(JSON.stringify(alerts, null, 2));
+              logger.info(JSON.stringify(alerts, null, 2));
             } else {
-              console.log(`\nBUDGET ALERTS: ${options.project}`);
-              console.log('═'.repeat(60));
+              logger.info(`\nBUDGET ALERTS: ${options.project}`);
+              logger.info('═'.repeat(60));
               if (alerts.length === 0) {
                 logger.info('budget', 'No alerts configured');
               } else {
-                console.log(`${'ID'.padEnd(25)} ${'Threshold'.padStart(10)} ${'Type'.padStart(15)}`);
-                console.log('─'.repeat(60));
+                logger.info(`${'ID'.padEnd(25)} ${'Threshold'.padStart(10)} ${'Type'.padStart(15)}`);
+                logger.info('─'.repeat(60));
                 for (const alert of alerts) {
                   const type = alert.webhookUrl ? 'webhook' : alert.email ? 'email' : 'sms';
                   const destination = alert.webhookUrl || alert.email || alert.sms;
-                  console.log(`${alert.id.slice(0, 25).padEnd(25)} ${(alert.threshold + '%').padStart(10)} ${type.padStart(15)}`);
-                  console.log(`  → ${destination}`);
+                  logger.info(`${alert.id.slice(0, 25).padEnd(25)} ${(alert.threshold + '%').padStart(10)} ${type.padStart(15)}`);
+                  logger.info(`  → ${destination}`);
                 }
               }
             }
@@ -468,7 +468,7 @@ function createAlertCommand(): Command {
         try {
           const removed = removeBudgetAlert(options.project, alertId);
           if (removed) {
-            console.log(`✅ Alert ${alertId} removed`);
+            logger.info(`✅ Alert ${alertId} removed`);
           } else {
             console.error(`Alert not found: ${alertId}`);
             process.exit(1);
@@ -499,23 +499,23 @@ function createHistoryCommand(): Command {
         const history = getBudgetHistory(options.project, since);
         
         if (options.format === 'json') {
-          console.log(JSON.stringify(history, null, 2));
+          logger.info(JSON.stringify(history, null, 2));
         } else {
-          console.log(`\nBUDGET HISTORY: ${options.project}`);
-          console.log('═'.repeat(70));
-          console.log(`Since: ${since.toISOString()}`);
-          console.log(`Total events: ${history.length}`);
+          logger.info(`\nBUDGET HISTORY: ${options.project}`);
+          logger.info('═'.repeat(70));
+          logger.info(`Since: ${since.toISOString()}`);
+          logger.info(`Total events: ${history.length}`);
           
           if (history.length > 0) {
-            console.log('\n' + `${'Time'.padEnd(20)} ${'Event'.padEnd(20)} ${'Details'.padEnd(30)}`);
-            console.log('─'.repeat(70));
+            logger.info('\n' + `${'Time'.padEnd(20)} ${'Event'.padEnd(20)} ${'Details'.padEnd(30)}`);
+            logger.info('─'.repeat(70));
             for (const entry of history.slice(0, 50)) { // Show last 50 events
               const time = entry.timestamp.toISOString().replace('T', ' ').slice(0, 19);
               const details = JSON.stringify(entry.details).slice(0, 30);
-              console.log(`${time.padEnd(20)} ${entry.eventType.padEnd(20)} ${details.padEnd(30)}`);
+              logger.info(`${time.padEnd(20)} ${entry.eventType.padEnd(20)} ${details.padEnd(30)}`);
             }
             if (history.length > 50) {
-              console.log(`\n... and ${history.length - 50} more events`);
+              logger.info(`\n... and ${history.length - 50} more events`);
             }
           }
         }
@@ -541,33 +541,33 @@ function createReportCommand(): Command {
         const report = generateBudgetReport(options.project, options.period);
         
         if (options.format === 'json') {
-          console.log(JSON.stringify(report, null, 2));
+          logger.info(JSON.stringify(report, null, 2));
         } else {
-          console.log(`\n╔════════════════════════════════════════════════════════════════════╗`);
-          console.log(`║                    BUDGET REPORT                                   ║`);
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
-          console.log(`║ PROJECT: ${options.project.padEnd(53)} ║`);
-          console.log(`║ Period: ${options.period.padEnd(54)} ║`);
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
-          console.log(`║ Budget: ${formatCurrency(report.totalBudget).padEnd(54)} ║`);
-          console.log(`║ Used:   ${formatCurrency(report.totalUsed).padEnd(10)} (${report.percentageUsed.toFixed(1)}%)${''.padEnd(33)} ║`);
-          console.log(`║ Remaining: ${formatCurrency(report.totalRemaining).padEnd(51)} ║`);
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
-          console.log(`║ AGENTS                    COST        TOKENS      STATUS           ║`);
-          console.log(`║ ─────────────────────────────────────────────────────────────────  ║`);
+          logger.info(`\n╔════════════════════════════════════════════════════════════════════╗`);
+          logger.info(`║                    BUDGET REPORT                                   ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ PROJECT: ${options.project.padEnd(53)} ║`);
+          logger.info(`║ Period: ${options.period.padEnd(54)} ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ Budget: ${formatCurrency(report.totalBudget).padEnd(54)} ║`);
+          logger.info(`║ Used:   ${formatCurrency(report.totalUsed).padEnd(10)} (${report.percentageUsed.toFixed(1)}%)${''.padEnd(33)} ║`);
+          logger.info(`║ Remaining: ${formatCurrency(report.totalRemaining).padEnd(51)} ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ AGENTS                    COST        TOKENS      STATUS           ║`);
+          logger.info(`║ ─────────────────────────────────────────────────────────────────  ║`);
           
           for (const agent of report.agentBreakdown.slice(0, 8)) {
             const cost = formatCurrency(agent.costUsed).padStart(8);
             const tokens = formatTokens(agent.tokensUsed).padStart(8);
             const status = agent.status.padStart(10);
-            console.log(`║ ${agent.agentId.slice(0, 25).padEnd(25)} ${cost} ${tokens} ${status}    ║`);
+            logger.info(`║ ${agent.agentId.slice(0, 25).padEnd(25)} ${cost} ${tokens} ${status}    ║`);
           }
           
           if (report.agentBreakdown.length > 8) {
-            console.log(`║ ... and ${(report.agentBreakdown.length - 8).toString().padEnd(52)} more ║`);
+            logger.info(`║ ... and ${(report.agentBreakdown.length - 8).toString().padEnd(52)} more ║`);
           }
           
-          console.log(`╚════════════════════════════════════════════════════════════════════╝`);
+          logger.info(`╚════════════════════════════════════════════════════════════════════╝`);
         }
       } catch (error) {
         logger.error('budget', 'Failed to generate report', { error: String(error) });
@@ -594,18 +594,18 @@ function createBlockedCommand(): Command {
             const blocked = getAllBlockedAgents();
             
             if (options.format === 'json') {
-              console.log(JSON.stringify(blocked, null, 2));
+              logger.info(JSON.stringify(blocked, null, 2));
             } else {
               logger.info('budget', `\nBLOCKED AGENTS`);
-              console.log('═'.repeat(70));
+              logger.info('═'.repeat(70));
               if (blocked.length === 0) {
                 logger.info('budget', 'No blocked agents');
               } else {
-                console.log(`${'Agent'.padEnd(20)} ${'Blocked At'.padEnd(20)} ${'Threshold'.padStart(10)}`);
-                console.log('─'.repeat(70));
+                logger.info(`${'Agent'.padEnd(20)} ${'Blocked At'.padEnd(20)} ${'Threshold'.padStart(10)}`);
+                logger.info('─'.repeat(70));
                 for (const agent of blocked) {
                   const time = agent.blockedAt.toISOString().replace('T', ' ').slice(0, 19);
-                  console.log(
+                  logger.info(
                     `${agent.agentId.slice(0, 20).padEnd(20)} ` +
                     `${time.padEnd(20)} ` +
                     `${(agent.threshold + '%').padStart(10)}`
@@ -628,7 +628,7 @@ function createBlockedCommand(): Command {
         try {
           const unblocked = unblockAgent(agentId);
           if (unblocked) {
-            console.log(`✅ Agent ${agentId} unblocked`);
+            logger.info(`✅ Agent ${agentId} unblocked`);
           } else {
             console.error(`Agent not found or not blocked: ${agentId}`);
             process.exit(1);
@@ -656,47 +656,47 @@ function createDashboardCommand(): Command {
         const allBudgets = Array.from(activeBudgets.values());
         const blocked = getAllBlockedAgents();
         
-        console.log(`\n╔════════════════════════════════════════════════════════════════════╗`);
-        console.log(`║                        BUDGET DASHBOARD                            ║`);
-        console.log(`╠════════════════════════════════════════════════════════════════════╣`);
+        logger.info(`\n╔════════════════════════════════════════════════════════════════════╗`);
+        logger.info(`║                        BUDGET DASHBOARD                            ║`);
+        logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
         
         if (options.project) {
           const { totalUsed, config } = getProjectBudgetStatus(options.project);
           const percentage = config ? ((totalUsed.total / config.maxCost) * 100).toFixed(1) : '0';
           
-          console.log(`║ PROJECT: ${options.project.padEnd(53)} ║`);
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ PROJECT: ${options.project.padEnd(53)} ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
           if (config) {
-            console.log(`║ Budget: ${formatCurrency(config.maxCost).padEnd(54)} ║`);
-            console.log(`║ Used:   ${formatCurrency(totalUsed.total).padEnd(10)} (${percentage}%)${''.padEnd(33)} ║`);
-            console.log(`║ Remaining: ${formatCurrency(Math.max(0, config.maxCost - totalUsed.total)).padEnd(51)} ║`);
+            logger.info(`║ Budget: ${formatCurrency(config.maxCost).padEnd(54)} ║`);
+            logger.info(`║ Used:   ${formatCurrency(totalUsed.total).padEnd(10)} (${percentage}%)${''.padEnd(33)} ║`);
+            logger.info(`║ Remaining: ${formatCurrency(Math.max(0, config.maxCost - totalUsed.total)).padEnd(51)} ║`);
           } else {
-            console.log(`║ No budget configured                                               ║`);
-            console.log(`║ Total used: ${formatCurrency(totalUsed.total).padEnd(52)} ║`);
+            logger.info(`║ No budget configured                                               ║`);
+            logger.info(`║ Total used: ${formatCurrency(totalUsed.total).padEnd(52)} ║`);
           }
         } else {
           const totalCost = allBudgets.reduce((sum, b) => sum + b.costUsed.total, 0);
           const totalTokens = allBudgets.reduce((sum, b) => sum + b.tokensUsed.total, 0);
           
-          console.log(`║ ALL PROJECTS                                                       ║`);
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
-          console.log(`║ Active Budgets: ${allBudgets.length.toString().padEnd(48)} ║`);
-          console.log(`║ Total Cost: ${formatCurrency(totalCost).padEnd(52)} ║`);
-          console.log(`║ Total Tokens: ${formatTokens(totalTokens).padEnd(50)} ║`);
+          logger.info(`║ ALL PROJECTS                                                       ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ Active Budgets: ${allBudgets.length.toString().padEnd(48)} ║`);
+          logger.info(`║ Total Cost: ${formatCurrency(totalCost).padEnd(52)} ║`);
+          logger.info(`║ Total Tokens: ${formatTokens(totalTokens).padEnd(50)} ║`);
         }
         
         if (blocked.length > 0) {
-          console.log(`╠════════════════════════════════════════════════════════════════════╣`);
-          console.log(`║ ⚠️  ALERTS: ${blocked.length.toString().padEnd(51)} blocked agents ║`);
+          logger.info(`╠════════════════════════════════════════════════════════════════════╣`);
+          logger.info(`║ ⚠️  ALERTS: ${blocked.length.toString().padEnd(51)} blocked agents ║`);
           for (const agent of blocked.slice(0, 3)) {
-            console.log(`║    • ${agent.agentId.slice(0, 50).padEnd(50)} ║`);
+            logger.info(`║    • ${agent.agentId.slice(0, 50).padEnd(50)} ║`);
           }
           if (blocked.length > 3) {
-            console.log(`║    • ... and ${(blocked.length - 3).toString().padEnd(47)} more ║`);
+            logger.info(`║    • ... and ${(blocked.length - 3).toString().padEnd(47)} more ║`);
           }
         }
         
-        console.log(`╚════════════════════════════════════════════════════════════════════╝`);
+        logger.info(`╚════════════════════════════════════════════════════════════════════╝`);
         
         // Show recent high usage
         const highUsage = allBudgets
@@ -707,9 +707,9 @@ function createDashboardCommand(): Command {
           .slice(0, 5);
         
         if (highUsage.length > 0) {
-          console.log(`\n⚠️  High Usage Agents (>75%):`);
+          logger.info(`\n⚠️  High Usage Agents (>75%):`);
           for (const budget of highUsage) {
-            console.log(`   ${budget.agentId}: ${budget.pct.toFixed(1)}% (${formatCurrency(budget.costUsed.total)})`);
+            logger.info(`   ${budget.agentId}: ${budget.pct.toFixed(1)}% (${formatCurrency(budget.costUsed.total)})`);
           }
         }
       } catch (error) {

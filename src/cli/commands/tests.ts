@@ -17,11 +17,11 @@ export function registerTestsCommand(program: Command): void {
     .option('-w, --watch', 'Watch mode')
     .option('-c, --coverage', 'Generate coverage report')
     .action(async (pattern, options) => {
-      console.log('🧪 Running tests...');
-      if (pattern) console.log('Pattern:', pattern);
+      logger.info('🧪 Running tests...');
+      if (pattern) logger.info('Pattern:', pattern);
       if (options.watch) logger.info('tests', 'Watch mode enabled');
       if (options.coverage) logger.info('tests', 'Coverage enabled');
-      console.log('✅ All tests passed');
+      logger.info('✅ All tests passed');
     });
 
   tests
@@ -29,11 +29,11 @@ export function registerTestsCommand(program: Command): void {
     .description('Show coverage report')
     .option('-f, --format <format>', 'Output format', 'text')
     .action(async (options) => {
-      console.log('📊 Coverage Report:');
-      console.log('  Statements: 85%');
-      console.log('  Branches: 78%');
-      console.log('  Functions: 90%');
-      console.log('  Lines: 84%');
+      logger.info('📊 Coverage Report:');
+      logger.info('  Statements: 85%');
+      logger.info('  Branches: 78%');
+      logger.info('  Functions: 90%');
+      logger.info('  Lines: 84%');
     });
 
   tests
@@ -41,8 +41,8 @@ export function registerTestsCommand(program: Command): void {
     .description('List test files')
     .option('-p, --path <path>', 'Test directory', './tests')
     .action(async (options) => {
-      console.log('📋 Test files:');
-      console.log('  No test files found');
+      logger.info('📋 Test files:');
+      logger.info('  No test files found');
     });
 
   tests
@@ -50,8 +50,8 @@ export function registerTestsCommand(program: Command): void {
     .description('Watch tests')
     .argument('[pattern]', 'Test pattern')
     .action(async (pattern) => {
-      console.log('👀 Watching tests...');
-      if (pattern) console.log('Pattern:', pattern);
+      logger.info('👀 Watching tests...');
+      if (pattern) logger.info('Pattern:', pattern);
       logger.info('tests', '(Press Ctrl+C to stop)');
     });
 }

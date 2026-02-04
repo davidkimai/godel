@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 7: Database Consistency Integration Tests
  * 
@@ -23,7 +24,7 @@ describe('Scenario 7: Database Consistency', () => {
       // Test connection
       await db.query('SELECT 1');
     } catch (error) {
-      console.log('PostgreSQL not available, using SQLite fallback');
+      logger.info('PostgreSQL not available, using SQLite fallback');
       db = null;
     }
   });
@@ -53,7 +54,7 @@ describe('Scenario 7: Database Consistency', () => {
   describe('Concurrent Writes', () => {
     it('should handle concurrent agent inserts', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -95,7 +96,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should handle concurrent updates to same record', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -135,7 +136,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should handle concurrent reads during writes', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -184,7 +185,7 @@ describe('Scenario 7: Database Consistency', () => {
   describe('Atomic Operations', () => {
     it('should execute transactions atomically', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -236,7 +237,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should rollback on transaction failure', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -276,7 +277,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should handle deadlocks gracefully', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -313,7 +314,7 @@ describe('Scenario 7: Database Consistency', () => {
   describe('Data Integrity', () => {
     it('should enforce foreign key constraints', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -328,7 +329,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should enforce unique constraints', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -351,7 +352,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should maintain referential integrity on delete', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -395,7 +396,7 @@ describe('Scenario 7: Database Consistency', () => {
   describe('Concurrent Connection Handling', () => {
     it('should handle many concurrent connections', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -418,7 +419,7 @@ describe('Scenario 7: Database Consistency', () => {
 
     it('should handle connection pool exhaustion gracefully', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 
@@ -436,7 +437,7 @@ describe('Scenario 7: Database Consistency', () => {
   describe('Isolation Levels', () => {
     it('should respect transaction isolation', async () => {
       if (!db) {
-        console.log('Skipping PostgreSQL test - using SQLite');
+        logger.info('Skipping PostgreSQL test - using SQLite');
         return;
       }
 

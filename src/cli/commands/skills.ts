@@ -127,25 +127,25 @@ export function registerSkillsCommand(program: Command): void {
         }
 
         if (displaySkills.length === 0) {
-          console.log(chalk.yellow('No skills installed.'));
-          console.log(chalk.gray('\nInstall skills with:'));
-          console.log(chalk.gray('  dash skills install <skill>'));
-          console.log(chalk.gray('\nSearch for skills with:'));
-          console.log(chalk.gray('  dash skills search <query>'));
-          console.log(chalk.gray('\nAvailable sources:'));
+          logger.info(chalk.yellow('No skills installed.'));
+          logger.info(chalk.gray('\nInstall skills with:'));
+          logger.info(chalk.gray('  dash skills install <skill>'));
+          logger.info(chalk.gray('\nSearch for skills with:'));
+          logger.info(chalk.gray('  dash skills search <query>'));
+          logger.info(chalk.gray('\nAvailable sources:'));
           const sources = registry.getSources();
           for (const source of sources) {
-            console.log(chalk.gray(`  - ${source.name}: ${source.url}`));
+            logger.info(chalk.gray(`  - ${source.name}: ${source.url}`));
           }
           return;
         }
 
         if (options.json) {
-          console.log(JSON.stringify(displaySkills, null, 2));
+          logger.info(JSON.stringify(displaySkills, null, 2));
           return;
         }
 
-        console.log(chalk.bold(`Installed Skills (${displaySkills.length}):\n`));
+        logger.info(chalk.bold(`Installed Skills (${displaySkills.length}):\n`));
 
         // Group by source
         const bySource: Record<SkillSource, UnifiedInstalledSkill[]> = {
@@ -156,8 +156,8 @@ export function registerSkillsCommand(program: Command): void {
         for (const [source, sourceSkills] of Object.entries(bySource)) {
           if (sourceSkills.length === 0) continue;
           
-          console.log(formatSourceBadge(source as SkillSource));
-          console.log();
+          logger.info(formatSourceBadge(source as SkillSource));
+          logger.info('');
 
           // Group by state
           const active = sourceSkills.filter(s => s.activationState === 'active');
@@ -165,21 +165,21 @@ export function registerSkillsCommand(program: Command): void {
 
           if (active.length > 0) {
             for (const skill of active) {
-              console.log(`  ${chalk.green('✓')} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)} ${formatActivationState(skill.activationState)}`);
-              console.log(chalk.gray(`    ${truncate(skill.description, 60)}`));
+              logger.info(`  ${chalk.green('✓')} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)} ${formatActivationState(skill.activationState)}`);
+              logger.info(chalk.gray(`    ${truncate(skill.description, 60)}`));
             }
           }
 
           if (inactive.length > 0) {
             for (const skill of inactive) {
-              console.log(`  ${chalk.gray('○')} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)} ${formatActivationState(skill.activationState)}`);
+              logger.info(`  ${chalk.gray('○')} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)} ${formatActivationState(skill.activationState)}`);
             }
           }
           
-          console.log();
+          logger.info('');
         }
 
-        console.log(chalk.gray(`Skills directory: ${registry.getSkillsDirectory()}`));
+        logger.info(chalk.gray(`Skills directory: ${registry.getSkillsDirectory()}`));
       } catch (error) {
         console.error(chalk.red('❌ Failed to list skills'));
         console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -199,7 +199,7 @@ export function registerSkillsCommand(program: Command): void {
     .option('--json', 'Output as JSON')
     .action(async (query: string, options) => {
       try {
-        console.log(chalk.blue('🔍 Searching across skill sources...\n'));
+        logger.info(chalk.blue('🔍 Searching across skill sources...\n'));
 
         const registry = getGlobalSkillRegistry();
 
@@ -215,13 +215,13 @@ export function registerSkillsCommand(program: Command): void {
         const totalTime = Date.now() - startTime;
 
         if (result.skills.length === 0) {
-          console.log(chalk.yellow('No skills found matching your query.'));
-          console.log(chalk.gray('\nTips:'));
-          console.log(chalk.gray('  - Try a broader search term'));
-          console.log(chalk.gray('  - Check for typos'));
-          console.log(chalk.gray('  - Browse available sources:'));
-          console.log(chalk.gray('    - https://clawhub.ai (ClawHub)'));
-          console.log(chalk.gray('    - https://skills.sh (Vercel)'));
+          logger.info(chalk.yellow('No skills found matching your query.'));
+          logger.info(chalk.gray('\nTips:'));
+          logger.info(chalk.gray('  - Try a broader search term'));
+          logger.info(chalk.gray('  - Check for typos'));
+          logger.info(chalk.gray('  - Browse available sources:'));
+          logger.info(chalk.gray('    - https://clawhub.ai (ClawHub)'));
+          logger.info(chalk.gray('    - https://skills.sh (Vercel)'));
           return;
         }
 
@@ -230,36 +230,36 @@ export function registerSkillsCommand(program: Command): void {
         const installedMap = new Map(installed.map(s => [s.id, s.version]));
 
         if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
+          logger.info(JSON.stringify(result, null, 2));
           return;
         }
 
         // Show summary by source
-        console.log(chalk.bold(`Results from ${Object.values(result.bySource).filter(s => s.total > 0).length} source(s):`));
+        logger.info(chalk.bold(`Results from ${Object.values(result.bySource).filter(s => s.total > 0).length} source(s):`));
         for (const [source, data] of Object.entries(result.bySource)) {
           if (data.total > 0) {
-            console.log(`  ${formatSourceBadge(source as SkillSource)}: ${data.total} skills`);
+            logger.info(`  ${formatSourceBadge(source as SkillSource)}: ${data.total} skills`);
           }
         }
-        console.log();
+        logger.info('');
 
         // Show results
-        console.log(chalk.bold(`Found ${result.total} skills (showing ${result.skills.length}):\n`));
+        logger.info(chalk.bold(`Found ${result.total} skills (showing ${result.skills.length}):\n`));
 
         for (const skill of result.skills) {
           const isInstalled = installedMap.has(skill.id);
           const installedVersion = installedMap.get(skill.id);
           const line = formatSkillLine(skill, isInstalled, installedVersion);
-          console.log(line);
-          console.log(chalk.gray(`   ${formatStars(skill.stars)} ${formatDownloads(skill.downloads)}`));
-          console.log(chalk.gray(`   ${truncate(skill.description, 70)}`));
-          console.log();
+          logger.info(line);
+          logger.info(chalk.gray(`   ${formatStars(skill.stars)} ${formatDownloads(skill.downloads)}`));
+          logger.info(chalk.gray(`   ${truncate(skill.description, 70)}`));
+          logger.info('');
         }
 
-        console.log(chalk.gray(`Query time: ${totalTime}ms | Sources: ${Object.keys(result.bySource).join(', ')}`));
+        logger.info(chalk.gray(`Query time: ${totalTime}ms | Sources: ${Object.keys(result.bySource).join(', ')}`));
         
         if (result.total > result.skills.length) {
-          console.log(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
+          logger.info(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
         }
       } catch (error) {
         console.error(chalk.red('❌ Search failed'));
@@ -285,24 +285,24 @@ export function registerSkillsCommand(program: Command): void {
           ? `${options.source}:${skillId}`
           : skillId;
 
-        console.log(chalk.blue(`📦 Installing ${fullSkillId}...\n`));
+        logger.info(chalk.blue(`📦 Installing ${fullSkillId}...\n`));
 
         const registry = getGlobalSkillRegistry();
 
         // Check if already installed
         const existing = await registry.isInstalled(fullSkillId);
         if (existing.installed && !options.force) {
-          console.log(chalk.yellow(`⚠️  ${skillId}@${existing.version} is already installed from ${existing.source}.`));
-          console.log(chalk.gray('   Use --force to reinstall.'));
+          logger.info(chalk.yellow(`⚠️  ${skillId}@${existing.version} is already installed from ${existing.source}.`));
+          logger.info(chalk.gray('   Use --force to reinstall.'));
           return;
         }
 
         // Fetch skill metadata first
-        console.log(chalk.gray('Fetching skill metadata...'));
+        logger.info(chalk.gray('Fetching skill metadata...'));
         const metadata = await registry.fetchSkill(fullSkillId);
-        console.log(chalk.green(`✓ Found ${metadata.name || skillId} v${metadata.version} from ${formatSourceBadge(metadata.source)}`));
-        console.log(chalk.gray(`  ${metadata.description}`));
-        console.log();
+        logger.info(chalk.green(`✓ Found ${metadata.name || skillId} v${metadata.version} from ${formatSourceBadge(metadata.source)}`));
+        logger.info(chalk.gray(`  ${metadata.description}`));
+        logger.info('');
 
         // Install
         const startTime = Date.now();
@@ -315,19 +315,19 @@ export function registerSkillsCommand(program: Command): void {
         const duration = Date.now() - startTime;
 
         if (result.success) {
-          console.log(chalk.green(`\n✓ Successfully installed ${skillId}@${result.version}`));
-          console.log(chalk.gray(`  Source: ${formatSourceBadge(result.source)}`));
-          console.log(chalk.gray(`  Path: ${result.installPath}`));
-          console.log(chalk.gray(`  Time: ${duration}ms`));
+          logger.info(chalk.green(`\n✓ Successfully installed ${skillId}@${result.version}`));
+          logger.info(chalk.gray(`  Source: ${formatSourceBadge(result.source)}`));
+          logger.info(chalk.gray(`  Path: ${result.installPath}`));
+          logger.info(chalk.gray(`  Time: ${duration}ms`));
 
           if (result.installedDependencies?.length) {
-            console.log(chalk.gray(`  Dependencies: ${result.installedDependencies.length} installed`));
+            logger.info(chalk.gray(`  Dependencies: ${result.installedDependencies.length} installed`));
           }
 
           if (result.warnings?.length) {
-            console.log(chalk.yellow('\nWarnings:'));
+            logger.info(chalk.yellow('\nWarnings:'));
             for (const warning of result.warnings) {
-              console.log(chalk.yellow(`  ⚠️  ${warning}`));
+              logger.info(chalk.yellow(`  ⚠️  ${warning}`));
             }
           }
         } else {
@@ -374,24 +374,24 @@ export function registerSkillsCommand(program: Command): void {
         // Check if installed
         const existing = await registry.isInstalled(skillId);
         if (!existing.installed) {
-          console.log(chalk.yellow(`⚠️  ${skillId} is not installed.`));
+          logger.info(chalk.yellow(`⚠️  ${skillId} is not installed.`));
           return;
         }
 
         // Confirm unless --yes
         if (!options.yes) {
-          console.log(chalk.yellow(`\n⚠️  This will remove ${skillId}@${existing.version} from ${existing.source}`));
-          console.log(chalk.gray('Use --yes to skip this confirmation\n'));
-          console.log(chalk.gray('Re-run with --yes to confirm:'));
-          console.log(chalk.gray(`  dash skills remove ${skillId} --yes`));
+          logger.info(chalk.yellow(`\n⚠️  This will remove ${skillId}@${existing.version} from ${existing.source}`));
+          logger.info(chalk.gray('Use --yes to skip this confirmation\n'));
+          logger.info(chalk.gray('Re-run with --yes to confirm:'));
+          logger.info(chalk.gray(`  dash skills remove ${skillId} --yes`));
           return;
         }
 
-        console.log(chalk.blue(`\n🗑️  Removing ${skillId}...`));
+        logger.info(chalk.blue(`\n🗑️  Removing ${skillId}...`));
 
         await registry.uninstall(skillId);
 
-        console.log(chalk.green(`✓ ${skillId} has been removed`));
+        logger.info(chalk.green(`✓ ${skillId} has been removed`));
       } catch (error) {
         console.error(chalk.red('❌ Remove failed'));
         console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -411,14 +411,14 @@ export function registerSkillsCommand(program: Command): void {
         const registry = getGlobalSkillRegistry();
 
         if (!skillId && !options.all) {
-          console.log(chalk.yellow('Please specify a skill or use --all to update all skills'));
-          console.log(chalk.gray('  dash skills update <skill>'));
-          console.log(chalk.gray('  dash skills update --all'));
+          logger.info(chalk.yellow('Please specify a skill or use --all to update all skills'));
+          logger.info(chalk.gray('  dash skills update <skill>'));
+          logger.info(chalk.gray('  dash skills update --all'));
           return;
         }
 
         if (options.all) {
-          console.log(chalk.blue('🔄 Checking for updates...\n'));
+          logger.info(chalk.blue('🔄 Checking for updates...\n'));
           
           const installed = await registry.listInstalled();
           let updateCount = 0;
@@ -426,58 +426,58 @@ export function registerSkillsCommand(program: Command): void {
 
           for (const skill of installed) {
             try {
-              console.log(chalk.gray(`Checking ${skill.name || skill.slug}...`));
+              logger.info(chalk.gray(`Checking ${skill.name || skill.slug}...`));
               const metadata = await registry.fetchSkill(skill.id);
               
               if (metadata.version !== skill.version) {
-                console.log(chalk.yellow(`${skill.name || skill.slug}: ${skill.version} → ${metadata.version}`));
+                logger.info(chalk.yellow(`${skill.name || skill.slug}: ${skill.version} → ${metadata.version}`));
                 
                 const result = await registry.update(skill.id);
                 if (result.success) {
-                  console.log(chalk.green(`  ✓ Updated to ${metadata.version}`));
+                  logger.info(chalk.green(`  ✓ Updated to ${metadata.version}`));
                   updateCount++;
                 } else {
-                  console.log(chalk.red(`  ✗ Update failed`));
+                  logger.info(chalk.red(`  ✗ Update failed`));
                   errorCount++;
                 }
               }
             } catch (error) {
-              console.log(chalk.red(`  ✗ Failed to check ${skill.slug}: ${error instanceof Error ? error.message : String(error)}`));
+              logger.info(chalk.red(`  ✗ Failed to check ${skill.slug}: ${error instanceof Error ? error.message : String(error)}`));
               errorCount++;
             }
           }
 
           if (updateCount === 0 && errorCount === 0) {
-            console.log(chalk.green('All skills are up to date!'));
+            logger.info(chalk.green('All skills are up to date!'));
           } else {
-            console.log();
+            logger.info('');
             if (updateCount > 0) {
-              console.log(chalk.green(`Updated ${updateCount} skill(s)`));
+              logger.info(chalk.green(`Updated ${updateCount} skill(s)`));
             }
             if (errorCount > 0) {
-              console.log(chalk.red(`Failed to update ${errorCount} skill(s)`));
+              logger.info(chalk.red(`Failed to update ${errorCount} skill(s)`));
             }
           }
         } else if (skillId) {
-          console.log(chalk.blue(`🔄 Checking ${skillId} for updates...\n`));
+          logger.info(chalk.blue(`🔄 Checking ${skillId} for updates...\n`));
           
           const existing = await registry.isInstalled(skillId);
           if (!existing.installed) {
-            console.log(chalk.yellow(`${skillId} is not installed`));
+            logger.info(chalk.yellow(`${skillId} is not installed`));
             return;
           }
 
           const metadata = await registry.fetchSkill(skillId);
           
           if (metadata.version === existing.version) {
-            console.log(chalk.green(`${skillId} is already at the latest version (${existing.version})`));
+            logger.info(chalk.green(`${skillId} is already at the latest version (${existing.version})`));
           } else {
-            console.log(chalk.yellow(`${skillId}: ${existing.version} → ${metadata.version}`));
+            logger.info(chalk.yellow(`${skillId}: ${existing.version} → ${metadata.version}`));
             const result = await registry.update(skillId);
             if (result.success) {
-              console.log(chalk.green(`✓ Updated to ${metadata.version}`));
+              logger.info(chalk.green(`✓ Updated to ${metadata.version}`));
             } else {
-              console.log(chalk.red(`✗ Update failed`));
+              logger.info(chalk.red(`✗ Update failed`));
               process.exit(1);
             }
           }
@@ -500,7 +500,7 @@ export function registerSkillsCommand(program: Command): void {
       try {
         const registry = getGlobalSkillRegistry();
 
-        console.log(chalk.blue(`🔍 Fetching information for ${skillId}...\n`));
+        logger.info(chalk.blue(`🔍 Fetching information for ${skillId}...\n`));
 
         // Fetch metadata
         const metadata = await registry.fetchSkill(skillId);
@@ -509,52 +509,52 @@ export function registerSkillsCommand(program: Command): void {
         const installed = await registry.isInstalled(skillId);
 
         // Display info
-        console.log(chalk.bold.cyan(metadata.name || metadata.slug));
-        console.log(chalk.gray(metadata.slug));
-        console.log(formatSourceBadge(metadata.source));
-        console.log();
+        logger.info(chalk.bold.cyan(metadata.name || metadata.slug));
+        logger.info(chalk.gray(metadata.slug));
+        logger.info(formatSourceBadge(metadata.source));
+        logger.info('');
 
-        console.log(chalk.white(metadata.description));
-        console.log();
+        logger.info(chalk.white(metadata.description));
+        logger.info('');
 
-        console.log(chalk.bold('Stats:'));
-        console.log(`  ${formatStars(metadata.stars)}`);
-        console.log(`  ${formatDownloads(metadata.downloads)}`);
-        console.log(`  Version: ${metadata.version}`);
+        logger.info(chalk.bold('Stats:'));
+        logger.info(`  ${formatStars(metadata.stars)}`);
+        logger.info(`  ${formatDownloads(metadata.downloads)}`);
+        logger.info(`  Version: ${metadata.version}`);
         if (metadata.versions && metadata.versions.length > 1) {
-          console.log(`  All versions: ${metadata.versions.join(', ')}`);
+          logger.info(`  All versions: ${metadata.versions.join(', ')}`);
         }
-        console.log();
+        logger.info('');
 
-        console.log(chalk.bold('Author:'));
-        console.log(`  ${metadata.author.username}`);
-        console.log();
+        logger.info(chalk.bold('Author:'));
+        logger.info(`  ${metadata.author.username}`);
+        logger.info('');
 
         if (metadata.tags.length > 0) {
-          console.log(chalk.bold('Tags:'));
-          console.log(`  ${metadata.tags.map(t => chalk.blue(`#${t}`)).join(' ')}`);
-          console.log();
+          logger.info(chalk.bold('Tags:'));
+          logger.info(`  ${metadata.tags.map(t => chalk.blue(`#${t}`)).join(' ')}`);
+          logger.info('');
         }
 
         // Installation status
-        console.log(chalk.bold('Installation:'));
+        logger.info(chalk.bold('Installation:'));
         if (installed.installed) {
-          console.log(chalk.green(`  ✓ Installed (v${installed.version})`));
-          console.log(`  Source: ${formatSourceBadge(installed.source!)}`);
+          logger.info(chalk.green(`  ✓ Installed (v${installed.version})`));
+          logger.info(`  Source: ${formatSourceBadge(installed.source!)}`);
         } else {
-          console.log(chalk.gray('  Not installed'));
-          console.log(chalk.gray(`  Install: dash skills install ${skillId}`));
+          logger.info(chalk.gray('  Not installed'));
+          logger.info(chalk.gray(`  Install: dash skills install ${skillId}`));
         }
-        console.log();
+        logger.info('');
 
         // Show README if requested
         if (options.readme && metadata.readme) {
-          console.log(chalk.bold('README:'));
-          console.log(chalk.gray('─'.repeat(60)));
-          console.log(metadata.readme);
-          console.log(chalk.gray('─'.repeat(60)));
+          logger.info(chalk.bold('README:'));
+          logger.info(chalk.gray('─'.repeat(60)));
+          logger.info(metadata.readme);
+          logger.info(chalk.gray('─'.repeat(60)));
         } else if (metadata.readme) {
-          console.log(chalk.gray('Use --readme to view full documentation'));
+          logger.info(chalk.gray('Use --readme to view full documentation'));
         }
       } catch (error) {
         if (error instanceof SkillNotFoundError) {
@@ -580,20 +580,20 @@ export function registerSkillsCommand(program: Command): void {
         const registry = getGlobalSkillRegistry();
         const sources = registry.getSources();
 
-        console.log(chalk.bold('Available Skill Sources:\n'));
+        logger.info(chalk.bold('Available Skill Sources:\n'));
 
         for (const source of sources) {
           const status = source.enabled 
             ? chalk.green('● enabled')
             : chalk.gray('○ disabled');
           
-          console.log(`${formatSourceBadge(source.id)} ${status}`);
-          console.log(chalk.gray(`  ${source.description}`));
-          console.log(chalk.gray(`  URL: ${source.url}`));
-          console.log();
+          logger.info(`${formatSourceBadge(source.id)} ${status}`);
+          logger.info(chalk.gray(`  ${source.description}`));
+          logger.info(chalk.gray(`  URL: ${source.url}`));
+          logger.info('');
         }
 
-        console.log(chalk.gray('Use --source <source> to search or install from a specific source.'));
+        logger.info(chalk.gray('Use --source <source> to search or install from a specific source.'));
       } catch (error) {
         console.error(chalk.red('❌ Failed to list sources'));
         console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));

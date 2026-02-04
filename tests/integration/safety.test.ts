@@ -357,7 +357,7 @@ describe('Safety Integration', () => {
         operation: {
           type: 'file_write' as OperationType,
           target: 'src/app.ts',
-          details: { content: 'console.log("test")' },
+          details: { content: 'logger.info("test")' },
         },
       });
 

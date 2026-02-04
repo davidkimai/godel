@@ -1,3 +1,4 @@
+import { logger } from '../../src/utils/logger';
 /**
  * Benchmark Runner for Dash Performance Testing
  * 
@@ -183,14 +184,14 @@ export class BenchmarkRunner {
    * Run the complete benchmark suite
    */
   async run(): Promise<BenchmarkRun> {
-    console.log('\n' + '='.repeat(70));
-    console.log('  DASH PERFORMANCE BENCHMARK');
-    console.log('='.repeat(70));
-    console.log(`\nConfiguration:`);
-    console.log(`  Scenarios: ${this.config.scenarios.join(', ')} agents`);
-    console.log(`  Iterations per scenario: ${this.config.iterations}`);
-    console.log(`  Output directory: ${this.config.outputDir}`);
-    console.log('');
+    logger.info('\n' + '='.repeat(70));
+    logger.info('  DASH PERFORMANCE BENCHMARK');
+    logger.info('='.repeat(70));
+    logger.info(`\nConfiguration:`);
+    logger.info(`  Scenarios: ${this.config.scenarios.join(', ')} agents`);
+    logger.info(`  Iterations per scenario: ${this.config.iterations}`);
+    logger.info(`  Output directory: ${this.config.outputDir}`);
+    logger.info('');
 
     // Ensure output directory exists
     if (!existsSync(this.config.outputDir)) {
@@ -203,7 +204,7 @@ export class BenchmarkRunner {
       this.results.results.push(scenarioResult);
 
       if (!scenarioResult.iterations.every(i => i.success) && this.config.stopOnFailure) {
-        console.log(`\n❌ Stopping benchmark due to failure`);
+        logger.info(`\n❌ Stopping benchmark due to failure`);
         this.results.success = false;
         break;
       }
@@ -225,15 +226,15 @@ export class BenchmarkRunner {
    * Run a single scenario (multiple iterations)
    */
   private async runScenario(agentCount: number): Promise<BenchmarkScenarioResult> {
-    console.log(`\n${'-'.repeat(70)}`);
-    console.log(`  Scenario: ${agentCount} Agents`);
-    console.log(`${'-'.repeat(70)}`);
+    logger.info(`\n${'-'.repeat(70)}`);
+    logger.info(`  Scenario: ${agentCount} Agents`);
+    logger.info(`${'-'.repeat(70)}`);
 
     const iterations: LoadTestResult[] = [];
     const thresholds = DEFAULT_THRESHOLDS[agentCount] || DEFAULT_THRESHOLDS[100];
 
     for (let i = 0; i < this.config.iterations; i++) {
-      console.log(`\n  Iteration ${i + 1}/${this.config.iterations}...`);
+      logger.info(`\n  Iteration ${i + 1}/${this.config.iterations}...`);
 
       const testConfig = TestScenarios.custom(agentCount, 30000);
       const generator = new LoadTestGenerator(testConfig);
@@ -274,12 +275,12 @@ export class BenchmarkRunner {
     }
 
     // Print scenario summary
-    console.log(`\n  Scenario Summary:`);
-    console.log(`    Success rate: ${(successRate * 100).toFixed(1)}%`);
-    console.log(`    Status: ${status.toUpperCase()}`);
-    console.log(`    Avg spawn time: ${aggregated.avgSpawnTime.toFixed(2)}ms`);
-    console.log(`    Events/sec: ${aggregated.eventsPerSecond.toFixed(2)}`);
-    console.log(`    Memory growth: ${aggregated.memoryGrowthMB.toFixed(2)}MB`);
+    logger.info(`\n  Scenario Summary:`);
+    logger.info(`    Success rate: ${(successRate * 100).toFixed(1)}%`);
+    logger.info(`    Status: ${status.toUpperCase()}`);
+    logger.info(`    Avg spawn time: ${aggregated.avgSpawnTime.toFixed(2)}ms`);
+    logger.info(`    Events/sec: ${aggregated.eventsPerSecond.toFixed(2)}`);
+    logger.info(`    Memory growth: ${aggregated.memoryGrowthMB.toFixed(2)}MB`);
 
     return {
       agentCount,
@@ -346,12 +347,12 @@ export class BenchmarkRunner {
    */
   private printIterationSummary(result: LoadTestResult, iteration: number): void {
     const status = result.success ? '✅' : '❌';
-    console.log(`    ${status} Iteration ${iteration}:`);
-    console.log(`       Spawn: ${result.latency.spawnTime?.avg.toFixed(2) || 'N/A'}ms avg`);
-    console.log(`       Events: ${result.throughput.eventsPerSecond.toFixed(2)}/sec`);
-    console.log(`       Memory: ${(result.memory.heapGrowth / 1024 / 1024).toFixed(2)}MB growth`);
+    logger.info(`    ${status} Iteration ${iteration}:`);
+    logger.info(`       Spawn: ${result.latency.spawnTime?.avg.toFixed(2) || 'N/A'}ms avg`);
+    logger.info(`       Events: ${result.throughput.eventsPerSecond.toFixed(2)}/sec`);
+    logger.info(`       Memory: ${(result.memory.heapGrowth / 1024 / 1024).toFixed(2)}MB growth`);
     if (result.errors.length > 0) {
-      console.log(`       Errors: ${result.errors.reduce((s, e) => s + e.count, 0)}`);
+      logger.info(`       Errors: ${result.errors.reduce((s, e) => s + e.count, 0)}`);
     }
   }
 
@@ -363,20 +364,20 @@ export class BenchmarkRunner {
     if (this.config.generateJsonSummary) {
       const jsonPath = join(this.config.outputDir, `benchmark-${this.results.id}.json`);
       writeFileSync(jsonPath, JSON.stringify(this.results, null, 2));
-      console.log(`\n📄 JSON report saved: ${jsonPath}`);
+      logger.info(`\n📄 JSON report saved: ${jsonPath}`);
     }
 
     // HTML report
     if (this.config.generateHtmlReport) {
       const htmlPath = join(this.config.outputDir, `benchmark-${this.results.id}.html`);
       writeFileSync(htmlPath, this.generateHtmlReport());
-      console.log(`📄 HTML report saved: ${htmlPath}`);
+      logger.info(`📄 HTML report saved: ${htmlPath}`);
     }
 
     // Summary markdown
     const summaryPath = join(this.config.outputDir, 'benchmark-summary.md');
     writeFileSync(summaryPath, this.generateMarkdownSummary());
-    console.log(`📄 Summary saved: ${summaryPath}`);
+    logger.info(`📄 Summary saved: ${summaryPath}`);
   }
 
   /**
@@ -579,21 +580,21 @@ ${this.results.results.map(r => `
    * Print final summary
    */
   private printSummary(): void {
-    console.log('\n' + '='.repeat(70));
-    console.log('  BENCHMARK SUMMARY');
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('  BENCHMARK SUMMARY');
+    logger.info('='.repeat(70));
 
     for (const result of this.results.results) {
       const icon = result.status === 'passed' ? '✅' : result.status === 'degraded' ? '⚠️' : '❌';
-      console.log(`\n  ${icon} ${result.agentCount} agents: ${result.status.toUpperCase()}`);
-      console.log(`     Spawn: ${result.aggregated.avgSpawnTime.toFixed(2)}ms | Events: ${result.aggregated.eventsPerSecond.toFixed(2)}/sec | Memory: ${result.aggregated.memoryGrowthMB.toFixed(2)}MB`);
+      logger.info(`\n  ${icon} ${result.agentCount} agents: ${result.status.toUpperCase()}`);
+      logger.info(`     Spawn: ${result.aggregated.avgSpawnTime.toFixed(2)}ms | Events: ${result.aggregated.eventsPerSecond.toFixed(2)}/sec | Memory: ${result.aggregated.memoryGrowthMB.toFixed(2)}MB`);
     }
 
-    console.log('\n' + '='.repeat(70));
-    console.log(`  Overall: ${this.results.success ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`  Duration: ${(this.results.totalDurationMs / 1000).toFixed(1)}s`);
-    console.log(`  Reports: ${this.config.outputDir}/`);
-    console.log('='.repeat(70) + '\n');
+    logger.info('\n' + '='.repeat(70));
+    logger.info(`  Overall: ${this.results.success ? '✅ PASSED' : '❌ FAILED'}`);
+    logger.info(`  Duration: ${(this.results.totalDurationMs / 1000).toFixed(1)}s`);
+    logger.info(`  Reports: ${this.config.outputDir}/`);
+    logger.info('='.repeat(70) + '\n');
   }
 }
 
@@ -654,7 +655,7 @@ async function main(): Promise<void> {
 }
 
 function printHelp(): void {
-  console.log(`
+  logger.info(`
 Dash Performance Benchmark Runner
 
 Usage: ts-node benchmark.ts [options]

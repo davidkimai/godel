@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Swarm Commands
  * 
@@ -49,17 +50,17 @@ export function registerSwarmCommand(program: Command): void {
         }
 
         if (swarms.length === 0) {
-          console.log('📭 No swarms found');
-          console.log('💡 Use "swarmctl swarm create" to create a swarm');
+          logger.info('📭 No swarms found');
+          logger.info('💡 Use "swarmctl swarm create" to create a swarm');
           return;
         }
 
         const format = options.format as OutputFormat;
-        console.log(formatSwarms(swarms, { format }));
+        logger.info(formatSwarms(swarms, { format }));
 
         if (response.data.hasMore) {
-          console.log(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
-          console.log(`   Use --page ${response.data.page + 1} to see more`);
+          logger.info(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
+          logger.info(`   Use --page ${response.data.page + 1} to see more`);
         }
       } catch (error) {
         console.error('❌ Failed to list swarms:', error instanceof Error ? error.message : String(error));
@@ -86,7 +87,7 @@ export function registerSwarmCommand(program: Command): void {
     .option('--dry-run', 'Show configuration without creating')
     .action(async (options) => {
       try {
-        console.log('🐝 Creating swarm...\n');
+        logger.info('🐝 Creating swarm...\n');
 
         // Validate strategy
         const validStrategies: SwarmStrategy[] = ['parallel', 'map-reduce', 'pipeline', 'tree'];
@@ -127,19 +128,19 @@ export function registerSwarmCommand(program: Command): void {
 
         // Dry run mode
         if (options.dryRun) {
-          console.log('📋 Configuration (dry run):');
-          console.log(`   Name: ${config.name}`);
-          console.log(`   Task: ${config.task}`);
-          console.log(`   Initial Agents: ${config.initialAgents}`);
-          console.log(`   Max Agents: ${config.maxAgents}`);
-          console.log(`   Strategy: ${config.strategy}`);
-          console.log(`   Model: ${config.model}`);
+          logger.info('📋 Configuration (dry run):');
+          logger.info(`   Name: ${config.name}`);
+          logger.info(`   Task: ${config.task}`);
+          logger.info(`   Initial Agents: ${config.initialAgents}`);
+          logger.info(`   Max Agents: ${config.maxAgents}`);
+          logger.info(`   Strategy: ${config.strategy}`);
+          logger.info(`   Model: ${config.model}`);
           if (config.budget) {
-            console.log(`   Budget: $${config.budget.amount} USD`);
-            console.log(`   Warning at: ${(config.budget.warningThreshold || 0.75) * 100}%`);
-            console.log(`   Critical at: ${(config.budget.criticalThreshold || 0.90) * 100}%`);
+            logger.info(`   Budget: $${config.budget.amount} USD`);
+            logger.info(`   Warning at: ${(config.budget.warningThreshold || 0.75) * 100}%`);
+            logger.info(`   Critical at: ${(config.budget.criticalThreshold || 0.90) * 100}%`);
           }
-          console.log(`   Sandbox: ${config.safety.fileSandbox ? 'enabled' : 'disabled'}`);
+          logger.info(`   Sandbox: ${config.safety.fileSandbox ? 'enabled' : 'disabled'}`);
           return;
         }
 
@@ -153,15 +154,15 @@ export function registerSwarmCommand(program: Command): void {
 
         const newSwarm = response.data;
 
-        console.log('✅ Swarm created successfully!\n');
-        console.log(`   ID: ${newSwarm.id}`);
-        console.log(`   Name: ${newSwarm.name}`);
-        console.log(`   Status: ${newSwarm.status}`);
-        console.log(`   Agents: ${newSwarm.agents.length}`);
+        logger.info('✅ Swarm created successfully!\n');
+        logger.info(`   ID: ${newSwarm.id}`);
+        logger.info(`   Name: ${newSwarm.name}`);
+        logger.info(`   Status: ${newSwarm.status}`);
+        logger.info(`   Agents: ${newSwarm.agents.length}`);
         if (newSwarm.budget.allocated > 0) {
-          console.log(`   Budget: $${newSwarm.budget.allocated.toFixed(2)} USD`);
+          logger.info(`   Budget: $${newSwarm.budget.allocated.toFixed(2)} USD`);
         }
-        console.log(`\n💡 Use 'swarmctl swarm get ${newSwarm.id}' to monitor progress`);
+        logger.info(`\n💡 Use 'swarmctl swarm get ${newSwarm.id}' to monitor progress`);
 
       } catch (error) {
         console.error('❌ Failed to create swarm:', error instanceof Error ? error.message : String(error));
@@ -192,7 +193,7 @@ export function registerSwarmCommand(program: Command): void {
         const statusInfo = statusResponse.success ? statusResponse.data : undefined;
 
         const format = options.format as OutputFormat;
-        console.log(formatSwarmStatus(swarm, statusInfo!, { format }));
+        logger.info(formatSwarmStatus(swarm, statusInfo!, { format }));
 
       } catch (error) {
         console.error('❌ Failed to get swarm:', error instanceof Error ? error.message : String(error));
@@ -226,9 +227,9 @@ export function registerSwarmCommand(program: Command): void {
         }
 
         const currentSize = getResponse.data.agents.length;
-        console.log(`📊 Scaling swarm ${getResponse.data.name}...`);
-        console.log(`   Current: ${currentSize} agents`);
-        console.log(`   Target: ${target} agents`);
+        logger.info(`📊 Scaling swarm ${getResponse.data.name}...`);
+        logger.info(`   Current: ${currentSize} agents`);
+        logger.info(`   Target: ${target} agents`);
 
         const response = await client.scaleSwarm(swarmId, target);
 
@@ -240,7 +241,7 @@ export function registerSwarmCommand(program: Command): void {
         const action = target > currentSize ? 'added' : 'removed';
         const delta = Math.abs(target - currentSize);
 
-        console.log(`✅ Scaled successfully (${action} ${delta} agents)`);
+        logger.info(`✅ Scaled successfully (${action} ${delta} agents)`);
 
       } catch (error) {
         console.error('❌ Failed to scale swarm:', error instanceof Error ? error.message : String(error));
@@ -269,16 +270,16 @@ export function registerSwarmCommand(program: Command): void {
 
         const swarm = getResponse.data;
 
-        console.log(`⚠️  You are about to destroy swarm: ${swarm.name}`);
-        console.log(`   ID: ${swarm.id}`);
-        console.log(`   Agents: ${swarm.agents.length}`);
+        logger.info(`⚠️  You are about to destroy swarm: ${swarm.name}`);
+        logger.info(`   ID: ${swarm.id}`);
+        logger.info(`   Agents: ${swarm.agents.length}`);
 
         if (!options.yes && !options.force) {
-          console.log('\n🛑 Use --yes to confirm destruction');
+          logger.info('\n🛑 Use --yes to confirm destruction');
           return;
         }
 
-        console.log('\n💥 Destroying swarm...');
+        logger.info('\n💥 Destroying swarm...');
         const response = await client.destroySwarm(swarmId, options.force);
 
         if (!response.success) {
@@ -286,7 +287,7 @@ export function registerSwarmCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log('✅ Swarm destroyed');
+        logger.info('✅ Swarm destroyed');
 
       } catch (error) {
         console.error('❌ Failed to destroy swarm:', error instanceof Error ? error.message : String(error));

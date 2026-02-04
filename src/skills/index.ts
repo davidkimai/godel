@@ -97,9 +97,9 @@ export const skills = {
    * @example
    * ```typescript
    * const results = await skills.search({ query: 'postgres', limit: 10 });
-   * console.log(`Found ${results.total} skills`);
+   * logger.info(`Found ${results.total} skills`);
    * for (const skill of results.skills) {
-   *   console.log(`${skill.source}: ${skill.name}`);
+   *   logger.info(`${skill.source}: ${skill.name}`);
    * }
    * ```
    */
@@ -116,7 +116,7 @@ export const skills = {
    * @example
    * ```typescript
    * const skill = await skills.info('postgres-backup');
-   * console.log(`${skill.name} v${skill.version}`);
+   * logger.info(`${skill.name} v${skill.version}`);
    * ```
    */
   async info(skillId: string): Promise<UnifiedSkillMetadata> {
@@ -188,7 +188,7 @@ export const skills = {
    * ```typescript
    * const installed = await skills.list();
    * for (const skill of installed) {
-   *   console.log(`${skill.name} v${skill.version} [${skill.activationState}]`);
+   *   logger.info(`${skill.name} v${skill.version} [${skill.activationState}]`);
    * }
    * ```
    */
@@ -206,7 +206,7 @@ export const skills = {
    * ```typescript
    * const status = await skills.isInstalled('postgres-backup');
    * if (status.installed) {
-   *   console.log(`Version ${status.version} from ${status.source}`);
+   *   logger.info(`Version ${status.version} from ${status.source}`);
    * }
    * ```
    */

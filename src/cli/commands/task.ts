@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Task Commands
  * 
@@ -48,16 +49,16 @@ export function registerTaskCommand(program: Command): void {
         const tasks = response.data.items;
 
         if (tasks.length === 0) {
-          console.log('📭 No tasks found');
-          console.log('💡 Use "swarmctl task create" to create a task');
+          logger.info('📭 No tasks found');
+          logger.info('💡 Use "swarmctl task create" to create a task');
           return;
         }
 
         const format = options.format as OutputFormat;
-        console.log(formatTasks(tasks, { format }));
+        logger.info(formatTasks(tasks, { format }));
 
         if (response.data.hasMore) {
-          console.log(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
+          logger.info(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
         }
       } catch (error) {
         console.error('❌ Failed to list tasks:', error instanceof Error ? error.message : String(error));
@@ -79,7 +80,7 @@ export function registerTaskCommand(program: Command): void {
     .option('--dry-run', 'Show configuration without creating')
     .action(async (options) => {
       try {
-        console.log('📝 Creating task...\n');
+        logger.info('📝 Creating task...\n');
 
         // Validate priority
         const validPriorities = ['low', 'medium', 'high', 'critical'];
@@ -94,12 +95,12 @@ export function registerTaskCommand(program: Command): void {
           : undefined;
 
         if (options.dryRun) {
-          console.log('📋 Configuration (dry run):');
-          console.log(`   Title: ${options.title}`);
-          console.log(`   Description: ${options.description}`);
-          console.log(`   Priority: ${options.priority}`);
-          console.log(`   Assignee: ${options.assignee || '(none)'}`);
-          console.log(`   Depends On: ${dependsOn?.join(', ') || '(none)'}`);
+          logger.info('📋 Configuration (dry run):');
+          logger.info(`   Title: ${options.title}`);
+          logger.info(`   Description: ${options.description}`);
+          logger.info(`   Priority: ${options.priority}`);
+          logger.info(`   Assignee: ${options.assignee || '(none)'}`);
+          logger.info(`   Depends On: ${dependsOn?.join(', ') || '(none)'}`);
           return;
         }
 
@@ -129,15 +130,15 @@ export function registerTaskCommand(program: Command): void {
 
         const newTask = response.data;
 
-        console.log('✅ Task created successfully!\n');
-        console.log(`   ID: ${newTask.id}`);
-        console.log(`   Title: ${newTask.title}`);
-        console.log(`   Status: ${newTask.status}`);
-        console.log(`   Priority: ${newTask.priority}`);
+        logger.info('✅ Task created successfully!\n');
+        logger.info(`   ID: ${newTask.id}`);
+        logger.info(`   Title: ${newTask.title}`);
+        logger.info(`   Status: ${newTask.status}`);
+        logger.info(`   Priority: ${newTask.priority}`);
         if (options.assignee) {
-          console.log(`   Assignee: ${options.assignee}`);
+          logger.info(`   Assignee: ${options.assignee}`);
         }
-        console.log(`\n💡 Use 'swarmctl task get ${newTask.id}' to view details`);
+        logger.info(`\n💡 Use 'swarmctl task get ${newTask.id}' to view details`);
 
       } catch (error) {
         console.error('❌ Failed to create task:', error instanceof Error ? error.message : String(error));
@@ -166,40 +167,40 @@ export function registerTaskCommand(program: Command): void {
         const task = response.data;
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(task, null, 2));
+          logger.info(JSON.stringify(task, null, 2));
           return;
         }
 
-        console.log(`📋 Task: ${taskId}\n`);
-        console.log(`   Title:       ${task.title}`);
-        console.log(`   Description: ${task.description}`);
-        console.log(`   Status:      ${task.status}`);
-        console.log(`   Priority:    ${task.priority}`);
+        logger.info(`📋 Task: ${taskId}\n`);
+        logger.info(`   Title:       ${task.title}`);
+        logger.info(`   Description: ${task.description}`);
+        logger.info(`   Status:      ${task.status}`);
+        logger.info(`   Priority:    ${task.priority}`);
         
         if (task.assigneeId) {
-          console.log(`   Assignee:    ${task.assigneeId}`);
+          logger.info(`   Assignee:    ${task.assigneeId}`);
         } else {
-          console.log(`   Assignee:    (unassigned)`);
+          logger.info(`   Assignee:    (unassigned)`);
         }
 
         if (task.dependsOn.length > 0) {
-          console.log(`   Depends On:  ${task.dependsOn.join(', ')}`);
+          logger.info(`   Depends On:  ${task.dependsOn.join(', ')}`);
         }
 
-        console.log(`\n   Created:     ${task.createdAt.toISOString()}`);
-        console.log(`   Updated:     ${task.updatedAt.toISOString()}`);
+        logger.info(`\n   Created:     ${task.createdAt.toISOString()}`);
+        logger.info(`   Updated:     ${task.updatedAt.toISOString()}`);
         
         if (task.completedAt) {
-          console.log(`   Completed:   ${task.completedAt.toISOString()}`);
+          logger.info(`   Completed:   ${task.completedAt.toISOString()}`);
         }
 
         if (task.reasoning) {
-          console.log(`\n   Reasoning:`);
+          logger.info(`\n   Reasoning:`);
           if (task.reasoning.hypothesis) {
-            console.log(`     Hypothesis: ${task.reasoning.hypothesis}`);
+            logger.info(`     Hypothesis: ${task.reasoning.hypothesis}`);
           }
           if (task.reasoning.confidence !== undefined) {
-            console.log(`     Confidence: ${(task.reasoning.confidence * 100).toFixed(0)}%`);
+            logger.info(`     Confidence: ${(task.reasoning.confidence * 100).toFixed(0)}%`);
           }
         }
 
@@ -235,7 +236,7 @@ export function registerTaskCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log(`📤 Assigning task ${taskId} to agent ${agentId}...`);
+        logger.info(`📤 Assigning task ${taskId} to agent ${agentId}...`);
 
         const response = await client.assignTask(taskId, agentId);
 
@@ -244,7 +245,7 @@ export function registerTaskCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log('✅ Task assigned successfully');
+        logger.info('✅ Task assigned successfully');
 
       } catch (error) {
         console.error('❌ Failed to assign task:', error instanceof Error ? error.message : String(error));
@@ -273,11 +274,11 @@ export function registerTaskCommand(program: Command): void {
         const task = taskResponse.data;
 
         if (task.status === 'completed') {
-          console.log(`ℹ️  Task ${taskId} is already completed`);
+          logger.info(`ℹ️  Task ${taskId} is already completed`);
           return;
         }
 
-        console.log(`✅ Completing task ${taskId}...`);
+        logger.info(`✅ Completing task ${taskId}...`);
 
         const response = await client.completeTask(taskId);
 
@@ -286,7 +287,7 @@ export function registerTaskCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log('✅ Task marked as complete');
+        logger.info('✅ Task marked as complete');
 
       } catch (error) {
         console.error('❌ Failed to complete task:', error instanceof Error ? error.message : String(error));
@@ -316,7 +317,7 @@ export function registerTaskCommand(program: Command): void {
         const task = taskResponse.data;
 
         if (task.status === 'cancelled') {
-          console.log(`ℹ️  Task ${taskId} is already cancelled`);
+          logger.info(`ℹ️  Task ${taskId} is already cancelled`);
           return;
         }
 
@@ -325,16 +326,16 @@ export function registerTaskCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log(`⚠️  You are about to cancel task: ${task.title}`);
-        console.log(`   ID: ${task.id}`);
-        console.log(`   Status: ${task.status}`);
+        logger.info(`⚠️  You are about to cancel task: ${task.title}`);
+        logger.info(`   ID: ${task.id}`);
+        logger.info(`   Status: ${task.status}`);
 
         if (!options.yes) {
-          console.log('\n🛑 Use --yes to confirm cancellation');
+          logger.info('\n🛑 Use --yes to confirm cancellation');
           return;
         }
 
-        console.log('\n🚫 Cancelling task...');
+        logger.info('\n🚫 Cancelling task...');
 
         const response = await client.cancelTask(taskId);
 
@@ -343,7 +344,7 @@ export function registerTaskCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log('✅ Task cancelled');
+        logger.info('✅ Task cancelled');
 
       } catch (error) {
         console.error('❌ Failed to cancel task:', error instanceof Error ? error.message : String(error));

@@ -380,7 +380,7 @@ export class StructuredLogger {
       this.prettyPrint(entry);
     } else {
       // JSON output for production
-      console.log(JSON.stringify(entry));
+      process.stdout.write(`${JSON.stringify(entry)}\n`);
     }
   }
 
@@ -411,7 +411,7 @@ export class StructuredLogger {
       }
     }
 
-    console.log(output);
+    process.stdout.write(`${output}\n`);
   }
 
   // ============================================================================

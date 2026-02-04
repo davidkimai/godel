@@ -37,19 +37,19 @@ export function registerDashboardCommand(program: Command): void {
         const port = parseInt(options.port, 10);
         const refreshRate = parseInt(options.refresh, 10);
 
-        console.log('🎯 Dash Dashboard\n');
+        logger.info('🎯 Dash Dashboard\n');
 
         if (options.headless) {
           // Headless mode - just start the API server
-          console.log(`📡 API server running at http://${options.host}:${port}`);
-          console.log('   Headless mode - no TUI displayed');
-          console.log('   Press Ctrl+C to stop\n');
+          logger.info(`📡 API server running at http://${options.host}:${port}`);
+          logger.info('   Headless mode - no TUI displayed');
+          logger.info('   Press Ctrl+C to stop\n');
           
           // Subscribe to all events for logging
           subscribeDashboard(messageBus, (message: Message) => {
             const payload = message.payload as { eventType?: string } | undefined;
             if (payload?.eventType) {
-              console.log(`[${new Date().toISOString()}] ${payload.eventType}`);
+              logger.info(`[${new Date().toISOString()}] ${payload.eventType}`);
             }
           });
 
@@ -61,39 +61,39 @@ export function registerDashboardCommand(program: Command): void {
         // Full TUI mode
         logger.info('dashboard', 'Launching interactive dashboard...\n');
         logger.info('dashboard', 'Keyboard Shortcuts:');
-        console.log('  j/k     Navigate agents');
-        console.log('  Enter   Focus agent');
-        console.log('  Space   Pause/resume');
-        console.log('  x       Kill agent');
-        console.log('  r       Retry failed agent');
-        console.log('  :       Command palette');
-        console.log('  /       Search');
-        console.log('  ?       Help');
-        console.log('  q       Quit\n');
+        logger.info('  j/k     Navigate agents');
+        logger.info('  Enter   Focus agent');
+        logger.info('  Space   Pause/resume');
+        logger.info('  x       Kill agent');
+        logger.info('  r       Retry failed agent');
+        logger.info('  :       Command palette');
+        logger.info('  /       Search');
+        logger.info('  ?       Help');
+        logger.info('  q       Quit\n');
 
         // Show initial stats
         const metrics = lifecycle.getMetrics();
         const swarms = swarmManager.listActiveSwarms();
         
-        console.log('📊 Current Status:');
-        console.log(`   Active Swarms: ${swarms.length}`);
-        console.log(`   Active Agents: ${metrics.activeAgents}`);
-        console.log(`   Paused Agents: ${metrics.pausedAgents}`);
-        console.log(`   Total Spawned: ${metrics.totalSpawned}`);
-        console.log(`   Completed: ${metrics.totalCompleted}`);
-        console.log(`   Failed: ${metrics.totalFailed}`);
-        console.log();
+        logger.info('📊 Current Status:');
+        logger.info(`   Active Swarms: ${swarms.length}`);
+        logger.info(`   Active Agents: ${metrics.activeAgents}`);
+        logger.info(`   Paused Agents: ${metrics.pausedAgents}`);
+        logger.info(`   Total Spawned: ${metrics.totalSpawned}`);
+        logger.info(`   Completed: ${metrics.totalCompleted}`);
+        logger.info(`   Failed: ${metrics.totalFailed}`);
+        logger.info('');
 
         // Show agent grid (simulated - real TUI would use a library like ink or blessed)
-        console.log('🐝 Agent Grid:\n');
+        logger.info('🐝 Agent Grid:\n');
         const states = lifecycle.getAllStates();
         
         if (states.length === 0) {
-          console.log('   No agents running');
-          console.log('   Use "dash swarm create" to create a swarm');
+          logger.info('   No agents running');
+          logger.info('   Use "dash swarm create" to create a swarm');
         } else {
-          console.log('ID                   Swarm                Status     Task (truncated)');
-          console.log('───────────────────  ───────────────────  ─────────  ──────────────────────────');
+          logger.info('ID                   Swarm                Status     Task (truncated)');
+          logger.info('───────────────────  ───────────────────  ─────────  ──────────────────────────');
           
           for (const state of states.slice(0, 20)) {
             const swarmName = state.agent.swarmId 
@@ -101,7 +101,7 @@ export function registerDashboardCommand(program: Command): void {
               : 'none';
             const task = state.agent.task.slice(0, 26);
             
-            console.log(
+            logger.info(
               `${state.id.slice(0, 19).padEnd(19)}  ` +
               `${swarmName.padEnd(19)}  ` +
               `${getStatusEmoji(state.status)} ${state.status.padEnd(8)}  ` +
@@ -110,13 +110,13 @@ export function registerDashboardCommand(program: Command): void {
           }
           
           if (states.length > 20) {
-            console.log(`\n   ... and ${states.length - 20} more agents`);
+            logger.info(`\n   ... and ${states.length - 20} more agents`);
           }
         }
 
-        console.log('\n💡 This is a simulated dashboard view.');
-        console.log('   Full TUI implementation would use a terminal UI library.');
-        console.log('   Press Ctrl+C to exit\n');
+        logger.info('\n💡 This is a simulated dashboard view.');
+        logger.info('   Full TUI implementation would use a terminal UI library.');
+        logger.info('   Press Ctrl+C to exit\n');
 
         // Subscribe to events for real-time updates
         const subscriptions = subscribeDashboard(messageBus, (message: Message) => {
@@ -139,13 +139,13 @@ export function registerDashboardCommand(program: Command): void {
             ];
             
             if (importantEvents.includes(payload.eventType)) {
-              console.log(`[${new Date().toLocaleTimeString()}] ${getEventEmoji(payload.eventType)} ${payload.eventType}`);
+              logger.info(`[${new Date().toLocaleTimeString()}] ${getEventEmoji(payload.eventType)} ${payload.eventType}`);
             }
           }
         });
 
-        console.log(`📡 Subscribed to ${subscriptions.length} event topics`);
-        console.log(`🔄 Refresh rate: ${refreshRate}ms`);
+        logger.info(`📡 Subscribed to ${subscriptions.length} event topics`);
+        logger.info(`🔄 Refresh rate: ${refreshRate}ms`);
 
         // Keep process alive
         await keepAlive();
@@ -192,7 +192,7 @@ function keepAlive(): Promise<void> {
   return new Promise(() => {
     // Keep process alive until SIGINT
     process.on('SIGINT', () => {
-      console.log('\n\n👋 Dashboard shutting down...');
+      logger.info('\n\n👋 Dashboard shutting down...');
       process.exit(0);
     });
   });

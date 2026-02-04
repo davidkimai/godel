@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 6: WebSocket Stability Integration Tests
  * 
@@ -93,8 +94,8 @@ describe('Scenario 6: WebSocket Stability', () => {
       expect(connectionErrors.length).toBe(0);
       expect(duration).toBeGreaterThanOrEqual(60000);
 
-      console.log(`WebSocket maintained for ${duration}ms`);
-      console.log(`Received ${events.length} events during connection`);
+      logger.info(`WebSocket maintained for ${duration}ms`);
+      logger.info(`Received ${events.length} events during connection`);
 
       await closeWebSocket(ws);
     }, 70000);
@@ -245,7 +246,7 @@ describe('Scenario 6: WebSocket Stability', () => {
       // The key is that the connection remains stable
       expect(ws.readyState).toBe(WebSocket.OPEN);
 
-      console.log(`Received ${events.length} events`);
+      logger.info(`Received ${events.length} events`);
 
       await closeWebSocket(ws);
     }, testConfig.testTimeout);

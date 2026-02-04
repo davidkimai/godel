@@ -16,8 +16,8 @@
  * const config = await getConfig();
  * 
  * // Access configuration values
- * console.log(config.server.port);
- * console.log(config.database.url);
+ * logger.info(config.server.port);
+ * logger.info(config.database.url);
  * 
  * // Check if a feature is enabled
  * if (isFeatureEnabled(config, 'metrics')) {

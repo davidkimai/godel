@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 9: Error Handling Integration Tests
  * 
@@ -261,7 +262,7 @@ describe('Scenario 9: Error Handling', () => {
       // If not, all should succeed
       expect(responses.every(r => [200, 429].includes(r.status))).toBe(true);
 
-      console.log(`Rate limiting test: ${rateLimitedCount}/50 requests rate limited`);
+      logger.info(`Rate limiting test: ${rateLimitedCount}/50 requests rate limited`);
     }, testConfig.testTimeout);
   });
 
