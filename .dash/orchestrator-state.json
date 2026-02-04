@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastHeartbeat": 1770205739250,
+  "lastHeartbeat": 1770208242646,
   "mode": "normal",
   "activeSwarms": {
     "cli-1770086777645": {
@@ -71,10 +71,12 @@
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770200968959.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770208225588
     },
     "cli-1770202127304": {
       "started": 1770202127304,
@@ -115,14 +117,24 @@
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770205746468.log",
       "method": "kimi-cli-primary"
+    },
+    "cli-1770208248621": {
+      "started": 1770208248621,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770208248621.log",
+      "method": "kimi-cli-primary"
     }
   },
   "metrics": {
     "current": {
-      "timestamp": 1770205739250,
+      "timestamp": 1770208242646,
       "testCoverage": 0,
       "tsErrors": 0,
-      "swarmCount": 4,
+      "swarmCount": 5,
       "agentCount": 0,
       "budgetSpent": 0,
       "stuckAgents": 0,
@@ -272,12 +284,23 @@
         "stuckAgents": 0,
         "buildPassing": false,
         "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770208242646,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 5,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
       }
     ]
   },
   "cooldowns": {
     "coverage": 1770088577649,
-    "bugfix": 1770206646473
+    "bugfix": 1770209148626
   },
   "decisions": [
     {
@@ -341,6 +364,11 @@
     },
     {
       "timestamp": 1770205746473,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770208248626,
       "action": "spawn_bugfix",
       "reason": "Build broken"
     }
