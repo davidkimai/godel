@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getApiKeyStore } from '../store/apiKeyStore';
-import { logger } from '../../../utils/logger';
+import { logger } from '../../utils/logger';
 
 // Validate API key from request
 export async function validateApiKey(
