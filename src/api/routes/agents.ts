@@ -227,7 +227,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         
         // Apply pagination
         const paginated = paginateArray(agents, request.query);
-        const links = createPaginationLinks('/api/agents', request.query, paginated);
+        const links = createPaginationLinks('/api/v1/agents', request.query, paginated);
         
         return reply.send(
           createSuccessResponse(

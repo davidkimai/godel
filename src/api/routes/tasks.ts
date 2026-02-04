@@ -85,7 +85,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
           request.query
         );
         
-        const links = createPaginationLinks('/api/tasks', request.query, paginated);
+        const links = createPaginationLinks('/api/v1/tasks', request.query, paginated);
         
         return reply.send(
           createSuccessResponse(

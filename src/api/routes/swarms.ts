@@ -151,7 +151,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         
         // Apply pagination
         const paginated = paginateArray(swarmList, request.query);
-        const links = createPaginationLinks('/api/swarms', request.query, paginated);
+        const links = createPaginationLinks('/api/v1/swarms', request.query, paginated);
         
         // Transform to summary format
         const summaries = paginated.items.map(s => ({
