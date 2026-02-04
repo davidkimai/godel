@@ -741,6 +741,123 @@ export function registerOpenClawCommand(program: Command): void {
         process.exit(1);
       }
     });
+
+  // ============================================================================
+  // openclaw bridge
+  // ============================================================================
+  openclaw
+    .command('bridge')
+    .description('Manage the OpenClaw-Dash event bridge')
+    .option('--start', 'Start the event bridge')
+    .option('--stop', 'Stop the event bridge')
+    .option('--status', 'Check bridge status')
+    .option('--webhook-url <url>', 'Webhook URL for event forwarding', process.env['OPENCLAW_EVENT_WEBHOOK_URL'])
+    .option('--filter <types>', 'Comma-separated event types to filter (e.g., agent.spawned,agent.completed)')
+    .option('--batch-interval <ms>', 'Batch interval in milliseconds (0 for immediate)', '0')
+    .action(async (options) => {
+      try {
+        // Import the event bridge
+        const { getOpenClawEventBridge, OpenClawEventBridge } = await import('../../integrations/openclaw/event-bridge');
+
+        // Handle status check
+        if (options.status) {
+          console.log('🌉 OpenClaw Event Bridge Status\n');
+          
+          // Check if bridge is initialized
+          const bridge = getOpenClawEventBridge({ webhookUrl: options.webhookUrl || 'http://localhost:8080/webhook' });
+          const stats = bridge.getStats();
+          const health = bridge.getHealth();
+          
+          console.log(`Status: ${health.status}`);
+          console.log(`Running: ${health.isRunning ? 'Yes' : 'No'}`);
+          console.log(`Subscriptions: ${health.subscriptionCount}`);
+          console.log(`Buffered Events: ${health.bufferedEvents}`);
+          console.log(`\nStatistics:`);
+          console.log(`  Events Received: ${stats.eventsReceived}`);
+          console.log(`  Events Forwarded: ${stats.eventsForwarded}`);
+          console.log(`  Events Filtered: ${stats.eventsFiltered}`);
+          console.log(`  Events Failed: ${stats.eventsFailed}`);
+          console.log(`  Batches Sent: ${stats.batchesSent}`);
+          if (stats.lastEventTime) {
+            console.log(`  Last Event: ${stats.lastEventTime.toISOString()}`);
+          }
+          return;
+        }
+
+        // Handle start
+        if (options.start) {
+          if (!options.webhookUrl) {
+            logger.error('openclaw', '❌ Webhook URL required. Use --webhook-url or set OPENCLAW_EVENT_WEBHOOK_URL');
+            process.exit(1);
+          }
+
+          console.log('🌉 Starting OpenClaw Event Bridge...\n');
+          
+          const filter = options.filter ? options.filter.split(',') : undefined;
+          const batchInterval = parseInt(options.batchInterval, 10) || 0;
+
+          const bridge = getOpenClawEventBridge({
+            webhookUrl: options.webhookUrl,
+            filter,
+            batchInterval,
+          });
+
+          await bridge.start();
+
+          console.log('✓ Event bridge started');
+          console.log(`  Webhook URL: ${options.webhookUrl}`);
+          if (filter) {
+            console.log(`  Filter: ${filter.join(', ')}`);
+          }
+          console.log(`  Batch Interval: ${batchInterval}ms`);
+          console.log('\n💡 Events will be forwarded to OpenClaw in real-time');
+          console.log('   Press Ctrl+C to stop');
+
+          // Keep process alive
+          process.on('SIGINT', async () => {
+            console.log('\n\n🛑 Stopping event bridge...');
+            await bridge.stop();
+            console.log('✓ Event bridge stopped');
+            process.exit(0);
+          });
+
+          // Wait indefinitely
+          await new Promise(() => {});
+          return;
+        }
+
+        // Handle stop
+        if (options.stop) {
+          console.log('🌉 Stopping OpenClaw Event Bridge...\n');
+          
+          const bridge = getOpenClawEventBridge({ webhookUrl: 'http://localhost:8080/webhook' });
+          await bridge.stop();
+          
+          console.log('✓ Event bridge stopped');
+          return;
+        }
+
+        // No action specified
+        console.log('🌉 OpenClaw Event Bridge\n');
+        console.log('Usage: dash openclaw bridge <action> [options]');
+        console.log('\nActions:');
+        console.log('  --start          Start the event bridge');
+        console.log('  --stop           Stop the event bridge');
+        console.log('  --status         Check bridge status');
+        console.log('\nOptions:');
+        console.log('  --webhook-url    Webhook URL for event forwarding');
+        console.log('  --filter         Comma-separated event types to filter');
+        console.log('  --batch-interval Batch interval in milliseconds');
+        console.log('\nExamples:');
+        console.log('  dash openclaw bridge --start --webhook-url http://localhost:8080/webhook');
+        console.log('  dash openclaw bridge --status');
+        console.log('  dash openclaw bridge --stop');
+      } catch (error) {
+        logger.error('openclaw', '❌ Bridge command failed');
+        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        process.exit(1);
+      }
+    });
 }
 
 // ============================================================================
