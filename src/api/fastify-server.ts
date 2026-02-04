@@ -23,10 +23,12 @@ import agentRoutes from './routes/agents';
 import swarmRoutes from './routes/swarms';
 import taskRoutes from './routes/tasks';
 import busRoutes from './routes/bus';
-import metricsRoutes from './routes/metrics';
 import logsRoutes from './routes/logs';
-import healthRoutes from './routes/health';
 import capabilitiesRoutes from './routes/capabilities';
+import { healthRoutes } from './health';
+import { metricsRoutes, setupMetricsPlugin } from '../metrics/collector';
+import { setupCorrelationMiddleware, tracingRoutes } from '../tracing/correlation';
+import { setupErrorHandler } from '../errors/format';
 
 // Middleware
 import authPlugin, { AuthConfig } from './middleware/auth-fastify';
@@ -243,12 +245,20 @@ export async function createFastifyServer(
       },
     });
   });
-  
+
+  // Setup observability middleware
+  setupCorrelationMiddleware(fastify);
+  setupMetricsPlugin(fastify);
+  setupErrorHandler(fastify);
+
   // Register routes
   
   // Public health check (no prefix)
   await fastify.register(healthRoutes, { prefix: '/health' });
-  
+
+  // Tracing endpoints for correlation ID management
+  await fastify.register(tracingRoutes, { prefix: '/trace' });
+
   // API routes
   await fastify.register(capabilitiesRoutes, { prefix: '/api/v1/capabilities' });
   await fastify.register(healthRoutes, { prefix: '/api/v1/health' });
