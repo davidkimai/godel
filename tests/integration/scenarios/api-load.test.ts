@@ -215,7 +215,7 @@ describe('Scenario 4: API Load Testing', () => {
       const swarmRes = await apiClient.post('/api/swarms', {
         name: `mixed-load-${Date.now()}`,
       });
-      const swarmId = swarmRes.data.id;
+      const swarmId = (swarmRes.data as any).id;
       localSwarmIds.push(swarmId);
 
       const requests = Array(requestCount).fill(null).map((_, i) =>
@@ -359,7 +359,7 @@ describe('Scenario 4: API Load Testing', () => {
           name: `cleanup-test-${Date.now()}-${i}`,
         });
         if (response.status === 201) {
-          swarmIds.push(response.data.id);
+          swarmIds.push((response.data as any).id);
         }
       }
 
