@@ -12,6 +12,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { createJiti } from 'jiti';
+import { logger } from '../utils/logger';
 import {
   ExtensionAPI,
   ExtensionFactory,
@@ -372,7 +373,7 @@ function createExtensionAPI(
     
     log: (level: 'info' | 'warn' | 'error' | 'debug', message: string): void => {
       const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] [${extension.name}] [${level.toUpperCase()}] ${message}`);
+      logger.log(level, `[${timestamp}] [${extension.name}] ${message}`);
     },
     
     getConfig: <T>(key: string, defaultValue?: T): T => {
@@ -601,7 +602,7 @@ export class ExtensionLoader {
    * Reload a single extension
    */
   private async reloadExtension(extPath: string): Promise<void> {
-    console.log(`🔄 Reloading extension: ${path.basename(extPath)}`);
+    logger.info('extension-loader', `Reloading extension: ${path.basename(extPath)}`);
     
     // Find and remove old extension
     const index = this.extensions.findIndex(e => e.resolvedPath === extPath);
@@ -627,14 +628,14 @@ export class ExtensionLoader {
       const extension = await this.loadSingleExtension(extPath);
       if (extension) {
         this.extensions.push(extension);
-        console.log(`✅ Reloaded extension: ${extension.name}`);
+        logger.info('extension-loader', `Reloaded extension: ${extension.name}`);
       }
       
       // Notify listeners
       this.notifyReloadListeners();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`❌ Failed to reload extension: ${message}`);
+      logger.error('extension-loader', `Failed to reload extension: ${message}`);
     }
   }
 
@@ -653,7 +654,7 @@ export class ExtensionLoader {
       try {
         callback(result);
       } catch (error) {
-        console.error('Error in reload callback:', error);
+        logger.error('extension-loader', `Error in reload callback: ${error}`);
       }
     }
   }
@@ -719,7 +720,7 @@ export class ExtensionLoader {
         try {
           await handler(event as Parameters<EventHandler>[0], this.extensionContext);
         } catch (error) {
-          console.error(`Error in extension ${extension.name} handler:`, error);
+          logger.error('extension-loader', `Error in extension ${extension.name} handler: ${error}`);
         }
       }
     }

@@ -455,7 +455,7 @@ export class DependencyGraphBuilder {
           this.edges.push([filePath, dep]);
         }
       } catch (error) {
-        console.error(`[DependencyGraphBuilder.parseAll.${filePath}] Error:`, error);
+        logger.error('dependencies', `Error parsing ${filePath}: ${error}`);
       }
     }
   }

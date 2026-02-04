@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../utils/logger';
 
 export interface StateVersion {
   version: string;
@@ -56,7 +57,7 @@ export function loadState(): StateVersion | null {
     const data = fs.readFileSync(STATE_FILE, 'utf8');
     return JSON.parse(data) as StateVersion;
   } catch (error) {
-    console.error('Error loading state:', error);
+    logger.error('autonomous-state', `Error loading state: ${error}`);
     return null;
   }
 }
@@ -75,7 +76,7 @@ export function saveState(state: StateVersion): boolean {
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
     return true;
   } catch (error) {
-    console.error('Error saving state:', error);
+    logger.error('autonomous-state', `Error saving state: ${error}`);
     return false;
   }
 }

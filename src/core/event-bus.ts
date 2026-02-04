@@ -9,6 +9,7 @@ import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Event Types
@@ -239,7 +240,7 @@ export class AgentEventBus extends EventEmitter {
       const line = JSON.stringify(event) + '\n';
       appendFileSync(this.eventsFile, line);
     } catch (error) {
-      console.error('[EventBus] Failed to persist event:', error);
+      logger.error('event-bus', `Failed to persist event: ${error}`);
     }
   }
 
@@ -267,12 +268,12 @@ export class AgentEventBus extends EventEmitter {
       } else {
         // Run async without awaiting
         Promise.resolve(subscription.handler(event)).catch((error) => {
-          console.error(`[EventBus] Handler error for subscription ${subscription.id}:`, error);
+          logger.error('event-bus', `Handler error for subscription ${subscription.id}: ${error}`);
         });
       }
       this.metrics.eventsDelivered++;
     } catch (error) {
-      console.error(`[EventBus] Handler error for subscription ${subscription.id}:`, error);
+      logger.error('event-bus', `Handler error for subscription ${subscription.id}: ${error}`);
     }
   }
 

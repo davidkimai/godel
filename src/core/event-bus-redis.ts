@@ -15,6 +15,7 @@ import { gzip, gunzip } from 'zlib';
 import Redis, { RedisOptions } from 'ioredis';
 import { z } from 'zod';
 import { getConfig, type EventBusConfig, type RedisConfig } from '../config';
+import { logger } from '../utils/logger';
 import {
   AgentEvent,
   AgentEventType,
@@ -234,8 +235,8 @@ async function createEventBusConfig(): Promise<RedisEventBusConfig> {
     },
     fallbackConfig: {
       maxQueuedEvents: config.eventBus.maxQueuedEvents,
-      onFallback: (err) => console.warn('[RedisEventBus] Fallback mode activated:', err.message),
-      onRecovered: () => console.info('[RedisEventBus] Recovered from fallback mode'),
+      onFallback: (err) => logger.warn("event-bus-redis", "Fallback mode activated: " + err.message),
+      onRecovered: () => logger.info("event-bus-redis", "Recovered from fallback mode"),
     },
     versioning: {
       currentVersion: 1,
@@ -309,8 +310,8 @@ export class RedisEventBus extends EventEmitter {
       },
       fallbackConfig: {
         maxQueuedEvents: 10000,
-        onFallback: (err) => console.warn('[RedisEventBus] Fallback mode activated:', err.message),
-        onRecovered: () => console.info('[RedisEventBus] Recovered from fallback mode'),
+        onFallback: (err) => logger.warn("event-bus-redis", "Fallback mode activated: " + err.message),
+        onRecovered: () => logger.info("event-bus-redis", "Recovered from fallback mode"),
         ...config.fallbackConfig,
       },
       versioning: {
@@ -390,9 +391,9 @@ export class RedisEventBus extends EventEmitter {
       this.startRecoveryChecker();
 
       this.isRedisConnected = true;
-      console.info(`[RedisEventBus] Node ${this.nodeId} connected to Redis`);
+      logger.info("event-bus-redis", `Node ${this.nodeId} connected to Redis`);
     } catch (error) {
-      console.error('[RedisEventBus] Failed to connect to Redis:', error);
+      logger.error("event-bus-redis", "Failed to connect to Redis: " + error);
       this.activateFallbackMode(error as Error);
     }
   }
@@ -401,7 +402,7 @@ export class RedisEventBus extends EventEmitter {
     if (!this.publisher || !this.subscriber || !this.streamClient) return;
 
     const handleError = (conn: string) => (error: Error) => {
-      console.error(`[RedisEventBus] ${conn} connection error:`, error);
+      logger.error("event-bus-redis", `${conn} connection error: ` + error);
       this.metrics.redisErrors++;
       if (!this.isInFallbackMode) {
         this.activateFallbackMode(error);
@@ -409,7 +410,7 @@ export class RedisEventBus extends EventEmitter {
     };
 
     const handleDisconnect = (conn: string) => () => {
-      console.warn(`[RedisEventBus] ${conn} disconnected`);
+      logger.info("event-bus-redis", `${conn} disconnected`);
       this.isRedisConnected = false;
       if (!this.isInFallbackMode) {
         this.activateFallbackMode(new Error(`${conn} disconnected`));
@@ -417,7 +418,7 @@ export class RedisEventBus extends EventEmitter {
     };
 
     const handleReconnect = (conn: string) => () => {
-      console.info(`[RedisEventBus] ${conn} reconnected`);
+      logger.info("event-bus-redis", `${conn} reconnected`);
       this.isRedisConnected = true;
     };
 
@@ -451,7 +452,7 @@ export class RedisEventBus extends EventEmitter {
           this.metrics.eventsReceived++;
         }
       } catch (error) {
-        console.error('[RedisEventBus] Error processing pub/sub message:', error);
+        logger.error("event-bus-redis", "Error processing pub/sub message: " + error);
       }
     });
   }
@@ -471,7 +472,7 @@ export class RedisEventBus extends EventEmitter {
     } catch (error: any) {
       // Group already exists
       if (!error.message?.includes('already exists')) {
-        console.error('[RedisEventBus] Error creating consumer group:', error);
+        logger.error("event-bus-redis", "Error creating consumer group: " + error);
       }
     }
   }
@@ -483,7 +484,7 @@ export class RedisEventBus extends EventEmitter {
   private activateFallbackMode(error: Error): void {
     if (this.isInFallbackMode) return;
     
-    console.warn(`[RedisEventBus] Activating fallback mode for node ${this.nodeId}`);
+    logger.info("event-bus-redis", `Activating fallback mode for node ${this.nodeId}`);
     this.isInFallbackMode = true;
     this.metrics.fallbackEvents++;
     
@@ -497,7 +498,7 @@ export class RedisEventBus extends EventEmitter {
   private async recoverFromFallbackMode(): Promise<void> {
     if (!this.isInFallbackMode || !this.isRedisConnected) return;
 
-    console.info(`[RedisEventBus] Recovering from fallback mode for node ${this.nodeId}`);
+    logger.info("event-bus-redis", `Recovering from fallback mode for node ${this.nodeId}`);
     
     try {
       // Replay queued events
@@ -507,20 +508,20 @@ export class RedisEventBus extends EventEmitter {
       this.config.fallbackConfig.onRecovered?.();
       this.emit('recovered');
     } catch (error) {
-      console.error('[RedisEventBus] Recovery failed:', error);
+      logger.error("event-bus-redis", "Recovery failed: " + error);
     }
   }
 
   private async replayQueuedEvents(): Promise<void> {
     if (!this.streamClient || this.fallbackQueue.length === 0) return;
 
-    console.info(`[RedisEventBus] Replaying ${this.fallbackQueue.length} queued events`);
+    logger.info("event-bus-redis", `Replaying ${this.fallbackQueue.length} queued events`);
 
     for (const event of this.fallbackQueue) {
       try {
         await this.publishToStream(event);
       } catch (error) {
-        console.error('[RedisEventBus] Failed to replay event:', error);
+        logger.error("event-bus-redis", "Failed to replay event: " + error);
       }
     }
 
@@ -571,7 +572,7 @@ export class RedisEventBus extends EventEmitter {
       } catch (error) {
         // Stream errors are expected during reconnection
         if (this.isRedisConnected) {
-          console.error('[RedisEventBus] Stream read error:', error);
+          logger.error("event-bus-redis", "Stream read error: " + error);
         }
       }
     }, 100);
@@ -593,7 +594,7 @@ export class RedisEventBus extends EventEmitter {
         await this.streamClient.xack(this.config.streamKey, this.config.consumerGroup, id);
       }
     } catch (error) {
-      console.error('[RedisEventBus] Error processing stream message:', error);
+      logger.error("event-bus-redis", "Error processing stream message: " + error);
     }
   }
 
@@ -705,7 +706,7 @@ export class RedisEventBus extends EventEmitter {
       if (this.config.versioning.strictVersioning) {
         throw new Error(`Event version mismatch: expected ${this.config.versioning.currentVersion}, got ${serialized.version}`);
       }
-      console.warn(`[RedisEventBus] Event version mismatch: ${serialized.version} vs ${this.config.versioning.currentVersion}`);
+      logger.info("event-bus-redis", `Event version mismatch: ${serialized.version} vs ${this.config.versioning.currentVersion}`);
     }
 
     let data = serialized.data;
@@ -721,7 +722,7 @@ export class RedisEventBus extends EventEmitter {
     // Validate with Zod schema
     const result = AgentEventSchema.safeParse(parsed);
     if (!result.success) {
-      console.error('[RedisEventBus] Event validation failed:', result.error);
+      logger.error("event-bus-redis", "Event validation failed: " + result.error);
       throw new Error(`Event validation failed: ${result.error.message}`);
     }
 
@@ -789,12 +790,12 @@ export class RedisEventBus extends EventEmitter {
       } else {
         // Run async without awaiting
         Promise.resolve(subscription.handler(event)).catch((error) => {
-          console.error(`[RedisEventBus] Handler error for subscription ${subscription.id}:`, error);
+          logger.error("event-bus-redis", `Handler error for subscription ${subscription.id}: ` + error);
         });
       }
       this.metrics.eventsDelivered++;
     } catch (error) {
-      console.error(`[RedisEventBus] Handler error for subscription ${subscription.id}:`, error);
+      logger.error("event-bus-redis", `Handler error for subscription ${subscription.id}: ` + error);
     }
   }
 
@@ -819,7 +820,7 @@ export class RedisEventBus extends EventEmitter {
       if (this.fallbackQueue.length < this.config.fallbackConfig.maxQueuedEvents) {
         this.fallbackQueue.push(event);
       } else {
-        console.warn('[RedisEventBus] Fallback queue full, dropping event');
+        logger.warn("event-bus-redis", "Fallback queue full, dropping event");
       }
       
       // Also emit to fallback bus for immediate local delivery
@@ -830,15 +831,15 @@ export class RedisEventBus extends EventEmitter {
     // Publish to Redis (pub/sub for real-time, stream for persistence)
     Promise.all([
       this.publishToPubSub(event).catch((error) => {
-        console.error('[RedisEventBus] Pub/sub publish failed:', error);
+        logger.error("event-bus-redis", "Pub/sub publish failed: " + error);
         this.activateFallbackMode(error);
       }),
       this.publishToStream(event).catch((error) => {
-        console.error('[RedisEventBus] Stream publish failed:', error);
+        logger.error("event-bus-redis", "Stream publish failed: " + error);
         // Don't activate fallback for stream errors - pub/sub is more critical
       }),
     ]).catch((error) => {
-      console.error('[RedisEventBus] Event publishing failed:', error);
+      logger.error("event-bus-redis", "Event publishing failed: " + error);
     });
 
     // Deliver to local subscribers immediately (don't wait for Redis)
@@ -954,7 +955,7 @@ export class RedisEventBus extends EventEmitter {
 
       return events;
     } catch (error) {
-      console.error('[RedisEventBus] Error reading recent events:', error);
+      logger.error("event-bus-redis", "Error reading recent events: " + error);
       return [];
     }
   }
@@ -1025,7 +1026,7 @@ export class RedisEventBus extends EventEmitter {
     await this.subscriber?.quit();
     await this.streamClient?.quit();
 
-    console.info(`[RedisEventBus] Node ${this.nodeId} shut down gracefully`);
+    logger.info("event-bus-redis", `Node ${this.nodeId} shut down gracefully`);
   }
 }
 
@@ -1055,7 +1056,7 @@ export async function getGlobalRedisEventBus(): Promise<RedisEventBus> {
 }
 
 export function resetGlobalRedisEventBus(): void {
-  globalRedisEventBus?.shutdown().catch(console.error);
+  globalRedisEventBus?.shutdown().catch((error) => logger.error("event-bus-redis", "Shutdown error: " + error));
   globalRedisEventBus = null;
   globalEventBusPromise = null;
 }

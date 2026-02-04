@@ -30,6 +30,7 @@ import type {
 } from './types';
 import { toSwarmConfig } from './yaml-loader';
 import type { SwarmManager } from '../core/swarm';
+import { logger } from '../utils/logger';
 
 // ============================================================================
 // Config Diffing
@@ -272,7 +273,7 @@ export class GitOpsManager extends EventEmitter {
       );
     } catch (error) {
       // Polling fallback will handle it
-      console.warn(`Native watch failed for ${tracked.filePath}, using polling only`);
+      logger.warn('gitops', `Native watch failed for ${tracked.filePath}, using polling only`);
     }
   }
 

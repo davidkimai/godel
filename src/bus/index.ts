@@ -6,6 +6,7 @@
 
 import { EventEmitter } from 'events';
 import { MissionEvent, EventType } from '../events/types';
+import { logger } from '../utils/logger';
 
 // Topic patterns:
 // - agent.{id}.commands    # Control messages to agent
@@ -349,12 +350,12 @@ export class MessageBus {
       const result = subscription.handler(message);
       if (result instanceof Promise) {
         result.catch((error) => {
-          console.error(`[MessageBus] Handler error for subscription ${subscription.id}:`, error);
+          logger.error('bus', `Handler error for subscription ${subscription.id}: ${error}`);
         });
       }
       this.metrics.messagesDelivered++;
     } catch (error) {
-      console.error(`[MessageBus] Handler error for subscription ${subscription.id}:`, error);
+      logger.error('bus', `Handler error for subscription ${subscription.id}: ${error}`);
     }
   }
 
