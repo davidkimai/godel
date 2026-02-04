@@ -7,7 +7,7 @@
  * - Event delivery
  */
 
-import WebSocket from 'ws';
+import * as WebSocket from 'ws';
 import { testConfig, waitForCondition } from '../config';
 
 describe('Scenario 6: WebSocket Stability', () => {

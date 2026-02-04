@@ -231,7 +231,7 @@ describe('Scenario 9: Error Handling', () => {
       });
 
       if (response1.status === 201) {
-        createdResources.push({ type: 'swarm', id: response1.data.id });
+        createdResources.push({ type: 'swarm', id: (response1.data as any).id });
 
         // Try to create with same name
         const response2 = await apiClient.post('/api/swarms', {
@@ -284,7 +284,8 @@ describe('Scenario 9: Error Handling', () => {
       
       // Error response should have details
       if (response.data && typeof response.data === 'object') {
-        expect(response.data.error || response.data.message || response.data.detail).toBeDefined();
+        const data = response.data as Record<string, any>;
+        expect(data.error || data.message || data.detail).toBeDefined();
       }
     }, testConfig.testTimeout);
   });
@@ -338,7 +339,7 @@ describe('Scenario 9: Error Handling', () => {
       // System should still be functional
       const response = await apiClient.get('/api/swarms');
       expect(response.status).toBe(200);
-      expect(Array.isArray(response.data?.swarms || response.data)).toBe(true);
+      expect(Array.isArray((response.data as any)?.swarms || response.data)).toBe(true);
     }, testConfig.testTimeout);
   });
 
