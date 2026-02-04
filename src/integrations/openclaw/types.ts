@@ -559,3 +559,153 @@ export const DEFAULT_GATEWAY_OPTIONS: GatewayClientOptions = {
   connectionTimeout: 10000,
   heartbeatInterval: 30000,
 };
+
+// ============================================================================
+// Event Bridge Types
+// ============================================================================
+
+/**
+ * OpenClaw Event - Events sent from Dash to OpenClaw
+ */
+export interface OpenClawEvent {
+  /** Event source */
+  source: 'dash';
+  /** Event type */
+  type: string;
+  /** Event timestamp */
+  timestamp: Date;
+  /** OpenClaw session key */
+  sessionKey: string;
+  /** Event data payload */
+  data: Record<string, unknown>;
+  /** Event metadata */
+  metadata: Record<string, unknown>;
+}
+
+/**
+ * Dash Event - Events originating from Dash system
+ */
+export interface DashEvent {
+  /** Event ID */
+  id: string;
+  /** Event type */
+  type: string;
+  /** Event timestamp */
+  timestamp: Date;
+  /** Event topic */
+  topic: string;
+  /** Event payload */
+  payload: Record<string, unknown>;
+  /** Event metadata */
+  metadata?: {
+    source?: string;
+    priority?: string;
+    agentId?: string;
+    swarmId?: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Event Transformer - Transforms events between Dash and OpenClaw formats
+ */
+export interface EventTransformer {
+  /** Transform Dash event to OpenClaw format */
+  toOpenClaw(dashEvent: DashEvent): OpenClawEvent;
+  /** Transform OpenClaw event to Dash format */
+  toDash(openclawEvent: OpenClawEvent): DashEvent;
+}
+
+/**
+ * Default Event Transformer implementation
+ */
+export const DefaultEventTransformer: EventTransformer = {
+  toOpenClaw(dashEvent: DashEvent): OpenClawEvent {
+    return {
+      source: 'dash',
+      type: dashEvent.type,
+      timestamp: dashEvent.timestamp,
+      sessionKey: dashEvent.metadata?.['sessionKey'] as string || 'unknown',
+      data: dashEvent.payload,
+      metadata: {
+        dashAgentId: dashEvent.metadata?.['agentId'],
+        dashSwarmId: dashEvent.metadata?.['swarmId'],
+        topic: dashEvent.topic,
+        messageId: dashEvent.id,
+        ...dashEvent.metadata,
+      },
+    };
+  },
+
+  toDash(openclawEvent: OpenClawEvent): DashEvent {
+    return {
+      id: openclawEvent.metadata?.['messageId'] as string || `evt-${Date.now()}`,
+      type: openclawEvent.type,
+      timestamp: openclawEvent.timestamp,
+      topic: `openclaw.${openclawEvent.sessionKey}.events`,
+      payload: openclawEvent.data,
+      metadata: {
+        source: 'openclaw',
+        sessionKey: openclawEvent.sessionKey,
+        ...openclawEvent.metadata,
+      },
+    };
+  },
+};
+
+/**
+ * Event Transformer registry for custom transformers
+ */
+export class EventTransformerRegistry {
+  private transformers: Map<string, EventTransformer> = new Map();
+
+  /**
+   * Register a custom transformer for an event type
+   */
+  register(eventType: string, transformer: EventTransformer): void {
+    this.transformers.set(eventType, transformer);
+  }
+
+  /**
+   * Get transformer for an event type
+   */
+  get(eventType: string): EventTransformer {
+    return this.transformers.get(eventType) || DefaultEventTransformer;
+  }
+
+  /**
+   * Check if a custom transformer exists
+   */
+  has(eventType: string): boolean {
+    return this.transformers.has(eventType);
+  }
+
+  /**
+   * Remove a transformer
+   */
+  unregister(eventType: string): boolean {
+    return this.transformers.delete(eventType);
+  }
+}
+
+/**
+ * Global transformer registry instance
+ */
+let globalTransformerRegistry: EventTransformerRegistry | null = null;
+
+/**
+ * Get the global event transformer registry
+ */
+export function getEventTransformerRegistry(): EventTransformerRegistry {
+  if (!globalTransformerRegistry) {
+    globalTransformerRegistry = new EventTransformerRegistry();
+  }
+  return globalTransformerRegistry;
+}
+
+/**
+ * Reset the global transformer registry (for testing)
+ */
+export function resetEventTransformerRegistry(): void {
+  globalTransformerRegistry = null;
+}

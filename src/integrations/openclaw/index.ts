@@ -460,3 +460,56 @@ export type {
   NodeAction,
   NodeResult,
 } from './ToolResult';
+
+// ============================================================================
+// OpenClaw Adapter
+// ============================================================================
+
+export {
+  OpenClawAdapter,
+  getOpenClawAdapter,
+  resetOpenClawAdapter,
+  isOpenClawAdapterInitialized,
+} from './adapter';
+
+export type {
+  OpenClawAdapterConfig,
+  SpawnAgentOptions,
+  SpawnAgentResult,
+  AgentStatus,
+  ActiveAgent,
+} from './adapter';
+
+// ============================================================================
+// Event Bridge
+// ============================================================================
+
+export {
+  OpenClawEventBridge,
+  getOpenClawEventBridge,
+  resetOpenClawEventBridge,
+  isOpenClawEventBridgeInitialized,
+} from './event-bridge';
+
+export type {
+  EventBridgeConfig,
+  BridgedEvent,
+  EventBridgeStats,
+} from './event-bridge';
+
+// ============================================================================
+// Event Types and Transformers
+// ============================================================================
+
+export {
+  DefaultEventTransformer,
+  EventTransformerRegistry,
+  getEventTransformerRegistry,
+  resetEventTransformerRegistry,
+} from './types';
+
+export type {
+  OpenClawEvent,
+  DashEvent,
+  EventTransformer,
+} from './types';
