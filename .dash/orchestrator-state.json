@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastHeartbeat": 1770223475419,
+  "lastHeartbeat": 1770224378271,
   "mode": "normal",
   "activeSwarms": {
     "cli-1770086777645": {
@@ -179,20 +179,24 @@
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770216322681.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770224433061
     },
     "cli-1770217219811": {
       "started": 1770217219811,
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770217219811.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770224433061
     },
     "cli-1770218125706": {
       "started": 1770218125706,
@@ -343,11 +347,81 @@
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770223482988.log",
       "method": "kimi-cli-primary"
+    },
+    "cli-1770223514025": {
+      "started": 1770223514025,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770223514025.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770223551648": {
+      "started": 1770223551648,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770223551648.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770223963828": {
+      "started": 1770223963828,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770223963828.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770224085004": {
+      "started": 1770224085004,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770224085004.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770224269467": {
+      "started": 1770224269467,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770224269467.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770224324125": {
+      "started": 1770224324125,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770224324125.log",
+      "method": "kimi-cli-primary"
+    },
+    "cli-1770224385318": {
+      "started": 1770224385318,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770224385318.log",
+      "method": "kimi-cli-primary"
     }
   },
   "metrics": {
     "current": {
-      "timestamp": 1770223475419,
+      "timestamp": 1770224378271,
       "testCoverage": 0,
       "tsErrors": 0,
       "swarmCount": 8,
@@ -731,12 +805,89 @@
         "stuckAgents": 0,
         "buildPassing": false,
         "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770223507504,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770223544224,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770223956406,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770224078399,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770224262203,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770224317133,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770224378271,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
       }
     ]
   },
   "cooldowns": {
     "coverage": 1770088577649,
-    "bugfix": 1770224382992
+    "bugfix": 1770225285322
   },
   "decisions": [
     {
@@ -905,6 +1056,41 @@
     },
     {
       "timestamp": 1770223482992,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770223514030,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770223551652,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770223963832,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770224085008,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770224269471,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770224324145,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770224385322,
       "action": "spawn_bugfix",
       "reason": "Build broken"
     }
