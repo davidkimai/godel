@@ -1067,9 +1067,9 @@ export function resetGlobalRedisEventBus(): void {
 /**
  * Create a new Redis event bus with the given configuration
  */
-export async function createRedisEventBus(): Promise<RedisEventBus> {
-  const config = await createEventBusConfig();
-  return new RedisEventBus(config);
+export async function createRedisEventBus(config?: RedisEventBusConfig): Promise<RedisEventBus> {
+  const eventBusConfig = config || await createEventBusConfig();
+  return new RedisEventBus(eventBusConfig);
 }
 
 /**

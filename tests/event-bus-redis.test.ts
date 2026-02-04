@@ -158,7 +158,7 @@ describe('RedisEventBus', () => {
 
   describe('Event Emission & Delivery', () => {
     it('should emit and deliver events to subscribers', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -183,7 +183,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should deliver events to multiple subscribers', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler1 = jest.fn();
@@ -210,7 +210,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should filter events by type', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const agentStartHandler = jest.fn();
@@ -236,7 +236,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should support subscribeAll for all event types', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -269,7 +269,7 @@ describe('RedisEventBus', () => {
 
   describe('Event Filtering', () => {
     it('should filter events based on custom filter function', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -310,7 +310,7 @@ describe('RedisEventBus', () => {
 
   describe('Subscription Management', () => {
     it('should allow unsubscribing from events', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -347,7 +347,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should unsubscribe by subscription ID string', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -364,7 +364,7 @@ describe('RedisEventBus', () => {
 
   describe('Event Serialization', () => {
     it('should serialize and deserialize events correctly', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -395,7 +395,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should validate events with JSON schema', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -480,7 +480,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should queue events in fallback mode', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -541,7 +541,7 @@ describe('RedisEventBus', () => {
     }, 10000);
 
     it('should emit fallback and recovered events', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const fallbackHandler = jest.fn();
@@ -571,7 +571,7 @@ describe('RedisEventBus', () => {
 
   describe('Multi-Node Support', () => {
     it('should have unique node ID', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(eventBus.getNodeId()).toBe('test-node');
@@ -590,7 +590,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should track active nodes', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Verify node ID exists
@@ -609,7 +609,7 @@ describe('RedisEventBus', () => {
 
   describe('Metrics', () => {
     it('should track event metrics', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -636,7 +636,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should track Redis errors', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const redisInstance = mockRedisInstances[0];
@@ -655,7 +655,7 @@ describe('RedisEventBus', () => {
 
   describe('Scoped Event Bus', () => {
     it('should emit events with scoped context', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -675,7 +675,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should emit all event types correctly from scoped bus', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const events: AgentEvent[] = [];
@@ -718,7 +718,7 @@ describe('RedisEventBus', () => {
 
   describe('Event Retrieval', () => {
     it('should get recent events', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Emit some events
@@ -740,7 +740,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should filter events by criteria', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       eventBus.emitEvent({
@@ -777,7 +777,7 @@ describe('RedisEventBus', () => {
 
   describe('Shutdown', () => {
     it('should shutdown gracefully', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(eventBus.isConnected()).toBe(true);
@@ -789,7 +789,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should replay queued events on shutdown', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Activate fallback and queue some events
@@ -874,7 +874,7 @@ describe('RedisEventBus', () => {
 
   describe('Performance', () => {
     it('should handle high event throughput', async () => {
-      eventBus = createRedisEventBus(config);
+      eventBus = await createRedisEventBus(config);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
