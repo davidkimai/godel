@@ -11,6 +11,7 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./prometheus/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -19,6 +20,7 @@ services:
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
+      - '--query.lookback-delta=15m'
     networks:
       - dash-monitoring
 
@@ -38,6 +40,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     networks:
       - dash-monitoring
     depends_on:
@@ -56,10 +59,11 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
     networks:
       - dash-monitoring
 
-  # Node exporter (optional - for host metrics)
+  # Node exporter for host metrics
   node-exporter:
     image: prom/node-exporter:v1.7.0
     container_name: dash-node-exporter
@@ -80,10 +84,56 @@ services:
     profiles:
       - full
 
+  # Redis exporter
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0
+    container_name: dash-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=host.docker.internal:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - dash-monitoring
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # PostgreSQL exporter
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: dash-postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-dash}:${POSTGRES_PASSWORD:-dash}@host.docker.internal:5432/${POSTGRES_DB:-dash}?sslmode=disable
+    networks:
+      - dash-monitoring
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Blackbox exporter for endpoint probing
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: dash-blackbox-exporter
+    restart: unless-stopped
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - dash-monitoring
+    profiles:
+      - full
+
 volumes:
   prometheus-data:
+    driver: local
   grafana-data:
+    driver: local
   alertmanager-data:
+    driver: local
 
 networks:
   dash-monitoring:

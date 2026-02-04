@@ -1,0 +1,309 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "dash-agent-performance",
+    "title": "Dash - Agent Performance",
+    "tags": ["dash", "agents", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "15s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "swarm_id",
+          "type": "query",
+          "query": "label_values(dash_agent_execution_duration_seconds, swarm_id)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        },
+        {
+          "name": "model",
+          "type": "query",
+          "query": "label_values(dash_agent_execution_duration_seconds, model)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Avg Agent Execution Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(dash_agent_execution_duration_seconds_sum / dash_agent_execution_duration_seconds_count)",
+            "legendFormat": "Avg Execution Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 2
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "p95 Execution Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(dash_agent_execution_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 60, "color": "yellow" },
+                { "value": 300, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "p99 Execution Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(dash_agent_execution_duration_seconds_bucket[5m])) by (le))",
+            "legendFormat": "p99"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "decimals": 2,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 120, "color": "yellow" },
+                { "value": 600, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+      },
+      {
+        "id": 4,
+        "title": "Agents Completed/sec",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_agent_execution_duration_seconds_count[5m]))",
+            "legendFormat": "Completed/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }
+      },
+      {
+        "id": 5,
+        "title": "Agent Execution Latency Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_agent_execution_duration_seconds_bucket[5m])) by (le)",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "dataFormat": "tsbuckets",
+        "heatmap": {},
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 4 }
+      },
+      {
+        "id": 6,
+        "title": "Execution Time by Swarm (p95)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(dash_agent_execution_duration_seconds_bucket[5m])) by (le, swarm_id))",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 4 }
+      },
+      {
+        "id": 7,
+        "title": "Throughput by Swarm",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 }
+      },
+      {
+        "id": 8,
+        "title": "Throughput by Model",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (model) (rate(dash_agent_execution_duration_seconds_count[5m]))",
+            "legendFormat": "{{model}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 }
+      },
+      {
+        "id": 9,
+        "title": "Agent Failure Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_agent_failures_total[5m])) by (swarm_id, failure_reason)",
+            "legendFormat": "{{swarm_id}} - {{failure_reason}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 }
+      },
+      {
+        "id": 10,
+        "title": "Success Rate by Swarm",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "(
+              sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
+              -
+              sum by (swarm_id) (rate(dash_agent_failures_total[5m]))
+            ) / sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m])) * 100",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 }
+      },
+      {
+        "id": 11,
+        "title": "Tool Call Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(dash_tool_call_duration_seconds_bucket[5m])) by (le, tool_name))",
+            "legendFormat": "{{tool_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 }
+      },
+      {
+        "id": 12,
+        "title": "Tool Call Success Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "(
+              sum by (tool_name) (rate(dash_tool_call_duration_seconds_count{success=\"true\"}[5m]))
+              /
+              sum by (tool_name) (rate(dash_tool_call_duration_seconds_count[5m]))
+            ) * 100",
+            "legendFormat": "{{tool_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 }
+      },
+      {
+        "id": 13,
+        "title": "SLO Tracking - 99th Percentile Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "slo:dash_agent_execution_p99:ratio_rate5m",
+            "legendFormat": "p99 Latency"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [300], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Agent SLO Breach",
+          "noDataState": "no_data"
+        },
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 38 }
+      }
+    ]
+  }
+}

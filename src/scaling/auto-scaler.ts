@@ -48,7 +48,6 @@ import { logger } from '../utils/logger';
 
 const DEFAULT_CONFIG: AutoScalerConfig = {
   evaluationIntervalSeconds: 30,
-  evaluationIntervalSeconds: 30,
   defaultPolicy: {
     minAgents: 5,
     maxAgents: 50,
@@ -296,7 +295,7 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       this.emit('started');
       logger.info('[AutoScaler] Started successfully');
     } catch (error) {
-      this.recordError(`Failed to start: ${error}`);
+      this.recordError(`Failed to start: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -448,15 +447,15 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       }
 
       // Evaluate each swarm
-      for (const [swarmId, policy] of this.state.activePolicies) {
+      for (const [swarmId, policy] of Array.from(this.state.activePolicies)) {
         try {
           await this.evaluateSwarmInternal(swarmId, policy);
         } catch (error) {
-          this.recordError(`Error evaluating swarm ${swarmId}: ${error}`);
+          this.recordError(`Error evaluating swarm ${swarmId}: ${(error as Error).message}`);
         }
       }
     } catch (error) {
-      this.recordError(`Error in evaluateAll: ${error}`);
+      this.recordError(`Error in evaluateAll: ${(error as Error).message}`);
     }
   }
 
@@ -612,7 +611,7 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       );
     } catch (error) {
       decision.executionResult = 'failure';
-      this.recordError(`Scaling execution failed for ${swarmId}: ${error}`);
+      this.recordError(`Scaling execution failed for ${swarmId}: ${(error as Error).message}`);
       
       this.emitScalingEvent({
         id: `evt_${Date.now()}`,

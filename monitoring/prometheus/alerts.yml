@@ -1,103 +1,297 @@
 # Alert rules for Dash monitoring
 
 groups:
-  - name: dash_alerts
+  # ============================================================================
+  # Critical Alerts - Immediate Action Required
+  # ============================================================================
+  - name: dash_critical
     rules:
-      # High error rate
-      - alert: DashHighErrorRate
-        expr: rate(dash_errors_total[5m]) > 0.1
-        for: 5m
+      # Dash service down
+      - alert: DashDown
+        expr: up{job="dash"} == 0
+        for: 2m
         labels:
-          severity: warning
+          severity: critical
+          category: availability
         annotations:
-          summary: "High error rate detected in Dash"
-          description: "Error rate is {{ $value }} errors per second"
+          summary: "Dash orchestrator is down"
+          description: "Dash metrics endpoint has been unreachable for more than 2 minutes"
+          runbook_url: "https://docs.dash.local/runbooks/dash-down"
 
-      # Agent failure rate
-      - alert: DashHighAgentFailureRate
-        expr: rate(dash_agent_failures_total[10m]) > 0.5
+      # High error rate (>5% for 5 minutes)
+      - alert: DashHighErrorRate
+        expr: |
+          (
+            sum(rate(dash_errors_total[5m])) 
+            / 
+            sum(rate(dash_events_total[5m]))
+          ) > 0.05
         for: 5m
         labels:
           severity: critical
+          category: reliability
+        annotations:
+          summary: "High error rate in Dash"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          runbook_url: "https://docs.dash.local/runbooks/high-error-rate"
+
+      # Agent failure rate > 10%
+      - alert: DashHighAgentFailureRate
+        expr: |
+          (
+            sum(rate(dash_agent_failures_total[10m])) 
+            / 
+            sum(rate(dash_agents_total[10m]))
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          category: reliability
         annotations:
           summary: "High agent failure rate"
-          description: "{{ $value }} agents failing per second"
+          description: "{{ $value | humanizePercentage }} of agents are failing"
+          runbook_url: "https://docs.dash.local/runbooks/high-agent-failure"
 
-      # Budget utilization
+      # Budget critical - 95% consumed
       - alert: DashBudgetCritical
         expr: dash_budget_utilization_ratio > 0.95
         for: 1m
         labels:
           severity: critical
+          category: cost
         annotations:
           summary: "Dash budget critically low"
-          description: "Budget utilization is {{ $value | humanizePercentage }}"
+          description: "Budget utilization is {{ $value | humanizePercentage }} for swarm {{ $labels.swarm_id }}"
+          runbook_url: "https://docs.dash.local/runbooks/budget-critical"
 
+      # Database down
+      - alert: DashPostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is unreachable"
+          runbook_url: "https://docs.dash.local/runbooks/postgresql-down"
+
+      # Redis down
+      - alert: DashRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server is unreachable"
+          runbook_url: "https://docs.dash.local/runbooks/redis-down"
+
+      # Disk full
+      - alert: DashDiskFull
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Disk is critically full"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook_url: "https://docs.dash.local/runbooks/disk-full"
+
+  # ============================================================================
+  # Warning Alerts - Attention Needed
+  # ============================================================================
+  - name: dash_warning
+    rules:
+      # Budget warning - 80% consumed
       - alert: DashBudgetWarning
         expr: dash_budget_utilization_ratio > 0.80
         for: 5m
         labels:
           severity: warning
+          category: cost
         annotations:
           summary: "Dash budget warning"
-          description: "Budget utilization is {{ $value | humanizePercentage }}"
+          description: "Budget utilization is {{ $value | humanizePercentage }} for swarm {{ $labels.swarm_id }}"
+          runbook_url: "https://docs.dash.local/runbooks/budget-warning"
 
-      # Disk space
-      - alert: DashDiskSpaceLow
-        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.85
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Low disk space"
-          description: "Disk is {{ $value | humanizePercentage }} full"
-
-      # Memory usage
+      # High memory usage
       - alert: DashMemoryHigh
         expr: dash_memory_usage_bytes{type="rss"} / 1024 / 1024 / 1024 > 4
         for: 5m
         labels:
           severity: warning
+          category: performance
         annotations:
           summary: "High memory usage"
           description: "Memory usage is {{ $value }}GB"
+          runbook_url: "https://docs.dash.local/runbooks/high-memory"
 
-      # Event processing lag
-      - alert: DashEventProcessingSlow
-        expr: rate(dash_event_processing_duration_seconds_sum[5m]) / rate(dash_event_processing_duration_seconds_count[5m]) > 1
+      # Disk space warning
+      - alert: DashDiskSpaceLow
+        expr: |
+          (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 0.85
         for: 5m
         labels:
           severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Disk is {{ $value | humanizePercentage }} full on {{ $labels.instance }}"
+          runbook_url: "https://docs.dash.local/runbooks/disk-space-low"
+
+      # Slow event processing
+      - alert: DashEventProcessingSlow
+        expr: |
+          (
+            sum(rate(dash_event_processing_duration_seconds_sum[5m])) 
+            / 
+            sum(rate(dash_event_processing_duration_seconds_count[5m]))
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
         annotations:
           summary: "Slow event processing"
           description: "Average event processing time is {{ $value }}s"
+          runbook_url: "https://docs.dash.local/runbooks/slow-event-processing"
 
-      # Swarm failures
-      - alert: DashSwarmFailureRate
-        expr: rate(dash_swarm_failure_total[10m]) > 0.1
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "High swarm failure rate"
-          description: "{{ $value }} swarms failing per second"
-
-      # API latency
+      # High API latency
       - alert: DashHighApiLatency
-        expr: histogram_quantile(0.95, rate(dash_api_request_duration_seconds_bucket[5m])) > 5
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(dash_api_request_duration_seconds_bucket[5m])) by (le)
+          ) > 5
         for: 5m
         labels:
           severity: warning
+          category: performance
         annotations:
           summary: "High API latency"
           description: "95th percentile API latency is {{ $value }}s"
+          runbook_url: "https://docs.dash.local/runbooks/high-api-latency"
 
-      # No metrics received
-      - alert: DashNoMetrics
-        expr: up{job="dash"} == 0
-        for: 2m
+      # Queue depth - tasks backing up
+      - alert: DashQueueDepthHigh
+        expr: sum(dash_agents_pending) > 100
+        for: 5m
         labels:
-          severity: critical
+          severity: warning
+          category: capacity
         annotations:
-          summary: "Dash metrics not available"
-          description: "Prometheus cannot scrape Dash metrics"
+          summary: "High queue depth"
+          description: "{{ $value }} tasks are pending in the queue"
+          runbook_url: "https://docs.dash.local/runbooks/queue-depth-high"
+
+      # Swarm failure rate elevated
+      - alert: DashSwarmFailureRate
+        expr: |
+          (
+            sum(rate(dash_swarm_failure_total[10m])) 
+            / 
+            (sum(rate(dash_swarm_success_total[10m])) + sum(rate(dash_swarm_failure_total[10m])))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: reliability
+        annotations:
+          summary: "High swarm failure rate"
+          description: "{{ $value | humanizePercentage }} of swarms are failing"
+          runbook_url: "https://docs.dash.local/runbooks/swarm-failure-rate"
+
+      # Event bus backlog
+      - alert: DashEventBusBacklog
+        expr: dash_eventbus_queued_events > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Event bus backlog detected"
+          description: "{{ $value }} events are queued in the event bus"
+          runbook_url: "https://docs.dash.local/runbooks/event-bus-backlog"
+
+      # High CPU usage
+      - alert: DashCPUHigh
+        expr: dash_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+          runbook_url: "https://docs.dash.local/runbooks/high-cpu"
+
+  # ============================================================================
+  # Info Alerts - Awareness
+  # ============================================================================
+  - name: dash_info
+    rules:
+      # Agent spawned
+      - alert: DashAgentSpawned
+        expr: increase(dash_agents_total{status="active"}[1m]) > 0
+        for: 0m
+        labels:
+          severity: info
+          category: lifecycle
+        annotations:
+          summary: "New agent spawned"
+          description: "A new agent has been spawned"
+
+      # Swarm completed
+      - alert: DashSwarmCompleted
+        expr: increase(dash_swarm_success_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: info
+          category: lifecycle
+        annotations:
+          summary: "Swarm completed successfully"
+          description: "A swarm has completed successfully"
+
+  # ============================================================================
+  # SLO Alerts
+  # ============================================================================
+  - name: slo_alerts
+    rules:
+      # Error budget exhaustion warning (50% consumed)
+      - alert: DashErrorBudgetBurn
+        expr: error_budget:dash_monthly:remaining_ratio < 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "Error budget burning fast"
+          description: "Only {{ $value | humanizePercentage }} of monthly error budget remains"
+          runbook_url: "https://docs.dash.local/runbooks/error-budget"
+
+      # SLO violation - latency
+      - alert: DashSLOLatencyViolation
+        expr: slo:dash_api_latency_p99:ratio_rate5m > 2
+        for: 10m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "SLO latency violation"
+          description: "99th percentile latency ({{ $value }}s) exceeds SLO (2s)"
+          runbook_url: "https://docs.dash.local/runbooks/slo-latency"
+
+      # SLO violation - availability
+      - alert: DashSLOAvailabilityViolation
+        expr: slo:dash_swarm_success_rate:ratio_rate5m < 0.99
+        for: 10m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "SLO availability violation"
+          description: "Success rate ({{ $value | humanizePercentage }}) below SLO (99%)"
+          runbook_url: "https://docs.dash.local/runbooks/slo-availability"

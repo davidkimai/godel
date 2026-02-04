@@ -1,0 +1,342 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "dash-cost-analysis",
+    "title": "Dash - Cost Analysis",
+    "tags": ["dash", "cost", "budget", "finance"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "swarm_id",
+          "type": "query",
+          "query": "label_values(dash_swarm_cost_usd, swarm_id)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Cost (24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dash_swarm_cost_usd)",
+            "legendFormat": "Total Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Hourly Burn Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_swarm_cost_usd[1h])) * 3600",
+            "legendFormat": "$/hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Daily Projection",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_swarm_cost_usd[1h])) * 86400",
+            "legendFormat": "$/day"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+      },
+      {
+        "id": 4,
+        "title": "Avg Budget Utilization",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "avg(dash_budget_utilization_ratio)",
+            "legendFormat": "Budget Used"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.5, "color": "yellow" },
+                { "value": 0.8, "color": "orange" },
+                { "value": 0.95, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }
+      },
+      {
+        "id": 5,
+        "title": "Cost Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(dash_swarm_cost_usd)",
+            "legendFormat": "Total Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+      },
+      {
+        "id": 6,
+        "title": "Cost Rate (Spend per Hour)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(dash_swarm_cost_usd[1h])) * 3600",
+            "legendFormat": "Current Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+      },
+      {
+        "id": 7,
+        "title": "Cost by Swarm",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (swarm_id) (dash_swarm_cost_usd)",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "options": {
+          "legend": { "displayMode": "table", "placement": "right" }
+        },
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 }
+      },
+      {
+        "id": 8,
+        "title": "Budget Utilization by Swarm",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "dash_budget_utilization_ratio",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.5, "color": "yellow" },
+                { "value": 0.8, "color": "orange" },
+                { "value": 0.95, "color": "red" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 }
+      },
+      {
+        "id": 9,
+        "title": "Cost by Strategy",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (strategy) (dash_swarm_cost_usd)",
+            "legendFormat": "{{strategy}}"
+          }
+        ],
+        "options": {
+          "legend": { "displayMode": "table", "placement": "right" }
+        },
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 }
+      },
+      {
+        "id": 10,
+        "title": "Cost Efficiency (Successes per $)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "cost:dash_efficiency_ratio",
+            "legendFormat": "Successes/$"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "none",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 }
+      },
+      {
+        "id": 11,
+        "title": "Cost per Agent Execution",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (swarm_id) (dash_swarm_cost_usd) / sum by (swarm_id) (dash_agents_completed)",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 }
+      },
+      {
+        "id": 12,
+        "title": "Swarms Nearing Budget Limit",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "dash_budget_utilization_ratio > 0.8",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "dash_swarm_cost_usd",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          },
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "swarm_id": "Swarm ID",
+                "Value #A": "Budget Used %",
+                "Value #B": "Cost (USD)"
+              }
+            }
+          },
+          {
+            "id": "filterByValue",
+            "options": {
+              "filters": [
+                { "fieldName": "Budget Used %", "config": { "id": "isGreater", "value": 0.8 } }
+              ]
+            }
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 }
+      },
+      {
+        "id": 13,
+        "title": "Top Cost Consumers (Last 24h)",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (swarm_id) (dash_swarm_cost_usd))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "swarm_id": "Swarm ID",
+                "Value": "Total Cost (USD)"
+              }
+            }
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 }
+      },
+      {
+        "id": 14,
+        "title": "30-Day Cost Projection",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(dash_swarm_cost_usd) + (sum(rate(dash_swarm_cost_usd[1h])) * 86400 * 30)",
+            "legendFormat": "Projected (30 days)"
+          },
+          {
+            "expr": "sum(dash_swarm_cost_usd)",
+            "legendFormat": "Actual"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 36 }
+      }
+    ]
+  }
+}

@@ -71,6 +71,17 @@ export interface CheckpointProvider {
   getEntityType(): 'agent' | 'swarm' | 'session' | 'service';
 }
 
+// Database row types
+interface CheckpointRow {
+  checkpoint_id: string;
+  entity_type: 'agent' | 'swarm' | 'session' | 'service';
+  entity_id: string;
+  timestamp: string;
+  data: string | Record<string, unknown>;
+  metadata: string | Record<string, unknown>;
+  compression_enabled: boolean;
+}
+
 // ============================================================================
 // Checkpoint Manager
 // ============================================================================
@@ -312,7 +323,7 @@ export class CheckpointManager extends EventEmitter {
   async getLatestCheckpoint(entityId: string): Promise<Checkpoint | null> {
     this.ensureInitialized();
 
-    const result = await this.pool!.query(
+    const result = await this.pool!.query<CheckpointRow>(
       `SELECT * FROM checkpoints 
        WHERE entity_id = $1 
        ORDER BY timestamp DESC 
@@ -350,8 +361,8 @@ export class CheckpointManager extends EventEmitter {
       params.push(options.limit);
     }
 
-    const result = await this.pool!.query(query, params);
-    return result.rows.map(row => this.mapRowToCheckpoint(row));
+    const result = await this.pool!.query<CheckpointRow>(query, params);
+    return result.rows.map((row: CheckpointRow) => this.mapRowToCheckpoint(row));
   }
 
   /**
@@ -379,8 +390,8 @@ export class CheckpointManager extends EventEmitter {
       params.push(options.limit);
     }
 
-    const result = await this.pool!.query(query, params);
-    return result.rows.map(row => this.mapRowToCheckpoint(row));
+    const result = await this.pool!.query<CheckpointRow>(query, params);
+    return result.rows.map((row: CheckpointRow) => this.mapRowToCheckpoint(row));
   }
 
   /**
@@ -389,7 +400,7 @@ export class CheckpointManager extends EventEmitter {
   async getCheckpoint(checkpointId: string): Promise<Checkpoint | null> {
     this.ensureInitialized();
 
-    const result = await this.pool!.query(
+    const result = await this.pool!.query<CheckpointRow>(
       `SELECT * FROM checkpoints WHERE checkpoint_id = $1`,
       [checkpointId]
     );
@@ -588,10 +599,27 @@ export class CheckpointManager extends EventEmitter {
   async getStats(): Promise<CheckpointStats> {
     this.ensureInitialized();
 
-    const totalResult = await this.pool!.query(`SELECT COUNT(*) as count FROM checkpoints`);
-    const totalCheckpoints = parseInt(totalResult.rows[0].count, 10);
+    interface CountRow {
+      count: string;
+    }
 
-    const typeResult = await this.pool!.query(
+    interface TypeCountRow {
+      entity_type: string;
+      count: string;
+    }
+
+    interface TimestampRow {
+      timestamp: string;
+    }
+
+    interface SizeRow {
+      size: string;
+    }
+
+    const totalResult = await this.pool!.query<CountRow>(`SELECT COUNT(*) as count FROM checkpoints`);
+    const totalCheckpoints = parseInt(totalResult.rows[0]?.count || '0', 10);
+
+    const typeResult = await this.pool!.query<TypeCountRow>(
       `SELECT entity_type, COUNT(*) as count FROM checkpoints GROUP BY entity_type`
     );
     const checkpointsByType: Record<string, number> = {};
@@ -599,14 +627,14 @@ export class CheckpointManager extends EventEmitter {
       checkpointsByType[row.entity_type] = parseInt(row.count, 10);
     }
 
-    const oldestResult = await this.pool!.query(
+    const oldestResult = await this.pool!.query<TimestampRow>(
       `SELECT timestamp FROM checkpoints ORDER BY timestamp ASC LIMIT 1`
     );
     const oldestCheckpoint = oldestResult.rows.length > 0 
       ? new Date(oldestResult.rows[0].timestamp) 
       : null;
 
-    const newestResult = await this.pool!.query(
+    const newestResult = await this.pool!.query<TimestampRow>(
       `SELECT timestamp FROM checkpoints ORDER BY timestamp DESC LIMIT 1`
     );
     const newestCheckpoint = newestResult.rows.length > 0 
@@ -614,7 +642,7 @@ export class CheckpointManager extends EventEmitter {
       : null;
 
     // Estimate storage size (PostgreSQL doesn't give exact byte size easily)
-    const sizeResult = await this.pool!.query(
+    const sizeResult = await this.pool!.query<SizeRow>(
       `SELECT pg_total_relation_size('checkpoints') as size`
     );
     const storageSizeBytes = parseInt(sizeResult.rows[0]?.size || '0', 10);
@@ -638,14 +666,14 @@ export class CheckpointManager extends EventEmitter {
     return `chk_${entityId.substring(0, 16)}_${timestamp}_${random}`;
   }
 
-  private mapRowToCheckpoint(row: Record<string, unknown>): Checkpoint {
+  private mapRowToCheckpoint(row: CheckpointRow): Checkpoint {
     return {
-      id: row.checkpoint_id as string,
-      entityType: row.entity_type as Checkpoint['entityType'],
-      entityId: row.entity_id as string,
-      timestamp: new Date(row.timestamp as string),
+      id: row.checkpoint_id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      timestamp: new Date(row.timestamp),
       data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data,
-      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata || {},
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
     };
   }
 

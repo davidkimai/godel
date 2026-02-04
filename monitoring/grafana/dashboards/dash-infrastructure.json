@@ -1,0 +1,476 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "dash-infrastructure",
+    "title": "Dash - Infrastructure",
+    "tags": ["dash", "infrastructure", "system", "redis", "postgres"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "15s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Dash Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"dash\"}",
+            "legendFormat": "Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "options": { "0": { "text": "DOWN", "color": "red" } }, "type": "value" },
+              { "options": { "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            ]
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Redis Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "redis_up",
+            "legendFormat": "Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "options": { "0": { "text": "DOWN", "color": "red" } }, "type": "value" },
+              { "options": { "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            ]
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "PostgreSQL Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "pg_up",
+            "legendFormat": "Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              { "options": { "0": { "text": "DOWN", "color": "red" } }, "type": "value" },
+              { "options": { "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            ]
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 }
+      },
+      {
+        "id": 4,
+        "title": "Memory Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dash_memory_usage_bytes{type=\"rss\"} / 1024 / 1024",
+            "legendFormat": "RSS (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 2048, "color": "yellow" },
+                { "value": 4096, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 }
+      },
+      {
+        "id": 5,
+        "title": "CPU Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dash_cpu_usage_percent",
+            "legendFormat": "CPU %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 70, "color": "yellow" },
+                { "value": 90, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 }
+      },
+      {
+        "id": 6,
+        "title": "Disk Usage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "legendFormat": "Disk %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 70, "color": "yellow" },
+                { "value": 85, "color": "orange" },
+                { "value": 95, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 }
+      },
+      {
+        "id": 7,
+        "title": "Memory Usage Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dash_memory_usage_bytes{type=\"rss\"} / 1024 / 1024",
+            "legendFormat": "RSS (MB)"
+          },
+          {
+            "expr": "dash_memory_usage_bytes{type=\"heap_used\"} / 1024 / 1024",
+            "legendFormat": "Heap Used (MB)"
+          },
+          {
+            "expr": "dash_memory_usage_bytes{type=\"heap_total\"} / 1024 / 1024",
+            "legendFormat": "Heap Total (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+      },
+      {
+        "id": 8,
+        "title": "CPU Usage Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dash_cpu_usage_percent",
+            "legendFormat": "CPU %"
+          },
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "Process CPU %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+      },
+      {
+        "id": 9,
+        "title": "Redis Memory Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / 1024 / 1024",
+            "legendFormat": "Used (MB)"
+          },
+          {
+            "expr": "redis_memory_max_bytes / 1024 / 1024",
+            "legendFormat": "Max (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 }
+      },
+      {
+        "id": 10,
+        "title": "Redis Operations/sec",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "Commands/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }
+      },
+      {
+        "id": 11,
+        "title": "Redis Connected Clients",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Clients"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 }
+      },
+      {
+        "id": 12,
+        "title": "Redis Keyspace (Keys)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(redis_db_keys)",
+            "legendFormat": "Total Keys"
+          },
+          {
+            "expr": "sum(redis_db_keys_expiring)",
+            "legendFormat": "Expiring Keys"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 }
+      },
+      {
+        "id": 13,
+        "title": "PostgreSQL Connections",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "pg_settings_max_connections",
+            "legendFormat": "Max Connections"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 }
+      },
+      {
+        "id": 14,
+        "title": "PostgreSQL Transactions/sec",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_xact_commit[5m])",
+            "legendFormat": "Commits/sec"
+          },
+          {
+            "expr": "rate(pg_stat_database_xact_rollback[5m])",
+            "legendFormat": "Rollbacks/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 }
+      },
+      {
+        "id": 15,
+        "title": "PostgreSQL Cache Hit Ratio",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "(
+              sum(pg_stat_database_blks_hit) 
+              / 
+              (sum(pg_stat_database_blks_hit) + sum(pg_stat_database_blks_read))
+            ) * 100",
+            "legendFormat": "Cache Hit %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 }
+      },
+      {
+        "id": 16,
+        "title": "PostgreSQL Database Size",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes / 1024 / 1024",
+            "legendFormat": "{{datname}} (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decmbytes",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 }
+      },
+      {
+        "id": 17,
+        "title": "WebSocket Connections",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dash_websocket_connections",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 }
+      },
+      {
+        "id": 18,
+        "title": "Event Bus Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dash_eventbus_subscriptions",
+            "legendFormat": "Subscriptions"
+          },
+          {
+            "expr": "dash_eventbus_queued_events",
+            "legendFormat": "Queued Events"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 }
+      },
+      {
+        "id": 19,
+        "title": "Node Disk Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})) * 100",
+            "legendFormat": "Disk Used %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "fillOpacity": 20
+            }
+          }
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": { "params": [85], "type": "gt" },
+              "operator": { "type": "and" },
+              "query": { "params": ["A", "5m", "now"] },
+              "reducer": { "params": [], "type": "avg" },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Disk Usage Alert",
+          "noDataState": "no_data"
+        },
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 52 }
+      }
+    ]
+  }
+}

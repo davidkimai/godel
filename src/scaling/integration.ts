@@ -146,7 +146,6 @@ export class ScalingService {
       predictiveScaling: true,
       costAwareScaling: true,
       ...policy,
-      swarmId, // Ensure swarmId is set
     };
 
     this.autoScaler.registerPolicy(fullPolicy);

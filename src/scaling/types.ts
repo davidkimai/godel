@@ -223,6 +223,8 @@ export interface BudgetConfig {
   resetDayOfWeek?: number;
   /** Reset day of month (1-31) for monthly */
   resetDayOfMonth?: number;
+  /** Currency */
+  currency?: 'USD' | 'EUR' | 'GBP';
 }
 
 /**

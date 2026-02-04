@@ -80,11 +80,11 @@ describe('Auto-Scaler', () => {
 
       await autoScaler.start();
       expect(startedSpy).toHaveBeenCalled();
-      expect(autoScaler.getHealth().isRunning).toBe(true);
+      expect(autoScaler.getHealth().status).toBe('healthy');
 
       await autoScaler.stop();
       expect(stoppedSpy).toHaveBeenCalled();
-      expect(autoScaler.getHealth().isRunning).toBe(false);
+      expect(autoScaler.getHealth().status).toBe('unhealthy');
     });
 
     it('should report health status', async () => {

@@ -1,0 +1,255 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: dash_logs_alerts
+    folder: Dash Alerts
+    interval: 30s
+    rules:
+      # High Error Rate Alert
+      - uid: dash-error-rate
+        title: High Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(rate({job="dash"} |= "ERROR" [5m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0.1]
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 0.1 errors per second for more than 2 minutes"
+        labels:
+          severity: critical
+          category: error_rate
+
+      # Agent Crash Alert
+      - uid: dash-agent-crash
+        title: Agent Crash Detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(count_over_time({job="dash"} |= "agent.*crash" [1m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0]
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "Agent crash detected"
+          description: "One or more agents have crashed in the last minute"
+        labels:
+          severity: critical
+          category: agent_health
+
+      # Workflow Failure Alert
+      - uid: dash-workflow-fail
+        title: Workflow Failure
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum by(workflow_id) (count_over_time({job="dash"} |= "workflow.*failed" [5m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0]
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "Workflow failure detected"
+          description: "Workflow {{ $labels.workflow_id }} has failed"
+        labels:
+          severity: warning
+          category: workflow
+
+      # Database Error Alert
+      - uid: dash-db-error
+        title: Database Error
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(count_over_time({job="dash"} |= "database.*error" or "ECONNREFUSED" [5m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0]
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Database error detected"
+          description: "Database connection or query errors have been detected"
+        labels:
+          severity: critical
+          category: database
+
+      # Log Volume Spike Alert
+      - uid: dash-log-spike
+        title: Log Volume Spike
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(rate({job="dash"} [5m]))'
+              queryType: "range"
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: "reduce"
+              expression: "A"
+              reducer: "mean"
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "B"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [1000]
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "Unusually high log volume"
+          description: "Log volume is above 1000 logs per second, possible issue or debug mode"
+        labels:
+          severity: info
+          category: log_volume
+
+      # Memory Error Alert
+      - uid: dash-memory-error
+        title: Out of Memory Error
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 60
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(count_over_time({job="dash"} |= "out of memory" or "ENOMEM" [1m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0]
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "Out of memory error"
+          description: "System or agent is running out of memory"
+        labels:
+          severity: critical
+          category: resource
+
+      # Connection Timeout Alert
+      - uid: dash-timeout
+        title: Connection Timeout
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: Loki
+            model:
+              editorMode: "builder"
+              expr: 'sum(rate({job="dash"} |= "timeout" or "ETIMEDOUT" [5m]))'
+              queryType: "range"
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - evaluator:
+                    type: "gt"
+                    params: [0.5]
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "High timeout rate"
+          description: "Connection or operation timeouts are occurring frequently"
+        labels:
+          severity: warning
+          category: network

@@ -14,6 +14,7 @@ alerting:
 
 rule_files:
   - /etc/prometheus/alerts.yml
+  - /etc/prometheus/recording_rules.yml
 
 scrape_configs:
   # Prometheus self-monitoring
@@ -24,7 +25,7 @@ scrape_configs:
   # Dash orchestrator
   - job_name: 'dash'
     static_configs:
-      - targets: ['dash:7373']
+      - targets: ['host.docker.internal:7373']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s
@@ -39,3 +40,30 @@ scrape_configs:
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+
+  # Redis exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # PostgreSQL exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Blackbox exporter for endpoint probing
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://host.docker.internal:7373/health
+        - http://host.docker.internal:7373/metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

@@ -2,26 +2,27 @@
  * Self-Healing Controller Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { SelfHealingController, AgentRecoveryHandler } from './self-healing';
 
 // Mock postgres pool
-const mockQuery = vi.fn();
-const mockPool = {
-  query: mockQuery,
-};
-
-vi.mock('../storage/postgres/pool', () => ({
-  getPool: vi.fn(() => Promise.resolve(mockPool)),
+jest.mock('../storage/postgres/pool', () => ({
+  getPool: jest.fn(() => Promise.resolve({
+    query: jest.fn().mockResolvedValue({ rows: [] }),
+  })),
 }));
 
 describe('SelfHealingController', () => {
   let controller: SelfHealingController;
   let mockHandler: AgentRecoveryHandler;
+  let mockQuery: jest.Mock;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    mockQuery.mockResolvedValue({ rows: [] });
+    jest.clearAllMocks();
+    
+    const { getPool } = require('../storage/postgres/pool');
+    const mockPool = await getPool();
+    mockQuery = mockPool.query;
 
     controller = new SelfHealingController({
       enabled: true,
@@ -33,13 +34,13 @@ describe('SelfHealingController', () => {
     });
 
     mockHandler = {
-      getAgentId: vi.fn().mockReturnValue('agent-123'),
-      getSwarmId: vi.fn().mockReturnValue('swarm-456'),
-      isHealthy: vi.fn().mockResolvedValue(true),
-      restart: vi.fn().mockResolvedValue(true),
-      restoreFromCheckpoint: vi.fn().mockResolvedValue(true),
-      getAgentState: vi.fn().mockResolvedValue({ status: 'running' }),
-      getStatus: vi.fn().mockReturnValue('running'),
+      getAgentId: jest.fn().mockReturnValue('agent-123'),
+      getSwarmId: jest.fn().mockReturnValue('swarm-456'),
+      isHealthy: jest.fn().mockResolvedValue(true),
+      restart: jest.fn().mockResolvedValue(true),
+      restoreFromCheckpoint: jest.fn().mockResolvedValue(true),
+      getAgentState: jest.fn().mockResolvedValue({ status: 'running' }),
+      getStatus: jest.fn().mockReturnValue('running'),
     };
 
     await controller.initialize();
@@ -58,7 +59,7 @@ describe('SelfHealingController', () => {
 
     it('should emit initialized event', async () => {
       const newController = new SelfHealingController();
-      const listener = vi.fn();
+      const listener = jest.fn();
       newController.on('initialized', listener);
 
       await newController.initialize();
@@ -83,7 +84,7 @@ describe('SelfHealingController', () => {
     });
 
     it('should emit agent.registered event', () => {
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('agent.registered', listener);
 
       controller.registerAgent(mockHandler);
@@ -120,9 +121,9 @@ describe('SelfHealingController', () => {
     });
 
     it('should detect unhealthy agents', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('agent.failed', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -134,10 +135,10 @@ describe('SelfHealingController', () => {
     });
 
     it('should emit failure event with detection source', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('agent.failed', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -151,7 +152,7 @@ describe('SelfHealingController', () => {
     });
 
     it('should persist failure to database', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
 
@@ -168,10 +169,10 @@ describe('SelfHealingController', () => {
     });
 
     it('should attempt restart on failure', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('recovery.started', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -187,10 +188,10 @@ describe('SelfHealingController', () => {
     });
 
     it('should emit recovery.success on successful restart', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('recovery.success', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -205,8 +206,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should retry on failed recovery', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn()
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn()
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
 
@@ -219,10 +220,10 @@ describe('SelfHealingController', () => {
     });
 
     it('should emit recovery.failed on failed recovery', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(false);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('recovery.failed', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -236,8 +237,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should persist recovery attempt', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
 
@@ -257,10 +258,10 @@ describe('SelfHealingController', () => {
     });
 
     it('should escalate after max retries', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(false);
 
-      const listener = vi.fn();
+      const listener = jest.fn();
       controller.on('escalation', listener);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
@@ -276,8 +277,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should persist escalation', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(false);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
 
@@ -300,8 +301,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should get escalated agents', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(false);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(false);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
 
@@ -318,7 +319,7 @@ describe('SelfHealingController', () => {
       controller.registerAgent(mockHandler);
       controller.registerAgent({
         ...mockHandler,
-        getAgentId: vi.fn().mockReturnValue('agent-456'),
+        getAgentId: jest.fn().mockReturnValue('agent-456'),
       });
     });
 
@@ -330,8 +331,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should return healing metrics', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -343,8 +344,8 @@ describe('SelfHealingController', () => {
     });
 
     it('should track recovery attempts per agent', async () => {
-      mockHandler.isHealthy = vi.fn().mockResolvedValue(false);
-      mockHandler.restart = vi.fn().mockResolvedValue(true);
+      mockHandler.isHealthy = jest.fn().mockResolvedValue(false);
+      mockHandler.restart = jest.fn().mockResolvedValue(true);
 
       await controller.reportFailure('agent-123', 'test failure', 'manual');
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -366,7 +367,7 @@ describe('SelfHealingController', () => {
       const breaker = controller.getCircuitBreaker('agent-123');
       
       expect(breaker).toBeDefined();
-      expect(breaker?.getName()).toBe('recovery-agent-123');
+      expect(breaker.getName()).toBe('recovery-agent-123');
     });
   });
 

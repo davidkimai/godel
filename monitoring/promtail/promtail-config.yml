@@ -1,0 +1,200 @@
+# Promtail Configuration
+# Log collection and shipping to Loki
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576
+    timeout: 10s
+    backoff_config:
+      min_period: 100ms
+      max_period: 5s
+      max_retries: 10
+
+scrape_configs:
+  # Dash Application Logs
+  - job_name: dash-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: dash
+          service: dash
+          __path__: /var/log/dash/*.log
+    pipeline_stages:
+      # Parse JSON logs
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            service: service
+            trace_id: trace_id
+            span_id: span_id
+            agent_id: agent_id
+            swarm_id: swarm_id
+            workflow_id: workflow_id
+            task_id: task_id
+            error_name: error.name
+            error_message: error.message
+            duration_ms: duration_ms
+      # Set timestamp from log entry
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      # Set level label
+      - labels:
+          level:
+          service:
+          agent_id:
+          swarm_id:
+          trace_id:
+      # Output the message
+      - output:
+          source: message
+
+  # Dash Error Logs (separate job for easier filtering)
+  - job_name: dash-errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: dash-errors
+          service: dash
+          __path__: /var/log/dash/error*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            error_name: error.name
+            error_message: error.message
+            agent_id: agent_id
+            swarm_id: swarm_id
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          level:
+          agent_id:
+          swarm_id:
+      - output:
+          source: message
+
+  # Agent-specific logs
+  - job_name: agent-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: agents
+          __path__: /var/log/dash/agents/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            agent_id: agent_id
+            swarm_id: swarm_id
+            task_id: task_id
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          level:
+          agent_id:
+          swarm_id:
+          task_id:
+      - output:
+          source: message
+
+  # System logs (for host-level debugging)
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - regex:
+          expression: '^(?P\u003ctimestamp\u003e\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P\u003chostname\u003e\S+)\s+(?P\u003cprogram\u003e[^:]+):\s+(?P\u003cmessage\u003e.*)$'
+      - timestamp:
+          source: timestamp
+          format: 'Jan _2 15:04:05'
+      - labels:
+          hostname:
+          program:
+      - output:
+          source: message
+
+  # Docker container logs (if running in containers)
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            attrs:
+      - json:
+          expressions:
+            tag:
+          source: attrs
+      - regex:
+          expression: (?P<container_name>(?:[^|]|[^|]).*)
+          source: tag
+      - timestamp:
+          format: RFC3339Nano
+          source: time
+      - labels:
+          stream:
+          container_name:
+      - output:
+          source: output
+
+  # Multi-line log support for stack traces
+  - job_name: dash-multiline
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: dash-multiline
+          service: dash
+          __path__: /var/log/dash/*.log
+    pipeline_stages:
+      # Combine multi-line stack traces
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+          max_wait_time: 3s
+          max_lines: 128
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            error: error
+            trace_id: trace_id
+            agent_id: agent_id
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+      - labels:
+          level:
+          agent_id:
+      - output:
+          source: message

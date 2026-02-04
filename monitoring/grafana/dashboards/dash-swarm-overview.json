@@ -1,0 +1,378 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "dash-overview",
+    "title": "Dash - Swarm Overview",
+    "tags": ["dash", "orchestrator", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "15s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "swarm_id",
+          "type": "query",
+          "query": "label_values(dash_swarms_active, swarm_id)",
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Swarms",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "dash_swarms_active",
+            "legendFormat": "Active Swarms"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": {
+              "mode": "thresholds",
+              "fixed": "green"
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Active Agents",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dash_agents_active)",
+            "legendFormat": "Active Agents"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": { "mode": "continuous-BlYlRd" }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Pending Agents",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dash_agents_pending)",
+            "legendFormat": "Pending"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 10, "color": "yellow" },
+                { "value": 50, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 }
+      },
+      {
+        "id": 4,
+        "title": "Failed Agents",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dash_agents_failed)",
+            "legendFormat": "Failed"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "color": { "mode": "thresholds" },
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 }
+      },
+      {
+        "id": 5,
+        "title": "Success Rate",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(sum(rate(dash_swarm_success_total[5m])) / (sum(rate(dash_swarm_success_total[5m])) + sum(rate(dash_swarm_failure_total[5m])))) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 80, "color": "yellow" },
+                { "value": 95, "color": "green" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 }
+      },
+      {
+        "id": 6,
+        "title": "Total Cost (USD)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(dash_swarm_cost_usd)",
+            "legendFormat": "Total Cost"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 }
+      },
+      {
+        "id": 7,
+        "title": "Agent Status by Swarm",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "dash_agents_active",
+            "legendFormat": "Active - {{swarm_id}}"
+          },
+          {
+            "expr": "dash_agents_pending",
+            "legendFormat": "Pending - {{swarm_id}}"
+          },
+          {
+            "expr": "dash_agents_failed",
+            "legendFormat": "Failed - {{swarm_id}}"
+          },
+          {
+            "expr": "dash_agents_completed",
+            "legendFormat": "Completed - {{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "pointSize": 0,
+              "showPoints": "never"
+            }
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+      },
+      {
+        "id": 8,
+        "title": "Event Processing Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(dash_events_total[5m])",
+            "legendFormat": "{{event_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+      },
+      {
+        "id": 9,
+        "title": "Swarm Status Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (status) (dash_swarms_total)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "options": {
+          "legend": { "displayMode": "table", "placement": "right" }
+        },
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 12 }
+      },
+      {
+        "id": 10,
+        "title": "Agent Lifecycle Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (status) (dash_agents_total)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "options": {
+          "legend": { "displayMode": "table", "placement": "right" }
+        },
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 12 }
+      },
+      {
+        "id": 11,
+        "title": "Budget Utilization by Swarm",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "dash_budget_utilization_ratio",
+            "legendFormat": "{{swarm_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 0.8, "color": "yellow" },
+                { "value": 0.95, "color": "red" }
+              ]
+            }
+          }
+        },
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }
+      },
+      {
+        "id": 12,
+        "title": "Swarm Success vs Failure (Rate)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(dash_swarm_success_total[5m])",
+            "legendFormat": "Success - {{strategy}}"
+          },
+          {
+            "expr": "rate(dash_swarm_failure_total[5m])",
+            "legendFormat": "Failure - {{strategy}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 }
+      },
+      {
+        "id": 13,
+        "title": "Event Processing Latency (p95)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(dash_event_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95 - {{event_type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(dash_event_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50 - {{event_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 }
+      },
+      {
+        "id": 14,
+        "title": "Active Swarms List",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "dash_swarms_active",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "dash_swarm_agents",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "dash_swarm_cost_usd",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "dash_budget_utilization_ratio",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          },
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "swarm_id": "Swarm ID",
+                "strategy": "Strategy",
+                "Value #A": "Active",
+                "Value #B": "Agents",
+                "Value #C": "Cost (USD)",
+                "Value #D": "Budget Used"
+              },
+              "indexByName": {
+                "Swarm ID": 0,
+                "Strategy": 1,
+                "Active": 2,
+                "Agents": 3,
+                "Cost (USD)": 4,
+                "Budget Used": 5
+              }
+            }
+          }
+        ],
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 }
+      }
+    ]
+  }
+}

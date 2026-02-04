@@ -904,7 +904,17 @@ export class SelfHealingController extends EventEmitter {
   async getRecentRecoveries(limit: number = 10): Promise<RecoveryAttempt[]> {
     this.ensureInitialized();
 
-    const result = await this.pool!.query(
+    interface RecoveryRow {
+      agent_id: string;
+      attempt_number: number;
+      timestamp: string;
+      strategy: 'restart' | 'checkpoint' | 'migrate';
+      success: boolean;
+      error_message: string | null;
+      duration_ms: number;
+    }
+
+    const result = await this.pool!.query<RecoveryRow>(
       `SELECT * FROM recovery_attempts 
        ORDER BY timestamp DESC LIMIT $1`,
       [limit]
@@ -916,7 +926,7 @@ export class SelfHealingController extends EventEmitter {
       timestamp: new Date(row.timestamp),
       strategy: row.strategy,
       success: row.success,
-      error: row.error_message,
+      error: row.error_message || undefined,
       durationMs: row.duration_ms,
     }));
   }
@@ -924,7 +934,16 @@ export class SelfHealingController extends EventEmitter {
   async getRecentEscalations(limit: number = 10): Promise<EscalationEvent[]> {
     this.ensureInitialized();
 
-    const result = await this.pool!.query(
+    interface EscalationRow {
+      agent_id: string;
+      swarm_id: string | null;
+      reason: string;
+      retry_count: number;
+      timestamp: string;
+      suggested_action: 'manual_review' | 'notify' | 'auto_scale' | 'terminate';
+    }
+
+    const result = await this.pool!.query<EscalationRow>(
       `SELECT * FROM escalation_events 
        ORDER BY timestamp DESC LIMIT $1`,
       [limit]
@@ -932,7 +951,7 @@ export class SelfHealingController extends EventEmitter {
 
     return result.rows.map(row => ({
       agentId: row.agent_id,
-      swarmId: row.swarm_id,
+      swarmId: row.swarm_id || undefined,
       reason: row.reason,
       retryCount: row.retry_count,
       timestamp: new Date(row.timestamp),
@@ -943,7 +962,16 @@ export class SelfHealingController extends EventEmitter {
   async getUnhandledEscalations(): Promise<EscalationEvent[]> {
     this.ensureInitialized();
 
-    const result = await this.pool!.query(
+    interface EscalationRow {
+      agent_id: string;
+      swarm_id: string | null;
+      reason: string;
+      retry_count: number;
+      timestamp: string;
+      suggested_action: 'manual_review' | 'notify' | 'auto_scale' | 'terminate';
+    }
+
+    const result = await this.pool!.query<EscalationRow>(
       `SELECT * FROM escalation_events 
        WHERE handled = FALSE
        ORDER BY timestamp DESC`
@@ -951,7 +979,7 @@ export class SelfHealingController extends EventEmitter {
 
     return result.rows.map(row => ({
       agentId: row.agent_id,
-      swarmId: row.swarm_id,
+      swarmId: row.swarm_id || undefined,
       reason: row.reason,
       retryCount: row.retry_count,
       timestamp: new Date(row.timestamp),

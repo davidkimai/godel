@@ -2,7 +2,7 @@
  * Circuit Breaker Tests
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { CircuitBreaker, CircuitBreakerRegistry, CircuitBreakerError } from './circuit-breaker';
 
 describe('CircuitBreaker', () => {

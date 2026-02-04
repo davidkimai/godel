@@ -77,6 +77,38 @@ services:
     profiles:
       - tools
 
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: dash-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      # Sampling strategy: 1% for high traffic
+      SAMPLING_STRATEGIES_FILE: /etc/jaeger/sampling-strategies.json
+    ports:
+      # Jaeger UI
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      # OTLP gRPC
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"
+      # OTLP HTTP
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
+      # Jaeger Thrift Compact
+      - "${JAEGER_AGENT_PORT:-6831}:6831/udp"
+      # Jaeger Thrift Binary
+      - "6832:6832/udp"
+      # Health check
+      - "14269:14269"
+    volumes:
+      - ./monitoring/jaeger/sampling-strategies.json:/etc/jaeger/sampling-strategies.json:ro
+    networks:
+      - dash-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
     driver: local

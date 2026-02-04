@@ -1,0 +1,235 @@
+# Recording rules for Dash - Pre-computed aggregations for fast queries
+
+groups:
+  # ============================================================================
+  # SLO Tracking Rules
+  # ============================================================================
+  - name: slo_tracking
+    interval: 30s
+    rules:
+      # 99th percentile latency over 5m windows
+      - record: slo:dash_api_latency_p99:ratio_rate5m
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(dash_api_request_duration_seconds_bucket[5m])) by (le, method, route)
+          )
+
+      # 95th percentile latency over 5m windows
+      - record: slo:dash_api_latency_p95:ratio_rate5m
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(dash_api_request_duration_seconds_bucket[5m])) by (le, method, route)
+          )
+
+      # 99th percentile agent execution time
+      - record: slo:dash_agent_execution_p99:ratio_rate5m
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(dash_agent_execution_duration_seconds_bucket[5m])) by (le, swarm_id)
+          )
+
+      # Error rate for SLO calculation
+      - record: slo:dash_error_rate:ratio_rate5m
+        expr: |
+          sum(rate(dash_errors_total[5m])) 
+          / 
+          sum(rate(dash_events_total[5m]))
+
+      # Success rate for swarm completions
+      - record: slo:dash_swarm_success_rate:ratio_rate5m
+        expr: |
+          sum(rate(dash_swarm_success_total[5m])) 
+          / 
+          (sum(rate(dash_swarm_success_total[5m])) + sum(rate(dash_swarm_failure_total[5m])))
+
+  # ============================================================================
+  # Error Budget Consumption
+  # ============================================================================
+  - name: error_budget
+    interval: 1m
+    rules:
+      # Monthly error budget (assuming 99.9% SLO = 0.1% error budget)
+      - record: error_budget:dash_monthly:allowed
+        expr: 0.001 * sum(increase(dash_events_total[30d]))
+
+      # Monthly errors consumed
+      - record: error_budget:dash_monthly:consumed
+        expr: sum(increase(dash_errors_total[30d]))
+
+      # Error budget remaining (1.0 = 100% remaining, 0 = exhausted)
+      - record: error_budget:dash_monthly:remaining_ratio
+        expr: |
+          (error_budget:dash_monthly:allowed - error_budget:dash_monthly:consumed) 
+          / 
+          error_budget:dash_monthly:allowed
+
+      # Daily burn rate
+      - record: error_budget:dash_daily:burn_rate
+        expr: |
+          sum(increase(dash_errors_total[1d])) 
+          / 
+          (error_budget:dash_monthly:allowed / 30)
+
+  # ============================================================================
+  # Aggregation Rules for Dashboards
+  # ============================================================================
+  - name: dashboard_aggregations
+    interval: 15s
+    rules:
+      # Total active agents across all swarms
+      - record: agg:dash_agents_active_total
+        expr: sum(dash_agents_active)
+
+      # Total agents by status
+      - record: agg:dash_agents_by_status
+        expr: sum by (status) (dash_agents_total)
+
+      # Event rate by type
+      - record: agg:dash_event_rate_by_type:rate5m
+        expr: sum by (event_type) (rate(dash_events_total[5m]))
+
+      # Total event rate
+      - record: agg:dash_event_rate_total:rate5m
+        expr: sum(rate(dash_events_total[5m]))
+
+      # Error rate by component
+      - record: agg:dash_error_rate_by_component:rate5m
+        expr: sum by (component, error_type) (rate(dash_errors_total[5m]))
+
+      # Total error rate
+      - record: agg:dash_error_rate_total:rate5m
+        expr: sum(rate(dash_errors_total[5m]))
+
+      # API request rate by route
+      - record: agg:dash_api_rate_by_route:rate5m
+        expr: sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))
+
+      # API error rate by status code
+      - record: agg:dash_api_error_rate:rate5m
+        expr: |
+          sum by (method, route, status_code) (rate(dash_api_request_duration_seconds_count{status_code=~"5.."}[5m]))
+          /
+          sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))
+
+      # Average API latency by route
+      - record: agg:dash_api_latency_avg:rate5m
+        expr: |
+          sum by (method, route) (rate(dash_api_request_duration_seconds_sum[5m]))
+          /
+          sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))
+
+      # Agent execution rate by swarm
+      - record: agg:dash_agent_execution_rate:rate5m
+        expr: sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
+
+      # Average agent execution time by swarm
+      - record: agg:dash_agent_execution_avg:rate5m
+        expr: |
+          sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_sum[5m]))
+          /
+          sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
+
+      # Swarm success rate by strategy
+      - record: agg:dash_swarm_success_rate_by_strategy:rate10m
+        expr: |
+          sum by (strategy) (rate(dash_swarm_success_total[10m]))
+          /
+          (
+            sum by (strategy) (rate(dash_swarm_success_total[10m])) 
+            + 
+            sum by (strategy) (rate(dash_swarm_failure_total[10m]))
+          )
+
+      # Total cost across all swarms
+      - record: agg:dash_total_cost_usd
+        expr: sum(dash_swarm_cost_usd)
+
+      # Cost rate (spend per second)
+      - record: agg:dash_cost_rate:rate5m
+        expr: sum(rate(dash_swarm_cost_usd[5m]))
+
+      # Average budget utilization
+      - record: agg:dash_budget_utilization_avg
+        expr: avg(dash_budget_utilization_ratio)
+
+      # Budget utilization by swarm (top consumers)
+      - record: agg:dash_budget_utilization_by_swarm
+        expr: sum by (swarm_id) (dash_budget_utilization_ratio)
+
+      # Memory usage statistics
+      - record: agg:dash_memory_usage_mb
+        expr: dash_memory_usage_bytes{type="rss"} / 1024 / 1024
+
+      # Event bus backlog
+      - record: agg:dash_eventbus_backlog
+        expr: dash_eventbus_queued_events
+
+      # WebSocket connection count
+      - record: agg:dash_websocket_connections_total
+        expr: sum(dash_websocket_connections)
+
+  # ============================================================================
+  # Cost Analysis Rules
+  # ============================================================================
+  - name: cost_analysis
+    interval: 1m
+    rules:
+      # Cost per agent execution
+      - record: cost:dash_per_agent_execution
+        expr: |
+          sum by (swarm_id) (dash_swarm_cost_usd) 
+          / 
+          sum by (swarm_id) (dash_agents_completed)
+
+      # Cost per successful swarm
+      - record: cost:dash_per_successful_swarm
+        expr: |
+          sum by (strategy) (dash_swarm_cost_usd) 
+          / 
+          sum by (strategy) (dash_swarm_success_total)
+
+      # Hourly cost projection
+      - record: cost:dash_hourly_projection
+        expr: sum(rate(dash_swarm_cost_usd[1h])) * 3600
+
+      # Daily cost projection
+      - record: cost:dash_daily_projection
+        expr: sum(rate(dash_swarm_cost_usd[1h])) * 86400
+
+      # Cost efficiency (successes per dollar)
+      - record: cost:dash_efficiency_ratio
+        expr: |
+          sum(rate(dash_swarm_success_total[1h])) 
+          / 
+          sum(rate(dash_swarm_cost_usd[1h]))
+
+  # ============================================================================
+  # Capacity Planning Rules
+  # ============================================================================
+  - name: capacity_planning
+    interval: 1m
+    rules:
+      # Agent saturation (active / total capacity estimate)
+      - record: capacity:dash_agent_saturation
+        expr: |
+          sum(dash_agents_active) 
+          / 
+          (sum(dash_agents_active) + sum(dash_agents_pending))
+
+      # Queue depth ratio (pending vs active)
+      - record: capacity:dash_queue_depth_ratio
+        expr: |
+          sum(dash_agents_pending) 
+          / 
+          sum(dash_agents_active)
+
+      # Memory growth rate
+      - record: capacity:dash_memory_growth:rate5m
+        expr: rate(dash_memory_usage_bytes{type="rss"}[5m])
+
+      # Event processing capacity
+      - record: capacity:dash_event_processing_capacity
+        expr: |
+          sum(rate(dash_events_total[5m])) 
+          / 
+          avg(dash_eventbus_queued_events > 0 or vector(1))
