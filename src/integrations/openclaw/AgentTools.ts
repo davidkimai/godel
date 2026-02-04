@@ -510,7 +510,7 @@ export class AgentTools {
    *   model: 'sonnet',
    *   thinking: 'medium'
    * });
-   * console.log(session.sessionKey); // 'sess_abc123'
+   * logger.info(session.sessionKey); // 'sess_abc123'
    * ```
    */
   async sessionsSpawn(options: AgentSessionSpawnOptions): Promise<{ sessionKey: string; sessionId: string }> {
@@ -541,7 +541,7 @@ export class AgentTools {
    * const result = await agent.sessionsSend('sess_abc123', {
    *   message: 'Continue with the analysis'
    * });
-   * console.log(result.runId); // 'run_xyz789'
+   * logger.info(result.runId); // 'run_xyz789'
    * ```
    */
   async sessionsSend(sessionKey: string, options: AgentSessionSendOptions): Promise<{ runId: string; status: string }> {
@@ -570,7 +570,7 @@ export class AgentTools {
    * ```typescript
    * const history = await agent.sessionsHistory('sess_abc123', { limit: 10 });
    * for (const message of history.messages) {
-   *   console.log(`${message.role}: ${message.content}`);
+   *   logger.info(`${message.role}: ${message.content}`);
    * }
    * ```
    */
@@ -676,7 +676,7 @@ export class AgentTools {
    * });
    * 
    * if (result.success) {
-   *   console.log(result.output);
+   *   logger.info(result.output);
    * }
    * ```
    */

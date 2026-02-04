@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Config CLI Commands
  * 
@@ -51,13 +52,13 @@ export function createConfigGetCommand(): Command {
           const flatConfig = flattenConfig(config.config, '', !options.showSecrets);
           
           if (options.format === 'json') {
-            console.log(JSON.stringify(flatConfig, null, 2));
+            logger.info(JSON.stringify(flatConfig, null, 2));
           } else if (options.format === 'yaml') {
-            console.log(YAML.stringify(flatConfig));
+            logger.info(YAML.stringify(flatConfig));
           } else {
             // Table format
-            console.log(chalk.bold('\nConfiguration Values:'));
-            console.log(chalk.gray('─'.repeat(80)));
+            logger.info(chalk.bold('\nConfiguration Values:'));
+            logger.info(chalk.gray('─'.repeat(80)));
             
             const sortedKeys = Object.keys(flatConfig).sort();
             for (const k of sortedKeys) {
@@ -70,9 +71,9 @@ export function createConfigGetCommand(): Command {
               }
               
               const envVar = meta?.envVar ? chalk.gray(` [${meta.envVar}]`) : '';
-              console.log(`${chalk.cyan(k.padEnd(40))} ${chalk.yellow(displayValue)}${envVar}`);
+              logger.info(`${chalk.cyan(k.padEnd(40))} ${chalk.yellow(displayValue)}${envVar}`);
             }
-            console.log();
+            logger.info('');
           }
           return;
         }
@@ -87,14 +88,14 @@ export function createConfigGetCommand(): Command {
 
         // Output based on format
         if (options.format === 'json') {
-          console.log(JSON.stringify({ [key]: value }, null, 2));
+          logger.info(JSON.stringify({ [key]: value }, null, 2));
         } else if (options.format === 'yaml') {
-          console.log(YAML.stringify({ [key]: value }));
+          logger.info(YAML.stringify({ [key]: value }));
         } else {
           if (typeof value === 'object') {
-            console.log(YAML.stringify(value));
+            logger.info(YAML.stringify(value));
           } else {
-            console.log(String(value));
+            logger.info(String(value));
           }
         }
       } catch (error) {
@@ -144,37 +145,37 @@ export function createConfigSetCommand(): Command {
         
         if (currentValue === undefined) {
           console.error(chalk.red(`Error: Configuration key '${key}' not found`));
-          console.log(chalk.yellow('Available keys:'));
+          logger.info(chalk.yellow('Available keys:'));
           const flatConfig = flattenConfig(config.config);
-          Object.keys(flatConfig).sort().forEach((k) => console.log(`  ${k}`));
+          Object.keys(flatConfig).sort().forEach((k) => logger.info(`  ${k}`));
           process.exit(1);
         }
 
         // Show what would change
-        console.log(chalk.bold('\nConfiguration Change:'));
-        console.log(chalk.gray('─'.repeat(60)));
-        console.log(`${chalk.cyan('Key:')}      ${key}`);
-        console.log(`${chalk.cyan('Current:')}  ${JSON.stringify(currentValue)}`);
-        console.log(`${chalk.cyan('New:')}      ${JSON.stringify(parsedValue)}`);
+        logger.info(chalk.bold('\nConfiguration Change:'));
+        logger.info(chalk.gray('─'.repeat(60)));
+        logger.info(`${chalk.cyan('Key:')}      ${key}`);
+        logger.info(`${chalk.cyan('Current:')}  ${JSON.stringify(currentValue)}`);
+        logger.info(`${chalk.cyan('New:')}      ${JSON.stringify(parsedValue)}`);
         
         const meta = configMetadata[key];
         if (meta?.requiresRestart) {
-          console.log(chalk.yellow('\n⚠️  This change requires a restart to take effect'));
+          logger.info(chalk.yellow('\n⚠️  This change requires a restart to take effect'));
         }
         if (meta?.sensitive) {
-          console.log(chalk.yellow('🔒 This is a sensitive value'));
+          logger.info(chalk.yellow('🔒 This is a sensitive value'));
         }
 
         if (options.dryRun) {
-          console.log(chalk.gray('\n(Dry run - no changes made)'));
+          logger.info(chalk.gray('\n(Dry run - no changes made)'));
           return;
         }
 
         // Note: We're not actually modifying the config file here
         // In a real implementation, this would update the YAML/JSON file
-        console.log(chalk.yellow('\nNote: To make this change permanent, update your config file:'));
-        console.log(chalk.gray(`  ${options.configDir}/dash.${options.env}.yaml`));
-        console.log(chalk.gray(`\nAdd or update the following:`));
+        logger.info(chalk.yellow('\nNote: To make this change permanent, update your config file:'));
+        logger.info(chalk.gray(`  ${options.configDir}/dash.${options.env}.yaml`));
+        logger.info(chalk.gray(`\nAdd or update the following:`));
         
         const parts = key.split('.');
         const obj: Record<string, unknown> = {};
@@ -185,7 +186,7 @@ export function createConfigSetCommand(): Command {
         }
         current[parts[parts.length - 1]] = parsedValue;
         
-        console.log(chalk.cyan(YAML.stringify(obj)));
+        logger.info(chalk.cyan(YAML.stringify(obj)));
         
       } catch (error) {
         console.error(chalk.red(`Error: ${(error as Error).message}`));
@@ -209,7 +210,7 @@ export function createConfigValidateCommand(): Command {
     .option('--strict', 'Exit with error on warnings', false)
     .action(async (options) => {
       try {
-        console.log(chalk.bold(`\nValidating configuration for environment: ${options.env}\n`));
+        logger.info(chalk.bold(`\nValidating configuration for environment: ${options.env}\n`));
 
         const loaded = await loadConfig({
           env: options.env,
@@ -220,25 +221,25 @@ export function createConfigValidateCommand(): Command {
         const validation = validateConfig(loaded.config);
 
         if (!validation.success) {
-          console.log(chalk.red('❌ Configuration validation failed:\n'));
-          console.log(formatValidationErrors(validation.errors!));
-          console.log();
+          logger.info(chalk.red('❌ Configuration validation failed:\n'));
+          logger.info(formatValidationErrors(validation.errors!));
+          logger.info('');
           process.exit(1);
         }
 
-        console.log(chalk.green('✅ Configuration is valid\n'));
+        logger.info(chalk.green('✅ Configuration is valid\n'));
 
         // Show configuration sources
-        console.log(chalk.bold('Configuration Sources:'));
+        logger.info(chalk.bold('Configuration Sources:'));
         loaded.sources.forEach((source) => {
-          console.log(`  ${chalk.gray('•')} ${source}`);
+          logger.info(`  ${chalk.gray('•')} ${source}`);
         });
 
         // Show warnings
         if (loaded.warnings.length > 0) {
-          console.log(chalk.yellow('\n⚠️  Warnings:'));
+          logger.info(chalk.yellow('\n⚠️  Warnings:'));
           loaded.warnings.forEach((warning) => {
-            console.log(`  ${chalk.yellow('•')} ${warning}`);
+            logger.info(`  ${chalk.yellow('•')} ${warning}`);
           });
           
           if (options.strict) {
@@ -248,7 +249,7 @@ export function createConfigValidateCommand(): Command {
 
         // Show production readiness check
         if (options.env === 'production') {
-          console.log(chalk.bold('\nProduction Readiness Check:'));
+          logger.info(chalk.bold('\nProduction Readiness Check:'));
           
           const checks = [
             {
@@ -277,14 +278,14 @@ export function createConfigValidateCommand(): Command {
 
           checks.forEach((check) => {
             if (check.pass) {
-              console.log(`  ${chalk.green('✓')} ${check.name}`);
+              logger.info(`  ${chalk.green('✓')} ${check.name}`);
             } else {
-              console.log(`  ${chalk.yellow('⚠')} ${check.name}: ${check.message}`);
+              logger.info(`  ${chalk.yellow('⚠')} ${check.name}: ${check.message}`);
             }
           });
         }
 
-        console.log();
+        logger.info('');
       } catch (error) {
         console.error(chalk.red(`\n❌ Error: ${(error as Error).message}\n`));
         process.exit(1);
@@ -325,18 +326,18 @@ export function createConfigListCommand(): Command {
         }
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(filteredConfig, null, 2));
+          logger.info(JSON.stringify(filteredConfig, null, 2));
         } else if (options.format === 'yaml') {
-          console.log(YAML.stringify(filteredConfig));
+          logger.info(YAML.stringify(filteredConfig));
         } else {
           // Table format
-          console.log(chalk.bold(`\nConfiguration (${options.env}):`));
-          console.log(chalk.gray('─'.repeat(80)));
+          logger.info(chalk.bold(`\nConfiguration (${options.env}):`));
+          logger.info(chalk.gray('─'.repeat(80)));
           
           const sortedKeys = Object.keys(filteredConfig).sort();
           
           if (sortedKeys.length === 0) {
-            console.log(chalk.gray('No configuration values match the filter'));
+            logger.info(chalk.gray('No configuration values match the filter'));
           } else {
             for (const key of sortedKeys) {
               const value = filteredConfig[key];
@@ -345,12 +346,12 @@ export function createConfigListCommand(): Command {
               const envVar = meta?.envVar ? chalk.gray(` [${meta.envVar}]`) : '';
               const description = meta?.description ? chalk.gray(` # ${meta.description}`) : '';
               
-              console.log(
+              logger.info(
                 `${chalk.cyan(key.padEnd(35))} ${chalk.yellow(String(value).padEnd(30))}${envVar}${description}`
               );
             }
           }
-          console.log();
+          logger.info('');
         }
       } catch (error) {
         console.error(chalk.red(`Error: ${(error as Error).message}`));
@@ -377,16 +378,16 @@ export function createConfigSourcesCommand(): Command {
           configDir: options.configDir,
         });
 
-        console.log(chalk.bold(`\nConfiguration Sources (${options.env}):`));
-        console.log(chalk.gray('─'.repeat(60)));
+        logger.info(chalk.bold(`\nConfiguration Sources (${options.env}):`));
+        logger.info(chalk.gray('─'.repeat(60)));
         
         config.sources.forEach((source, index) => {
           const priority = config.sources.length - index;
-          console.log(`${chalk.gray(`${priority}.`)} ${source}`);
+          logger.info(`${chalk.gray(`${priority}.`)} ${source}`);
         });
 
-        console.log(chalk.gray('\n(Lower number = higher priority)'));
-        console.log();
+        logger.info(chalk.gray('\n(Lower number = higher priority)'));
+        logger.info('');
       } catch (error) {
         console.error(chalk.red(`Error: ${(error as Error).message}`));
         process.exit(1);
@@ -412,17 +413,17 @@ export function createConfigFeaturesCommand(): Command {
           configDir: options.configDir,
         });
 
-        console.log(chalk.bold(`\nFeature Flags (${options.env}):`));
-        console.log(chalk.gray('─'.repeat(60)));
+        logger.info(chalk.bold(`\nFeature Flags (${options.env}):`));
+        logger.info(chalk.gray('─'.repeat(60)));
         
         Object.entries(config.config.features).forEach(([feature, enabled]) => {
           const status = enabled 
             ? chalk.green('✓ enabled') 
             : chalk.red('✗ disabled');
-          console.log(`  ${chalk.cyan(feature.padEnd(20))} ${status}`);
+          logger.info(`  ${chalk.cyan(feature.padEnd(20))} ${status}`);
         });
         
-        console.log();
+        logger.info('');
       } catch (error) {
         console.error(chalk.red(`Error: ${(error as Error).message}`));
         process.exit(1);

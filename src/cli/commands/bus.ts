@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Message Bus Commands
  * 
@@ -49,7 +50,7 @@ export function registerBusCommand(program: Command): void {
           metadata.source = options.source;
         }
 
-        console.log(`📤 Publishing to ${topic}...`);
+        logger.info(`📤 Publishing to ${topic}...`);
 
         const response = await client.publishMessage(topic, payload, metadata);
 
@@ -60,10 +61,10 @@ export function registerBusCommand(program: Command): void {
 
         const message = response.data;
 
-        console.log('✅ Message published successfully!\n');
-        console.log(`   ID:        ${message.id}`);
-        console.log(`   Topic:     ${message.topic}`);
-        console.log(`   Timestamp: ${message.timestamp.toISOString()}`);
+        logger.info('✅ Message published successfully!\n');
+        logger.info(`   ID:        ${message.id}`);
+        logger.info(`   Topic:     ${message.topic}`);
+        logger.info(`   Timestamp: ${message.timestamp.toISOString()}`);
 
       } catch (error) {
         console.error('❌ Failed to publish message:', error instanceof Error ? error.message : String(error));
@@ -84,21 +85,21 @@ export function registerBusCommand(program: Command): void {
       try {
         const client = getGlobalClient();
 
-        console.log(`📡 Subscribing to ${topic}...\n`);
+        logger.info(`📡 Subscribing to ${topic}...\n`);
 
         if (options.follow) {
-          console.log('(Press Ctrl+C to stop)\n');
+          logger.info('(Press Ctrl+C to stop)\n');
         }
 
         const messageHandler = (message: { id: string; topic: string; timestamp: Date; payload: unknown; metadata?: { source?: string; priority?: string } }) => {
           if (options.raw) {
-            console.log(JSON.stringify(message));
+            logger.info(JSON.stringify(message));
           } else {
             const timestamp = message.timestamp.toISOString().slice(0, 19);
             const source = message.metadata?.source || 'unknown';
             const priority = message.metadata?.priority || 'medium';
             
-            console.log(`[${timestamp}] ${priority.toUpperCase().padEnd(8)} ${source.slice(0, 12).padEnd(12)} ${message.topic}`);
+            logger.info(`[${timestamp}] ${priority.toUpperCase().padEnd(8)} ${source.slice(0, 12).padEnd(12)} ${message.topic}`);
             
             const payload = typeof message.payload === 'string' 
               ? message.payload 
@@ -107,9 +108,9 @@ export function registerBusCommand(program: Command): void {
             // Print payload indented
             const lines = payload.split('\n');
             for (const line of lines) {
-              console.log(`  ${line}`);
+              logger.info(`  ${line}`);
             }
-            console.log('');
+            logger.info('');
           }
         };
 
@@ -121,12 +122,12 @@ export function registerBusCommand(program: Command): void {
         }
 
         const subscriptionId = response.data;
-        console.log(`✅ Subscribed with ID: ${subscriptionId}\n`);
+        logger.info(`✅ Subscribed with ID: ${subscriptionId}\n`);
 
         if (options.follow) {
           // Keep the process alive
           process.on('SIGINT', async () => {
-            console.log('\n\n👋 Unsubscribing...');
+            logger.info('\n\n👋 Unsubscribing...');
             await client.unsubscribe(subscriptionId);
             process.exit(0);
           });
@@ -134,12 +135,12 @@ export function registerBusCommand(program: Command): void {
           await new Promise(() => {});
         } else {
           // Just show current messages and exit
-          console.log('Waiting for messages (5 seconds)...\n');
+          logger.info('Waiting for messages (5 seconds)...\n');
           
           await new Promise(resolve => setTimeout(resolve, 5000));
           
           await client.unsubscribe(subscriptionId);
-          console.log('\n✅ Unsubscribed');
+          logger.info('\n✅ Unsubscribed');
         }
 
       } catch (error) {
@@ -171,25 +172,25 @@ export function registerBusCommand(program: Command): void {
         const topics = Array.from(topicSet).sort();
 
         if (topics.length === 0) {
-          console.log('📭 No topics found');
-          console.log('💡 Use "swarmctl bus publish" to send a message');
+          logger.info('📭 No topics found');
+          logger.info('💡 Use "swarmctl bus publish" to send a message');
           return;
         }
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(topics, null, 2));
+          logger.info(JSON.stringify(topics, null, 2));
           return;
         }
 
-        console.log('📋 Active Topics:\n');
+        logger.info('📋 Active Topics:\n');
         
         for (const topic of topics) {
           // Count messages for this topic
           const count = messages.filter(m => m.topic === topic).length;
-          console.log(`  ${topic.padEnd(40)} ${String(count).padStart(4)} messages`);
+          logger.info(`  ${topic.padEnd(40)} ${String(count).padStart(4)} messages`);
         }
 
-        console.log(`\n📊 Total: ${topics.length} topics`);
+        logger.info(`\n📊 Total: ${topics.length} topics`);
 
       } catch (error) {
         console.error('❌ Failed to list topics:', error instanceof Error ? error.message : String(error));
@@ -239,31 +240,31 @@ export function registerBusCommand(program: Command): void {
         };
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(stats, null, 2));
+          logger.info(JSON.stringify(stats, null, 2));
           return;
         }
 
-        console.log('📊 Message Bus Status\n');
-        console.log(`  Total Messages:    ${stats.totalMessages}`);
-        console.log(`  Unique Topics:     ${stats.uniqueTopics}`);
-        console.log(`  Unique Sources:    ${stats.uniqueSources}`);
+        logger.info('📊 Message Bus Status\n');
+        logger.info(`  Total Messages:    ${stats.totalMessages}`);
+        logger.info(`  Unique Topics:     ${stats.uniqueTopics}`);
+        logger.info(`  Unique Sources:    ${stats.uniqueSources}`);
         
         if (stats.oldestMessage) {
-          console.log(`  Oldest Message:    ${stats.oldestMessage}`);
-          console.log(`  Newest Message:    ${stats.newestMessage}`);
+          logger.info(`  Oldest Message:    ${stats.oldestMessage}`);
+          logger.info(`  Newest Message:    ${stats.newestMessage}`);
         }
 
         if (stats.topTopics.length > 0) {
-          console.log('\n  Top Topics:');
+          logger.info('\n  Top Topics:');
           for (const [topic, count] of stats.topTopics) {
-            console.log(`    ${topic.padEnd(35)} ${String(count).padStart(4)}`);
+            logger.info(`    ${topic.padEnd(35)} ${String(count).padStart(4)}`);
           }
         }
 
         if (stats.topSources.length > 0) {
-          console.log('\n  Top Sources:');
+          logger.info('\n  Top Sources:');
           for (const [source, count] of stats.topSources) {
-            console.log(`    ${source.padEnd(20)} ${String(count).padStart(4)}`);
+            logger.info(`    ${source.padEnd(20)} ${String(count).padStart(4)}`);
           }
         }
 

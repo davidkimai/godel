@@ -237,7 +237,7 @@ export class WebSocketManager extends EventEmitter {
     //   this.eventBus.on('*', (event: string, data: any) => {
     //     this.broadcast({ event, data });
     //   });
-    //   console.log('Connected to event bus for automatic broadcasting');
+    //   logger.info('Connected to event bus for automatic broadcasting');
     // } catch (error) {
     //   logger.warn('events/websocket', 'Could not connect to event bus', { error: String(error) });
     // }

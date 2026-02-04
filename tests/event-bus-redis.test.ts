@@ -1,3 +1,4 @@
+import { logger } from '../src/utils/logger';
 /**
  * Redis Event Bus Tests
  * 
@@ -898,7 +899,7 @@ describe('RedisEventBus', () => {
       const duration = Date.now() - startTime;
       const throughput = (handler.mock.calls.length / duration) * 1000;
 
-      console.log(`Throughput: ${throughput.toFixed(0)} events/sec`);
+      logger.info(`Throughput: ${throughput.toFixed(0)} events/sec`);
 
       // Should handle at least 500 events/sec
       expect(throughput).toBeGreaterThan(100);

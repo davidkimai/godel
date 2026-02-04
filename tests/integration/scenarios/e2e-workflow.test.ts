@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 10: End-to-End Workflow Integration Tests
  * 
@@ -128,9 +129,9 @@ describe('Scenario 10: End-to-End Workflow', () => {
       // 8. Verify events were captured
       expect(workflowEvents.length).toBeGreaterThan(0);
 
-      console.log('Code Review Workflow completed successfully');
-      console.log(`  Agent ID: ${agentId}`);
-      console.log(`  Events captured: ${workflowEvents.length}`);
+      logger.info('Code Review Workflow completed successfully');
+      logger.info(`  Agent ID: ${agentId}`);
+      logger.info(`  Events captured: ${workflowEvents.length}`);
     }, testConfig.testTimeout);
 
     it('should handle multi-agent code review workflow', async () => {
@@ -217,7 +218,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       const agentId = spawnResult.dashAgentId;
 
       expect(spawnResult.dashAgentId).toBeDefined();
-      console.log(`Spawn completed in ${spawnDuration}ms`);
+      logger.info(`Spawn completed in ${spawnDuration}ms`);
 
       // Phase 2: Dash processes agent lifecycle
       await waitForStatus(
@@ -246,9 +247,9 @@ describe('Scenario 10: End-to-End Workflow', () => {
       // Verify event flow
       expect(events.length).toBeGreaterThan(0);
 
-      console.log('OpenClaw ↔ Dash flow completed successfully');
-      console.log(`  Total events: ${events.length}`);
-      console.log(`  Result: ${JSON.stringify(finalStatus.result)}`);
+      logger.info('OpenClaw ↔ Dash flow completed successfully');
+      logger.info(`  Total events: ${events.length}`);
+      logger.info(`  Result: ${JSON.stringify(finalStatus.result)}`);
     }, testConfig.testTimeout);
 
     it('should handle bidirectional communication', async () => {
@@ -551,7 +552,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       );
 
       const duration = Date.now() - startTime;
-      console.log(`Workflow completed in ${duration}ms`);
+      logger.info(`Workflow completed in ${duration}ms`);
 
       // Should complete within 30 seconds
       expect(duration).toBeLessThan(30000);

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Metrics Commands
  * 
@@ -47,7 +48,7 @@ export function registerMetricsCommand(program: Command): void {
         };
 
         const format = options.format as OutputFormat;
-        console.log(formatMetrics(data, { format }));
+        logger.info(formatMetrics(data, { format }));
 
       } catch (error) {
         console.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));
@@ -98,27 +99,27 @@ export function registerMetricsCommand(program: Command): void {
         };
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(metrics, null, 2));
+          logger.info(JSON.stringify(metrics, null, 2));
           return;
         }
 
-        console.log('📊 Agent Metrics\n');
-        console.log(`  Total Agents: ${metrics.totalAgents}`);
-        console.log(`  Average Runtime: ${formatDuration(metrics.averageRuntime)}`);
-        console.log(`  Total Retries: ${metrics.totalRetries}`);
+        logger.info('📊 Agent Metrics\n');
+        logger.info(`  Total Agents: ${metrics.totalAgents}`);
+        logger.info(`  Average Runtime: ${formatDuration(metrics.averageRuntime)}`);
+        logger.info(`  Total Retries: ${metrics.totalRetries}`);
 
         if (Object.keys(byStatus).length > 0) {
-          console.log('\n  By Status:');
+          logger.info('\n  By Status:');
           for (const [status, count] of Object.entries(byStatus).sort((a, b) => b[1] - a[1])) {
             const emoji = getStatusEmoji(status);
-            console.log(`    ${emoji} ${status.padEnd(12)} ${String(count).padStart(4)}`);
+            logger.info(`    ${emoji} ${status.padEnd(12)} ${String(count).padStart(4)}`);
           }
         }
 
         if (Object.keys(byModel).length > 0) {
-          console.log('\n  By Model:');
+          logger.info('\n  By Model:');
           for (const [model, count] of Object.entries(byModel).sort((a, b) => b[1] - a[1])) {
-            console.log(`    ${model.padEnd(20)} ${String(count).padStart(4)}`);
+            logger.info(`    ${model.padEnd(20)} ${String(count).padStart(4)}`);
           }
         }
 
@@ -175,35 +176,35 @@ export function registerMetricsCommand(program: Command): void {
         };
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(metrics, null, 2));
+          logger.info(JSON.stringify(metrics, null, 2));
           return;
         }
 
-        console.log('📊 Swarm Metrics\n');
-        console.log(`  Total Swarms: ${metrics.totalSwarms}`);
-        console.log(`  Total Agents: ${metrics.totalAgents}`);
+        logger.info('📊 Swarm Metrics\n');
+        logger.info(`  Total Swarms: ${metrics.totalSwarms}`);
+        logger.info(`  Total Agents: ${metrics.totalAgents}`);
         
         if (totalBudgetAllocated > 0) {
-          console.log(`\n  Budget:`);
-          console.log(`    Allocated:  $${totalBudgetAllocated.toFixed(2)}`);
-          console.log(`    Consumed:   $${totalBudgetConsumed.toFixed(2)}`);
-          console.log(`    Remaining:  $${metrics.totalBudgetRemaining.toFixed(2)}`);
+          logger.info(`\n  Budget:`);
+          logger.info(`    Allocated:  $${totalBudgetAllocated.toFixed(2)}`);
+          logger.info(`    Consumed:   $${totalBudgetConsumed.toFixed(2)}`);
+          logger.info(`    Remaining:  $${metrics.totalBudgetRemaining.toFixed(2)}`);
           const usagePct = (totalBudgetConsumed / totalBudgetAllocated) * 100;
-          console.log(`    Usage:      ${usagePct.toFixed(1)}%`);
+          logger.info(`    Usage:      ${usagePct.toFixed(1)}%`);
         }
 
         if (Object.keys(byStatus).length > 0) {
-          console.log('\n  By Status:');
+          logger.info('\n  By Status:');
           for (const [status, count] of Object.entries(byStatus).sort((a, b) => b[1] - a[1])) {
             const emoji = getSwarmEmoji(status);
-            console.log(`    ${emoji} ${status.padEnd(12)} ${String(count).padStart(4)}`);
+            logger.info(`    ${emoji} ${status.padEnd(12)} ${String(count).padStart(4)}`);
           }
         }
 
         if (Object.keys(byStrategy).length > 0) {
-          console.log('\n  By Strategy:');
+          logger.info('\n  By Strategy:');
           for (const [strategy, count] of Object.entries(byStrategy).sort((a, b) => b[1] - a[1])) {
-            console.log(`    ${strategy.padEnd(15)} ${String(count).padStart(4)}`);
+            logger.info(`    ${strategy.padEnd(15)} ${String(count).padStart(4)}`);
           }
         }
 
@@ -242,7 +243,7 @@ export function registerStatusCommand(program: Command): void {
         const agents = agentsResponse.success ? agentsResponse.data!.items : [];
 
         if (options.format === 'json') {
-          console.log(JSON.stringify({
+          logger.info(JSON.stringify({
             health,
             metrics,
             swarms: swarms.slice(0, 10),
@@ -253,38 +254,38 @@ export function registerStatusCommand(program: Command): void {
 
         // Status banner
         const statusEmoji = health.status === 'healthy' ? '🟢' : health.status === 'degraded' ? '🟡' : '🔴';
-        console.log(`${statusEmoji} System Status: ${health.status.toUpperCase()}\n`);
+        logger.info(`${statusEmoji} System Status: ${health.status.toUpperCase()}\n`);
 
         // Version and uptime
-        console.log(`  Version:  ${health.version}`);
-        console.log(`  Uptime:   ${formatDuration(health.uptime * 1000)}`);
-        console.log(`  Time:     ${new Date().toISOString()}`);
+        logger.info(`  Version:  ${health.version}`);
+        logger.info(`  Uptime:   ${formatDuration(health.uptime * 1000)}`);
+        logger.info(`  Time:     ${new Date().toISOString()}`);
 
         // Health checks
-        console.log('\n  Health Checks:');
+        logger.info('\n  Health Checks:');
         for (const [name, check] of Object.entries(health.checks)) {
           const emoji = check.status === 'healthy' ? '✅' : '❌';
-          console.log(`    ${emoji} ${name.padEnd(15)} ${check.status}`);
+          logger.info(`    ${emoji} ${name.padEnd(15)} ${check.status}`);
           if (check.message) {
-            console.log(`       ${check.message}`);
+            logger.info(`       ${check.message}`);
           }
         }
 
         // Quick stats
-        console.log('\n  Quick Stats:');
-        console.log(`    🐝 Swarms:  ${swarms.length} (${swarms.filter(s => s.status === 'active').length} active)`);
-        console.log(`    🤖 Agents:  ${agents.length} (${agents.filter(a => a.status === 'running').length} running)`);
-        console.log(`    ✅ Success: ${(metrics.successRate * 100).toFixed(1)}%`);
+        logger.info('\n  Quick Stats:');
+        logger.info(`    🐝 Swarms:  ${swarms.length} (${swarms.filter(s => s.status === 'active').length} active)`);
+        logger.info(`    🤖 Agents:  ${agents.length} (${agents.filter(a => a.status === 'running').length} running)`);
+        logger.info(`    ✅ Success: ${(metrics.successRate * 100).toFixed(1)}%`);
 
         // Recent activity
         if (swarms.length > 0) {
-          console.log('\n  Recent Swarms:');
+          logger.info('\n  Recent Swarms:');
           const recentSwarms = swarms
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
             .slice(0, 3);
           
           for (const swarm of recentSwarms) {
-            console.log(`    • ${swarm.name} (${swarm.agents.length} agents, ${swarm.status})`);
+            logger.info(`    • ${swarm.name} (${swarm.agents.length} agents, ${swarm.status})`);
           }
         }
 
@@ -317,18 +318,18 @@ export function registerHealthCommand(program: Command): void {
         const health = response.data;
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(health, null, 2));
+          logger.info(JSON.stringify(health, null, 2));
         } else {
           const statusEmoji = health.status === 'healthy' ? '✅' : health.status === 'degraded' ? '⚠️' : '❌';
-          console.log(`${statusEmoji} Status: ${health.status.toUpperCase()}`);
-          console.log(`   Version: ${health.version}`);
-          console.log(`   Uptime:  ${formatDuration(health.uptime * 1000)}`);
+          logger.info(`${statusEmoji} Status: ${health.status.toUpperCase()}`);
+          logger.info(`   Version: ${health.version}`);
+          logger.info(`   Uptime:  ${formatDuration(health.uptime * 1000)}`);
           
           if (Object.keys(health.checks).length > 0) {
-            console.log('\n   Checks:');
+            logger.info('\n   Checks:');
             for (const [name, check] of Object.entries(health.checks)) {
               const emoji = check.status === 'healthy' ? '✅' : '❌';
-              console.log(`     ${emoji} ${name}: ${check.status}`);
+              logger.info(`     ${emoji} ${name}: ${check.status}`);
             }
           }
         }
@@ -366,13 +367,13 @@ export function registerConfigCommand(program: Command): void {
         }
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(response.data, null, 2));
+          logger.info(JSON.stringify(response.data, null, 2));
           return;
         }
 
-        console.log('⚙️  Configuration\n');
+        logger.info('⚙️  Configuration\n');
         for (const [key, value] of Object.entries(response.data)) {
-          console.log(`  ${key}: ${JSON.stringify(value)}`);
+          logger.info(`  ${key}: ${JSON.stringify(value)}`);
         }
 
       } catch (error) {
@@ -405,7 +406,7 @@ export function registerConfigCommand(program: Command): void {
           process.exit(1);
         }
 
-        console.log(`✅ Set ${key} = ${JSON.stringify(parsedValue)}`);
+        logger.info(`✅ Set ${key} = ${JSON.stringify(parsedValue)}`);
 
       } catch (error) {
         console.error('❌ Failed to set config:', error instanceof Error ? error.message : String(error));

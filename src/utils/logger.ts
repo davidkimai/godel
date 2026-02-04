@@ -148,7 +148,7 @@ export class Logger {
         console.debug(formatted);
         break;
       case LogLevel.INFO:
-        console.log(formatted);
+        process.stdout.write(`${formatted}\n`);
         break;
       case LogLevel.WARN:
         console.warn(formatted);

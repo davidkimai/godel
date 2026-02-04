@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 2: Event Streaming Integration Tests
  * 
@@ -88,13 +89,13 @@ describe('Scenario 2: Event Streaming', () => {
       const stats = calculateLatencyStats(latencies);
 
       // Log latency stats
-      console.log('Event Latency Statistics:');
-      console.log(`  Min: ${stats.min}ms`);
-      console.log(`  Max: ${stats.max}ms`);
-      console.log(`  Mean: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P50: ${stats.p50}ms`);
-      console.log(`  P95: ${stats.p95}ms`);
-      console.log(`  P99: ${stats.p99}ms`);
+      logger.info('Event Latency Statistics:');
+      logger.info(`  Min: ${stats.min}ms`);
+      logger.info(`  Max: ${stats.max}ms`);
+      logger.info(`  Mean: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P50: ${stats.p50}ms`);
+      logger.info(`  P95: ${stats.p95}ms`);
+      logger.info(`  P99: ${stats.p99}ms`);
 
       // Verify latency threshold
       expect(stats.p99).toBeLessThan(testConfig.eventLatencyThreshold);
@@ -142,7 +143,7 @@ describe('Scenario 2: Event Streaming', () => {
       const latencies = capturedEvents.map(e => e.receivedAt - startTime);
       const maxLatency = Math.max(...latencies);
 
-      console.log(`Burst of ${burstSize} events processed, max latency: ${maxLatency}ms`);
+      logger.info(`Burst of ${burstSize} events processed, max latency: ${maxLatency}ms`);
       
       // Burst should complete within reasonable time
       expect(maxLatency).toBeLessThan(3000);
@@ -184,10 +185,10 @@ describe('Scenario 2: Event Streaming', () => {
       const totalTime = Date.now() - startTime;
       const throughput = targetEvents / (totalTime / 1000);
 
-      console.log('Throughput Test Results:');
-      console.log(`  Publish time: ${publishTime}ms`);
-      console.log(`  Total time: ${totalTime}ms`);
-      console.log(`  Throughput: ${throughput.toFixed(1)} events/sec`);
+      logger.info('Throughput Test Results:');
+      logger.info(`  Publish time: ${publishTime}ms`);
+      logger.info(`  Total time: ${totalTime}ms`);
+      logger.info(`  Throughput: ${throughput.toFixed(1)} events/sec`);
 
       // Should achieve at least 500 events/sec throughput
       expect(throughput).toBeGreaterThan(500);
@@ -224,7 +225,7 @@ describe('Scenario 2: Event Streaming', () => {
         const duration = Date.now() - startTime;
         const throughput = eventsPerSize / (duration / 1000);
 
-        console.log(`  Size ${size}b: ${throughput.toFixed(1)} events/sec (${duration}ms)`);
+        logger.info(`  Size ${size}b: ${throughput.toFixed(1)} events/sec (${duration}ms)`);
         
         expect(throughput).toBeGreaterThan(100);
       }

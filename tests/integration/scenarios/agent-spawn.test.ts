@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 1: OpenClaw Agent Spawn Integration Tests
  * 
@@ -173,7 +174,7 @@ describe('Scenario 1: OpenClaw Agent Spawn', () => {
       expect(duration).toBeLessThan(30000);
 
       // Log performance metrics
-      console.log(`Spawned ${concurrentCount} agents in ${duration}ms (${(concurrentCount / (duration / 1000)).toFixed(1)} agents/sec)`);
+      logger.info(`Spawned ${concurrentCount} agents in ${duration}ms (${(concurrentCount / (duration / 1000)).toFixed(1)} agents/sec)`);
     }, testConfig.longTestTimeout);
 
     it('should handle mixed agent types concurrently', async () => {

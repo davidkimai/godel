@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Events Commands
  * 
@@ -74,15 +75,15 @@ export function registerEventsCommand(program: Command): void {
         const events = response.data.items;
 
         if (events.length === 0) {
-          console.log('📭 No events found');
+          logger.info('📭 No events found');
           return;
         }
 
         const format = options.format as OutputFormat;
-        console.log(formatEvents(events, { format }));
+        logger.info(formatEvents(events, { format }));
 
         if (response.data.hasMore) {
-          console.log(`\n📄 Showing ${events.length} of ${response.data.total} events`);
+          logger.info(`\n📄 Showing ${events.length} of ${response.data.total} events`);
         }
 
       } catch (error) {
@@ -104,8 +105,8 @@ export function registerEventsCommand(program: Command): void {
     .option('--raw', 'Output raw JSON instead of formatted lines')
     .action(async (options) => {
       try {
-        console.log('📡 Streaming events...\n');
-        console.log('(Press Ctrl+C to stop)\n');
+        logger.info('📡 Streaming events...\n');
+        logger.info('(Press Ctrl+C to stop)\n');
 
         const client = getGlobalClient();
 
@@ -117,15 +118,15 @@ export function registerEventsCommand(program: Command): void {
         }
         filter.minPriority = options.severity as MessageFilter['minPriority'];
 
-        console.log(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.task ? `task=${options.task} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
-        console.log('');
+        logger.info(`Filters: ${options.agent ? `agent=${options.agent} ` : ''}${options.task ? `task=${options.task} ` : ''}${options.type ? `type=${options.type} ` : ''}severity>=${options.severity}`);
+        logger.info('');
 
         // Stream events
         const stream = client.streamEvents({ filter });
 
         // Handle Ctrl+C
         process.on('SIGINT', () => {
-          console.log('\n\n👋 Stopping event stream...');
+          logger.info('\n\n👋 Stopping event stream...');
           process.exit(0);
         });
 
@@ -142,14 +143,14 @@ export function registerEventsCommand(program: Command): void {
           }
 
           if (options.raw) {
-            console.log(JSON.stringify(event));
+            logger.info(JSON.stringify(event));
           } else {
             const timestamp = event.timestamp.toISOString().slice(0, 19);
             const severity = getSeverityEmoji(event.type);
             const type = event.type.padEnd(30);
             const entity = event.entityId.slice(0, 16).padEnd(16);
             
-            console.log(`[${timestamp}] ${severity} ${type} ${entity} ${event.type}`);
+            logger.info(`[${timestamp}] ${severity} ${type} ${entity} ${event.type}`);
           }
         }
 
@@ -178,22 +179,22 @@ export function registerEventsCommand(program: Command): void {
 
         const event = response.data;
 
-        console.log(`📄 Event: ${event.id}\n`);
-        console.log(`   Timestamp: ${event.timestamp.toISOString()}`);
-        console.log(`   Type:      ${event.type}`);
-        console.log(`   Severity:  ${getSeverityEmoji(event.type)} ${getEventSeverity(event.type)}`);
-        console.log(`   Entity:    ${event.entityId} (${event.entityType})`);
+        logger.info(`📄 Event: ${event.id}\n`);
+        logger.info(`   Timestamp: ${event.timestamp.toISOString()}`);
+        logger.info(`   Type:      ${event.type}`);
+        logger.info(`   Severity:  ${getSeverityEmoji(event.type)} ${getEventSeverity(event.type)}`);
+        logger.info(`   Entity:    ${event.entityId} (${event.entityType})`);
         
         if (event.correlationId) {
-          console.log(`   Correlation: ${event.correlationId}`);
+          logger.info(`   Correlation: ${event.correlationId}`);
         }
         
         if (event.parentEventId) {
-          console.log(`   Parent:    ${event.parentEventId}`);
+          logger.info(`   Parent:    ${event.parentEventId}`);
         }
         
-        console.log(`\n   Payload:`);
-        console.log(JSON.stringify(event.payload, null, 4).replace(/^/gm, '     '));
+        logger.info(`\n   Payload:`);
+        logger.info(JSON.stringify(event.payload, null, 4).replace(/^/gm, '     '));
 
       } catch (error) {
         console.error('❌ Failed to get event:', error instanceof Error ? error.message : String(error));

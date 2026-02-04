@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 4: API Load Testing Integration Tests
  * 
@@ -72,15 +73,15 @@ describe('Scenario 4: API Load Testing', () => {
       const stats = calculateLatencyStats(latencies);
 
       // Log results
-      console.log('API Load Test Results (1000 requests):');
-      console.log(`  Total duration: ${totalDuration}ms`);
-      console.log(`  Requests/sec: ${(requestCount / (totalDuration / 1000)).toFixed(1)}`);
-      console.log(`  Min latency: ${stats.min}ms`);
-      console.log(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P50 latency: ${stats.p50}ms`);
-      console.log(`  P95 latency: ${stats.p95}ms`);
-      console.log(`  P99 latency: ${stats.p99}ms`);
-      console.log(`  Max latency: ${stats.max}ms`);
+      logger.info('API Load Test Results (1000 requests):');
+      logger.info(`  Total duration: ${totalDuration}ms`);
+      logger.info(`  Requests/sec: ${(requestCount / (totalDuration / 1000)).toFixed(1)}`);
+      logger.info(`  Min latency: ${stats.min}ms`);
+      logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P50 latency: ${stats.p50}ms`);
+      logger.info(`  P95 latency: ${stats.p95}ms`);
+      logger.info(`  P99 latency: ${stats.p99}ms`);
+      logger.info(`  Max latency: ${stats.max}ms`);
 
       // Verify performance requirements
       expect(stats.p99).toBeLessThan(testConfig.apiP99LatencyThreshold);
@@ -117,10 +118,10 @@ describe('Scenario 4: API Load Testing', () => {
       createdSwarmIds.push(...swarmIds);
 
       const stats = calculateLatencyStats(latencies);
-      console.log(`Concurrent swarm creation (${concurrentCount}):`);
-      console.log(`  Duration: ${duration}ms`);
-      console.log(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P99 latency: ${stats.p99}ms`);
+      logger.info(`Concurrent swarm creation (${concurrentCount}):`);
+      logger.info(`  Duration: ${duration}ms`);
+      logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P99 latency: ${stats.p99}ms`);
 
       expect(stats.p99).toBeLessThan(1000); // 1 second for writes
     }, testConfig.testTimeout);
@@ -162,10 +163,10 @@ describe('Scenario 4: API Load Testing', () => {
       createdAgentIds.push(...agentIds);
 
       const stats = calculateLatencyStats(latencies);
-      console.log(`Concurrent agent spawn (${concurrentCount}):`);
-      console.log(`  Duration: ${duration}ms`);
-      console.log(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P99 latency: ${stats.p99}ms`);
+      logger.info(`Concurrent agent spawn (${concurrentCount}):`);
+      logger.info(`  Duration: ${duration}ms`);
+      logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P99 latency: ${stats.p99}ms`);
 
       expect(stats.p99).toBeLessThan(2000); // 2 seconds for agent spawn
     }, testConfig.testTimeout);
@@ -198,10 +199,10 @@ describe('Scenario 4: API Load Testing', () => {
 
       const stats = calculateLatencyStats(allLatencies);
       
-      console.log('Sustained Load Test (500 requests in 10 iterations):');
-      console.log(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P95 latency: ${stats.p95}ms`);
-      console.log(`  P99 latency: ${stats.p99}ms`);
+      logger.info('Sustained Load Test (500 requests in 10 iterations):');
+      logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P95 latency: ${stats.p95}ms`);
+      logger.info(`  P99 latency: ${stats.p99}ms`);
 
       expect(stats.p99).toBeLessThan(testConfig.apiP99LatencyThreshold);
     }, testConfig.testTimeout);
@@ -245,9 +246,9 @@ describe('Scenario 4: API Load Testing', () => {
       const readStats = calculateLatencyStats(latencies.read);
       const writeStats = calculateLatencyStats(latencies.write);
 
-      console.log('Mixed Load Test:');
-      console.log(`  Reads (${latencies.read.length}): P99=${readStats.p99}ms`);
-      console.log(`  Writes (${latencies.write.length}): P99=${writeStats.p99}ms`);
+      logger.info('Mixed Load Test:');
+      logger.info(`  Reads (${latencies.read.length}): P99=${readStats.p99}ms`);
+      logger.info(`  Writes (${latencies.write.length}): P99=${writeStats.p99}ms`);
 
       expect(readStats.p99).toBeLessThan(testConfig.apiP99LatencyThreshold);
       expect(writeStats.p99).toBeLessThan(testConfig.apiP99LatencyThreshold * 2);
@@ -305,7 +306,7 @@ describe('Scenario 4: API Load Testing', () => {
       const rateLimited = results.filter(s => s === 429).length;
       const successful = results.filter(s => s === 200).length;
 
-      console.log(`Rate limit test: ${successful} successful, ${rateLimited} rate limited`);
+      logger.info(`Rate limit test: ${successful} successful, ${rateLimited} rate limited`);
 
       // Either all succeed (no rate limiting) or some are limited
       expect(successful + rateLimited).toBe(burstSize);

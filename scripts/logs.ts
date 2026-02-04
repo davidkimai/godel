@@ -1,4 +1,5 @@
 #!/usr/bin/env ts-node
+import { logger } from '../src/utils/logger';
 /**
  * Log Management Utility for Dash
  * 
@@ -42,9 +43,9 @@ async function queryLogs(options: QueryOptions) {
   const query = buildQuery(options);
   const limit = options.limit || 100;
   
-  console.log(`Query: ${query}`);
-  console.log(`Limit: ${limit}`);
-  console.log('---');
+  logger.info(`Query: ${query}`);
+  logger.info(`Limit: ${limit}`);
+  logger.info('---');
   
   try {
     const url = `${LOKI_URL}/loki/api/v1/query_range?query=${encodeURIComponent(query)}&limit=${limit}`;
@@ -65,7 +66,7 @@ async function queryLogs(options: QueryOptions) {
             // Keep as-is if not JSON
           }
           
-          console.log(`[${timestamp}] ${message}\n`);
+          logger.info(`[${timestamp}] ${message}\n`);
         }
       }
     }
@@ -78,8 +79,8 @@ async function queryLogs(options: QueryOptions) {
 async function tailLogs(options: QueryOptions) {
   const query = buildQuery(options);
   
-  console.log(`Tailing logs with query: ${query}`);
-  console.log('Press Ctrl+C to stop\n');
+  logger.info(`Tailing logs with query: ${query}`);
+  logger.info('Press Ctrl+C to stop\n');
   
   const url = `${LOKI_URL}/loki/api/v1/tail?query=${encodeURIComponent(query)}`;
   
@@ -99,9 +100,9 @@ async function getLabels() {
     const result = execSync(`curl -s "${url}"`, { encoding: 'utf8' });
     const data = JSON.parse(result);
     
-    console.log('Available jobs:');
+    logger.info('Available jobs:');
     for (const job of data.data || []) {
-      console.log(`  - ${job}`);
+      logger.info(`  - ${job}`);
     }
   } catch (error) {
     console.error('Error getting labels:', error);
@@ -114,9 +115,9 @@ async function getAgentIds() {
     const result = execSync(`curl -s "${url}"`, { encoding: 'utf8' });
     const data = JSON.parse(result);
     
-    console.log('Active agents:');
+    logger.info('Active agents:');
     for (const agent of data.data || []) {
-      console.log(`  - ${agent}`);
+      logger.info(`  - ${agent}`);
     }
   } catch (error) {
     console.error('Error getting agent IDs:', error);
@@ -130,7 +131,7 @@ async function showStats() {
     { name: 'Warn count (last hour)', query: 'sum(rate({job="dash"} |= "WARN" [1h]))' },
   ];
   
-  console.log('Log Statistics\n==============\n');
+  logger.info('Log Statistics\n==============\n');
   
   for (const q of queries) {
     try {
@@ -143,7 +144,7 @@ async function showStats() {
         value = data.data.result[0].values[0][1];
       }
       
-      console.log(`${q.name}: ${value}`);
+      logger.info(`${q.name}: ${value}`);
     } catch (error) {
       console.error(`Error getting ${q.name}:`, error);
     }
@@ -151,7 +152,7 @@ async function showStats() {
 }
 
 function showHelp() {
-  console.log(`
+  logger.info(`
 Dash Log Management Utility
 
 Usage: ts-node scripts/logs.ts <command> [options]

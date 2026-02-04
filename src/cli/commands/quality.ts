@@ -58,7 +58,7 @@ interface QualityResult {
 // ============================================================================
 
 async function runLintCheck(options: QualityOptions): Promise<QualityResult> {
-  console.log('🔍 Running linter...');
+  logger.info('🔍 Running linter...');
   
   const startTime = Date.now();
   const cwd = process.cwd();
@@ -79,7 +79,7 @@ async function runLintCheck(options: QualityOptions): Promise<QualityResult> {
     
     // Run ESLint with --fix if requested
     if (options.fix && existsSync('node_modules/.bin/eslint')) {
-      console.log('🔧 Auto-fixing issues...');
+      logger.info('🔧 Auto-fixing issues...');
       try {
         execSync('./node_modules/.bin/eslint src/**/*.ts --fix', {
           encoding: 'utf-8',
@@ -111,7 +111,7 @@ async function runLintCheck(options: QualityOptions): Promise<QualityResult> {
 }
 
 async function runTypeCheck(options: QualityOptions): Promise<QualityResult> {
-  console.log('🔍 Running type check...');
+  logger.info('🔍 Running type check...');
   
   const startTime = Date.now();
   const cwd = process.cwd();
@@ -148,7 +148,7 @@ async function runTypeCheck(options: QualityOptions): Promise<QualityResult> {
 }
 
 async function runSecurityCheck(options: QualityOptions): Promise<QualityResult> {
-  console.log('🔍 Running security audit...');
+  logger.info('🔍 Running security audit...');
   
   const startTime = Date.now();
   const cwd = process.cwd();
@@ -213,23 +213,23 @@ async function runSecurityCheck(options: QualityOptions): Promise<QualityResult>
 async function handleLint(options: QualityOptions): Promise<void> {
   const result = await runLintCheck(options);
   
-  console.log('');
-  console.log('📊 Lint Results');
-  console.log('━'.repeat(40));
-  console.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Errors: ${result.errors}`);
-  console.log(`   Warnings: ${result.warnings}`);
+  logger.info('');
+  logger.info('📊 Lint Results');
+  logger.info('━'.repeat(40));
+  logger.info(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  logger.info(`   Errors: ${result.errors}`);
+  logger.info(`   Warnings: ${result.warnings}`);
   if (result.score !== undefined) {
-    console.log(`   Score: ${(result.score * 100).toFixed(1)}%`);
+    logger.info(`   Score: ${(result.score * 100).toFixed(1)}%`);
   }
-  console.log(`   Duration: ${result.duration}ms`);
+  logger.info(`   Duration: ${result.duration}ms`);
   
   if (result.details && result.details.length > 0) {
-    console.log('');
+    logger.info('');
     logger.info('quality', 'Details:');
-    result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
+    result.details.slice(0, 20).forEach(detail => logger.info(`   ${detail}`));
     if (result.details.length > 20) {
-      console.log(`   ... and ${result.details.length - 20} more issues`);
+      logger.info(`   ... and ${result.details.length - 20} more issues`);
     }
   }
   
@@ -244,20 +244,20 @@ async function handleLint(options: QualityOptions): Promise<void> {
 async function handleTypes(options: QualityOptions): Promise<void> {
   const result = await runTypeCheck(options);
   
-  console.log('');
-  console.log('📊 Type Check Results');
-  console.log('━'.repeat(40));
-  console.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Errors: ${result.errors}`);
-  console.log(`   Warnings: ${result.warnings}`);
-  console.log(`   Duration: ${result.duration}ms`);
+  logger.info('');
+  logger.info('📊 Type Check Results');
+  logger.info('━'.repeat(40));
+  logger.info(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  logger.info(`   Errors: ${result.errors}`);
+  logger.info(`   Warnings: ${result.warnings}`);
+  logger.info(`   Duration: ${result.duration}ms`);
   
   if (result.details && result.details.length > 0) {
-    console.log('');
+    logger.info('');
     logger.info('quality', 'Errors:');
-    result.details.slice(0, 20).forEach(detail => console.log(`   ${detail}`));
+    result.details.slice(0, 20).forEach(detail => logger.info(`   ${detail}`));
     if (result.details.length > 20) {
-      console.log(`   ... and ${result.details.length - 20} more issues`);
+      logger.info(`   ... and ${result.details.length - 20} more issues`);
     }
   }
   
@@ -272,17 +272,17 @@ async function handleTypes(options: QualityOptions): Promise<void> {
 async function handleSecurity(options: QualityOptions): Promise<void> {
   const result = await runSecurityCheck(options);
   
-  console.log('');
-  console.log('🔒 Security Audit Results');
-  console.log('━'.repeat(40));
-  console.log(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`   Vulnerabilities: ${result.errors}`);
-  console.log(`   Duration: ${result.duration}ms`);
+  logger.info('');
+  logger.info('🔒 Security Audit Results');
+  logger.info('━'.repeat(40));
+  logger.info(`   Status: ${result.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  logger.info(`   Vulnerabilities: ${result.errors}`);
+  logger.info(`   Duration: ${result.duration}ms`);
   
   if (result.details && result.details.length > 0) {
-    console.log('');
+    logger.info('');
     logger.info('quality', 'Findings:');
-    result.details.forEach(detail => console.log(`   ${detail}`));
+    result.details.forEach(detail => logger.info(`   ${detail}`));
   }
   
   if (!result.passed) {
@@ -294,8 +294,8 @@ async function handleSecurity(options: QualityOptions): Promise<void> {
  * Handle 'gate' command - run all quality checks using the real quality gate
  */
 async function handleGate(options: QualityOptions): Promise<void> {
-  console.log('🚦 Running quality gate...');
-  console.log('');
+  logger.info('🚦 Running quality gate...');
+  logger.info('');
   
   const startTime = Date.now();
   const cwd = process.cwd();
@@ -332,33 +332,33 @@ async function handleGate(options: QualityOptions): Promise<void> {
   
   const totalDuration = Date.now() - startTime;
   
-  console.log('');
-  console.log('🚦 Quality Gate Results');
-  console.log('━'.repeat(40));
-  console.log('');
-  console.log(`Lint:      ${lintResult.passed ? '✅' : '❌'} (${lintResult.errors} errors, ${lintResult.warnings} warnings)`);
-  console.log(`Types:     ${typeResult.passed ? '✅' : '❌'} (${typeResult.errors} errors)`);
-  console.log(`Security:  ${securityResult.passed ? '✅' : '❌'} (${securityResult.errors} vulns)`);
-  console.log('');
-  console.log(`Gate Score: ${(gateResult.score * 100).toFixed(1)}%`);
-  console.log(`Gate Status: ${gateResult.passed ? '✅ PASSED' : '❌ FAILED'}`);
-  console.log(`Total Duration: ${totalDuration}ms`);
+  logger.info('');
+  logger.info('🚦 Quality Gate Results');
+  logger.info('━'.repeat(40));
+  logger.info('');
+  logger.info(`Lint:      ${lintResult.passed ? '✅' : '❌'} (${lintResult.errors} errors, ${lintResult.warnings} warnings)`);
+  logger.info(`Types:     ${typeResult.passed ? '✅' : '❌'} (${typeResult.errors} errors)`);
+  logger.info(`Security:  ${securityResult.passed ? '✅' : '❌'} (${securityResult.errors} vulns)`);
+  logger.info('');
+  logger.info(`Gate Score: ${(gateResult.score * 100).toFixed(1)}%`);
+  logger.info(`Gate Status: ${gateResult.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  logger.info(`Total Duration: ${totalDuration}ms`);
   
   if (gateResult.recommendations.length > 0) {
-    console.log('');
+    logger.info('');
     logger.info('quality', 'Recommendations:');
     gateResult.recommendations.forEach((rec, i) => {
-      console.log(`  ${i + 1}. ${rec}`);
+      logger.info(`  ${i + 1}. ${rec}`);
     });
   }
   
   if (!gateResult.passed) {
-    console.log('');
-    console.log('❌ Quality gate FAILED');
+    logger.info('');
+    logger.info('❌ Quality gate FAILED');
     process.exit(1);
   } else {
-    console.log('');
-    console.log('✅ Quality gate PASSED');
+    logger.info('');
+    logger.info('✅ Quality gate PASSED');
   }
 }
 
@@ -368,21 +368,21 @@ async function handleGate(options: QualityOptions): Promise<void> {
 async function handleStatus(options: QualityOptions): Promise<void> {
   const cwd = process.cwd();
   
-  console.log('📊 Quality Status');
-  console.log('━'.repeat(40));
-  console.log('');
+  logger.info('📊 Quality Status');
+  logger.info('━'.repeat(40));
+  logger.info('');
   
   try {
     // Get real lint status
     const passesLint = await passesLintGate(cwd, 'typescript');
     const typeResult = await runTypeScriptCheck(cwd);
     
-    console.log(`Lint Status: ${passesLint ? '✅ PASSING' : '❌ FAILING'}`);
-    console.log(`Type Check: ${typeResult.errors === 0 ? '✅ PASSING' : '❌ FAILING'}`);
-    console.log('');
+    logger.info(`Lint Status: ${passesLint ? '✅ PASSING' : '❌ FAILING'}`);
+    logger.info(`Type Check: ${typeResult.errors === 0 ? '✅ PASSING' : '❌ FAILING'}`);
+    logger.info('');
     logger.info('quality', 'Current Metrics:');
-    console.log(`   Type Errors: ${typeResult.errors}`);
-    console.log(`   Type Warnings: ${typeResult.warnings}`);
+    logger.info(`   Type Errors: ${typeResult.errors}`);
+    logger.info(`   Type Warnings: ${typeResult.warnings}`);
     
     // Calculate overall quality score
     const score = calculateScore({
@@ -390,11 +390,11 @@ async function handleStatus(options: QualityOptions): Promise<void> {
       typeWarnings: typeResult.warnings
     });
     
-    console.log(`   Quality Score: ${(score * 100).toFixed(1)}%`);
+    logger.info(`   Quality Score: ${(score * 100).toFixed(1)}%`);
     
   } catch (error) {
     logger.info('quality', '❌ Unable to determine quality status');
-    console.log(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+    logger.info(`   Error: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

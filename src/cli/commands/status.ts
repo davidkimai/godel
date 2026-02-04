@@ -39,7 +39,7 @@ export function registerStatusCommand(program: Command): void {
         const status = await gatherSystemStatus();
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(status, null, 2));
+          logger.info(JSON.stringify(status, null, 2));
           return;
         }
 
@@ -272,16 +272,16 @@ function printStatus(status: SystemStatus): void {
     : 'None configured';
 
   // Print the formatted output
-  console.log();
-  console.log(`${healthEmoji} Dash v${status.dash.version} Status`);
+  logger.info('');
+  logger.info(`${healthEmoji} Dash v${status.dash.version} Status`);
   logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`API:      v${status.dash.apiVersion} (${healthText})`);
-  console.log(`Agents:   ${status.agents.total} total (${status.agents.running} running, ${status.agents.idle} idle)`);
-  console.log(`Swarms:   ${status.swarms.active} active`);
-  console.log(`Budgets:  ${budgetStr}`);
-  console.log(`OpenClaw: ${openclawText}`);
+  logger.info(`API:      v${status.dash.apiVersion} (${healthText})`);
+  logger.info(`Agents:   ${status.agents.total} total (${status.agents.running} running, ${status.agents.idle} idle)`);
+  logger.info(`Swarms:   ${status.swarms.active} active`);
+  logger.info(`Budgets:  ${budgetStr}`);
+  logger.info(`OpenClaw: ${openclawText}`);
   logger.info('status', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log();
+  logger.info('');
 }
 
 /**
@@ -298,7 +298,7 @@ export function createStatusCommand(): Command {
         const status = await gatherSystemStatus();
 
         if (options.format === 'json') {
-          console.log(JSON.stringify(status, null, 2));
+          logger.info(JSON.stringify(status, null, 2));
           return;
         }
 

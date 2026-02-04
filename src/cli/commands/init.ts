@@ -69,7 +69,7 @@ export function registerInitCommand(program: Command): void {
     .option('--budget <amount>', 'Set default budget limit (USD)')
     .action(async (options) => {
       try {
-        console.log('🚀 Initializing Dash...\n');
+        logger.info('🚀 Initializing Dash...\n');
 
         // Validate budget if provided
         if (options.budget) {
@@ -83,18 +83,18 @@ export function registerInitCommand(program: Command): void {
         // Check if already initialized
         const existingConfig = loadConfig();
         if (existingConfig && !options.force) {
-          console.log('⚠️  Dash is already initialized.');
-          console.log(`   Config: ${CONFIG_FILE}`);
-          console.log('   Use --force to reinitialize.\n');
+          logger.info('⚠️  Dash is already initialized.');
+          logger.info(`   Config: ${CONFIG_FILE}`);
+          logger.info('   Use --force to reinitialize.\n');
           process.exit(1);
         }
 
         // Create ~/.dash/ directory
         if (!existsSync(DASH_DIR)) {
           mkdirSync(DASH_DIR, { recursive: true, mode: 0o700 });
-          console.log(`✅ Created directory: ${DASH_DIR}`);
+          logger.info(`✅ Created directory: ${DASH_DIR}`);
         } else {
-          console.log(`ℹ️  Directory already exists: ${DASH_DIR}`);
+          logger.info(`ℹ️  Directory already exists: ${DASH_DIR}`);
         }
 
         // Generate or use provided API key
@@ -113,7 +113,7 @@ export function registerInitCommand(program: Command): void {
 
         // Save configuration
         saveConfig(config);
-        console.log(`✅ Created configuration: ${CONFIG_FILE}`);
+        logger.info(`✅ Created configuration: ${CONFIG_FILE}`);
 
         // Create subdirectories
         const subdirs = ['logs', 'cache', 'templates'];
@@ -121,28 +121,28 @@ export function registerInitCommand(program: Command): void {
           const path = join(DASH_DIR, dir);
           if (!existsSync(path)) {
             mkdirSync(path, { recursive: true });
-            console.log(`✅ Created directory: ${path}`);
+            logger.info(`✅ Created directory: ${path}`);
           }
         }
 
         // Success message
         logger.info('init', '\n🎉 Dash initialized successfully!\n');
         logger.info('init', 'Configuration:');
-        console.log(`  API URL:    ${config.apiUrl}`);
-        console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
-        console.log(`  Model:      ${config.defaultModel}`);
-        console.log(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
+        logger.info(`  API URL:    ${config.apiUrl}`);
+        logger.info(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
+        logger.info(`  Model:      ${config.defaultModel}`);
+        logger.info(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
         if (config.budgetLimit) {
-          console.log(`  Budget:     $${config.budgetLimit} USD`);
+          logger.info(`  Budget:     $${config.budgetLimit} USD`);
         }
-        console.log(`  Log Level:  ${config.logLevel}`);
+        logger.info(`  Log Level:  ${config.logLevel}`);
         logger.info('init', '\nNext steps:');
-        console.log('  1. Set DASH_API_KEY environment variable:');
-        console.log(`     export DASH_API_KEY=${config.apiKey}`);
-        console.log('  2. Start the Dash API server:');
-        console.log('     dash api start');
-        console.log('  3. Create your first swarm:');
-        console.log('     dash swarm create --name "My Swarm" --task "Hello World"\n');
+        logger.info('  1. Set DASH_API_KEY environment variable:');
+        logger.info(`     export DASH_API_KEY=${config.apiKey}`);
+        logger.info('  2. Start the Dash API server:');
+        logger.info('     dash api start');
+        logger.info('  3. Create your first swarm:');
+        logger.info('     dash swarm create --name "My Swarm" --task "Hello World"\n');
 
       } catch (error) {
         console.error('❌ Failed to initialize Dash:', error instanceof Error ? error.message : String(error));
@@ -160,25 +160,25 @@ export function registerInitCommand(program: Command): void {
         
         if (!config) {
           logger.error('init', '❌ Dash is not initialized.');
-          console.log('   Run "dash init" first.\n');
+          logger.info('   Run "dash init" first.\n');
           process.exit(1);
         }
 
         if (options.json) {
-          console.log(JSON.stringify(config, null, 2));
+          logger.info(JSON.stringify(config, null, 2));
           return;
         }
 
-        console.log('📋 Dash Configuration\n');
-        console.log(`  API URL:    ${config.apiUrl}`);
-        console.log(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
-        console.log(`  Model:      ${config.defaultModel}`);
-        console.log(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
+        logger.info('📋 Dash Configuration\n');
+        logger.info(`  API URL:    ${config.apiUrl}`);
+        logger.info(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
+        logger.info(`  Model:      ${config.defaultModel}`);
+        logger.info(`  Safety:     ${config.safetyEnabled ? 'enabled' : 'disabled'}`);
         if (config.budgetLimit) {
-          console.log(`  Budget:     $${config.budgetLimit} USD`);
+          logger.info(`  Budget:     $${config.budgetLimit} USD`);
         }
-        console.log(`  Log Level:  ${config.logLevel}`);
-        console.log(`  Created:    ${config.createdAt}\n`);
+        logger.info(`  Log Level:  ${config.logLevel}`);
+        logger.info(`  Created:    ${config.createdAt}\n`);
 
       } catch (error) {
         console.error('❌ Failed to show config:', error instanceof Error ? error.message : String(error));
@@ -193,13 +193,13 @@ export function registerInitCommand(program: Command): void {
     .action(async (options) => {
       try {
         if (!existsSync(CONFIG_FILE)) {
-          console.log('ℹ️  No configuration to reset.');
+          logger.info('ℹ️  No configuration to reset.');
           return;
         }
 
         if (!options.yes) {
-          console.log('⚠️  This will reset your Dash configuration.');
-          console.log('   Use --yes to confirm.\n');
+          logger.info('⚠️  This will reset your Dash configuration.');
+          logger.info('   Use --yes to confirm.\n');
           process.exit(1);
         }
 
@@ -210,8 +210,8 @@ export function registerInitCommand(program: Command): void {
         };
 
         saveConfig(config);
-        console.log('✅ Configuration reset to defaults.');
-        console.log(`   New API Key: ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)\n`);
+        logger.info('✅ Configuration reset to defaults.');
+        logger.info(`   New API Key: ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)\n`);
 
       } catch (error) {
         console.error('❌ Failed to reset config:', error instanceof Error ? error.message : String(error));

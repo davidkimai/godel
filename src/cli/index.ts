@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { logger } from '../utils/logger';
 /**
  * swarmctl - Dash CLI
  * 
@@ -87,9 +88,9 @@ program
   .argument('<shell>', 'Shell type (bash|zsh)')
   .action((shell) => {
     if (shell === 'bash') {
-      console.log(generateBashCompletion());
+      logger.info(generateBashCompletion());
     } else if (shell === 'zsh') {
-      console.log(generateZshCompletion());
+      logger.info(generateZshCompletion());
     } else {
       console.error(`❌ Unknown shell: ${shell}. Supported shells: bash, zsh`);
       process.exit(1);

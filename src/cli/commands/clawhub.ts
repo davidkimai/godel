@@ -81,7 +81,7 @@ export function registerClawhubCommand(program: Command): void {
     .option('--author <author>', 'Filter by author')
     .action(async (query: string = '', options) => {
       try {
-        console.log(chalk.blue('🔍 Searching ClawHub...\n'));
+        logger.info(chalk.blue('🔍 Searching ClawHub...\n'));
 
         const client = getGlobalClawHubClient();
 
@@ -98,11 +98,11 @@ export function registerClawhubCommand(program: Command): void {
         const totalTime = Date.now() - startTime;
 
         if (result.skills.length === 0) {
-          console.log(chalk.yellow('No skills found matching your query.'));
-          console.log(chalk.gray('\nTips:'));
-          console.log(chalk.gray('  - Try a broader search term'));
-          console.log(chalk.gray('  - Check for typos'));
-          console.log(chalk.gray('  - Browse all skills at https://clawhub.ai'));
+          logger.info(chalk.yellow('No skills found matching your query.'));
+          logger.info(chalk.gray('\nTips:'));
+          logger.info(chalk.gray('  - Try a broader search term'));
+          logger.info(chalk.gray('  - Check for typos'));
+          logger.info(chalk.gray('  - Browse all skills at https://clawhub.ai'));
           return;
         }
 
@@ -110,21 +110,21 @@ export function registerClawhubCommand(program: Command): void {
         const installed = await client.listInstalled();
         const installedMap = new Map(installed.map(s => [s.slug, s.version]));
 
-        console.log(chalk.bold(`Found ${result.total} skills${result.fromCache ? ' (cached)' : ''}:\n`));
+        logger.info(chalk.bold(`Found ${result.total} skills${result.fromCache ? ' (cached)' : ''}:\n`));
 
         for (const skill of result.skills) {
           const isInstalled = installedMap.has(skill.slug);
           const installedVersion = installedMap.get(skill.slug);
           const line = formatSkillLine(skill, isInstalled, installedVersion);
-          console.log(line);
-          console.log(chalk.gray(`   ${truncate(skill.description, 70)}`));
-          console.log();
+          logger.info(line);
+          logger.info(chalk.gray(`   ${truncate(skill.description, 70)}`));
+          logger.info('');
         }
 
-        console.log(chalk.gray(`Query time: ${result.queryTimeMs || totalTime}ms | Showing ${result.skills.length}/${result.total} results`));
+        logger.info(chalk.gray(`Query time: ${result.queryTimeMs || totalTime}ms | Showing ${result.skills.length}/${result.total} results`));
         
         if (result.total > result.skills.length) {
-          console.log(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
+          logger.info(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
         }
       } catch (error) {
         console.error(chalk.red('❌ Search failed'));
@@ -145,7 +145,7 @@ export function registerClawhubCommand(program: Command): void {
     .option('--target-dir <dir>', 'Custom installation directory')
     .action(async (skillSlug: string, options) => {
       try {
-        console.log(chalk.blue(`📦 Installing ${skillSlug}...\n`));
+        logger.info(chalk.blue(`📦 Installing ${skillSlug}...\n`));
 
         const client = getGlobalClawHubClient();
         const installer = getGlobalSkillInstaller(client);
@@ -153,17 +153,17 @@ export function registerClawhubCommand(program: Command): void {
         // Check if already installed
         const existing = await client.isInstalled(skillSlug);
         if (existing.installed && !options.force) {
-          console.log(chalk.yellow(`⚠️  ${skillSlug}@${existing.version} is already installed.`));
-          console.log(chalk.gray('   Use --force to reinstall.'));
+          logger.info(chalk.yellow(`⚠️  ${skillSlug}@${existing.version} is already installed.`));
+          logger.info(chalk.gray('   Use --force to reinstall.'));
           return;
         }
 
         // Validate skill exists before installing
-        console.log(chalk.gray('Fetching skill metadata...'));
+        logger.info(chalk.gray('Fetching skill metadata...'));
         const metadata = await client.fetchSkill(skillSlug);
-        console.log(chalk.green(`✓ Found ${metadata.name || skillSlug} v${metadata.version}`));
-        console.log(chalk.gray(`  ${metadata.description}`));
-        console.log();
+        logger.info(chalk.green(`✓ Found ${metadata.name || skillSlug} v${metadata.version}`));
+        logger.info(chalk.gray(`  ${metadata.description}`));
+        logger.info('');
 
         // Install the skill
         const startTime = Date.now();
@@ -177,36 +177,36 @@ export function registerClawhubCommand(program: Command): void {
         const duration = Date.now() - startTime;
 
         if (result.success) {
-          console.log(chalk.green(`\n✓ Successfully installed ${skillSlug}@${result.version}`));
-          console.log(chalk.gray(`  Path: ${result.installPath}`));
-          console.log(chalk.gray(`  Time: ${duration}ms`));
+          logger.info(chalk.green(`\n✓ Successfully installed ${skillSlug}@${result.version}`));
+          logger.info(chalk.gray(`  Path: ${result.installPath}`));
+          logger.info(chalk.gray(`  Time: ${duration}ms`));
 
           if (result.installedDependencies?.length) {
-            console.log(chalk.gray(`  Dependencies: ${result.installedDependencies.length} installed`));
+            logger.info(chalk.gray(`  Dependencies: ${result.installedDependencies.length} installed`));
             for (const dep of result.installedDependencies) {
-              console.log(chalk.gray(`    - ${dep}`));
+              logger.info(chalk.gray(`    - ${dep}`));
             }
           }
 
           if (result.warnings?.length) {
-            console.log(chalk.yellow('\nWarnings:'));
+            logger.info(chalk.yellow('\nWarnings:'));
             for (const warning of result.warnings) {
-              console.log(chalk.yellow(`  ⚠️  ${warning}`));
+              logger.info(chalk.yellow(`  ⚠️  ${warning}`));
             }
           }
 
           // Try to activate the skill
-          console.log(chalk.gray('\nActivating skill...'));
+          logger.info(chalk.gray('\nActivating skill...'));
           const activation = await installer.activate(skillSlug);
           
           if (activation.success) {
-            console.log(chalk.green(`✓ Skill activated and ready to use`));
+            logger.info(chalk.green(`✓ Skill activated and ready to use`));
             if (activation.tools?.length) {
-              console.log(chalk.gray(`  Provides tools: ${activation.tools.join(', ')}`));
+              logger.info(chalk.gray(`  Provides tools: ${activation.tools.join(', ')}`));
             }
           } else {
-            console.log(chalk.yellow(`⚠️  Skill installed but activation failed:`));
-            console.log(chalk.yellow(`   ${activation.error}`));
+            logger.info(chalk.yellow(`⚠️  Skill installed but activation failed:`));
+            logger.info(chalk.yellow(`   ${activation.error}`));
           }
         } else {
           console.error(chalk.red('\n❌ Installation failed'));
@@ -246,16 +246,16 @@ export function registerClawhubCommand(program: Command): void {
         const installed = await client.listInstalled();
 
         if (installed.length === 0) {
-          console.log(chalk.yellow('No skills installed.'));
-          console.log(chalk.gray('\nInstall skills with:'));
-          console.log(chalk.gray('  dash clawhub install <skill>'));
-          console.log(chalk.gray('\nSearch for skills with:'));
-          console.log(chalk.gray('  dash clawhub search <query>'));
+          logger.info(chalk.yellow('No skills installed.'));
+          logger.info(chalk.gray('\nInstall skills with:'));
+          logger.info(chalk.gray('  dash clawhub install <skill>'));
+          logger.info(chalk.gray('\nSearch for skills with:'));
+          logger.info(chalk.gray('  dash clawhub search <query>'));
           return;
         }
 
         if (options.json) {
-          console.log(JSON.stringify(installed, null, 2));
+          logger.info(JSON.stringify(installed, null, 2));
           return;
         }
 
@@ -270,7 +270,7 @@ export function registerClawhubCommand(program: Command): void {
           ? skillsWithState 
           : skillsWithState.filter(s => s.state === 'active' || s.state === 'inactive');
 
-        console.log(chalk.bold(`Installed Skills (${displaySkills.length}):\n`));
+        logger.info(chalk.bold(`Installed Skills (${displaySkills.length}):\n`));
 
         // Group by state
         const active = displaySkills.filter(s => s.state === 'active');
@@ -278,36 +278,36 @@ export function registerClawhubCommand(program: Command): void {
         const other = displaySkills.filter(s => !['active', 'inactive'].includes(s.state));
 
         if (active.length > 0) {
-          console.log(chalk.green('Active:'));
+          logger.info(chalk.green('Active:'));
           for (const skill of active) {
-            console.log(`  ✓ ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)}`);
-            console.log(chalk.gray(`    ${truncate(skill.description, 60)}`));
+            logger.info(`  ✓ ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)}`);
+            logger.info(chalk.gray(`    ${truncate(skill.description, 60)}`));
           }
-          console.log();
+          logger.info('');
         }
 
         if (inactive.length > 0) {
-          console.log(chalk.gray(options.all ? 'Inactive:' : 'Inactive (use --all to show):'));
+          logger.info(chalk.gray(options.all ? 'Inactive:' : 'Inactive (use --all to show):'));
           if (options.all) {
             for (const skill of inactive) {
-              console.log(`  ○ ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)}`);
+              logger.info(`  ○ ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray('@' + skill.version)}`);
             }
           } else {
-            console.log(chalk.gray(`  ... and ${inactive.length} inactive skills`));
+            logger.info(chalk.gray(`  ... and ${inactive.length} inactive skills`));
           }
-          console.log();
+          logger.info('');
         }
 
         if (other.length > 0 && options.all) {
-          console.log(chalk.yellow('Other states:'));
+          logger.info(chalk.yellow('Other states:'));
           for (const skill of other) {
             const stateIcon = skill.state === 'error' ? '✗' : '◌';
-            console.log(`  ${stateIcon} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray(`[${skill.state}]`)}`);
+            logger.info(`  ${stateIcon} ${chalk.cyan(skill.name || skill.slug)} ${chalk.gray(`[${skill.state}]`)}`);
           }
         }
 
-        console.log(chalk.gray(`\nRegistry: ${client.getConfig().registryUrl}`));
-        console.log(chalk.gray(`Skills directory: ${client.getSkillsDirectory()}`));
+        logger.info(chalk.gray(`\nRegistry: ${client.getConfig().registryUrl}`));
+        logger.info(chalk.gray(`Skills directory: ${client.getSkillsDirectory()}`));
       } catch (error) {
         console.error(chalk.red('❌ Failed to list skills'));
         console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -330,33 +330,33 @@ export function registerClawhubCommand(program: Command): void {
         // Check if installed
         const existing = await client.isInstalled(skillSlug);
         if (!existing.installed) {
-          console.log(chalk.yellow(`⚠️  ${skillSlug} is not installed.`));
+          logger.info(chalk.yellow(`⚠️  ${skillSlug} is not installed.`));
           return;
         }
 
         // Confirm unless --yes
         if (!options.yes) {
-          console.log(chalk.yellow(`\n⚠️  This will remove ${skillSlug}@${existing.version}`));
-          console.log(chalk.gray('Use --yes to skip this confirmation\n'));
+          logger.info(chalk.yellow(`\n⚠️  This will remove ${skillSlug}@${existing.version}`));
+          logger.info(chalk.gray('Use --yes to skip this confirmation\n'));
           // In a real implementation, we'd use inquirer or similar
           // For now, just require --yes flag
-          console.log(chalk.gray('Re-run with --yes to confirm:'));
-          console.log(chalk.gray(`  dash clawhub uninstall ${skillSlug} --yes`));
+          logger.info(chalk.gray('Re-run with --yes to confirm:'));
+          logger.info(chalk.gray(`  dash clawhub uninstall ${skillSlug} --yes`));
           return;
         }
 
-        console.log(chalk.blue(`\n🗑️  Uninstalling ${skillSlug}...`));
+        logger.info(chalk.blue(`\n🗑️  Uninstalling ${skillSlug}...`));
 
         // Deactivate first
         if (installer.isActive(skillSlug)) {
-          console.log(chalk.gray('Deactivating skill...'));
+          logger.info(chalk.gray('Deactivating skill...'));
           await installer.deactivate(skillSlug);
         }
 
         // Uninstall
         await client.uninstall(skillSlug);
 
-        console.log(chalk.green(`✓ ${skillSlug} has been uninstalled`));
+        logger.info(chalk.green(`✓ ${skillSlug} has been uninstalled`));
       } catch (error) {
         console.error(chalk.red('❌ Uninstall failed'));
         console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -376,7 +376,7 @@ export function registerClawhubCommand(program: Command): void {
         const client = getGlobalClawHubClient();
         const installer = getGlobalSkillInstaller(client);
 
-        console.log(chalk.blue(`🔍 Fetching information for ${skillSlug}...\n`));
+        logger.info(chalk.blue(`🔍 Fetching information for ${skillSlug}...\n`));
 
         // Check if installed locally first
         const installed = await client.isInstalled(skillSlug);
@@ -391,56 +391,56 @@ export function registerClawhubCommand(program: Command): void {
         const metadata = await client.fetchSkill(skillSlug);
 
         // Display info
-        console.log(chalk.bold.cyan(metadata.name || metadata.slug));
-        console.log(chalk.gray(metadata.slug));
-        console.log();
+        logger.info(chalk.bold.cyan(metadata.name || metadata.slug));
+        logger.info(chalk.gray(metadata.slug));
+        logger.info('');
 
-        console.log(chalk.white(metadata.description));
-        console.log();
+        logger.info(chalk.white(metadata.description));
+        logger.info('');
 
-        console.log(chalk.bold('Stats:'));
-        console.log(`  ${formatStars(metadata.stars)}`);
-        console.log(`  ${formatDownloads(metadata.downloads)}`);
-        console.log(`  Version: ${metadata.version}`);
+        logger.info(chalk.bold('Stats:'));
+        logger.info(`  ${formatStars(metadata.stars)}`);
+        logger.info(`  ${formatDownloads(metadata.downloads)}`);
+        logger.info(`  Version: ${metadata.version}`);
         if (metadata.versions && metadata.versions.length > 1) {
-          console.log(`  All versions: ${metadata.versions.join(', ')}`);
+          logger.info(`  All versions: ${metadata.versions.join(', ')}`);
         }
-        console.log();
+        logger.info('');
 
-        console.log(chalk.bold('Author:'));
-        console.log(`  ${metadata.author.username}`);
-        console.log();
+        logger.info(chalk.bold('Author:'));
+        logger.info(`  ${metadata.author.username}`);
+        logger.info('');
 
         if (metadata.tags.length > 0) {
-          console.log(chalk.bold('Tags:'));
-          console.log(`  ${metadata.tags.map(t => chalk.blue(`#${t}`)).join(' ')}`);
-          console.log();
+          logger.info(chalk.bold('Tags:'));
+          logger.info(`  ${metadata.tags.map(t => chalk.blue(`#${t}`)).join(' ')}`);
+          logger.info('');
         }
 
         // Installation status
-        console.log(chalk.bold('Installation:'));
+        logger.info(chalk.bold('Installation:'));
         if (installed.installed && localSkill) {
-          console.log(chalk.green(`  ✓ Installed (v${localSkill.version})`));
-          console.log(`  Path: ${localSkill.installPath}`);
-          console.log(`  State: ${installer.getActivationState(skillSlug)}`);
+          logger.info(chalk.green(`  ✓ Installed (v${localSkill.version})`));
+          logger.info(`  Path: ${localSkill.installPath}`);
+          logger.info(`  State: ${installer.getActivationState(skillSlug)}`);
           
           if (localSkill.parsedSkill?.dependencies?.length) {
-            console.log(`  Dependencies: ${localSkill.parsedSkill.dependencies.length}`);
+            logger.info(`  Dependencies: ${localSkill.parsedSkill.dependencies.length}`);
           }
         } else {
-          console.log(chalk.gray('  Not installed'));
-          console.log(chalk.gray(`  Install: dash clawhub install ${skillSlug}`));
+          logger.info(chalk.gray('  Not installed'));
+          logger.info(chalk.gray(`  Install: dash clawhub install ${skillSlug}`));
         }
-        console.log();
+        logger.info('');
 
         // Show README if requested
         if (options.readme && metadata.readme) {
-          console.log(chalk.bold('README:'));
-          console.log(chalk.gray('─'.repeat(60)));
-          console.log(metadata.readme);
-          console.log(chalk.gray('─'.repeat(60)));
+          logger.info(chalk.bold('README:'));
+          logger.info(chalk.gray('─'.repeat(60)));
+          logger.info(metadata.readme);
+          logger.info(chalk.gray('─'.repeat(60)));
         } else if (metadata.readme) {
-          console.log(chalk.gray('Use --readme to view full documentation'));
+          logger.info(chalk.gray('Use --readme to view full documentation'));
         }
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
@@ -467,14 +467,14 @@ export function registerClawhubCommand(program: Command): void {
         const client = getGlobalClawHubClient();
 
         if (!skillSlug && !options.all) {
-          console.log(chalk.yellow('Please specify a skill or use --all to update all skills'));
-          console.log(chalk.gray('  dash clawhub update <skill>'));
-          console.log(chalk.gray('  dash clawhub update --all'));
+          logger.info(chalk.yellow('Please specify a skill or use --all to update all skills'));
+          logger.info(chalk.gray('  dash clawhub update <skill>'));
+          logger.info(chalk.gray('  dash clawhub update --all'));
           return;
         }
 
         if (options.all) {
-          console.log(chalk.blue('🔄 Checking for updates...\n'));
+          logger.info(chalk.blue('🔄 Checking for updates...\n'));
           
           const installed = await client.listInstalled();
           let updateCount = 0;
@@ -484,39 +484,39 @@ export function registerClawhubCommand(program: Command): void {
               const metadata = await client.fetchSkill(skill.slug);
               
               if (metadata.version !== skill.version) {
-                console.log(chalk.yellow(`${skill.name || skill.slug}: ${skill.version} → ${metadata.version}`));
+                logger.info(chalk.yellow(`${skill.name || skill.slug}: ${skill.version} → ${metadata.version}`));
                 
                 await client.install(skill.slug, { force: true });
-                console.log(chalk.green(`  ✓ Updated to ${metadata.version}`));
+                logger.info(chalk.green(`  ✓ Updated to ${metadata.version}`));
                 updateCount++;
               }
             } catch (error) {
-              console.log(chalk.red(`  ✗ Failed to check ${skill.slug}: ${error instanceof Error ? error.message : String(error)}`));
+              logger.info(chalk.red(`  ✗ Failed to check ${skill.slug}: ${error instanceof Error ? error.message : String(error)}`));
             }
           }
 
           if (updateCount === 0) {
-            console.log(chalk.green('All skills are up to date!'));
+            logger.info(chalk.green('All skills are up to date!'));
           } else {
-            console.log(chalk.green(`\nUpdated ${updateCount} skill(s)`));
+            logger.info(chalk.green(`\nUpdated ${updateCount} skill(s)`));
           }
         } else if (skillSlug) {
-          console.log(chalk.blue(`🔄 Checking ${skillSlug} for updates...\n`));
+          logger.info(chalk.blue(`🔄 Checking ${skillSlug} for updates...\n`));
           
           const installed = await client.isInstalled(skillSlug);
           if (!installed.installed) {
-            console.log(chalk.yellow(`${skillSlug} is not installed`));
+            logger.info(chalk.yellow(`${skillSlug} is not installed`));
             return;
           }
 
           const metadata = await client.fetchSkill(skillSlug);
           
           if (metadata.version === installed.version) {
-            console.log(chalk.green(`${skillSlug} is already at the latest version (${installed.version})`));
+            logger.info(chalk.green(`${skillSlug} is already at the latest version (${installed.version})`));
           } else {
-            console.log(chalk.yellow(`${skillSlug}: ${installed.version} → ${metadata.version}`));
+            logger.info(chalk.yellow(`${skillSlug}: ${installed.version} → ${metadata.version}`));
             await client.install(skillSlug, { force: true });
-            console.log(chalk.green(`✓ Updated to ${metadata.version}`));
+            logger.info(chalk.green(`✓ Updated to ${metadata.version}`));
           }
         }
       } catch (error) {

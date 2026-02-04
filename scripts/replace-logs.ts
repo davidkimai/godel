@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Script to replace console.log with structured logger calls
+ * Script to replace logger.info with structured logger calls
  * 
  * Usage: node replace-logs.ts [file-pattern]
  */
@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Files that should keep console.log for CLI output (user-facing)
+// Files that should keep logger.info for CLI output (user-facing)
 const CLI_COMMAND_FILES = [
   'src/cli/commands/budget.ts',
   'src/cli/commands/skills.ts',
@@ -64,9 +64,9 @@ function processFile(filePath: string): { modified: boolean; count: number } {
   const hasLoggerImport = /import.*logger.*from.*utils/.test(content) || 
                           /import.*{[^}]*logger[^}]*}.*from/.test(content);
 
-  // For CLI command files, keep console.log for user output but replace debug logs
+  // For CLI command files, keep logger.info for user output but replace debug logs
   if (isCliCommandFile(filePath)) {
-    // In CLI files, only replace console.log that looks like debugging
+    // In CLI files, only replace logger.info that looks like debugging
     // Keep UI output (lines with emojis, formatted tables, etc.)
     const debugPatterns = [
       // Replace simple debug statements (not UI output)
@@ -88,9 +88,9 @@ function processFile(filePath: string): { modified: boolean; count: number } {
       newContent = newContent.replace(pattern, replacement as any);
     }
   } else {
-    // For non-CLI files, replace all console.log statements
+    // For non-CLI files, replace all logger.info statements
     
-    // Pattern 1: console.log('message', variable) -> logger.info('module', 'message', { variable })
+    // Pattern 1: logger.info('message', variable) -> logger.info('module', 'message', { variable })
     newContent = newContent.replace(
       /console\.log\(['"]([^'"]+)['"]\s*,\s*([^)]+)\);/g,
       (match, message, variable) => {
@@ -100,7 +100,7 @@ function processFile(filePath: string): { modified: boolean; count: number } {
       }
     );
 
-    // Pattern 2: console.log(`message ${var}`) -> logger.info('module', `message ${var}`)
+    // Pattern 2: logger.info(`message ${var}`) -> logger.info('module', `message ${var}`)
     newContent = newContent.replace(
       /console\.log\(`([^`]+)`\);/g,
       (match, template) => {
@@ -109,7 +109,7 @@ function processFile(filePath: string): { modified: boolean; count: number } {
       }
     );
 
-    // Pattern 3: console.log('message') -> logger.info('module', 'message')
+    // Pattern 3: logger.info('message') -> logger.info('module', 'message')
     newContent = newContent.replace(
       /console\.log\(['"]([^'"]+)['"]\);/g,
       (match, message) => {
@@ -122,7 +122,7 @@ function processFile(filePath: string): { modified: boolean; count: number } {
       }
     );
 
-    // Pattern 4: console.log(object) -> logger.info('module', 'Data', { data: object })
+    // Pattern 4: logger.info(object) -> logger.info('module', 'Data', { data: object })
     newContent = newContent.replace(
       /console\.log\(([^'"`][^)]*)\);/g,
       (match, expr) => {
@@ -192,14 +192,14 @@ function main() {
       totalModified++;
       totalReplacements += result.count;
       modifiedFiles.push(file);
-      console.log(`✓ ${file}: ${result.count} replacements`);
+      logger.info(`✓ ${file}: ${result.count} replacements`);
     }
   }
 
-  console.log('\n═══════════════════════════════════════');
-  console.log(`Total files modified: ${totalModified}`);
-  console.log(`Total replacements: ${totalReplacements}`);
-  console.log('═══════════════════════════════════════');
+  logger.info('\n═══════════════════════════════════════');
+  logger.info(`Total files modified: ${totalModified}`);
+  logger.info(`Total replacements: ${totalReplacements}`);
+  logger.info('═══════════════════════════════════════');
 }
 
 main();

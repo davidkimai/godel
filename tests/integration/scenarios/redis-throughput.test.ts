@@ -1,3 +1,4 @@
+import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 8: Redis Event Bus Throughput Integration Tests
  * 
@@ -41,9 +42,9 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       await redis.ping();
       await subscriber.ping();
       
-      console.log('Redis connected successfully');
+      logger.info('Redis connected successfully');
     } catch (error) {
-      console.log('Redis not available, skipping Redis tests');
+      logger.info('Redis not available, skipping Redis tests');
       redis = null;
       subscriber = null;
     }
@@ -68,7 +69,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Event Throughput', () => {
     it('should handle 1000 events/second publish rate', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -94,17 +95,17 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       const publishDuration = Date.now() - startTime;
       const publishRate = eventCount / (publishDuration / 1000);
 
-      console.log('Redis Publish Throughput:');
-      console.log(`  Events: ${eventCount}`);
-      console.log(`  Duration: ${publishDuration}ms`);
-      console.log(`  Rate: ${publishRate.toFixed(1)} events/sec`);
+      logger.info('Redis Publish Throughput:');
+      logger.info(`  Events: ${eventCount}`);
+      logger.info(`  Duration: ${publishDuration}ms`);
+      logger.info(`  Rate: ${publishRate.toFixed(1)} events/sec`);
 
       expect(publishRate).toBeGreaterThan(500);
     }, testConfig.testTimeout);
 
     it('should achieve high throughput with batch publishing', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -143,10 +144,10 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       const publishDuration = Date.now() - startTime;
       const publishRate = eventCount / (publishDuration / 1000);
 
-      console.log('Redis Batch Publish Throughput:');
-      console.log(`  Events: ${eventCount}`);
-      console.log(`  Duration: ${publishDuration}ms`);
-      console.log(`  Rate: ${publishRate.toFixed(1)} events/sec`);
+      logger.info('Redis Batch Publish Throughput:');
+      logger.info(`  Events: ${eventCount}`);
+      logger.info(`  Duration: ${publishDuration}ms`);
+      logger.info(`  Rate: ${publishRate.toFixed(1)} events/sec`);
 
       expect(publishRate).toBeGreaterThan(1000);
     }, testConfig.testTimeout);
@@ -155,7 +156,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Pub/Sub Performance', () => {
     it('should receive published events with low latency', async () => {
       if (!redis || !subscriber) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -207,13 +208,13 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       const latencies = receivedEvents.map(e => e.receivedAt - e.sentAt);
       const stats = calculateLatencyStats(latencies);
 
-      console.log('Redis Pub/Sub Latency:');
-      console.log(`  Events: ${receivedEvents.length}`);
-      console.log(`  Total time: ${totalTime}ms`);
-      console.log(`  Min latency: ${stats.min}ms`);
-      console.log(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
-      console.log(`  P95 latency: ${stats.p95}ms`);
-      console.log(`  P99 latency: ${stats.p99}ms`);
+      logger.info('Redis Pub/Sub Latency:');
+      logger.info(`  Events: ${receivedEvents.length}`);
+      logger.info(`  Total time: ${totalTime}ms`);
+      logger.info(`  Min latency: ${stats.min}ms`);
+      logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
+      logger.info(`  P95 latency: ${stats.p95}ms`);
+      logger.info(`  P99 latency: ${stats.p99}ms`);
 
       expect(stats.p99).toBeLessThan(100); // 100ms max latency
       expect(receivedEvents.length).toBeGreaterThanOrEqual(eventCount);
@@ -225,7 +226,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
 
     it('should handle high subscriber count', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -280,7 +281,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Message Reliability', () => {
     it('should not lose messages under normal conditions', async () => {
       if (!redis || !subscriber) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -323,10 +324,10 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       // Verify no duplicates and all received
       const uniqueEvents = new Set(receivedEvents);
       
-      console.log('Message Reliability Test:');
-      console.log(`  Sent: ${eventCount}`);
-      console.log(`  Received: ${receivedEvents.length}`);
-      console.log(`  Unique: ${uniqueEvents.size}`);
+      logger.info('Message Reliability Test:');
+      logger.info(`  Sent: ${eventCount}`);
+      logger.info(`  Received: ${receivedEvents.length}`);
+      logger.info(`  Unique: ${uniqueEvents.size}`);
 
       expect(uniqueEvents.size).toBe(eventCount);
       expect(receivedEvents.length).toBe(eventCount);
@@ -338,7 +339,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
 
     it('should handle subscriber disconnect gracefully', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -392,7 +393,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Channel Patterns', () => {
     it('should support pattern-based subscriptions', async () => {
       if (!redis || !subscriber) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -448,7 +449,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Performance Under Load', () => {
     it('should maintain throughput under sustained load', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -478,10 +479,10 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
       const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
       const minRate = Math.min(...rates);
 
-      console.log('Sustained Load Test:');
-      console.log(`  Average rate: ${avgRate.toFixed(1)} events/sec`);
-      console.log(`  Min rate: ${minRate.toFixed(1)} events/sec`);
-      console.log(`  Rates: ${rates.map(r => r.toFixed(0)).join(', ')}`);
+      logger.info('Sustained Load Test:');
+      logger.info(`  Average rate: ${avgRate.toFixed(1)} events/sec`);
+      logger.info(`  Min rate: ${minRate.toFixed(1)} events/sec`);
+      logger.info(`  Rates: ${rates.map(r => r.toFixed(0)).join(', ')}`);
 
       // Rate should not degrade significantly
       expect(minRate).toBeGreaterThan(avgRate * 0.5);
@@ -491,7 +492,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
   describe('Error Handling', () => {
     it('should handle connection errors gracefully', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
@@ -515,7 +516,7 @@ describe('Scenario 8: Redis Event Bus Throughput', () => {
 
     it('should recover from temporary connection issues', async () => {
       if (!redis) {
-        console.log('Skipping Redis test - not available');
+        logger.info('Skipping Redis test - not available');
         return;
       }
 
