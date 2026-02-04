@@ -6,3 +6,4 @@ export * from './repositories/BudgetRepository';
 export * from './postgres';
 export * from './memory';
 export { getDb, initDatabase, closeDatabase, memoryStore } from './sqlite';
+export { RedisFallback, FallbackState, type RedisFallbackConfig, type FallbackStats } from './redis-fallback';

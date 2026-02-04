@@ -2,6 +2,7 @@
  * State Store
  * 
  * Global state management using Zustand
+ * Uses httpOnly cookies for authentication (no localStorage tokens).
  */
 
 import { create } from 'zustand';
@@ -19,6 +20,7 @@ import type {
   ViewState,
   FilterState
 } from '../types';
+import authService from '../services/auth';
 
 // ============================================================================
 // Auth Store
@@ -28,39 +30,54 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   isAdmin: () => boolean;
 }
 
 export const useAuthStore = create<AuthState>()(
   devtools(
-    persist(
-      (set, get) => ({
-        user: null,
-        isAuthenticated: false,
-        isLoading: true,
-        
-        login: (user) => {
-          localStorage.setItem('dash_token', user.token);
-          set({ user, isAuthenticated: true, isLoading: false });
-        },
-        
-        logout: () => {
-          localStorage.removeItem('dash_token');
+    (set, get) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      
+      login: async (username: string, password: string) => {
+        const result = await authService.login(username, password);
+        if (result.success && result.user) {
+          set({ user: result.user, isAuthenticated: true, isLoading: false });
+          return true;
+        }
+        set({ isLoading: false });
+        return false;
+      },
+      
+      logout: async () => {
+        await authService.logout();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      },
+      
+      checkAuth: async () => {
+        set({ isLoading: true });
+        try {
+          const result = await authService.checkAuth();
+          if (result.success && result.user) {
+            set({ user: result.user, isAuthenticated: true, isLoading: false });
+          } else {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+          }
+        } catch {
           set({ user: null, isAuthenticated: false, isLoading: false });
-        },
-        
-        setLoading: (loading) => set({ isLoading: loading }),
-        
-        isAdmin: () => get().user?.role === UserRole.ADMIN
-      }),
-      {
-        name: 'dash-auth-storage',
-        partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated })
-      }
-    )
+        }
+      },
+      
+      setLoading: (loading) => set({ isLoading: loading }),
+      
+      isAdmin: () => get().user?.role === UserRole.ADMIN
+    }),
+    { name: 'dash-auth-store' }
   )
 );
 
@@ -241,7 +258,11 @@ export const useUIStore = create<UIState>()(
         toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
         
         addNotification: (notification) => {
-          const id = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const crypto = window.crypto || (window as any).msCrypto;
+          const array = new Uint8Array(16);
+          crypto.getRandomValues(array);
+          const id = 'notif_' + Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+          
           const newNotification: Notification = {
             ...notification,
             id,

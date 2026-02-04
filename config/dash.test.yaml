@@ -1,0 +1,97 @@
+# Dash Configuration - Test Environment
+# Optimized for running tests with minimal external dependencies
+
+env: test
+
+server:
+  port: 0  # Random port for tests
+  host: localhost
+  cors:
+    origins:
+      - http://localhost
+    credentials: false
+  rateLimit: 10000  # Very high for tests
+  timeoutMs: 5000
+
+database:
+  url: postgresql://dash:dash@localhost:5432/dash_test
+  poolSize: 2
+  minPoolSize: 1
+  maxPoolSize: 5
+  ssl: false
+  connectionTimeoutMs: 3000
+  idleTimeoutMs: 10000
+  acquireTimeoutMs: 3000
+  retryAttempts: 2
+  retryDelayMs: 500
+
+redis:
+  url: redis://localhost:6379/15  # Use DB 15 for tests
+  db: 15
+  connectTimeoutMs: 5000
+  commandTimeoutMs: 3000
+  maxRetriesPerRequest: 2
+  enableOfflineQueue: false
+
+auth:
+  apiKeys:
+    - test-key
+  jwtSecret: test-secret
+  tokenExpirySeconds: 3600
+  refreshTokenExpirySeconds: 86400
+  enableApiKeyAuth: true
+  enableJwtAuth: false
+
+logging:
+  level: error  # Minimal logging in tests
+  format: compact
+  destination: stderr
+  serviceName: dash-test
+  includeTimestamp: false
+  includeSourceLocation: false
+
+metrics:
+  enabled: false  # Disable metrics in tests
+  port: 9090
+  host: localhost
+  path: /metrics
+  enableDefaultMetrics: false
+  prefix: dash_
+  collectIntervalMs: 5000
+
+budget:
+  defaultLimit: 100.0  # High limit for tests
+  currency: USD
+  warningThreshold: 0.9
+  criticalThreshold: 0.99
+  selfImprovementMaxBudget: 1000.0
+  maxTokensPerAgent: 1000000
+
+openclaw:
+  gatewayUrl: ws://localhost:18789
+  mode: restricted
+  sandboxMode: none
+  mockMode: true  # Enable mock mode for tests
+  verbose: false
+
+eventBus:
+  type: memory  # Use in-memory event bus for tests
+  streamKey: dash:events:test
+  consumerGroup: dash:consumers:test
+  compressionThreshold: 1024
+  maxStreamLength: 1000
+  maxQueuedEvents: 100
+  retry:
+    maxRetries: 1
+    retryDelayMs: 100
+    retryDelayMultiplier: 1
+
+# Feature flags - disable most features in tests
+features:
+  gitops: false
+  autoScaling: false
+  selfImprovement: false
+  metrics: false
+  tracing: false
+  recovery: false
+  reasoning: false

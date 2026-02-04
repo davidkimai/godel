@@ -2,6 +2,7 @@
  * API Service
  * 
  * HTTP API client for the Dash Dashboard
+ * Uses httpOnly cookies for authentication and CSRF tokens for security.
  */
 
 import type {
@@ -17,6 +18,7 @@ import type {
   CostBreakdown,
   DashboardStats
 } from '../types';
+import { getCsrfToken } from './auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7373';
 
@@ -39,16 +41,31 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('dash_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers as Record<string, string>,
+  };
+
+  // Add CSRF token for state-changing operations
+  const method = options.method?.toUpperCase() || 'GET';
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
   
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers
-    }
+    headers,
+    credentials: 'include', // Important: sends httpOnly cookies
   });
+
+  // Handle 401 - redirect to login
+  if (response.status === 401) {
+    window.location.href = '/login';
+    throw new ApiError('Session expired', 401);
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -57,6 +74,13 @@ async function fetchApi<T>(
       response.status,
       errorData
     );
+  }
+
+  // Update CSRF token if provided in response
+  const newCsrfToken = response.headers.get('X-CSRF-Token');
+  if (newCsrfToken) {
+    const { setCsrfToken } = await import('./auth');
+    setCsrfToken(newCsrfToken);
   }
 
   return response.json();
@@ -237,12 +261,11 @@ export const eventApi = {
   },
 
   createEventSource(): EventSource {
-    const token = localStorage.getItem('dash_token');
+    // EventSource doesn't support custom headers or cookies easily
+    // Use a query parameter with a short-lived token (server-side validated)
     const url = new URL(`${API_BASE_URL}/api/events/stream`);
-    if (token) {
-      url.searchParams.append('token', token);
-    }
-    return new EventSource(url.toString());
+    // The server will validate the session cookie on the EventSource connection
+    return new EventSource(url.toString(), { withCredentials: true });
   }
 };
 
@@ -270,38 +293,11 @@ export const metricsApi = {
   },
 
   async getPrometheusMetrics(): Promise<string> {
-    const response = await fetch(`${API_BASE_URL}/metrics`);
+    const response = await fetch(`${API_BASE_URL}/metrics`, {
+      credentials: 'include',
+    });
     if (!response.ok) throw new Error('Failed to get Prometheus metrics');
     return response.text();
-  }
-};
-
-// ============================================================================
-// Auth API
-// ============================================================================
-
-export const authApi = {
-  async login(username: string, password: string): Promise<{ token: string; role: string }> {
-    const response = await fetchApi<ApiResponse<{ token: string; role: string }>>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password })
-    });
-    if (!response.data) throw new Error('Login failed');
-    return response.data;
-  },
-
-  async logout(): Promise<void> {
-    await fetchApi<ApiResponse<void>>('/api/auth/logout', {
-      method: 'POST'
-    });
-  },
-
-  async verifyToken(token: string): Promise<{ valid: boolean; role: string }> {
-    const response = await fetchApi<ApiResponse<{ valid: boolean; role: string }>>('/api/auth/verify', {
-      method: 'POST',
-      body: JSON.stringify({ token })
-    });
-    return response.data || { valid: false, role: 'readonly' };
   }
 };
 
@@ -327,7 +323,6 @@ export const api = {
   tasks: taskApi,
   events: eventApi,
   metrics: metricsApi,
-  auth: authApi,
   health: healthApi
 };
 

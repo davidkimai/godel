@@ -1,56 +1,71 @@
 /**
- * Swarm Command - Manage agent swarms
+ * Swarm Commands
  * 
  * Commands:
- * - dash swarm create --name <name> --task <task> [options]
- * - dash swarm destroy <swarm-id> [--force]
- * - dash swarm scale <swarm-id> <target-size>
- * - dash swarm status [swarm-id]
- * - dash swarm list [--active]
+ * - swarmctl swarm list [--format json|jsonl|table]
+ * - swarmctl swarm create --name <name> --task <task> [options]
+ * - swarmctl swarm get <swarm-id> [--format json]
+ * - swarmctl swarm scale <swarm-id> <target-size>
+ * - swarmctl swarm destroy <swarm-id> [--force]
  */
 
 import { Command } from 'commander';
-import { logger } from '../../utils';
-import { getGlobalSwarmManager, type SwarmConfig, type SwarmStrategy } from '../../core/swarm';
-import { getGlobalLifecycle } from '../../core/lifecycle';
-import { getGlobalBus } from '../../bus/index';
-import { memoryStore, initDatabase } from '../../storage';
-import { resolve } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-
-/**
- * Initialize core components
- */
-async function initializeCore(): Promise<{
-  messageBus: ReturnType<typeof getGlobalBus>;
-  lifecycle: ReturnType<typeof getGlobalLifecycle>;
-  dbPath: string;
-}> {
-  // Ensure dash data directory exists
-  const dataDir = resolve(process.cwd(), '.dash');
-  if (!existsSync(dataDir)) {
-    mkdirSync(dataDir, { recursive: true });
-  }
-
-  const dbPath = resolve(dataDir, 'dash.db');
-
-  // Initialize SQLite database
-  await initDatabase({ dbPath, enableWAL: true });
-
-  // Initialize message bus
-  const messageBus = getGlobalBus();
-
-  // Initialize lifecycle with SQLite persistence
-  const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-  lifecycle.start(); // CRITICAL: Start lifecycle before use
-
-  return { messageBus, lifecycle, dbPath };
-}
+import { getGlobalClient, type DashApiClient } from '../lib/client';
+import { formatSwarms, formatSwarmStatus, type OutputFormat } from '../lib/output';
+import type { SwarmConfig, SwarmStrategy } from '../../core/swarm';
 
 export function registerSwarmCommand(program: Command): void {
   const swarm = program
     .command('swarm')
     .description('Manage agent swarms');
+
+  // ============================================================================
+  // swarm list
+  // ============================================================================
+  swarm
+    .command('list')
+    .description('List all swarms')
+    .option('-f, --format <format>', 'Output format (table|json|jsonl)', 'table')
+    .option('-a, --active', 'Show only active swarms')
+    .option('--page <page>', 'Page number', '1')
+    .option('--page-size <size>', 'Items per page', '50')
+    .action(async (options) => {
+      try {
+        const client = getGlobalClient();
+        const response = await client.listSwarms({
+          page: parseInt(options.page, 10),
+          pageSize: parseInt(options.pageSize, 10),
+        });
+
+        if (!response.success || !response.data) {
+          console.error('❌ Failed to list swarms:', response.error?.message);
+          process.exit(1);
+        }
+
+        let swarms = response.data.items;
+
+        if (options.active) {
+          swarms = swarms.filter(s => s.status === 'active' || s.status === 'scaling');
+        }
+
+        if (swarms.length === 0) {
+          console.log('📭 No swarms found');
+          console.log('💡 Use "swarmctl swarm create" to create a swarm');
+          return;
+        }
+
+        const format = options.format as OutputFormat;
+        console.log(formatSwarms(swarms, { format }));
+
+        if (response.data.hasMore) {
+          console.log(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
+          console.log(`   Use --page ${response.data.page + 1} to see more`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to list swarms:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
 
   // ============================================================================
   // swarm create
@@ -60,10 +75,10 @@ export function registerSwarmCommand(program: Command): void {
     .description('Create a new swarm of agents')
     .requiredOption('-n, --name <name>', 'Swarm name')
     .requiredOption('-t, --task <task>', 'Task description for the swarm')
-    .option('-i, --initial-agents <count>', 'Initial number of agents', '5')
-    .option('-m, --max-agents <count>', 'Maximum number of agents', '50')
+    .option('-c, --count <count>', 'Initial number of agents', '5')
+    .option('--max <count>', 'Maximum number of agents', '50')
     .option('-s, --strategy <strategy>', 'Swarm strategy (parallel|map-reduce|pipeline|tree)', 'parallel')
-    .option('--model <model>', 'Model to use for agents', 'kimi-k2.5')
+    .option('-m, --model <model>', 'Model to use for agents', 'kimi-k2.5')
     .option('-b, --budget <amount>', 'Budget limit (USD)')
     .option('--warning-threshold <percentage>', 'Budget warning threshold (0-100)', '75')
     .option('--critical-threshold <percentage>', 'Budget critical threshold (0-100)', '90')
@@ -78,14 +93,14 @@ export function registerSwarmCommand(program: Command): void {
         if (!validStrategies.includes(options.strategy)) {
           console.error(`❌ Invalid strategy: ${options.strategy}`);
           console.error(`   Valid strategies: ${validStrategies.join(', ')}`);
-          process.exit(2);
+          process.exit(1);
         }
 
         const config: SwarmConfig = {
           name: options.name,
           task: options.task,
-          initialAgents: parseInt(options.initialAgents, 10),
-          maxAgents: parseInt(options.maxAgents, 10),
+          initialAgents: parseInt(options.count, 10),
+          maxAgents: parseInt(options.max, 10),
           strategy: options.strategy,
           model: options.model,
         };
@@ -94,8 +109,8 @@ export function registerSwarmCommand(program: Command): void {
         if (options.budget) {
           const budgetAmount = parseFloat(options.budget);
           if (isNaN(budgetAmount) || budgetAmount <= 0) {
-            logger.error('swarm', '❌ Invalid budget amount');
-            process.exit(2);
+            console.error('❌ Invalid budget amount');
+            process.exit(1);
           }
           config.budget = {
             amount: budgetAmount,
@@ -128,19 +143,15 @@ export function registerSwarmCommand(program: Command): void {
           return;
         }
 
-        // Initialize core components with persistence
-        const { messageBus, lifecycle } = await initializeCore();
-        const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        const client = getGlobalClient();
+        const response = await client.createSwarm(config);
 
-        if (!manager) {
-          logger.error('swarm', '❌ Failed to initialize swarm manager');
+        if (!response.success || !response.data) {
+          console.error('❌ Failed to create swarm:', response.error?.message);
           process.exit(1);
         }
 
-        await manager.start();
-
-        // Create the swarm
-        const newSwarm = await manager.create(config);
+        const newSwarm = response.data;
 
         console.log('✅ Swarm created successfully!\n');
         console.log(`   ID: ${newSwarm.id}`);
@@ -150,53 +161,42 @@ export function registerSwarmCommand(program: Command): void {
         if (newSwarm.budget.allocated > 0) {
           console.log(`   Budget: $${newSwarm.budget.allocated.toFixed(2)} USD`);
         }
-        console.log(`\n💡 Use 'dash swarm status ${newSwarm.id}' to monitor progress`);
+        console.log(`\n💡 Use 'swarmctl swarm get ${newSwarm.id}' to monitor progress`);
 
       } catch (error) {
         console.error('❌ Failed to create swarm:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        process.exit(1);
       }
     });
 
   // ============================================================================
-  // swarm destroy
+  // swarm get
   // ============================================================================
   swarm
-    .command('destroy')
-    .description('Destroy a swarm and all its agents')
-    .argument('<swarm-id>', 'Swarm ID to destroy')
-    .option('-f, --force', 'Force destroy without confirmation')
-    .option('--yes', 'Skip confirmation prompt')
+    .command('get')
+    .description('Get swarm details')
+    .argument('<swarm-id>', 'Swarm ID')
+    .option('-f, --format <format>', 'Output format (table|json)', 'table')
     .action(async (swarmId, options) => {
       try {
-        // Initialize core components with persistence
-        const { messageBus, lifecycle } = await initializeCore();
-        const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-        await manager.start();
+        const client = getGlobalClient();
+        const response = await client.getSwarm(swarmId);
 
-        const swarm = manager.getSwarm(swarmId);
-        if (!swarm) {
+        if (!response.success || !response.data) {
           console.error(`❌ Swarm ${swarmId} not found`);
-          process.exit(2);
+          process.exit(1);
         }
 
-        console.log(`⚠️  You are about to destroy swarm: ${swarm.name}`);
-        console.log(`   ID: ${swarm.id}`);
-        console.log(`   Agents: ${swarm.agents.length}`);
+        const swarm = response.data;
+        const statusResponse = await client.getSwarmStatus(swarmId);
+        const statusInfo = statusResponse.success ? statusResponse.data : undefined;
 
-        if (!options.yes && !options.force) {
-          // In a real implementation, we'd use a prompt library
-          console.log('\n🛑 Use --yes to confirm destruction');
-          return;
-        }
-
-        console.log('\n💥 Destroying swarm...');
-        await manager.destroy(swarmId, options.force);
-        console.log('✅ Swarm destroyed');
+        const format = options.format as OutputFormat;
+        console.log(formatSwarmStatus(swarm, statusInfo!, { format }));
 
       } catch (error) {
-        console.error('❌ Failed to destroy swarm:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        console.error('❌ Failed to get swarm:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
       }
     });
 
@@ -212,27 +212,30 @@ export function registerSwarmCommand(program: Command): void {
       try {
         const target = parseInt(targetSize, 10);
         if (isNaN(target) || target < 0) {
-          logger.error('swarm', '❌ Invalid target size');
-          process.exit(2);
+          console.error('❌ Invalid target size');
+          process.exit(1);
         }
 
-        // Initialize core components with persistence
-        const { messageBus, lifecycle } = await initializeCore();
-        const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-        await manager.start();
+        const client = getGlobalClient();
 
-        const swarm = manager.getSwarm(swarmId);
-        if (!swarm) {
+        // Get current swarm
+        const getResponse = await client.getSwarm(swarmId);
+        if (!getResponse.success || !getResponse.data) {
           console.error(`❌ Swarm ${swarmId} not found`);
-          process.exit(2);
+          process.exit(1);
         }
 
-        const currentSize = swarm.agents.length;
-        console.log(`📊 Scaling swarm ${swarm.name}...`);
+        const currentSize = getResponse.data.agents.length;
+        console.log(`📊 Scaling swarm ${getResponse.data.name}...`);
         console.log(`   Current: ${currentSize} agents`);
         console.log(`   Target: ${target} agents`);
 
-        await manager.scale(swarmId, target);
+        const response = await client.scaleSwarm(swarmId, target);
+
+        if (!response.success) {
+          console.error('❌ Failed to scale swarm:', response.error?.message);
+          process.exit(1);
+        }
 
         const action = target > currentSize ? 'added' : 'removed';
         const delta = Math.abs(target - currentSize);
@@ -241,181 +244,53 @@ export function registerSwarmCommand(program: Command): void {
 
       } catch (error) {
         console.error('❌ Failed to scale swarm:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        process.exit(1);
       }
     });
 
   // ============================================================================
-  // swarm status
+  // swarm destroy
   // ============================================================================
   swarm
-    .command('status')
-    .description('Get swarm status')
-    .argument('[swarm-id]', 'Swarm ID (shows all if omitted)')
-    .option('-f, --format <format>', 'Output format (table|json)', 'table')
+    .command('destroy')
+    .description('Destroy a swarm and all its agents')
+    .argument('<swarm-id>', 'Swarm ID to destroy')
+    .option('-f, --force', 'Force destroy without confirmation')
+    .option('--yes', 'Skip confirmation prompt')
     .action(async (swarmId, options) => {
       try {
-        // Initialize core components with persistence
-        const { messageBus, lifecycle } = await initializeCore();
-        const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-        await manager.start();
+        const client = getGlobalClient();
 
-        if (swarmId) {
-          // Show specific swarm
-          const swarm = manager.getSwarm(swarmId);
-          if (!swarm) {
-            console.error(`❌ Swarm ${swarmId} not found`);
-            process.exit(2);
-          }
-
-          const status = manager.getStatus(swarmId);
-
-          if (options.format === 'json') {
-            console.log(JSON.stringify({ swarm, status }, null, 2));
-            return;
-          }
-
-          console.log(`🐝 Swarm: ${swarm.name}\n`);
-          console.log(`   ID:       ${swarm.id}`);
-          console.log(`   Status:   ${getStatusEmoji(swarm.status)} ${swarm.status}`);
-          console.log(`   Strategy: ${swarm.config.strategy}`);
-          console.log(`   Agents:   ${swarm.agents.length} / ${swarm.config.maxAgents}`);
-          console.log(`   Progress: ${(status.progress * 100).toFixed(1)}%`);
-          
-          if (swarm.budget.allocated > 0) {
-            const consumedPct = (swarm.budget.consumed / swarm.budget.allocated) * 100;
-            logger.info('swarm', `\n   Budget:`);
-            console.log(`     Allocated: $${swarm.budget.allocated.toFixed(2)}`);
-            console.log(`     Consumed:  $${swarm.budget.consumed.toFixed(2)} (${consumedPct.toFixed(1)}%)`);
-            console.log(`     Remaining: $${swarm.budget.remaining.toFixed(2)}`);
-          }
-
-          logger.info('swarm', `\n   Metrics:`);
-          console.log(`     Total:     ${swarm.metrics.totalAgents}`);
-          console.log(`     Completed: ${swarm.metrics.completedAgents}`);
-          console.log(`     Failed:    ${swarm.metrics.failedAgents}`);
-
-          // Show agent list
-          if (swarm.agents.length > 0) {
-            logger.info('swarm', `\n   Agent List:`);
-            const agentStates = manager.getSwarmAgents(swarmId);
-            for (const state of agentStates.slice(0, 10)) {
-              console.log(`     • ${state.id.slice(0, 16)}... ${getStatusEmoji(state.status)} ${state.status}`);
-            }
-            if (swarm.agents.length > 10) {
-              console.log(`     ... and ${swarm.agents.length - 10} more`);
-            }
-          }
-
-        } else {
-          // Show all swarms
-          const swarms = manager.listSwarms();
-          
-          if (swarms.length === 0) {
-            console.log('📭 No swarms found');
-            console.log('💡 Use "dash swarm create" to create a swarm');
-            return;
-          }
-
-          if (options.format === 'json') {
-            console.log(JSON.stringify(swarms, null, 2));
-            return;
-          }
-
-          console.log('🐝 Swarms:\n');
-          console.log('ID                   Name                 Status     Agents  Progress  Budget');
-          console.log('───────────────────  ───────────────────  ─────────  ──────  ────────  ─────────');
-          
-          for (const swarm of swarms) {
-            const status = manager.getStatus(swarm.id);
-            const budgetStr = swarm.budget.allocated > 0 
-              ? `$${swarm.budget.remaining.toFixed(0)}/$${swarm.budget.allocated.toFixed(0)}`
-              : 'unlimited';
-            
-            console.log(
-              `${swarm.id.slice(0, 19).padEnd(19)}  ` +
-              `${swarm.name.slice(0, 19).padEnd(19)}  ` +
-              `${getStatusEmoji(swarm.status)} ${swarm.status.padEnd(8)}  ` +
-              `${String(swarm.agents.length).padStart(6)}  ` +
-              `${(status.progress * 100).toFixed(0).padStart(6)}%  ` +
-              `${budgetStr}`
-            );
-          }
+        const getResponse = await client.getSwarm(swarmId);
+        if (!getResponse.success || !getResponse.data) {
+          console.error(`❌ Swarm ${swarmId} not found`);
+          process.exit(1);
         }
 
-      } catch (error) {
-        console.error('❌ Failed to get status:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
-      }
-    });
+        const swarm = getResponse.data;
 
-  // ============================================================================
-  // swarm list
-  // ============================================================================
-  swarm
-    .command('list')
-    .description('List all swarms')
-    .option('-a, --active', 'Show only active swarms')
-    .option('-f, --format <format>', 'Output format (table|json)', 'table')
-    .action(async (options) => {
-      try {
-        // Initialize core components with persistence
-        const { messageBus, lifecycle } = await initializeCore();
-        const manager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-        await manager.start();
+        console.log(`⚠️  You are about to destroy swarm: ${swarm.name}`);
+        console.log(`   ID: ${swarm.id}`);
+        console.log(`   Agents: ${swarm.agents.length}`);
 
-        const swarms = options.active 
-          ? manager.listActiveSwarms()
-          : manager.listSwarms();
-
-        if (swarms.length === 0) {
-          console.log('📭 No swarms found');
+        if (!options.yes && !options.force) {
+          console.log('\n🛑 Use --yes to confirm destruction');
           return;
         }
 
-        if (options.format === 'json') {
-          console.log(JSON.stringify(swarms, null, 2));
-          return;
+        console.log('\n💥 Destroying swarm...');
+        const response = await client.destroySwarm(swarmId, options.force);
+
+        if (!response.success) {
+          console.error('❌ Failed to destroy swarm:', response.error?.message);
+          process.exit(1);
         }
 
-        console.log('🐝 Swarms:\n');
-        console.log('ID                   Name                 Status     Agents  Created');
-        console.log('───────────────────  ───────────────────  ─────────  ──────  ─────────────────');
-        
-        for (const swarm of swarms) {
-          const created = swarm.createdAt.toISOString().slice(0, 16).replace('T', ' ');
-          console.log(
-            `${swarm.id.slice(0, 19).padEnd(19)}  ` +
-            `${swarm.name.slice(0, 19).padEnd(19)}  ` +
-            `${getStatusEmoji(swarm.status)} ${swarm.status.padEnd(8)}  ` +
-            `${String(swarm.agents.length).padStart(6)}  ` +
-            `${created}`
-          );
-        }
+        console.log('✅ Swarm destroyed');
 
       } catch (error) {
-        console.error('❌ Failed to list swarms:', error instanceof Error ? error.message : String(error));
-        process.exit(3);
+        console.error('❌ Failed to destroy swarm:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
       }
     });
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function getStatusEmoji(status: string): string {
-  const emojiMap: Record<string, string> = {
-    creating: '🔄',
-    active: '✅',
-    scaling: '📊',
-    paused: '⏸️',
-    completed: '🎉',
-    failed: '❌',
-    destroyed: '💥',
-    pending: '⏳',
-    running: '🏃',
-    killed: '☠️',
-  };
-  return emojiMap[status] || '❓';
 }

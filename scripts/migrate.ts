@@ -214,6 +214,77 @@ async function createMigration(name: string): Promise<void> {
   console.log(`✅ Created migration: ${filename}`);
 }
 
+/**
+ * Rollback the last n migrations
+ */
+async function rollbackMigrations(steps: number = 1): Promise<void> {
+  const connectionString = getConnectionString();
+  const migrationsDir = join(__dirname, '..', 'migrations');
+
+  console.log('🔌 Connecting to PostgreSQL...');
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    console.log('✅ Connected\n');
+
+    // Get all migrations
+    const migrations = getMigrations(migrationsDir);
+    const applied = await getAppliedMigrations(client);
+
+    if (applied.size === 0) {
+      console.log('ℹ️  No migrations to rollback');
+      return;
+    }
+
+    // Get last N applied migrations
+    const appliedList = Array.from(applied.entries())
+      .sort((a, b) => new Date(b[1].applied_at).getTime() - new Date(a[1].applied_at).getTime())
+      .slice(0, steps);
+
+    console.log(`Rolling back ${appliedList.length} migration(s):\n`);
+
+    for (const [name, app] of appliedList) {
+      console.log(`Rolling back: ${name}...`);
+      
+      // Find the migration file to get the down SQL
+      const migration = migrations.find(m => m.name === name);
+      if (!migration) {
+        console.error(`❌ Cannot find migration file for ${name}`);
+        continue;
+      }
+
+      // Parse down section
+      const downMatch = migration.sql.match(/--\s*Down\s*\n([\s\S]*)/i);
+      if (!downMatch) {
+        console.error(`❌ Migration ${name} has no rollback script`);
+        continue;
+      }
+
+      const downSql = downMatch[1].trim();
+
+      try {
+        await client.query('BEGIN');
+        await client.query(downSql);
+        await client.query('DELETE FROM _migrations WHERE name = $1', [name]);
+        await client.query('COMMIT');
+        console.log(`✅ Rolled back: ${name}`);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(`❌ Failed to rollback ${name}:`, error);
+        throw error;
+      }
+    }
+
+    console.log('\n✅ Rollback completed successfully!');
+  } catch (error) {
+    console.error('\n❌ Rollback failed:', error);
+    process.exit(1);
+  } finally {
+    await client.end();
+  }
+}
+
 // CLI handling
 const args = process.argv.slice(2);
 const command = args[0];
@@ -228,6 +299,14 @@ switch (command) {
       process.exit(1);
     }
     createMigration(args[1]);
+    break;
+  case 'rollback':
+    const steps = args[1] ? parseInt(args[1], 10) : 1;
+    if (isNaN(steps) || steps < 1) {
+      console.error('Usage: npm run migrate:rollback [steps]');
+      process.exit(1);
+    }
+    rollbackMigrations(steps);
     break;
   case 'up':
   default:

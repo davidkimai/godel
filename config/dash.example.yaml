@@ -1,0 +1,339 @@
+# Dash Configuration Example
+# Copy this file to config/dash.yaml and customize for your environment
+
+# =============================================================================
+# Environment
+# =============================================================================
+
+env: development
+
+# =============================================================================
+# Server Configuration
+# =============================================================================
+
+server:
+  # Server port
+  port: 7373
+  
+  # Server host (use 0.0.0.0 for production)
+  host: localhost
+  
+  # CORS configuration
+  cors:
+    origins:
+      - http://localhost:3000
+      - http://localhost:5173
+    credentials: true
+  
+  # Rate limiting (requests per minute)
+  rateLimit: 100
+  
+  # Request timeout in milliseconds
+  timeoutMs: 30000
+
+# =============================================================================
+# Database Configuration (PostgreSQL)
+# =============================================================================
+
+database:
+  # Connection URL (overrides individual settings)
+  # Format: postgresql://user:password@host:port/database
+  url: postgresql://dash:dash@localhost:5432/dash
+  
+  # Connection pool settings
+  poolSize: 10
+  minPoolSize: 2
+  maxPoolSize: 20
+  
+  # SSL configuration
+  ssl: false
+  # For production with SSL:
+  # ssl:
+  #   rejectUnauthorized: true
+  #   ca: /path/to/ca.crt
+  #   cert: /path/to/client.crt
+  #   key: /path/to/client.key
+  
+  # Timeouts
+  connectionTimeoutMs: 5000
+  idleTimeoutMs: 30000
+  acquireTimeoutMs: 5000
+  
+  # Retry configuration
+  retryAttempts: 3
+  retryDelayMs: 1000
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+
+redis:
+  # Connection URL
+  # Format: redis://host:port/database
+  url: redis://localhost:6379/0
+  
+  # Password (if required)
+  # password: ${VAULT:secret/dash/redis#password}
+  
+  # Database number
+  db: 0
+  
+  # Timeouts
+  connectTimeoutMs: 10000
+  commandTimeoutMs: 5000
+  
+  # Retry configuration
+  maxRetriesPerRequest: 3
+  enableOfflineQueue: true
+
+# =============================================================================
+# Authentication Configuration
+# =============================================================================
+
+auth:
+  # API keys for authentication
+  apiKeys:
+    - dash-api-key
+  
+  # JWT secret for token signing (change in production!)
+  jwtSecret: change-me-in-production
+  
+  # Token expiry times (in seconds)
+  tokenExpirySeconds: 3600
+  refreshTokenExpirySeconds: 604800
+  
+  # Enable/disable authentication methods
+  enableApiKeyAuth: true
+  enableJwtAuth: false
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+logging:
+  # Log level: debug, info, warn, error, silent
+  level: info
+  
+  # Log format: json, pretty, compact
+  format: pretty
+  
+  # Log destination: stdout, stderr, file, loki, multiple
+  destination: stdout
+  
+  # File path (when destination is 'file')
+  filePath: ./logs/dash.log
+  
+  # Loki URL (when destination includes 'loki')
+  lokiUrl: http://localhost:3100
+  
+  # Service name for log entries
+  serviceName: dash
+  
+  # Include timestamps in logs
+  includeTimestamp: true
+  
+  # Include source file/line in logs
+  includeSourceLocation: false
+
+# =============================================================================
+# Metrics Configuration
+# =============================================================================
+
+metrics:
+  # Enable metrics collection
+  enabled: true
+  
+  # Metrics server port
+  port: 9090
+  
+  # Metrics server host
+  host: localhost
+  
+  # Metrics endpoint path
+  path: /metrics
+  
+  # Enable default Node.js metrics
+  enableDefaultMetrics: true
+  
+  # Metrics prefix
+  prefix: dash_
+  
+  # Collection interval in milliseconds
+  collectIntervalMs: 5000
+
+# =============================================================================
+# Budget Configuration
+# =============================================================================
+
+budget:
+  # Default budget limit per agent (USD)
+  defaultLimit: 1.0
+  
+  # Currency code (ISO 4217)
+  currency: USD
+  
+  # Warning threshold (0-1)
+  warningThreshold: 0.8
+  
+  # Critical threshold (0-1)
+  criticalThreshold: 0.95
+  
+  # Maximum budget for self-improvement (USD)
+  selfImprovementMaxBudget: 10.0
+  
+  # Maximum tokens per agent
+  maxTokensPerAgent: 100000
+
+# =============================================================================
+# OpenClaw Configuration
+# =============================================================================
+
+openclaw:
+  # Gateway WebSocket URL
+  gatewayUrl: ws://127.0.0.1:18789
+  
+  # Gateway authentication token
+  # Option 1: Direct value (not recommended for production)
+  # gatewayToken: your-token-here
+  # Option 2: Environment variable
+  # gatewayToken: ${ENV:OPENCLAW_GATEWAY_TOKEN}
+  # Option 3: Vault secret (recommended for production)
+  # gatewayToken: ${VAULT:secret/dash/openclaw#token}
+  
+  # Mode: restricted or full
+  mode: restricted
+  
+  # Sandbox mode: none, non-main, docker
+  sandboxMode: non-main
+  
+  # Enable mock mode for testing
+  mockMode: false
+  
+  # Verbose logging
+  verbose: false
+
+# =============================================================================
+# Event Bus Configuration
+# =============================================================================
+
+eventBus:
+  # Event bus type: memory or redis
+  type: redis
+  
+  # Stream key for Redis
+  streamKey: dash:events
+  
+  # Consumer group name
+  consumerGroup: dash:consumers
+  
+  # Compression threshold in bytes
+  compressionThreshold: 1024
+  
+  # Maximum stream length
+  maxStreamLength: 100000
+  
+  # Maximum queued events during fallback
+  maxQueuedEvents: 10000
+  
+  # Retry configuration
+  retry:
+    maxRetries: 3
+    retryDelayMs: 1000
+    retryDelayMultiplier: 2
+
+# =============================================================================
+# Vault Configuration (Optional)
+# =============================================================================
+# Uncomment to enable HashiCorp Vault integration for secrets
+
+# vault:
+#   # Vault server address
+#   address: https://vault.example.com:8200
+#   
+#   # Vault token (or use VAULT_TOKEN env var)
+#   token: ${ENV:VAULT_TOKEN}
+#   
+#   # Vault namespace (Enterprise only)
+#   namespace: admin
+#   
+#   # KV secrets engine version
+#   kvVersion: v2
+#   
+#   # Request timeout
+#   timeoutMs: 5000
+#   
+#   # Enable TLS verification
+#   tlsVerify: true
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+
+features:
+  # Enable GitOps mode for config file watching
+  gitops: true
+  
+  # Enable auto-scaling
+  autoScaling: false
+  
+  # Enable self-improvement features
+  selfImprovement: true
+  
+  # Enable metrics collection
+  metrics: true
+  
+  # Enable distributed tracing
+  tracing: true
+  
+  # Enable recovery features
+  recovery: true
+  
+  # Enable reasoning features
+  reasoning: true
+
+# =============================================================================
+# Environment Variable Overrides
+# =============================================================================
+# The following environment variables will override config file values:
+#
+# Server:
+#   PORT                    - Server port
+#   HOST                    - Server host
+#   DASH_CORS_ORIGINS       - CORS origins (comma-separated)
+#   DASH_RATE_LIMIT         - Rate limit
+#
+# Database:
+#   DATABASE_URL            - Full database connection URL
+#   POSTGRES_HOST           - PostgreSQL host
+#   POSTGRES_PORT           - PostgreSQL port
+#   POSTGRES_DB             - PostgreSQL database name
+#   POSTGRES_USER           - PostgreSQL username
+#   POSTGRES_PASSWORD       - PostgreSQL password
+#   POSTGRES_POOL_SIZE      - Connection pool size
+#   POSTGRES_SSL            - Enable SSL (true/false)
+#
+# Redis:
+#   REDIS_URL               - Full Redis connection URL
+#   REDIS_HOST              - Redis host
+#   REDIS_PORT              - Redis port
+#   REDIS_PASSWORD          - Redis password
+#   REDIS_DB                - Redis database number
+#
+# Auth:
+#   DASH_API_KEY            - API key(s) (comma-separated)
+#   DASH_JWT_SECRET         - JWT secret
+#
+# Logging:
+#   LOG_LEVEL               - Log level
+#   LOG_FORMAT              - Log format
+#   LOG_DESTINATION         - Log destination
+#   LOKI_URL                - Loki URL
+#
+# OpenClaw:
+#   OPENCLAW_GATEWAY_URL    - Gateway URL
+#   OPENCLAW_GATEWAY_TOKEN  - Gateway token
+#
+# Vault:
+#   VAULT_ADDR              - Vault address
+#   VAULT_TOKEN             - Vault token
+#   VAULT_NAMESPACE         - Vault namespace

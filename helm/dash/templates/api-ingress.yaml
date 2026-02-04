@@ -1,0 +1,41 @@
+{{- if .Values.dashApi.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dash.fullname" . }}-api
+  labels:
+    {{- include "dash.apiLabels" . | nindent 4 }}
+  {{- with .Values.dashApi.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.dashApi.ingress.className }}
+  ingressClassName: {{ .Values.dashApi.ingress.className }}
+  {{- end }}
+  {{- if .Values.dashApi.ingress.tls }}
+  tls:
+    {{- range .Values.dashApi.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.dashApi.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "dash.fullname" $ }}-api
+                port:
+                  number: {{ $.Values.dashApi.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

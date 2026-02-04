@@ -1,0 +1,108 @@
+# Dash Configuration - Production Environment
+# WARNING: This file contains production defaults. Override with env vars!
+
+env: production
+
+server:
+  port: 7373
+  host: 0.0.0.0
+  cors:
+    origins: []  # MUST be explicitly configured via DASH_CORS_ORIGINS
+    credentials: true
+  rateLimit: 100
+  timeoutMs: 30000
+
+database:
+  url: ${DATABASE_URL}  # REQUIRED: Set via environment variable
+  poolSize: 20
+  minPoolSize: 5
+  maxPoolSize: 50
+  ssl:
+    rejectUnauthorized: true
+  connectionTimeoutMs: 10000
+  idleTimeoutMs: 60000
+  acquireTimeoutMs: 10000
+  retryAttempts: 5
+  retryDelayMs: 2000
+
+redis:
+  url: ${REDIS_URL}  # REQUIRED: Set via environment variable
+  password: ${REDIS_PASSWORD}  # Optional: Set via environment variable
+  db: 0
+  connectTimeoutMs: 10000
+  commandTimeoutMs: 5000
+  maxRetriesPerRequest: 5
+  enableOfflineQueue: true
+
+auth:
+  apiKeys: []  # MUST be explicitly configured via DASH_API_KEY
+  jwtSecret: ${DASH_JWT_SECRET}  # REQUIRED: Set via environment variable
+  tokenExpirySeconds: 3600
+  refreshTokenExpirySeconds: 604800
+  enableApiKeyAuth: true
+  enableJwtAuth: true
+
+logging:
+  level: info
+  format: json
+  destination: loki
+  lokiUrl: ${LOKI_URL:-http://localhost:3100}
+  serviceName: dash
+  includeTimestamp: true
+  includeSourceLocation: false
+
+metrics:
+  enabled: true
+  port: 9090
+  host: 0.0.0.0
+  path: /metrics
+  enableDefaultMetrics: true
+  prefix: dash_
+  collectIntervalMs: 15000
+
+budget:
+  defaultLimit: 1.0
+  currency: USD
+  warningThreshold: 0.8
+  criticalThreshold: 0.95
+  selfImprovementMaxBudget: 10.0
+  maxTokensPerAgent: 100000
+
+openclaw:
+  gatewayUrl: ${OPENCLAW_GATEWAY_URL:-ws://127.0.0.1:18789}
+  gatewayToken: ${OPENCLAW_GATEWAY_TOKEN}  # REQUIRED: Set via environment variable
+  mode: restricted
+  sandboxMode: docker
+  mockMode: false
+  verbose: false
+
+eventBus:
+  type: redis
+  streamKey: dash:events
+  consumerGroup: dash:consumers
+  compressionThreshold: 1024
+  maxStreamLength: 1000000
+  maxQueuedEvents: 50000
+  retry:
+    maxRetries: 5
+    retryDelayMs: 2000
+    retryDelayMultiplier: 2
+
+# Vault configuration for secrets (optional)
+# vault:
+#   address: ${VAULT_ADDR:-https://vault.example.com:8200}
+#   token: ${VAULT_TOKEN}
+#   namespace: ${VAULT_NAMESPACE}
+#   kvVersion: v2
+#   timeoutMs: 5000
+#   tlsVerify: true
+
+# Feature flags
+features:
+  gitops: true
+  autoScaling: true
+  selfImprovement: true
+  metrics: true
+  tracing: true
+  recovery: true
+  reasoning: true

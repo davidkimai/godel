@@ -1,0 +1,357 @@
+/**
+ * Agent Commands
+ * 
+ * Commands:
+ * - swarmctl agent list [--format json|jsonl|table] [--swarm <id>] [--status <status>]
+ * - swarmctl agent spawn <task> [--model <model>] [--swarm <id>]
+ * - swarmctl agent get <agent-id> [--format json] [--logs]
+ * - swarmctl agent kill <agent-id> [--force]
+ * - swarmctl agent logs <agent-id> [--follow]
+ */
+
+import { Command } from 'commander';
+import { getGlobalClient } from '../lib/client';
+import { formatAgents, type OutputFormat } from '../lib/output';
+
+export function registerAgentCommand(program: Command): void {
+  const agent = program
+    .command('agent')
+    .description('Manage AI agents');
+
+  // ============================================================================
+  // agent list
+  // ============================================================================
+  agent
+    .command('list')
+    .description('List all agents')
+    .option('-f, --format <format>', 'Output format (table|json|jsonl)', 'table')
+    .option('-s, --swarm <swarmId>', 'Filter by swarm ID')
+    .option('--status <status>', 'Filter by status (pending|running|paused|completed|failed|killed)')
+    .option('--page <page>', 'Page number', '1')
+    .option('--page-size <size>', 'Items per page', '50')
+    .action(async (options) => {
+      try {
+        const client = getGlobalClient();
+        const response = await client.listAgents({
+          swarmId: options.swarm,
+          status: options.status,
+          page: parseInt(options.page, 10),
+          pageSize: parseInt(options.pageSize, 10),
+        });
+
+        if (!response.success || !response.data) {
+          console.error('❌ Failed to list agents:', response.error?.message);
+          process.exit(1);
+        }
+
+        const agents = response.data.items;
+
+        if (agents.length === 0) {
+          console.log('📭 No agents found');
+          console.log('💡 Use "swarmctl agent spawn" or "swarmctl swarm create" to create agents');
+          return;
+        }
+
+        const format = options.format as OutputFormat;
+        console.log(formatAgents(agents, { format }));
+
+        if (response.data.hasMore) {
+          console.log(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // agent spawn
+  // ============================================================================
+  agent
+    .command('spawn')
+    .description('Spawn a new agent')
+    .argument('<task>', 'Task description')
+    .option('-m, --model <model>', 'Model to use', 'kimi-k2.5')
+    .option('-l, --label <label>', 'Agent label')
+    .option('-s, --swarm <swarmId>', 'Add to existing swarm')
+    .option('-p, --parent <parentId>', 'Parent agent ID (for hierarchical spawning)')
+    .option('-r, --retries <count>', 'Max retry attempts', '3')
+    .option('-b, --budget <limit>', 'Budget limit (USD)')
+    .option('--dry-run', 'Show configuration without spawning')
+    .action(async (task, options) => {
+      try {
+        console.log('🚀 Spawning agent...\n');
+
+        if (options.dryRun) {
+          console.log('📋 Configuration (dry run):');
+          console.log(`   Task: ${task}`);
+          console.log(`   Model: ${options.model}`);
+          console.log(`   Label: ${options.label || '(auto)'}`);
+          console.log(`   Swarm: ${options.swarm || '(none)'}`);
+          console.log(`   Parent: ${options.parent || '(none)'}`);
+          console.log(`   Max Retries: ${options.retries}`);
+          if (options.budget) console.log(`   Budget: $${options.budget} USD`);
+          return;
+        }
+
+        const client = getGlobalClient();
+
+        // Validate swarm if specified
+        if (options.swarm) {
+          const swarmResponse = await client.getSwarm(options.swarm);
+          if (!swarmResponse.success) {
+            console.error(`❌ Swarm ${options.swarm} not found`);
+            process.exit(1);
+          }
+        }
+
+        const response = await client.spawnAgent({
+          task,
+          model: options.model,
+          label: options.label,
+          swarmId: options.swarm,
+          parentId: options.parent,
+          maxRetries: parseInt(options.retries, 10),
+          budgetLimit: options.budget ? parseFloat(options.budget) : undefined,
+        });
+
+        if (!response.success || !response.data) {
+          console.error('❌ Failed to spawn agent:', response.error?.message);
+          process.exit(1);
+        }
+
+        const newAgent = response.data;
+
+        console.log('✅ Agent spawned successfully!\n');
+        console.log(`   ID: ${newAgent.id}`);
+        console.log(`   Status: ${newAgent.status}`);
+        console.log(`   Model: ${newAgent.model}`);
+        if (options.swarm) {
+          console.log(`   Swarm: ${options.swarm}`);
+        }
+        console.log(`\n💡 Use 'swarmctl agent get ${newAgent.id}' to check progress`);
+
+      } catch (error) {
+        console.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // agent get
+  // ============================================================================
+  agent
+    .command('get')
+    .description('Get agent details')
+    .argument('<agent-id>', 'Agent ID')
+    .option('-f, --format <format>', 'Output format (table|json)', 'table')
+    .option('--logs', 'Include recent logs')
+    .action(async (agentId, options) => {
+      try {
+        const client = getGlobalClient();
+        const response = await client.getAgent(agentId);
+
+        if (!response.success || !response.data) {
+          console.error(`❌ Agent ${agentId} not found`);
+          process.exit(1);
+        }
+
+        const agent = response.data;
+
+        if (options.format === 'json') {
+          console.log(JSON.stringify(agent, null, 2));
+          return;
+        }
+
+        console.log(`🤖 Agent: ${agentId}\n`);
+        console.log(`   Status:       ${agent.status}`);
+        console.log(`   Model:        ${agent.model}`);
+        console.log(`   Task:         ${agent.task}`);
+        
+        if (agent.label) {
+          console.log(`   Label:        ${agent.label}`);
+        }
+        
+        if (agent.swarmId) {
+          console.log(`   Swarm:        ${agent.swarmId}`);
+        }
+        
+        if (agent.parentId) {
+          console.log(`   Parent:       ${agent.parentId}`);
+        }
+        
+        if (agent.childIds.length > 0) {
+          console.log(`   Children:     ${agent.childIds.length}`);
+        }
+
+        console.log(`\n   Timestamps:`);
+        console.log(`     Spawned:    ${agent.spawnedAt.toISOString()}`);
+        if (agent.completedAt) {
+          console.log(`     Completed:  ${agent.completedAt.toISOString()}`);
+        }
+
+        if (agent.runtime > 0) {
+          const seconds = Math.floor(agent.runtime / 1000);
+          const minutes = Math.floor(seconds / 60);
+          const hours = Math.floor(minutes / 60);
+          const duration = hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m ${seconds % 60}s`;
+          console.log(`\n   Runtime:      ${duration}`);
+        }
+
+        console.log(`\n   Retries:      ${agent.retryCount}/${agent.maxRetries}`);
+        
+        if (agent.lastError) {
+          console.log(`\n   Last Error:   ${agent.lastError}`);
+        }
+
+        if (agent.budgetLimit) {
+          console.log(`\n   Budget Limit: $${agent.budgetLimit.toFixed(2)} USD`);
+        }
+
+        console.log(`\n   Context Usage: ${(agent.context.contextUsage * 100).toFixed(1)}%`);
+
+        if (options.logs) {
+          console.log(`\n   Recent Logs:`);
+          const logsResponse = await client.getAgentLogs(agentId, { lines: 20 });
+          if (logsResponse.success && logsResponse.data && logsResponse.data.length > 0) {
+            for (const log of logsResponse.data) {
+              console.log(`     ${log}`);
+            }
+          } else {
+            console.log('     (No logs available)');
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to get agent:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // agent kill
+  // ============================================================================
+  agent
+    .command('kill')
+    .description('Kill an agent')
+    .argument('<agent-id>', 'Agent ID to kill')
+    .option('-f, --force', 'Force kill without confirmation')
+    .option('--yes', 'Skip confirmation prompt')
+    .action(async (agentId, options) => {
+      try {
+        const client = getGlobalClient();
+
+        const getResponse = await client.getAgent(agentId);
+        if (!getResponse.success || !getResponse.data) {
+          console.error(`❌ Agent ${agentId} not found`);
+          process.exit(1);
+        }
+
+        const agent = getResponse.data;
+
+        if (agent.status === 'killed' || agent.status === 'completed') {
+          console.log(`ℹ️  Agent ${agentId.slice(0, 16)}... is already ${agent.status}`);
+          return;
+        }
+
+        console.log(`⚠️  You are about to kill agent: ${agentId}`);
+        console.log(`   Status: ${agent.status}`);
+        console.log(`   Task: ${agent.task.slice(0, 50)}${agent.task.length > 50 ? '...' : ''}`);
+
+        if (!options.yes && !options.force) {
+          console.log('\n🛑 Use --yes to confirm kill');
+          return;
+        }
+
+        console.log('\n☠️  Killing agent...');
+        const response = await client.killAgent(agentId, options.force);
+
+        if (!response.success) {
+          console.error('❌ Failed to kill agent:', response.error?.message);
+          process.exit(1);
+        }
+
+        console.log('✅ Agent killed');
+
+      } catch (error) {
+        console.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
+  // ============================================================================
+  // agent logs
+  // ============================================================================
+  agent
+    .command('logs')
+    .description('Get agent logs')
+    .argument('<agent-id>', 'Agent ID')
+    .option('-f, --follow', 'Follow log output (tail -f style)')
+    .option('-n, --lines <count>', 'Number of lines to show', '50')
+    .action(async (agentId, options) => {
+      try {
+        const client = getGlobalClient();
+
+        // Verify agent exists
+        const getResponse = await client.getAgent(agentId);
+        if (!getResponse.success) {
+          console.error(`❌ Agent ${agentId} not found`);
+          process.exit(1);
+        }
+
+        if (options.follow) {
+          console.log(`📜 Following logs for agent ${agentId}...`);
+          console.log('(Press Ctrl+C to stop)\n');
+
+          let lastLineCount = 0;
+
+          const interval = setInterval(async () => {
+            const logsResponse = await client.getAgentLogs(agentId, { lines: parseInt(options.lines, 10) });
+            if (logsResponse.success && logsResponse.data) {
+              const logs = logsResponse.data;
+              if (logs.length > lastLineCount) {
+                const newLogs = logs.slice(lastLineCount);
+                for (const log of newLogs) {
+                  console.log(log);
+                }
+                lastLineCount = logs.length;
+              }
+            }
+          }, 1000);
+
+          // Handle Ctrl+C
+          process.on('SIGINT', () => {
+            clearInterval(interval);
+            console.log('\n\n👋 Stopped following logs');
+            process.exit(0);
+          });
+
+          // Keep the process alive
+          await new Promise(() => {});
+        } else {
+          const logsResponse = await client.getAgentLogs(agentId, { lines: parseInt(options.lines, 10) });
+
+          if (!logsResponse.success) {
+            console.error('❌ Failed to get logs:', logsResponse.error?.message);
+            process.exit(1);
+          }
+
+          const logs = logsResponse.data || [];
+
+          if (logs.length === 0) {
+            console.log('📭 No logs found for this agent');
+            return;
+          }
+
+          console.log(`📜 Logs for agent ${agentId}:\n`);
+          for (const log of logs) {
+            console.log(log);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to get logs:', error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+}

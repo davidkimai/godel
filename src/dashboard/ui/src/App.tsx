@@ -2,6 +2,7 @@
  * App Entry Point
  * 
  * Main application with routing and providers
+ * Uses httpOnly cookies for authentication.
  */
 
 import React, { Suspense, useEffect } from 'react';
@@ -11,13 +12,6 @@ import { useAuthStore } from '../contexts/store';
 import { getWebSocketService } from '../services/websocket';
 import { Layout } from '../components/Layout';
 import { LoadingSpinner } from '../components/Layout';
-import { DashboardPage } from '../pages/Dashboard';
-import { SwarmsPage } from '../pages/Swarms';
-import { AgentsPage } from '../pages/Agents';
-import { EventsPage } from '../pages/Events';
-import { CostsPage } from '../pages/Costs';
-import { SettingsPage } from '../pages/Settings';
-import { LoginPage } from '../pages/Login';
 
 // Lazy load pages
 const Dashboard = React.lazy(() => import('../pages/Dashboard'));
@@ -26,6 +20,7 @@ const Agents = React.lazy(() => import('../pages/Agents'));
 const Events = React.lazy(() => import('../pages/Events'));
 const Costs = React.lazy(() => import('../pages/Costs'));
 const Settings = React.lazy(() => import('../pages/Settings'));
+const LoginPage = React.lazy(() => import('../pages/Login'));
 
 // Create QueryClient for React Query
 const queryClient = new QueryClient({
@@ -67,7 +62,11 @@ function AppRoutes(): React.ReactElement {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={
+        <Suspense fallback={<PageLoader />}>
+          <LoginPage />
+        </Suspense>
+      } />
 
       {/* Protected routes */}
       <Route
@@ -152,7 +151,12 @@ function AppRoutes(): React.ReactElement {
 
 // Main App Component
 export function App(): React.ReactElement {
-  const { isAuthenticated, setLoading } = useAuthStore();
+  const { isAuthenticated, checkAuth } = useAuthStore();
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // Initialize WebSocket connection when authenticated
   useEffect(() => {
@@ -165,35 +169,6 @@ export function App(): React.ReactElement {
       };
     }
   }, [isAuthenticated]);
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('dash_token');
-      if (token) {
-        try {
-          // In a real app, verify token with backend
-          const userData = JSON.parse(atob(token.split('.')[1]));
-          if (userData.exp > Date.now() / 1000) {
-            useAuthStore.getState().login({
-              id: userData.sub || 'user-1',
-              username: userData.username || 'user',
-              role: userData.role || 'readonly',
-              token,
-              expiresAt: new Date(userData.exp * 1000).toISOString()
-            });
-          } else {
-            localStorage.removeItem('dash_token');
-          }
-        } catch (e) {
-          localStorage.removeItem('dash_token');
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, [setLoading]);
 
   return (
     <QueryClientProvider client={queryClient}>

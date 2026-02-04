@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dash-config
+  namespace: dash
+  labels:
+    app.kubernetes.io/name: dash
+    app.kubernetes.io/component: config
+data:
+  # Application settings
+  NODE_ENV: "production"
+  PORT: "3000"
+  DASH_API_PORT: "3001"
+  
+  # Logging
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  
+  # Database
+  DATABASE_HOST: "postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "dash"
+  DATABASE_POOL_SIZE: "20"
+  
+  # Redis
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_RETRY_MAX_RETRIES: "10"
+  
+  # Queue settings
+  QUEUE_PREFIX: "dash:queue"
+  QUEUE_BATCH_SIZE: "10"
+  QUEUE_POLL_INTERVAL_MS: "100"
+  
+  # Recovery settings
+  RECOVERY_ENABLED: "true"
+  RECOVERY_CHECKPOINT_INTERVAL_MS: "60000"
+  RECOVERY_HEALTH_CHECK_INTERVAL_MS: "10000"
+  RECOVERY_MAX_RETRY_ATTEMPTS: "5"
+  RECOVERY_CIRCUIT_BREAKER_THRESHOLD: "5"
+  RECOVERY_CIRCUIT_BREAKER_TIMEOUT_MS: "60000"
+  
+  # Metrics
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  METRICS_PATH: "/metrics"
+  
+  # Tracing
+  TRACING_ENABLED: "true"
+  TRACING_ENDPOINT: "http://jaeger:14268/api/traces"
+  TRACING_SAMPLE_RATE: "0.1"
+  
+  # Safety limits
+  MAX_CONCURRENT_AGENTS: "50"
+  MAX_SWARM_SIZE: "20"
+  DEFAULT_AGENT_TIMEOUT_MS: "300000"
+  DEFAULT_BUDGET_LIMIT: "10.00"
+  
+  # Feature flags
+  ENABLE_WEBSOCKET: "true"
+  ENABLE_AUTO_SCALING: "true"
+  ENABLE_SELF_HEALING: "true"
+  ENABLE_CIRCUIT_BREAKER: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dash-dashboard-config
+  namespace: dash
+  labels:
+    app.kubernetes.io/name: dash-dashboard
+    app.kubernetes.io/component: config
+data:
+  DASHBOARD_TITLE: "Dash Operations Center"
+  DASHBOARD_REFRESH_INTERVAL: "5000"
+  DASHBOARD_MAX_LOG_LINES: "1000"
+  DASHBOARD_METRICS_ENABLED: "true"
+  DASHBOARD_TRACING_ENABLED: "true"

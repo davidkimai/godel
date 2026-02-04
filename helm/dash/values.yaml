@@ -1,0 +1,279 @@
+# Default values for dash.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Application name
+nameOverride: ""
+fullnameOverride: ""
+
+# Dash API configuration
+dashApi:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    repository: dash/dash-api
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  imagePullSecrets: []
+  
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+  
+  podSecurityContext:
+    fsGroup: 1000
+  
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+  
+  service:
+    type: ClusterIP
+    port: 3001
+    metricsPort: 9090
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: api.dash.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: dash-tls
+        hosts:
+          - api.dash.local
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    metrics:
+      - type: Pods
+        pods:
+          metric:
+            name: dash_active_agents
+          target:
+            averageValue: "10"
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Environment variables
+  env:
+    NODE_ENV: "production"
+    LOG_LEVEL: "info"
+    LOG_FORMAT: "json"
+    PORT: "3001"
+    METRICS_ENABLED: "true"
+    METRICS_PORT: "9090"
+    TRACING_ENABLED: "true"
+    ENABLE_SELF_HEALING: "true"
+    ENABLE_CIRCUIT_BREAKER: "true"
+    MAX_CONCURRENT_AGENTS: "50"
+
+# Dash Dashboard configuration
+dashDashboard:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: dash/dash-dashboard
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+  
+  podAnnotations: {}
+  
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+  
+  service:
+    type: ClusterIP
+    port: 3000
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: dashboard.dash.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: dash-tls
+        hosts:
+          - dashboard.dash.local
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  env:
+    DASHBOARD_TITLE: "Dash Operations Center"
+    DASHBOARD_REFRESH_INTERVAL: "5000"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    username: dash_user
+    database: dash
+    existingSecret: dash-secrets
+    secretKeys:
+      adminPasswordKey: DATABASE_PASSWORD
+      userPasswordKey: DATABASE_PASSWORD
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+      requests:
+        memory: 512Mi
+        cpu: 250m
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    existingSecret: dash-secrets
+    existingSecretPasswordKey: REDIS_PASSWORD
+  
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 500m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+# Secrets configuration
+secrets:
+  apiSecretKey: "CHANGE_ME_IN_PRODUCTION"
+  jwtSecret: "CHANGE_ME_IN_PRODUCTION_64_CHARS_LONG"
+  databasePassword: "CHANGE_ME_IN_PRODUCTION"
+  redisPassword: "CHANGE_ME_IN_PRODUCTION"
+
+# ConfigMap settings
+config:
+  logLevel: "info"
+  maxConcurrentAgents: 50
+  maxSwarmSize: 20
+  defaultAgentTimeout: 300000
+  defaultBudgetLimit: 10.00
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Network policies
+networkPolicy:
+  enabled: true

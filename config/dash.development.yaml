@@ -1,0 +1,99 @@
+# Dash Configuration - Development Environment
+# This file contains development-specific overrides
+
+env: development
+
+server:
+  port: 7373
+  host: localhost
+  cors:
+    origins:
+      - http://localhost:3000
+      - http://localhost:5173
+    credentials: true
+  rateLimit: 1000  # Higher limit for development
+  timeoutMs: 60000
+
+database:
+  url: postgresql://dash:dash@localhost:5432/dash
+  poolSize: 5
+  minPoolSize: 1
+  maxPoolSize: 10
+  ssl: false
+  connectionTimeoutMs: 5000
+  idleTimeoutMs: 30000
+  acquireTimeoutMs: 5000
+  retryAttempts: 3
+  retryDelayMs: 1000
+
+redis:
+  url: redis://localhost:6379/0
+  db: 0
+  connectTimeoutMs: 10000
+  commandTimeoutMs: 5000
+  maxRetriesPerRequest: 3
+  enableOfflineQueue: true
+
+auth:
+  apiKeys:
+    - dash-dev-key
+  jwtSecret: dev-secret-change-in-production
+  tokenExpirySeconds: 86400  # 24 hours for dev
+  refreshTokenExpirySeconds: 604800  # 7 days
+  enableApiKeyAuth: true
+  enableJwtAuth: false
+
+logging:
+  level: debug
+  format: pretty
+  destination: stdout
+  serviceName: dash-dev
+  includeTimestamp: true
+  includeSourceLocation: true
+
+metrics:
+  enabled: true
+  port: 9090
+  host: localhost
+  path: /metrics
+  enableDefaultMetrics: true
+  prefix: dash_
+  collectIntervalMs: 5000
+
+budget:
+  defaultLimit: 5.0
+  currency: USD
+  warningThreshold: 0.8
+  criticalThreshold: 0.95
+  selfImprovementMaxBudget: 20.0
+  maxTokensPerAgent: 200000
+
+openclaw:
+  gatewayUrl: ws://127.0.0.1:18789
+  # gatewayToken: ${VAULT:secret/dash/openclaw#token}
+  mode: restricted
+  sandboxMode: non-main
+  mockMode: false
+  verbose: true
+
+eventBus:
+  type: redis
+  streamKey: dash:events
+  consumerGroup: dash:consumers
+  compressionThreshold: 1024
+  maxStreamLength: 100000
+  maxQueuedEvents: 10000
+  retry:
+    maxRetries: 3
+    retryDelayMs: 1000
+    retryDelayMultiplier: 2
+
+# Feature flags
+features:
+  gitops: true
+  autoScaling: false
+  selfImprovement: true
+  metrics: true
+  tracing: true
+  recovery: true
+  reasoning: true
