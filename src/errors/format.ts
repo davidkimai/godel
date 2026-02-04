@@ -63,7 +63,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static unauthorized(message: string := 'Unauthorized'): AppError {
+  static unauthorized(message: string = 'Unauthorized'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'UNAUTHORIZED';
     error.statusCode = 401;
@@ -71,7 +71,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static forbidden(message: string := 'Forbidden'): AppError {
+  static forbidden(message: string = 'Forbidden'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'FORBIDDEN';
     error.statusCode = 403;
@@ -79,7 +79,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static notFound(message: string := 'Resource not found'): AppError {
+  static notFound(message: string = 'Resource not found'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'NOT_FOUND';
     error.statusCode = 404;
@@ -87,7 +87,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static conflict(message: string := 'Conflict'): AppError {
+  static conflict(message: string = 'Conflict'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'CONFLICT';
     error.statusCode = 409;
@@ -95,7 +95,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static internal(message: string := 'Internal server error', details?: Record<string, any>): AppError {
+  static internal(message: string = 'Internal server error', details?: Record<string, any>): AppError {
     const error = new Error(message) as AppError;
     error.code = 'INTERNAL_ERROR';
     error.statusCode = 500;
@@ -104,7 +104,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static serviceUnavailable(message: string := 'Service unavailable'): AppError {
+  static serviceUnavailable(message: string = 'Service unavailable'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'SERVICE_UNAVAILABLE';
     error.statusCode = 503;
@@ -112,7 +112,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static validationFailed(validationErrors: ValidationError[], message: string := 'Validation failed'): AppError {
+  static validationFailed(validationErrors: ValidationError[], message: string = 'Validation failed'): AppError {
     const error = new Error(message) as AppError;
     error.code = 'VALIDATION_ERROR';
     error.statusCode = 422;
@@ -121,7 +121,7 @@ export class ErrorFormatter {
     return error;
   }
 
-  static tooManyRequests(message: string := 'Too many requests', retryAfter?: number): AppError {
+  static tooManyRequests(message: string = 'Too many requests', retryAfter?: number): AppError {
     const error = new Error(message) as AppError;
     error.code = 'TOO_MANY_REQUESTS';
     error.statusCode = 429;
