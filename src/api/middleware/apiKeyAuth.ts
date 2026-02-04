@@ -14,7 +14,7 @@ export async function validateApiKey(
     return;
   }
 
-  const store = getApiKeyStore();
+  const store = await getApiKeyStore();
   const result = await store.validateKey(apiKey);
 
   if (!result.valid) {
@@ -38,7 +38,7 @@ export async function validateApiKeyOptional(
   const apiKey = request.headers['x-api-key'] as string;
   
   if (apiKey) {
-    const store = getApiKeyStore();
+    const store = await getApiKeyStore();
     const result = await store.validateKey(apiKey);
     
     if (result.valid) {
@@ -49,7 +49,7 @@ export async function validateApiKeyOptional(
 
 // Check if request has specific scope
 export function requireScope(scope: string) {
-  return async (
+  return async function scopeMiddleware(
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {

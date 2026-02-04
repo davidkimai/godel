@@ -5,8 +5,7 @@
  * Provides hashed key storage, scope management, and usage tracking.
  */
 
-import { PostgresPool, getPool } from '../postgres/pool';
-import type { PostgresConfig } from '../postgres/config';
+import { PostgresPool, getPool, type PostgresPoolConfig } from '../postgres/pool';
 
 export interface ApiKey {
   id: string;
@@ -57,9 +56,9 @@ export interface ApiKeyFilter {
 
 export class ApiKeyRepository {
   private pool: PostgresPool | null = null;
-  private config?: Partial<PostgresConfig>;
+  private config?: Partial<PostgresPoolConfig>;
 
-  constructor(config?: Partial<PostgresConfig>) {
+  constructor(config?: Partial<PostgresPoolConfig>) {
     this.config = config;
   }
 
@@ -67,7 +66,17 @@ export class ApiKeyRepository {
    * Initialize the repository with a database pool
    */
   async initialize(): Promise<void> {
-    this.pool = await getPool(this.config);
+    try {
+      this.pool = await getPool(this.config);
+    } catch (error) {
+      // If global pool fails and we have config, create a private pool
+      if (this.config) {
+        this.pool = new PostgresPool(this.config);
+        await this.pool.initialize();
+      } else {
+        throw error;
+      }
+    }
   }
 
   /**

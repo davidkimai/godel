@@ -1,16 +1,17 @@
 /**
  * API Key Repository Manual Test
  * 
- * Run with: npx ts-node scripts/test-api-key-repository.ts
+ * Run with: npx ts-node --transpile-only scripts/test-api-key-repository.ts
  */
 
 import { Pool } from 'pg';
 import { ApiKeyRepository } from '../src/storage/repositories/ApiKeyRepository';
+import type { PostgresPoolConfig } from '../src/storage/postgres/pool';
 
 async function testApiKeyRepository() {
   console.log('🧪 Testing ApiKeyRepository...\n');
 
-  // Create pool directly
+  // Create pool directly for cleanup
   const pool = new Pool({
     host: 'localhost',
     port: 5433,
@@ -30,14 +31,25 @@ async function testApiKeyRepository() {
     process.exit(1);
   }
 
-  // Create repository
-  const repository = new ApiKeyRepository({
+  // Create repository with proper config
+  const config: PostgresPoolConfig = {
     host: 'localhost',
     port: 5433,
+    database: 'dash',
     user: 'dash',
     password: 'dash',
-    database: 'dash',
-  } as any);
+    poolSize: 5,
+    minPoolSize: 1,
+    maxPoolSize: 10,
+    connectionTimeoutMs: 5000,
+    idleTimeoutMs: 30000,
+    acquireTimeoutMs: 5000,
+    retryAttempts: 3,
+    retryDelayMs: 1000,
+    ssl: false,
+  };
+
+  const repository = new ApiKeyRepository(config);
 
   try {
     await repository.initialize();
