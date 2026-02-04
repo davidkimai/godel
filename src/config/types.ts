@@ -9,6 +9,8 @@
 // ============================================================================
 
 export interface ServerConfig {
+  /** Server framework: 'express' | 'fastify' */
+  framework: 'express' | 'fastify';
   /** Server port */
   port: number;
   /** Server host */

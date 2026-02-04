@@ -1,6 +1,7 @@
+import bcrypt from 'bcrypt';
 import { EventEmitter } from 'events';
-import { hashApiKey, compareApiKey } from '../../utils/crypto';
-import { logger } from '../logging/logger';
+import { logger } from '../../utils/logger';
+import { ApiKeyRepository } from '../../storage/repositories/ApiKeyRepository';
 
 export interface ApiKey {
   id: string;
@@ -29,98 +30,158 @@ export interface ApiKeyValidationResult {
 }
 
 export class ApiKeyStore extends EventEmitter {
-  private keys: Map<string, ApiKey> = new Map();
+  private repository: ApiKeyRepository | null = null;
+  private isInitialized: boolean = false;
+  private readonly SALT_ROUNDS = 12;
+
+  /**
+   * Initialize the API key store with database connection
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
+    this.repository = new ApiKeyRepository();
+    await this.repository.initialize();
+    this.isInitialized = true;
+
+    logger.info('API Key Store initialized with PostgreSQL persistence');
+  }
+
+  /**
+   * Ensure the store is initialized before operations
+   */
+  private ensureInitialized(): void {
+    if (!this.isInitialized || !this.repository) {
+      throw new Error('ApiKeyStore not initialized. Call initialize() first.');
+    }
+  }
 
   async createKey(options: CreateApiKeyOptions): Promise<{ key: ApiKey; plaintext: string }> {
+    this.ensureInitialized();
+
     const id = this.generateKeyId();
     const plaintext = this.generatePlaintextKey();
-    const hash = await hashApiKey(plaintext);
+    const hash = await bcrypt.hash(plaintext, this.SALT_ROUNDS);
 
-    const key: ApiKey = {
-      id,
+    const expiresAt = options.expiresInDays
+      ? new Date(Date.now() + options.expiresInDays * 24 * 60 * 60 * 1000)
+      : undefined;
+
+    const dbKey = await this.repository!.create({
+      key_hash: hash,
       name: options.name,
-      hash,
       scopes: options.scopes || ['read'],
-      createdAt: new Date(),
-      expiresAt: options.expiresInDays 
-        ? new Date(Date.now() + options.expiresInDays * 24 * 60 * 60 * 1000)
-        : undefined,
-      isRevoked: false,
-      metadata: options.metadata
-    };
+      metadata: options.metadata,
+      expires_at: expiresAt,
+    });
 
-    this.keys.set(id, key);
-    
-    logger.info(`API key created: ${id}`, { name: options.name, scopes: key.scopes });
-    this.emit('keyCreated', { keyId: id, name: options.name });
+    const key: ApiKey = this.mapDbToApiKey(dbKey);
+
+    logger.info(`API key created: ${key.id}`, { name: options.name, scopes: key.scopes });
+    this.emit('keyCreated', { keyId: key.id, name: options.name });
 
     return { key, plaintext };
   }
 
   async validateKey(plaintextKey: string): Promise<ApiKeyValidationResult> {
-    // Check all keys for matching hash
-    for (const key of this.keys.values()) {
-      if (key.isRevoked) continue;
-      if (key.expiresAt && key.expiresAt < new Date()) continue;
-      
-      const isValid = await compareApiKey(plaintextKey, key.hash);
+    this.ensureInitialized();
+
+    // Get all active, non-revoked keys from database
+    const keys = await this.repository!.list({
+      isActive: true,
+      includeRevoked: false,
+      includeExpired: false,
+    });
+
+    // Try to find a matching key by comparing hashes
+    for (const dbKey of keys) {
+      const isValid = await bcrypt.compare(plaintextKey, dbKey.key_hash);
       if (isValid) {
+        // Update last used timestamp
+        await this.repository!.updateLastUsed(dbKey.id);
+
+        const key = this.mapDbToApiKey(dbKey);
         key.lastUsedAt = new Date();
+
         logger.debug(`API key validated: ${key.id}`);
         return { valid: true, key };
       }
     }
-    
+
     return { valid: false, error: 'Invalid key' };
   }
 
-  revokeKey(keyId: string): boolean {
-    const key = this.keys.get(keyId);
-    if (!key) {
+  async revokeKey(keyId: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    const revoked = await this.repository!.revoke(keyId);
+    if (!revoked) {
       return false;
     }
 
-    key.isRevoked = true;
-    key.revokedAt = new Date();
-
     logger.info(`API key revoked: ${keyId}`);
     this.emit('keyRevoked', { keyId });
-    
+
     return true;
   }
 
   async rotateKey(keyId: string): Promise<{ key: ApiKey; plaintext: string } | null> {
-    const oldKey = this.keys.get(keyId);
+    this.ensureInitialized();
+
+    const oldKey = await this.repository!.findById(keyId);
     if (!oldKey) {
       return null;
     }
 
-    // Revoke old key
-    this.revokeKey(keyId);
+    // Generate new key
+    const plaintext = this.generatePlaintextKey();
+    const newKeyHash = await bcrypt.hash(plaintext, this.SALT_ROUNDS);
 
-    // Create new key with same properties
-    const result = await this.createKey({
-      name: `${oldKey.name} (rotated)`,
-      scopes: oldKey.scopes,
-      metadata: { ...oldKey.metadata, rotatedFrom: keyId }
+    // Use repository rotate method
+    const { oldKey: revokedKey, newKey } = await this.repository!.rotate(keyId, newKeyHash);
+
+    if (!revokedKey || !newKey) {
+      return null;
+    }
+
+    const key = this.mapDbToApiKey(newKey);
+
+    logger.info(`API key rotated: ${keyId} -> ${key.id}`);
+    this.emit('keyRotated', { oldKeyId: keyId, newKeyId: key.id });
+
+    return { key, plaintext };
+  }
+
+  async getKey(keyId: string): Promise<ApiKey | undefined> {
+    this.ensureInitialized();
+
+    const dbKey = await this.repository!.findById(keyId);
+    if (!dbKey) return undefined;
+
+    return this.mapDbToApiKey(dbKey);
+  }
+
+  async getAllKeys(): Promise<ApiKey[]> {
+    this.ensureInitialized();
+
+    const dbKeys = await this.repository!.list({
+      includeRevoked: true,
+      includeExpired: true,
     });
 
-    logger.info(`API key rotated: ${keyId} -> ${result.key.id}`);
-    this.emit('keyRotated', { oldKeyId: keyId, newKeyId: result.key.id });
-
-    return result;
+    return dbKeys.map(key => this.mapDbToApiKey(key));
   }
 
-  getKey(keyId: string): ApiKey | undefined {
-    return this.keys.get(keyId);
-  }
+  async getActiveKeys(): Promise<ApiKey[]> {
+    this.ensureInitialized();
 
-  getAllKeys(): ApiKey[] {
-    return Array.from(this.keys.values());
-  }
+    const dbKeys = await this.repository!.list({
+      isActive: true,
+      includeRevoked: false,
+      includeExpired: false,
+    });
 
-  getActiveKeys(): ApiKey[] {
-    return this.getAllKeys().filter(k => !k.isRevoked);
+    return dbKeys.map(key => this.mapDbToApiKey(key));
   }
 
   // Helper methods
@@ -133,18 +194,69 @@ export class ApiKeyStore extends EventEmitter {
     const random = require('crypto').randomBytes(32).toString('base64url');
     return `${prefix}_${random}`;
   }
+
+  private mapDbToApiKey(dbKey: {
+    id: string;
+    key_hash: string;
+    name: string;
+    scopes: string[];
+    is_revoked: boolean;
+    revoked_at?: Date;
+    metadata: Record<string, unknown>;
+    created_at: Date;
+    expires_at?: Date;
+    last_used_at?: Date;
+  }): ApiKey {
+    return {
+      id: dbKey.id,
+      name: dbKey.name,
+      hash: dbKey.key_hash,
+      scopes: dbKey.scopes,
+      isRevoked: dbKey.is_revoked,
+      revokedAt: dbKey.revoked_at,
+      metadata: dbKey.metadata,
+      createdAt: dbKey.created_at,
+      expiresAt: dbKey.expires_at,
+      lastUsedAt: dbKey.last_used_at,
+    };
+  }
 }
 
 // Singleton instance
 let store: ApiKeyStore | null = null;
+let initializationPromise: Promise<ApiKeyStore> | null = null;
 
-export function getApiKeyStore(): ApiKeyStore {
-  if (!store) {
-    store = new ApiKeyStore();
+export async function getApiKeyStore(): Promise<ApiKeyStore> {
+  if (store?.['isInitialized']) {
+    return store;
   }
-  return store;
+
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = (async () => {
+    store = new ApiKeyStore();
+    await store.initialize();
+    return store;
+  })();
+
+  return initializationPromise;
 }
 
 export function resetApiKeyStore(): void {
   store = null;
+  initializationPromise = null;
+}
+
+// Backwards compatibility - synchronous getter (deprecated)
+export function getApiKeyStoreSync(): ApiKeyStore {
+  if (!store) {
+    store = new ApiKeyStore();
+    // Auto-initialize in background for backwards compatibility
+    store.initialize().catch(err => {
+      logger.error('Failed to auto-initialize API key store:', err);
+    });
+  }
+  return store;
 }

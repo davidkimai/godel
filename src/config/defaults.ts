@@ -25,7 +25,8 @@ import type {
 // ============================================================================
 
 export const defaultServerConfig: ServerConfig = {
-  port: 7373,
+  framework: 'express',
+  port: 3000,
   host: 'localhost',
   cors: {
     origins: ['http://localhost:3000'],
