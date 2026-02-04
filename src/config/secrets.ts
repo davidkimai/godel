@@ -237,7 +237,7 @@ export class SecretManager {
         timeout: options.timeout || 30000,
         env: {
           ...process.env,
-          OP_ACCOUNT: process.env.OP_ACCOUNT,
+          ['OP_ACCOUNT']: process.env['OP_ACCOUNT'],
         },
       });
 

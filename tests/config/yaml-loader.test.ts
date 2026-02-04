@@ -108,10 +108,10 @@ spec:
 `;
       const parsed = await parseYaml(yaml);
       
-      expect(parsed.apiVersion).toBe('dash.io/v1');
-      expect(parsed.kind).toBe('Swarm');
-      expect(parsed.metadata).toEqual({ name: 'test-swarm' });
-      expect(parsed.spec?.task).toBe('Test task');
+      expect(parsed['apiVersion']).toBe('dash.io/v1');
+      expect(parsed['kind']).toBe('Swarm');
+      expect(parsed['metadata']).toEqual({ name: 'test-swarm' });
+      expect((parsed['spec'] as Record<string, unknown>)?.['task']).toBe('Test task');
     });
 
     it('should stringify YAML', async () => {

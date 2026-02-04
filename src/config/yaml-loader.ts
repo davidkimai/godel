@@ -22,6 +22,10 @@ import {
   ConfigValidationException,
 } from './types';
 
+// Re-export types for convenience
+export type { ConfigLoadOptions, ConfigLoadResult, ConfigValidationError } from './types';
+export { ConfigValidationException } from './types';
+
 // ============================================================================
 // Environment Variable Substitution
 // ============================================================================
@@ -31,11 +35,11 @@ import {
  */
 const ENV_PATTERNS = {
   // ${VAR:-default} or ${VAR:-default with spaces}
-  withDefault: /\\$\\{([A-Za-z_][A-Za-z0-9_]*):-([^}]*)\\}/g,
+  withDefault: /\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]*)\}/g,
   // ${VAR}
-  braced: /\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}/g,
+  braced: /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g,
   // $VAR
-  simple: /\\$([A-Za-z_][A-Za-z0-9_]*)/g,
+  simple: /\$([A-Za-z_][A-Za-z0-9_]*)/g,
 };
 
 /**
@@ -130,7 +134,7 @@ export function substituteEnvVarsInObject<T extends Record<string, unknown>>(
  * Regex pattern for 1Password secret references
  * Format: {{ op://vault/item/field }}
  */
-const SECRET_PATTERN = /\\{\\{\\s*op:\/\/([^\/]+)\/([^\/]+)\/([^\\s}]+)\\s*\\}\\}/g;
+const SECRET_PATTERN = /\{\{\s*op:\/\/([^\/]+)\/([^\/]+)\/([^\s}]+)\s*\}\}/g;
 
 /**
  * Check if a value contains secret references
@@ -188,7 +192,7 @@ export async function resolveSecret(
       env: {
         ...process.env,
         // Ensure OP CLI uses the user's default account
-        OP_ACCOUNT: process.env.OP_ACCOUNT,
+        ['OP_ACCOUNT']: process.env['OP_ACCOUNT'],
       },
     });
     
@@ -310,7 +314,7 @@ function convertValidationError(error: ValueError): ConfigValidationError {
   return {
     path,
     message,
-    code: error.type,
+    code: String(error.type),
     suggestion,
   };
 }

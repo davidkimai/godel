@@ -20,6 +20,7 @@ export interface Swarm {
 }
 
 export interface SwarmCreateInput {
+  id?: string;
   name: string;
   config?: Record<string, unknown>;
   status?: SwarmStatus;

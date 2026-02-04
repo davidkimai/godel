@@ -12,15 +12,14 @@
 import { Command } from 'commander';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
-import { loadConfig, toSwarmConfig, diffConfigs } from '../config/yaml-loader';
-import { getGlobalGitOpsManager } from '../config/gitops';
-import { SecretManager, getGlobalSecretManager } from '../config/secrets';
-import { getGlobalSwarmManager } from '../core/swarm';
-import { getGlobalLifecycle } from '../core/lifecycle';
-import { getGlobalBus } from '../bus/index';
-import { memoryStore, initDatabase } from '../storage';
-import { logger } from '../utils/logger';
-import { formatDiff } from '../config/gitops';
+import { loadConfig, toSwarmConfig } from '../../config/yaml-loader';
+import { getGlobalGitOpsManager, formatDiff, diffConfigs } from '../../config/gitops';
+import { SecretManager, getGlobalSecretManager } from '../../config/secrets';
+import { getGlobalSwarmManager } from '../../core/swarm';
+import { getGlobalLifecycle } from '../../core/lifecycle';
+import { getGlobalBus } from '../../bus/index';
+import { memoryStore, initDatabase } from '../../storage';
+import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Initialization

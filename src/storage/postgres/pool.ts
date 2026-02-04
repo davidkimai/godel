@@ -5,24 +5,14 @@
  * Uses pg-pool for connection management.
  */
 
-import Pool from 'pg-pool';
-import { Client } from 'pg';
+import type { PoolClient } from 'pg';
 import { getPostgresConfig, PostgresConfig } from './config';
 import { logger } from '../../utils/logger';
 
-// Extend Pool type to include our custom methods
-interface PgPool extends Pool {
-  query: Pool['query'];
-  connect: Pool['connect'];
-  end: Pool['end'];
-  on: Pool['on'];
-  totalCount: number;
-  idleCount: number;
-  waitingCount: number;
-}
+// We'll use dynamic import for pg-pool to avoid type issues
 
 export class PostgresPool {
-  private pool: PgPool | null = null;
+  private pool: any | null = null;
   private config: PostgresConfig;
   private isConnected: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
@@ -63,7 +53,8 @@ export class PostgresPool {
    * Create and connect the pool
    */
   private async connect(): Promise<void> {
-    const { Pool: PgPool } = await import('pg-pool');
+    const { default: PgPool } = await import('pg-pool');
+    const { Client } = await import('pg');
     
     this.pool = new PgPool({
       host: this.config.host,
@@ -75,13 +66,13 @@ export class PostgresPool {
       max: this.config.maxPoolSize,
       idleTimeoutMillis: this.config.idleTimeoutMs,
       connectionTimeoutMillis: this.config.connectionTimeoutMs,
-      acquireTimeoutMillis: this.config.acquireTimeoutMs,
       ssl: this.config.ssl,
-    }) as PgPool;
+      Client: Client,
+    });
 
     // Set up event handlers
     this.pool.on('error', (err: Error) => {
-      logger.error('Unexpected PostgreSQL pool error:', err);
+      logger.error('Unexpected PostgreSQL pool error:', err.message);
       this.isConnected = false;
       this.scheduleReconnect();
     });
@@ -158,18 +149,18 @@ export class PostgresPool {
   /**
    * Get a client from the pool for transaction handling
    */
-  async getClient(): Promise<Client> {
+  async getClient(): Promise<PoolClient> {
     if (!this.pool) {
       throw new Error('Pool not initialized. Call initialize() first.');
     }
-    return this.pool.connect() as Promise<Client>;
+    return this.pool.connect() as Promise<PoolClient>;
   }
 
   /**
    * Execute a transaction with automatic rollback on error
    */
   async withTransaction<T>(
-    callback: (client: Client) => Promise<T>
+    callback: (client: PoolClient) => Promise<T>
   ): Promise<T> {
     const client = await this.getClient();
     

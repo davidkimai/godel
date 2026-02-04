@@ -9,7 +9,7 @@
  */
 
 import { Mutex } from 'async-mutex';
-import { getDb } from '../storage/sqlite';
+import { getDb, initDatabase, type StorageConfig } from '../storage/sqlite';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 
@@ -31,8 +31,8 @@ export interface AuditLogEntry {
   entityType: 'swarm' | 'agent' | 'session' | 'system';
   entityId: string;
   action: string;
-  previousState?: string;
-  newState?: string;
+  previousState?: unknown;
+  newState?: unknown;
   triggeredBy: string;
   metadata?: Record<string, unknown>;
 }
@@ -143,10 +143,10 @@ export class StatePersistence extends EventEmitter {
   }
 
   private async createSchema(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
+    const db = await this.ensureDb();
 
     // State versions table for optimistic locking
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS state_versions (
         entity_id TEXT NOT NULL,
         entity_type TEXT NOT NULL,
@@ -158,7 +158,7 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Persisted swarm states
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS swarm_states (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -178,7 +178,7 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Persisted agent states
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS agent_states (
         id TEXT PRIMARY KEY,
         status TEXT NOT NULL,
@@ -202,7 +202,7 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Persisted session states
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS session_states (
         id TEXT PRIMARY KEY,
         session_tree_id TEXT NOT NULL,
@@ -217,7 +217,7 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Audit log table
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS state_audit_log (
         id TEXT PRIMARY KEY,
         timestamp TEXT NOT NULL,
@@ -232,7 +232,7 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Recovery checkpoint table
-    this.db.exec(`
+    await db.run(`
       CREATE TABLE IF NOT EXISTS recovery_checkpoints (
         id TEXT PRIMARY KEY,
         timestamp TEXT NOT NULL,
@@ -244,13 +244,13 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Indexes for common queries
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_swarm_states_status ON swarm_states(status)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_states_swarm ON agent_states(swarm_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_agent_states_status ON agent_states(status)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_session_states_swarm ON session_states(swarm_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON state_audit_log(entity_id)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON state_audit_log(timestamp)`);
-    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_recovery_entity ON recovery_checkpoints(entity_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_swarm_states_status ON swarm_states(status)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_agent_states_swarm ON agent_states(swarm_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_agent_states_status ON agent_states(status)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_session_states_swarm ON session_states(swarm_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON state_audit_log(entity_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON state_audit_log(timestamp)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_recovery_entity ON recovery_checkpoints(entity_id)`);
   }
 
   private async ensureDb(): Promise<Awaited<ReturnType<typeof getDb>>> {
@@ -360,8 +360,8 @@ export class StatePersistence extends EventEmitter {
     entityId: string,
     action: string,
     triggeredBy: string,
-    previousState?: Record<string, unknown>,
-    newState?: Record<string, unknown>,
+    previousState?: unknown,
+    newState?: unknown,
     metadata?: Record<string, unknown>
   ): Promise<void> {
     const db = await this.ensureDb();
@@ -456,12 +456,12 @@ export class StatePersistence extends EventEmitter {
           swarm.id,
           'update',
           triggeredBy,
-          previousState,
-          swarm,
+          previousState as unknown,
+          swarm as unknown,
           { version: newVersion }
         );
       } else {
-        await this.logStateChange('swarm', swarm.id, 'create', triggeredBy, undefined, swarm);
+        await this.logStateChange('swarm', swarm.id, 'create', triggeredBy, undefined, swarm as unknown);
       }
 
       // Upsert swarm state
@@ -625,12 +625,12 @@ export class StatePersistence extends EventEmitter {
           agent.id,
           'update',
           triggeredBy,
-          previousState,
-          agent,
+          previousState as unknown,
+          agent as unknown,
           { version: newVersion }
         );
       } else {
-        await this.logStateChange('agent', agent.id, 'create', triggeredBy, undefined, agent);
+        await this.logStateChange('agent', agent.id, 'create', triggeredBy, undefined, agent as unknown);
       }
 
       await db.run(
@@ -835,12 +835,12 @@ export class StatePersistence extends EventEmitter {
           session.id,
           'update',
           triggeredBy,
-          previousState,
-          session,
+          previousState as unknown,
+          session as unknown,
           { version: newVersion }
         );
       } else {
-        await this.logStateChange('session', session.id, 'create', triggeredBy, undefined, session);
+        await this.logStateChange('session', session.id, 'create', triggeredBy, undefined, session as unknown);
       }
 
       await db.run(
@@ -1045,7 +1045,7 @@ export class StatePersistence extends EventEmitter {
     // Get audit log entries to find the state at that version
     const entries = await this.getAuditLog(entityId);
     const targetEntry = entries.find(
-      e => e.metadata?.version === targetVersion || e.action === 'create'
+      e => e.metadata?.['version'] === targetVersion || e.action === 'create'
     );
 
     if (!targetEntry || !targetEntry.previousState) {
@@ -1056,13 +1056,13 @@ export class StatePersistence extends EventEmitter {
     let currentState: Record<string, unknown> | undefined;
     if (entityType === 'swarm') {
       const swarm = await this.loadSwarm(entityId);
-      currentState = swarm as Record<string, unknown>;
+      currentState = swarm as unknown as Record<string, unknown>;
     } else if (entityType === 'agent') {
       const agent = await this.loadAgent(entityId);
-      currentState = agent as Record<string, unknown>;
+      currentState = agent as unknown as Record<string, unknown>;
     } else if (entityType === 'session') {
       const session = await this.loadSession(entityId);
-      currentState = session as Record<string, unknown>;
+      currentState = session as unknown as Record<string, unknown>;
     }
 
     if (currentState) {
@@ -1075,8 +1075,8 @@ export class StatePersistence extends EventEmitter {
       entityId,
       'rollback',
       triggeredBy,
-      currentState,
-      targetEntry.previousState,
+      currentState as unknown,
+      targetEntry.previousState as unknown,
       { targetVersion }
     );
 

@@ -39,6 +39,10 @@ export interface EventCreateInput {
 export interface EventFilter {
   swarm_id?: string;
   agent_id?: string;
+  /** @deprecated Use swarm_id instead */
+  swarmId?: string;
+  /** @deprecated Use agent_id instead */
+  agentId?: string;
   types?: string[];
   entity_type?: EntityType;
   severity?: EventSeverity;
@@ -393,13 +397,17 @@ export class EventRepository {
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter.swarm_id) {
+    // Support both snake_case and camelCase (camelCase is deprecated)
+    const swarmId = filter.swarm_id ?? filter.swarmId;
+    const agentId = filter.agent_id ?? filter.agentId;
+
+    if (swarmId) {
       conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(filter.swarm_id);
+      values.push(swarmId);
     }
-    if (filter.agent_id) {
+    if (agentId) {
       conditions.push(`agent_id = $${paramIndex++}`);
-      values.push(filter.agent_id);
+      values.push(agentId);
     }
     if (filter.types?.length) {
       conditions.push(`type = ANY($${paramIndex++})`);
