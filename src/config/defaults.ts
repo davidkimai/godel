@@ -49,8 +49,14 @@ export const defaultDatabaseConfig: DatabaseConfig = {
   connectionTimeoutMs: 5000,
   idleTimeoutMs: 30000,
   acquireTimeoutMs: 5000,
+  statementTimeoutMs: 30000,
   retryAttempts: 3,
   retryDelayMs: 1000,
+  retryMaxDelayMs: 10000,
+  keepAlive: true,
+  keepAliveInitialDelayMs: 0,
+  maxUses: 7500,
+  applicationName: 'dash',
 };
 
 // ============================================================================

@@ -103,10 +103,22 @@ export interface DatabaseConfig {
   idleTimeoutMs: number;
   /** Acquire timeout in milliseconds */
   acquireTimeoutMs: number;
+  /** Statement timeout in milliseconds */
+  statementTimeoutMs: number;
   /** Retry attempts */
   retryAttempts: number;
   /** Retry delay in milliseconds */
   retryDelayMs: number;
+  /** Maximum retry delay in milliseconds */
+  retryMaxDelayMs: number;
+  /** Enable TCP keep-alive */
+  keepAlive: boolean;
+  /** TCP keep-alive initial delay in milliseconds */
+  keepAliveInitialDelayMs: number;
+  /** Maximum uses per connection (0 = unlimited) */
+  maxUses: number;
+  /** Application name for PostgreSQL */
+  applicationName: string;
 }
 
 export interface DatabaseSslConfig {

@@ -308,6 +308,174 @@ export class SessionRepository {
   }
 
   // ============================================================================
+  // Bulk Operations
+  // ============================================================================
+
+  /**
+   * Create multiple sessions in a single transaction
+   */
+  async createMany(inputs: SessionCreateInput[]): Promise<Session[]> {
+    this.ensureInitialized();
+    
+    if (inputs.length === 0) return [];
+
+    const client = await this.pool!.getClient();
+    try {
+      await client.query('BEGIN');
+
+      const created: Session[] = [];
+      const batchSize = 100;
+
+      for (let i = 0; i < inputs.length; i += batchSize) {
+        const batch = inputs.slice(i, i + batchSize);
+        const promises = batch.map(async (input) => {
+          const result = await client.query<SessionRow>(
+            `INSERT INTO sessions (tree_data, current_branch, metadata, expires_at)
+             VALUES ($1, $2, $3, $4)
+             RETURNING *`,
+            [
+              JSON.stringify(input.tree_data || {}),
+              input.current_branch || null,
+              JSON.stringify(input.metadata || {}),
+              input.expires_at?.toISOString() || null,
+            ]
+          );
+          return this.mapRow(result.rows[0]);
+        });
+
+        const batchResults = await Promise.all(promises);
+        created.push(...batchResults);
+      }
+
+      await client.query('COMMIT');
+      return created;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Update multiple sessions by IDs
+   */
+  async updateMany(
+    ids: string[],
+    input: SessionUpdateInput
+  ): Promise<number> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return 0;
+
+    const updates: string[] = ['updated_at = NOW()'];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (input.tree_data !== undefined) {
+      updates.push(`tree_data = $${paramIndex++}`);
+      values.push(JSON.stringify(input.tree_data));
+    }
+    if (input.current_branch !== undefined) {
+      updates.push(`current_branch = $${paramIndex++}`);
+      values.push(input.current_branch);
+    }
+    if (input.metadata !== undefined) {
+      updates.push(`metadata = $${paramIndex++}`);
+      values.push(JSON.stringify(input.metadata));
+    }
+    if (input.expires_at !== undefined) {
+      updates.push(`expires_at = $${paramIndex++}`);
+      values.push(input.expires_at?.toISOString() || null);
+    }
+
+    if (updates.length === 1) return 0; // Only updated_at changed
+
+    values.push(JSON.stringify(ids));
+
+    const result = await this.pool!.query(
+      `UPDATE sessions SET ${updates.join(', ')} WHERE id = ANY($${paramIndex})`,
+      values
+    );
+
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Delete multiple sessions by IDs
+   */
+  async deleteMany(ids: string[]): Promise<number> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return 0;
+
+    const result = await this.pool!.query(
+      'DELETE FROM sessions WHERE id = ANY($1)',
+      [JSON.stringify(ids)]
+    );
+
+    return result.rowCount || 0;
+  }
+
+  /**
+   * Find multiple sessions by IDs
+   */
+  async findByIds(ids: string[]): Promise<Map<string, Session>> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return new Map();
+
+    const result = await this.pool!.query<SessionRow>(
+      'SELECT * FROM sessions WHERE id = ANY($1)',
+      [JSON.stringify(ids)]
+    );
+
+    const map = new Map<string, Session>();
+    for (const row of result.rows) {
+      // Filter out expired sessions
+      if (!row.expires_at || new Date(row.expires_at) > new Date()) {
+        map.set(row.id, this.mapRow(row));
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Check if multiple sessions exist
+   */
+  async existsMany(ids: string[]): Promise<Map<string, boolean>> {
+    this.ensureInitialized();
+    
+    if (ids.length === 0) return new Map();
+
+    const result = await this.pool!.query<{ id: string; exists: boolean }>(
+      `SELECT id, 
+        (expires_at IS NULL OR expires_at > NOW()) as exists
+       FROM sessions WHERE id = ANY($1)`,
+      [JSON.stringify(ids)]
+    );
+
+    const map = new Map<string, boolean>();
+    for (const row of result.rows) {
+      map.set(row.id, row.exists);
+    }
+    return map;
+  }
+
+  /**
+   * Cleanup all expired sessions in bulk
+   */
+  async cleanupAllExpired(): Promise<number> {
+    this.ensureInitialized();
+    
+    const result = await this.pool!.query(
+      'DELETE FROM sessions WHERE expires_at IS NOT NULL AND expires_at <= NOW()'
+    );
+
+    return result.rowCount || 0;
+  }
+
+  // ============================================================================
   // Private helpers
   // ============================================================================
 

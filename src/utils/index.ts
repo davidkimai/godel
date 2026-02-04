@@ -9,8 +9,12 @@ export { logger, Logger, LogLevel, LogLevelEnum } from './logger';
 export type { LogEntry, LogLevelString } from './logger';
 
 // Cache
-export { LRUCache, memoize } from './cache';
-export type { CacheEntry, CacheOptions } from './cache';
+export { LRUCache, createLRUCache } from './cache';
+export type { CacheEntry, LRUCacheOptions } from './cache';
+
+// Connection Pool
+export { ConnectionPool, createPool } from './pool';
+export type { PoolOptions, PooledResource } from './pool';
 
 // CLI State Persistence
 export {
