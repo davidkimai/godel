@@ -248,7 +248,7 @@ export class DashClient extends EventEmitter {
   /**
    * Determine if a request should be retried
    */
-  private shouldRetry(error: Error, attempt: number): boolean {
+  private shouldRetry(error: Error, _attempt: number): boolean {
     // Don't retry if aborted
     if (error instanceof axios.Cancel || error.name === 'AbortError') {
       return false;
@@ -285,9 +285,8 @@ export class DashClient extends EventEmitter {
    * Calculate delay before next retry with exponential backoff
    */
   private calculateDelay(_attempt: number, error: Error): number {
-    // Base exponential backoff (using _attempt to calculate delay)
+    // Base exponential backoff
     const baseDelay = this.config.retryDelay * Math.pow(2, _attempt);
-    const baseDelay = this.config.retryDelay * Math.pow(2, attempt);
     
     // Add jitter (±25%)
     const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1);

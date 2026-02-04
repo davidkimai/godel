@@ -2,7 +2,7 @@
  * Capabilities Routes
  * 
  * Fastify routes for API discovery:
- * - GET /api/capabilities - Discovery
+ * - GET /api/v1/capabilities - Discovery
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -12,7 +12,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export async function capabilitiesRoutes(fastify: FastifyInstance) {
   // ============================================================================
-  // GET /api/capabilities - Discovery
+  // GET /api/v1/capabilities - Discovery
   // ============================================================================
   fastify.get(
     '/',
@@ -48,13 +48,13 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'Agent lifecycle management',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/agents', description: 'List all agents' },
-            { method: 'POST', path: '/api/agents', description: 'Spawn a new agent' },
-            { method: 'GET', path: '/api/agents/:id', description: 'Get agent details' },
-            { method: 'POST', path: '/api/agents/:id/kill', description: 'Kill an agent' },
-            { method: 'POST', path: '/api/agents/:id/restart', description: 'Restart an agent' },
-            { method: 'GET', path: '/api/agents/:id/logs', description: 'Get agent logs' },
-            { method: 'DELETE', path: '/api/agents/:id', description: 'Delete an agent' },
+            { method: 'GET', path: '/api/v1/agents', description: 'List all agents' },
+            { method: 'POST', path: '/api/v1/agents', description: 'Spawn a new agent' },
+            { method: 'GET', path: '/api/v1/agents/:id', description: 'Get agent details' },
+            { method: 'POST', path: '/api/v1/agents/:id/kill', description: 'Kill an agent' },
+            { method: 'POST', path: '/api/v1/agents/:id/restart', description: 'Restart an agent' },
+            { method: 'GET', path: '/api/v1/agents/:id/logs', description: 'Get agent logs' },
+            { method: 'DELETE', path: '/api/v1/agents/:id', description: 'Delete an agent' },
           ],
         },
         {
@@ -62,20 +62,20 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'Swarm orchestration management',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/swarms', description: 'List all swarms' },
-            { method: 'POST', path: '/api/swarms', description: 'Create a new swarm' },
-            { method: 'GET', path: '/api/swarms/:id', description: 'Get swarm details' },
-            { method: 'PUT', path: '/api/swarms/:id', description: 'Update swarm' },
-            { method: 'DELETE', path: '/api/swarms/:id', description: 'Delete swarm' },
-            { method: 'POST', path: '/api/swarms/:id/start', description: 'Start swarm' },
-            { method: 'POST', path: '/api/swarms/:id/stop', description: 'Stop swarm' },
-            { method: 'POST', path: '/api/swarms/:id/pause', description: 'Pause swarm' },
-            { method: 'POST', path: '/api/swarms/:id/resume', description: 'Resume swarm' },
-            { method: 'POST', path: '/api/swarms/:id/scale', description: 'Scale swarm' },
-            { method: 'GET', path: '/api/swarms/:id/events', description: 'Get swarm events' },
-            { method: 'GET', path: '/api/swarms/:id/branches', description: 'List branches' },
-            { method: 'POST', path: '/api/swarms/:id/branches', description: 'Create branch' },
-            { method: 'POST', path: '/api/swarms/:id/switch-branch', description: 'Switch branch' },
+            { method: 'GET', path: '/api/v1/swarms', description: 'List all swarms' },
+            { method: 'POST', path: '/api/v1/swarms', description: 'Create a new swarm' },
+            { method: 'GET', path: '/api/v1/swarms/:id', description: 'Get swarm details' },
+            { method: 'PUT', path: '/api/v1/swarms/:id', description: 'Update swarm' },
+            { method: 'DELETE', path: '/api/v1/swarms/:id', description: 'Delete swarm' },
+            { method: 'POST', path: '/api/v1/swarms/:id/start', description: 'Start swarm' },
+            { method: 'POST', path: '/api/v1/swarms/:id/stop', description: 'Stop swarm' },
+            { method: 'POST', path: '/api/v1/swarms/:id/pause', description: 'Pause swarm' },
+            { method: 'POST', path: '/api/v1/swarms/:id/resume', description: 'Resume swarm' },
+            { method: 'POST', path: '/api/v1/swarms/:id/scale', description: 'Scale swarm' },
+            { method: 'GET', path: '/api/v1/swarms/:id/events', description: 'Get swarm events' },
+            { method: 'GET', path: '/api/v1/swarms/:id/branches', description: 'List branches' },
+            { method: 'POST', path: '/api/v1/swarms/:id/branches', description: 'Create branch' },
+            { method: 'POST', path: '/api/v1/swarms/:id/switch-branch', description: 'Switch branch' },
           ],
         },
         {
@@ -83,12 +83,12 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'Task management',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/tasks', description: 'List all tasks' },
-            { method: 'POST', path: '/api/tasks', description: 'Create a new task' },
-            { method: 'GET', path: '/api/tasks/:id', description: 'Get task details' },
-            { method: 'PUT', path: '/api/tasks/:id', description: 'Update task' },
-            { method: 'DELETE', path: '/api/tasks/:id', description: 'Delete task' },
-            { method: 'POST', path: '/api/tasks/:id/assign', description: 'Assign task to agent' },
+            { method: 'GET', path: '/api/v1/tasks', description: 'List all tasks' },
+            { method: 'POST', path: '/api/v1/tasks', description: 'Create a new task' },
+            { method: 'GET', path: '/api/v1/tasks/:id', description: 'Get task details' },
+            { method: 'PUT', path: '/api/v1/tasks/:id', description: 'Update task' },
+            { method: 'DELETE', path: '/api/v1/tasks/:id', description: 'Delete task' },
+            { method: 'POST', path: '/api/v1/tasks/:id/assign', description: 'Assign task to agent' },
           ],
         },
         {
@@ -96,9 +96,9 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'Event bus operations',
           version: '1.0.0',
           endpoints: [
-            { method: 'POST', path: '/api/bus/publish', description: 'Publish an event' },
-            { method: 'GET', path: '/api/bus/subscribe', description: 'Subscribe to events (SSE)' },
-            { method: 'GET', path: '/api/bus/events', description: 'Get recent events' },
+            { method: 'POST', path: '/api/v1/bus/publish', description: 'Publish an event' },
+            { method: 'GET', path: '/api/v1/bus/subscribe', description: 'Subscribe to events (SSE)' },
+            { method: 'GET', path: '/api/v1/bus/events', description: 'Get recent events' },
           ],
         },
         {
@@ -106,10 +106,10 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'System metrics',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/metrics/json', description: 'Get JSON metrics' },
-            { method: 'GET', path: '/api/metrics/dashboard', description: 'Get dashboard stats' },
-            { method: 'GET', path: '/api/metrics/cost', description: 'Get cost metrics' },
-            { method: 'GET', path: '/api/metrics/cost/breakdown', description: 'Get cost breakdown' },
+            { method: 'GET', path: '/api/v1/metrics/json', description: 'Get JSON metrics' },
+            { method: 'GET', path: '/api/v1/metrics/dashboard', description: 'Get dashboard stats' },
+            { method: 'GET', path: '/api/v1/metrics/cost', description: 'Get cost metrics' },
+            { method: 'GET', path: '/api/v1/metrics/cost/breakdown', description: 'Get cost breakdown' },
           ],
         },
         {
@@ -117,8 +117,8 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'Log querying',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/logs', description: 'Query logs' },
-            { method: 'GET', path: '/api/logs/agents', description: 'Get agent log summaries' },
+            { method: 'GET', path: '/api/v1/logs', description: 'Query logs' },
+            { method: 'GET', path: '/api/v1/logs/agents', description: 'Get agent log summaries' },
           ],
         },
         {
@@ -127,9 +127,9 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           version: '1.0.0',
           endpoints: [
             { method: 'GET', path: '/health', description: 'Basic health check' },
-            { method: 'GET', path: '/api/health/detailed', description: 'Detailed health check' },
-            { method: 'GET', path: '/api/health/ready', description: 'Readiness check' },
-            { method: 'GET', path: '/api/health/live', description: 'Liveness check' },
+            { method: 'GET', path: '/api/v1/health/detailed', description: 'Detailed health check' },
+            { method: 'GET', path: '/api/v1/health/ready', description: 'Readiness check' },
+            { method: 'GET', path: '/api/v1/health/live', description: 'Liveness check' },
           ],
         },
         {
@@ -137,8 +137,8 @@ export async function capabilitiesRoutes(fastify: FastifyInstance) {
           description: 'API documentation',
           version: '1.0.0',
           endpoints: [
-            { method: 'GET', path: '/api/openapi.json', description: 'OpenAPI specification' },
-            { method: 'GET', path: '/api/docs', description: 'Swagger UI documentation' },
+            { method: 'GET', path: '/api/v1/openapi.json', description: 'OpenAPI specification' },
+            { method: 'GET', path: '/api/v1/docs', description: 'Swagger UI documentation' },
           ],
         },
       ];
