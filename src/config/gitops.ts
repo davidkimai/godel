@@ -116,8 +116,8 @@ export function diffConfigs(
   }
   
   compareObjects(
-    oldConfig as Record<string, unknown>,
-    newConfig as Record<string, unknown>
+    oldConfig as unknown as Record<string, unknown>,
+    newConfig as unknown as Record<string, unknown>
   );
   
   return {
@@ -128,6 +128,7 @@ export function diffConfigs(
       removed: differences.filter(d => d.type === 'removed').length,
       modified: differences.filter(d => d.type === 'modified').length,
     },
+    timestamp: new Date().toISOString(),
   };
 }
 

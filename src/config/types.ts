@@ -4,6 +4,60 @@
  * TypeScript type definitions for the Dash configuration system.
  */
 
+import { Type, type Static } from '@sinclair/typebox';
+
+// ============================================================================
+// TypeBox Schemas
+// ============================================================================
+
+export const SwarmYamlSchema = Type.Object({
+  apiVersion: Type.String({ pattern: '^dash\\.io/v1$' }),
+  kind: Type.Literal('Swarm'),
+  metadata: Type.Object({
+    name: Type.String(),
+    namespace: Type.Optional(Type.String()),
+    labels: Type.Optional(Type.Record(Type.String(), Type.String())),
+    annotations: Type.Optional(Type.Record(Type.String(), Type.String())),
+    description: Type.Optional(Type.String()),
+  }),
+  spec: Type.Object({
+    task: Type.String(),
+    strategy: Type.Optional(Type.Union([
+      Type.Literal('parallel'),
+      Type.Literal('map-reduce'),
+      Type.Literal('pipeline'),
+      Type.Literal('tree'),
+      Type.Literal('sequential'),
+      Type.Literal('round-robin'),
+    ])),
+    initialAgents: Type.Optional(Type.Number()),
+    maxAgents: Type.Optional(Type.Number()),
+    minAgents: Type.Optional(Type.Number()),
+    agentType: Type.Optional(Type.String()),
+    model: Type.Optional(Type.String()),
+    config: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    budget: Type.Optional(Type.Object({
+      amount: Type.Number(),
+      currency: Type.Optional(Type.String()),
+      warningThreshold: Type.Optional(Type.Number()),
+      criticalThreshold: Type.Optional(Type.Number()),
+    })),
+    safety: Type.Optional(Type.Object({
+      fileSandbox: Type.Optional(Type.Boolean()),
+      networkAllowlist: Type.Optional(Type.Array(Type.String())),
+      commandBlacklist: Type.Optional(Type.Array(Type.String())),
+      maxExecutionTime: Type.Optional(Type.Number()),
+    })),
+    gitops: Type.Optional(Type.Object({
+      enabled: Type.Optional(Type.Boolean()),
+      watchInterval: Type.Optional(Type.Number()),
+      autoApply: Type.Optional(Type.Boolean()),
+      rollbackOnFailure: Type.Optional(Type.Boolean()),
+      notifyOnChange: Type.Optional(Type.Boolean()),
+    })),
+  }),
+});
+
 // ============================================================================
 // Server Configuration
 // ============================================================================
@@ -319,13 +373,15 @@ export interface SwarmYamlConfig {
     name: string;
     namespace?: string;
     labels?: Record<string, string>;
+    annotations?: Record<string, string>;
+    description?: string;
   };
   /** Specification */
   spec: {
     /** Task definition */
     task: string;
     /** Strategy: parallel, sequential, or custom */
-    strategy?: 'parallel' | 'sequential' | 'round-robin';
+    strategy?: 'parallel' | 'sequential' | 'round-robin' | 'map-reduce' | 'pipeline' | 'tree';
     /** Initial number of agents */
     initialAgents?: number;
     /** Maximum agents */
@@ -334,27 +390,112 @@ export interface SwarmYamlConfig {
     minAgents?: number;
     /** Agent type */
     agentType?: string;
+    /** Model to use */
+    model?: string;
     /** Configuration */
     config?: Record<string, unknown>;
+    /** Budget configuration */
+    budget?: {
+      amount: number;
+      currency?: string;
+      warningThreshold?: number;
+      criticalThreshold?: number;
+    };
+    /** Safety configuration */
+    safety?: {
+      fileSandbox?: boolean;
+      networkAllowlist?: string[];
+      commandBlacklist?: string[];
+      maxExecutionTime?: number;
+    };
+    /** GitOps configuration */
+    gitops?: GitOpsConfig;
+    [key: string]: unknown;
   };
+  [key: string]: unknown;
 }
 
 // ============================================================================
-// Config Diff Result
+// Config Diff
 // ============================================================================
+
+export interface ConfigDiff {
+  /** Path to the changed property */
+  path: string;
+  /** Old value */
+  oldValue: unknown;
+  /** New value */
+  newValue: unknown;
+  /** Type of change */
+  type: 'added' | 'removed' | 'modified';
+}
 
 export interface ConfigDiffResult {
   /** Whether configs are identical */
   identical: boolean;
   /** List of differences */
-  differences: Array<{
-    path: string;
-    oldValue: unknown;
-    newValue: unknown;
-    type: 'added' | 'removed' | 'modified';
-  }>;
+  differences: ConfigDiff[];
+  /** Summary of changes */
+  summary?: {
+    added: number;
+    removed: number;
+    modified: number;
+  };
   /** Timestamp of diff */
   timestamp: string;
+}
+
+// ============================================================================
+// GitOps Configuration
+// ============================================================================
+
+export interface GitOpsConfig {
+  /** Enable GitOps watching */
+  enabled: boolean;
+  /** Watch interval in milliseconds */
+  watchInterval: number;
+  /** Auto-apply changes */
+  autoApply: boolean;
+  /** Rollback on failure */
+  rollbackOnFailure: boolean;
+  /** Notify on change */
+  notifyOnChange: boolean;
+}
+
+export interface GitOpsEvent {
+  /** Event type */
+  type: 'config.loaded' | 'config.changed' | 'config.applied' | 'config.failed' | 'config.rolledback';
+  /** Event timestamp */
+  timestamp: Date;
+  /** Path to config file */
+  filePath: string;
+  /** Swarm ID */
+  swarmId: string;
+  /** Config diff (for change events) */
+  diff?: ConfigDiffResult;
+  /** Error (for failed events) */
+  error?: Error;
+}
+
+export type GitOpsEventHandler = (event: GitOpsEvent) => void;
+
+// ============================================================================
+// Configuration Load Result
+// ============================================================================
+
+export interface ConfigLoadResult {
+  /** Loaded and validated configuration */
+  config: SwarmYamlConfig;
+  /** Raw file content */
+  rawContent: string;
+  /** Path to config file */
+  filePath: string;
+  /** MD5 checksum of content */
+  checksum: string;
+  /** List of resolved secret paths */
+  resolvedSecrets: string[];
+  /** List of substituted environment variables */
+  substitutedEnvVars: string[];
 }
 
 // ============================================================================
