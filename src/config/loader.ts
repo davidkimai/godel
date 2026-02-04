@@ -262,7 +262,7 @@ export async function loadConfig(options: ConfigLoadOptions = {}): Promise<Loade
   sources.push('environment-variables');
 
   // 6. Set the environment
-  config.env = env;
+  config['env'] = env;
 
   // 7. Validate the configuration
   const validation = validateConfig(config);

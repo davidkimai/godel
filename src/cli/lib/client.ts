@@ -403,26 +403,24 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     try {
-      const state = await this.lifecycle!.spawn(options);
+      const agent = await this.lifecycle!.spawn(options);
       
       // Persist agent to database
       try {
         await this.agentRepo!.create({
-          id: state.agent.id,
-          label: state.agent.label,
+          swarm_id: agent.swarmId,
+          label: agent.label,
           status: AgentStatus.PENDING,
-          model: state.agent.model,
-          task: state.agent.task,
-          swarm_id: state.agent.swarmId,
-          parent_id: state.agent.parentId,
-          max_retries: state.agent.maxRetries,
-          metadata: state.agent.metadata,
+          model: agent.model,
+          task: agent.task,
+          max_retries: agent.maxRetries,
+          metadata: agent.metadata,
         });
       } catch {
         // Ignore DB errors for now
       }
       
-      return { success: true, data: state.agent };
+      return { success: true, data: agent };
     } catch (error) {
       return {
         success: false,
@@ -792,8 +790,8 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     const message = this.messageBus!.publish(topic, payload, {
-      source: metadata?.source as string,
-      priority: metadata?.priority as any,
+      source: metadata?.['source'] as string,
+      priority: metadata?.['priority'] as any,
     });
     
     return { success: true, data: message };
@@ -803,9 +801,20 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     const subscription = this.messageBus!.subscribe(topic, handler);
-    this.subscriptions.set(subscription.id, subscription);
     
-    return { success: true, data: subscription.id };
+    // Handle both single subscription and array
+    if (Array.isArray(subscription)) {
+      const id = subscription[0]?.id;
+      if (id) {
+        this.subscriptions.set(id, subscription[0]);
+        return { success: true, data: id };
+      }
+    } else if (subscription) {
+      this.subscriptions.set(subscription.id, subscription);
+      return { success: true, data: subscription.id };
+    }
+    
+    return { success: false, error: { code: 'SUBSCRIBE_FAILED', message: 'Failed to subscribe' } };
   }
 
   async unsubscribe(subscriptionId: string): Promise<ApiResponse<void>> {
@@ -892,13 +901,13 @@ export class DirectDashClient implements DashApiClient {
     const checks: Record<string, { status: string; message?: string }> = {};
     
     // Check lifecycle
-    checks.lifecycle = { status: this.lifecycle ? 'healthy' : 'unhealthy' };
+    checks['lifecycle'] = { status: this.lifecycle ? 'healthy' : 'unhealthy' };
     
     // Check swarm manager
-    checks.swarmManager = { status: this.swarmManager ? 'healthy' : 'unhealthy' };
+    checks['swarmManager'] = { status: this.swarmManager ? 'healthy' : 'unhealthy' };
     
     // Check message bus
-    checks.messageBus = { status: this.messageBus ? 'healthy' : 'unhealthy' };
+    checks['messageBus'] = { status: this.messageBus ? 'healthy' : 'unhealthy' };
     
     // Determine overall status
     const allHealthy = Object.values(checks).every(c => c.status === 'healthy');
@@ -937,8 +946,8 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     // Update configuration (simplified)
-    if (config.dbPath) {
-      this.dbPath = config.dbPath as string;
+    if (config['dbPath']) {
+      this.dbPath = config['dbPath'] as string;
     }
     
     return { success: true };

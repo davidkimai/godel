@@ -22,6 +22,9 @@ import {
   ConfigValidationException,
 } from './types';
 
+// Import SwarmStrategy for toSwarmConfig
+import type { SwarmStrategy } from '../core/swarm';
+
 // Re-export types for convenience
 export type { ConfigLoadOptions, ConfigLoadResult, ConfigValidationError } from './types';
 export { ConfigValidationException } from './types';
@@ -338,13 +341,14 @@ export function validateConfig(
   
   // Additional custom validations
   const swarmConfig = config as Partial<SwarmYamlConfig>;
+  const specAny = swarmConfig.spec as any;
   
   // Check that initialAgents <= maxAgents
-  if (swarmConfig.spec?.initialAgents && swarmConfig.spec?.maxAgents) {
-    if (swarmConfig.spec.initialAgents > swarmConfig.spec.maxAgents) {
+  if (specAny?.initialAgents && specAny?.maxAgents) {
+    if (specAny.initialAgents > specAny.maxAgents) {
       errors.push({
         path: '/spec/initialAgents',
-        message: `initialAgents (${swarmConfig.spec.initialAgents}) cannot be greater than maxAgents (${swarmConfig.spec.maxAgents})`,
+        message: `initialAgents (${specAny.initialAgents}) cannot be greater than maxAgents (${specAny.maxAgents})`,
         code: 'custom/invalid_agent_count',
         suggestion: 'Set initialAgents <= maxAgents',
       });
@@ -352,8 +356,8 @@ export function validateConfig(
   }
   
   // Check budget thresholds
-  if (swarmConfig.spec?.budget) {
-    const { warningThreshold, criticalThreshold } = swarmConfig.spec.budget;
+  if (specAny?.budget) {
+    const { warningThreshold, criticalThreshold } = specAny.budget;
     if (warningThreshold !== undefined && criticalThreshold !== undefined) {
       if (warningThreshold > criticalThreshold) {
         errors.push({
@@ -367,8 +371,8 @@ export function validateConfig(
   }
   
   // Check GitOps config has valid interval
-  if (swarmConfig.spec?.gitops?.watchInterval) {
-    if (swarmConfig.spec.gitops.watchInterval < 100) {
+  if (specAny?.gitops?.watchInterval) {
+    if (specAny.gitops.watchInterval < 100) {
       errors.push({
         path: '/spec/gitops/watchInterval',
         message: 'watchInterval must be at least 100ms',
@@ -413,7 +417,7 @@ function calculateChecksum(content: string): string {
  * Load and process a YAML configuration file
  */
 export async function loadConfig(
-  options: ConfigLoadOptions
+  options: ConfigLoadOptions & { filePath: string; cwd?: string; substituteEnv?: boolean; resolveSecrets?: boolean; validate?: boolean }
 ): Promise<ConfigLoadResult> {
   const {
     filePath,
@@ -496,11 +500,11 @@ export async function loadConfigs(
   }
   
   // Load first config
-  let result = await loadConfig({ ...options, filePath: filePaths[0] });
+  let result = await loadConfig({ ...options, filePath: filePaths[0] } as ConfigLoadOptions & { filePath: string });
   
   // Merge subsequent configs
   for (let i = 1; i < filePaths.length; i++) {
-    const next = await loadConfig({ ...options, filePath: filePaths[i] });
+    const next = await loadConfig({ ...options, filePath: filePaths[i] } as ConfigLoadOptions & { filePath: string });
     
     // Deep merge configs (next overrides result)
     result.config = deepMerge(result.config, next.config);
@@ -556,24 +560,27 @@ import type { SwarmConfig } from '../core/swarm';
 export function toSwarmConfig(yamlConfig: SwarmYamlConfig): SwarmConfig {
   const { spec, metadata } = yamlConfig;
   
+  const specAny = spec as Record<string, unknown>;
+  const metadataAny = metadata as Record<string, unknown>;
+  
   return {
     name: metadata.name,
     task: spec.task,
     initialAgents: spec.initialAgents ?? 5,
     maxAgents: spec.maxAgents ?? 50,
-    strategy: spec.strategy ?? 'parallel',
-    model: spec.model,
-    budget: spec.budget,
-    safety: spec.safety ? {
-      fileSandbox: spec.safety.fileSandbox,
-      networkAllowlist: spec.safety.networkAllowlist,
-      commandBlacklist: spec.safety.commandBlacklist,
-      maxExecutionTime: spec.safety.maxExecutionTime,
+    strategy: (spec.strategy ?? 'parallel') as SwarmStrategy,
+    model: specAny['model'] as string | undefined,
+    budget: specAny['budget'] as SwarmConfig['budget'],
+    safety: specAny['safety'] ? {
+      fileSandbox: specAny['safety']?.['fileSandbox'] as boolean | undefined,
+      networkAllowlist: specAny['safety']?.['networkAllowlist'] as string[] | undefined,
+      commandBlacklist: specAny['safety']?.['commandBlacklist'] as string[] | undefined,
+      maxExecutionTime: specAny['safety']?.['maxExecutionTime'] as number | undefined,
     } : undefined,
     metadata: {
-      ...metadata.labels,
-      ...metadata.annotations,
-      description: metadata.description,
+      ...((metadataAny['labels'] as Record<string, string>) || {}),
+      ...((metadataAny['annotations'] as Record<string, string>) || {}),
+      description: metadataAny['description'] as string | undefined,
     },
   };
 }

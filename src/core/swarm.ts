@@ -218,14 +218,9 @@ export class SwarmManager extends EventEmitter {
         await this.swarmRepository.create({
           id: swarm.id,
           name: swarm.name,
-          status: swarm.status,
+          status: swarm.status as unknown as 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed',
           config: swarm.config as unknown as Record<string, unknown>,
           agents: swarm.agents,
-          created_at: swarm.createdAt.toISOString(),
-          budget_allocated: swarm.budget.allocated,
-          budget_consumed: swarm.budget.consumed,
-          budget_remaining: swarm.budget.remaining,
-          metrics: swarm.metrics as unknown as Record<string, unknown>,
         });
       }
       
