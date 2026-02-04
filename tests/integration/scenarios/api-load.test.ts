@@ -180,7 +180,7 @@ describe('Scenario 4: API Load Testing', () => {
       for (let i = 0; i < iterations; i++) {
         const latencies: number[] = [];
         
-        const requests = Array(requestsPerIteration).fill(null).map(() =
+        const requests = Array(requestsPerIteration).fill(null).map(() =>
           async () => {
             const start = Date.now();
             const response = await apiClient.get('/health');
