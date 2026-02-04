@@ -374,8 +374,8 @@ describe('LogMetricsCollector', () => {
     
     const metrics = collector.getMetrics();
     expect(metrics.totalLogs).toBe(2);
-    expect(metrics.logsByLevel.INFO).toBe(1);
-    expect(metrics.logsByLevel.ERROR).toBe(1);
+    expect(metrics.logsByLevel['INFO']).toBe(1);
+    expect(metrics.logsByLevel['ERROR']).toBe(1);
     expect(metrics.errorCount).toBe(1);
     expect(metrics.errorRate).toBe(0.5);
   });

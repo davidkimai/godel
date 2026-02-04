@@ -15,5 +15,14 @@ module.exports = {
       lines: 50,
       statements: 50
     }
+  },
+  moduleNameMapper: {
+    '^@dash/(.*)$': '<rootDir>/src/$1',
+    '^@jtan15010/dash$': '<rootDir>/src/index.ts'
+  },
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    }
   }
 };

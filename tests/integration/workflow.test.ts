@@ -9,8 +9,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/glo
 import { Pool } from 'pg';
 import Redis from 'ioredis';
 
-const API_URL = process.env.TEST_API_URL || 'http://localhost:3001';
-const TEST_DB_URL = process.env.TEST_DATABASE_URL || 'postgresql://dash_user:dash_password@localhost:5432/dash_test';
+const API_URL = process.env['TEST_API_URL'] || 'http://localhost:3001';
+const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://dash_user:dash_password@localhost:5432/dash_test';
 
 describe('Dash Workflow Integration', () => {
   let db: Pool;
@@ -18,7 +18,7 @@ describe('Dash Workflow Integration', () => {
 
   beforeAll(async () => {
     db = new Pool({ connectionString: TEST_DB_URL });
-    redis = new Redis(process.env.TEST_REDIS_URL || 'redis://localhost:6379/1');
+    redis = new Redis(process.env['TEST_REDIS_URL'] || 'redis://localhost:6379/1');
   });
 
   afterAll(async () => {

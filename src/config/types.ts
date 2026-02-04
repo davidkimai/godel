@@ -304,6 +304,58 @@ export class ConfigValidationException extends Error {
 }
 
 // ============================================================================
+// Swarm YAML Configuration
+// ============================================================================
+
+export interface SwarmYamlConfig {
+  /** API version */
+  apiVersion: string;
+  /** Resource kind */
+  kind: 'Swarm';
+  /** Metadata */
+  metadata: {
+    name: string;
+    namespace?: string;
+    labels?: Record<string, string>;
+  };
+  /** Specification */
+  spec: {
+    /** Task definition */
+    task: string;
+    /** Strategy: parallel, sequential, or custom */
+    strategy?: 'parallel' | 'sequential' | 'round-robin';
+    /** Initial number of agents */
+    initialAgents?: number;
+    /** Maximum agents */
+    maxAgents?: number;
+    /** Minimum agents */
+    minAgents?: number;
+    /** Agent type */
+    agentType?: string;
+    /** Configuration */
+    config?: Record<string, unknown>;
+  };
+}
+
+// ============================================================================
+// Config Diff Result
+// ============================================================================
+
+export interface ConfigDiffResult {
+  /** Whether configs are identical */
+  identical: boolean;
+  /** List of differences */
+  differences: Array<{
+    path: string;
+    oldValue: unknown;
+    newValue: unknown;
+    type: 'added' | 'removed' | 'modified';
+  }>;
+  /** Timestamp of diff */
+  timestamp: string;
+}
+
+// ============================================================================
 // Secret Resolution
 // ============================================================================
 
