@@ -421,7 +421,7 @@ describe('RedisEventBus', () => {
         compressionThreshold: 50, // Very low for testing
       };
       
-      eventBus = createRedisEventBus(largeConfig);
+      eventBus = await createRedisEventBus(largeConfig);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       const handler = jest.fn();
@@ -464,7 +464,7 @@ describe('RedisEventBus', () => {
         },
       };
 
-      eventBus = createRedisEventBus(fallbackConfig);
+      eventBus = await createRedisEventBus(fallbackConfig);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(eventBus.isFallbackMode()).toBe(false);
@@ -522,7 +522,7 @@ describe('RedisEventBus', () => {
         },
       };
 
-      eventBus = createRedisEventBus(fallbackConfig);
+      eventBus = await createRedisEventBus(fallbackConfig);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Activate fallback
@@ -913,7 +913,7 @@ describe('RedisEventBus', () => {
 
 describe('RedisEventBus Compatibility', () => {
   it('should maintain API compatibility with AgentEventBus', async () => {
-    const eventBus = createRedisEventBus({ nodeId: 'compat-test' });
+    const eventBus = await createRedisEventBus({ nodeId: 'compat-test' });
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // All these methods should exist and work

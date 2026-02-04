@@ -12,6 +12,7 @@ const mockRedis = {
   setex: jest.fn(),
   del: jest.fn(),
   keys: jest.fn(),
+  exists: jest.fn(),
   hgetall: jest.fn(),
   hset: jest.fn(),
   hincrbyfloat: jest.fn(),

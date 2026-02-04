@@ -24,6 +24,7 @@ export interface SwarmCreateInput {
   name: string;
   config?: Record<string, unknown>;
   status?: SwarmStatus;
+  agents?: string[];
 }
 
 export interface SwarmUpdateInput {
