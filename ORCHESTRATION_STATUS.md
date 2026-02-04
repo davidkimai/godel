@@ -58,10 +58,10 @@ All 4 Phase 0 subagents have finished successfully:
 
 | Subagent | Worktree | Process | Mission | Status |
 |----------|----------|---------|---------|--------|
-| dash-reliability-engineer | dash-phase1-circuit | faint-ember | Circuit breaker | 🔄 Active |
-| dash-observability-engineer | dash-phase1-logs | ember-otter | Structured logging | 🔄 Active |
-| dash-test-engineer | dash-phase1-tests | young-sable | Integration tests | 🔄 Active |
-| dash-security-engineer-2 | dash-phase1-security | wild-atlas | Security hardening | 🔄 Active |
+| dash-reliability-engineer | dash-phase1-circuit | brisk-mist | Circuit breaker | 🔄 Active |
+| dash-observability-engineer | dash-phase1-logs | salty-harbor | Structured logging | 🔄 Active |
+| dash-test-engineer | dash-phase1-tests | swift-gulf | Integration tests | 🔄 Active |
+| dash-security-engineer-2 | dash-phase1-security | tidal-shoal | Security hardening | 🔄 Active |
 
 **Parallel Execution:** 4 worktrees × Codex CLI (full-auto) = Maximum throughput
 
