@@ -214,11 +214,7 @@
         "type": "timeseries",
         "targets": [
           {
-            "expr": "(
-              sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
-              -
-              sum by (swarm_id) (rate(dash_agent_failures_total[5m]))
-            ) / sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m])) * 100",
+            "expr": "(sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m])) - sum by (swarm_id) (rate(dash_agent_failures_total[5m]))) / sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m])) * 100",
             "legendFormat": "{{swarm_id}}"
           }
         ],
@@ -254,11 +250,7 @@
         "type": "timeseries",
         "targets": [
           {
-            "expr": "(
-              sum by (tool_name) (rate(dash_tool_call_duration_seconds_count{success=\"true\"}[5m]))
-              /
-              sum by (tool_name) (rate(dash_tool_call_duration_seconds_count[5m]))
-            ) * 100",
+            "expr": "(sum by (tool_name) (rate(dash_tool_call_duration_seconds_count{success=\"true\"}[5m])) / sum by (tool_name) (rate(dash_tool_call_duration_seconds_count[5m]))) * 100",
             "legendFormat": "{{tool_name}}"
           }
         ],

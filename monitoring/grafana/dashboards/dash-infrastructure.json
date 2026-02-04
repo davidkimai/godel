@@ -346,11 +346,7 @@
         "type": "timeseries",
         "targets": [
           {
-            "expr": "(
-              sum(pg_stat_database_blks_hit) 
-              / 
-              (sum(pg_stat_database_blks_hit) + sum(pg_stat_database_blks_read))
-            ) * 100",
+            "expr": "(sum(pg_stat_database_blks_hit) / (sum(pg_stat_database_blks_hit) + sum(pg_stat_database_blks_read))) * 100",
             "legendFormat": "Cache Hit %"
           }
         ],

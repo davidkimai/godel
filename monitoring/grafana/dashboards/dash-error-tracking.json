@@ -103,11 +103,7 @@
         "type": "gauge",
         "targets": [
           {
-            "expr": "(
-              sum(rate(dash_errors_total[5m])) 
-              / 
-              sum(rate(dash_events_total[5m]))
-            ) * 100",
+            "expr": "(sum(rate(dash_errors_total[5m])) / sum(rate(dash_events_total[5m]))) * 100",
             "legendFormat": "Error %"
           }
         ],
@@ -283,11 +279,7 @@
         "type": "timeseries",
         "targets": [
           {
-            "expr": "(
-              sum by (method, route) (rate(dash_api_request_duration_seconds_count{status_code=~\"5..\"}[5m]))
-              /
-              sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))
-            ) * 100",
+            "expr": "(sum by (method, route) (rate(dash_api_request_duration_seconds_count{status_code=~\"5..\"}[5m])) / sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))) * 100",
             "legendFormat": "{{method}} {{route}}"
           }
         ],
@@ -304,11 +296,7 @@
         "type": "timeseries",
         "targets": [
           {
-            "expr": "(
-              sum(rate(dash_swarm_failure_total[5m]))
-              /
-              (sum(rate(dash_swarm_success_total[5m])) + sum(rate(dash_swarm_failure_total[5m])))
-            ) * 100",
+            "expr": "(sum(rate(dash_swarm_failure_total[5m])) / (sum(rate(dash_swarm_success_total[5m])) + sum(rate(dash_swarm_failure_total[5m])))) * 100",
             "legendFormat": "Failure Rate %"
           }
         ],
