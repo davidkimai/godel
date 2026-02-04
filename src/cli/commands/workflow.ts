@@ -19,7 +19,7 @@ export function createWorkflowCommand(): Command {
         const client = getClient();
         const workflows = await client.workflows.list({
           status: options.status,
-          limit: parseInt(options.limit)
+          pageSize: parseInt(options.limit)
         });
         
         formatOutput(workflows, options.format);
@@ -59,7 +59,8 @@ export function createWorkflowCommand(): Command {
         const workflowDef = yaml.load(content);
         
         const client = getClient();
-        const workflow = await client.workflows.create(workflowDef);
+        const response = await client.workflows.create(workflowDef);
+        const workflow = response.data!;
         
         logger.info(`✅ Workflow created: ${workflow.id}`);
         formatOutput(workflow, options.format);
@@ -87,7 +88,8 @@ export function createWorkflowCommand(): Command {
         }
         
         const client = getClient();
-        const execution = await client.workflows.run(id, input);
+        const response = await client.workflows.run(id, input);
+        const execution = response.data!;
         
         logger.info(`🚀 Workflow execution started: ${execution.id}`);
         formatOutput(execution, options.format);
@@ -143,11 +145,11 @@ export function createWorkflowCommand(): Command {
         const client = getClient();
         
         if (options.follow) {
-          // Stream logs
+          // Stream logs using async iteration
           const stream = await client.workflows.streamLogs(executionId);
-          stream.on('data', (log) => {
+          for await (const log of stream) {
             logger.info(`[${log.timestamp}] ${log.level}: ${log.message}`);
-          });
+          }
         } else {
           const logs = await client.workflows.getLogs(executionId);
           formatOutput(logs, options.format);

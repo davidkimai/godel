@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getWebSocketManager } from '../../events/websocket';
 
-interface UseWebSocketOptions {
+export interface UseWebSocketOptions {
   url?: string;
   autoConnect?: boolean;
   reconnectInterval?: number;
@@ -19,7 +19,7 @@ interface WebSocketState {
   clientCount: number;
 }
 
-interface UseWebSocketReturn extends WebSocketState {
+export interface UseWebSocketReturn extends WebSocketState {
   subscribe: (event: string, callback: (data: any) => void) => () => void;
   send: (event: string, data: any) => void;
   disconnect: () => void;

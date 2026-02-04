@@ -145,7 +145,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     }
 
     // TODO: Implement actual credential validation against database
-    // This is a placeholder - replace with actual auth logic
+    // This is a placeholder - this with actual auth logic
     const isValid = validateCredentials(username, password);
 
     if (!isValid) {
@@ -194,7 +194,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
 
   // Get current user
   authRouter.get('/me', (req: Request, res: Response) => {
-    const session = req.cookies?.session;
+    const session = req.cookies?.["session"];
 
     if (!session) {
       throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
@@ -213,7 +213,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
 
   // Refresh session
   authRouter.post('/refresh', (req: Request, res: Response) => {
-    const session = req.cookies?.session;
+    const session = req.cookies?.["session"];
 
     if (!session) {
       throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
@@ -260,7 +260,7 @@ function createApiRoutes() {
     if (req.method === 'GET') return next();
 
     const csrfHeader = req.headers['x-csrf-token'];
-    const csrfCookie = req.cookies?.csrf_token;
+    const csrfCookie = req.cookies?.["csrf_token"];
 
     if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
       throw new APIError('Invalid CSRF token', 403, 'FORBIDDEN');
@@ -347,7 +347,7 @@ function createApiRoutes() {
     const event = await eventRepo.create({
       type: eventType,
       source: 'self-improvement',
-      payload: JSON.stringify(payload || {}),
+      payload: (payload || {}) as Record<string, unknown>,
       agent_id: payload?.agentId,
       swarm_id: payload?.swarmId
     });

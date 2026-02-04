@@ -12,7 +12,7 @@
 
 import { EventEmitter } from 'events';
 
-interface DashboardConfig {
+interface TerminalDashboardConfig {
   apiUrl: string;
   wsUrl: string;
   apiKey: string;
@@ -38,7 +38,7 @@ interface BudgetDisplay {
   status: 'healthy' | 'warning' | 'critical';
 }
 
-const DEFAULT_CONFIG: DashboardConfig = {
+const DEFAULT_CONFIG: TerminalDashboardConfig = {
   apiUrl: 'http://localhost:7373',
   wsUrl: 'ws://localhost:7374',
   apiKey: 'dash-api-key',
@@ -47,7 +47,7 @@ const DEFAULT_CONFIG: DashboardConfig = {
 };
 
 export class TerminalDashboard extends EventEmitter {
-  private config: DashboardConfig;
+  private config: TerminalDashboardConfig;
   private agents: AgentDisplay[] = [];
   private selectedIndex = 0;
   private paused = false;
@@ -55,7 +55,7 @@ export class TerminalDashboard extends EventEmitter {
   private budget: BudgetDisplay | null = null;
   private isRunning = false;
 
-  constructor(config: Partial<DashboardConfig> = {}) {
+  constructor(config: Partial<TerminalDashboardConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -240,8 +240,8 @@ export function getDashboard(): TerminalDashboard {
   return instance;
 }
 
-export function createDashboard(config?: Partial<DashboardConfig>): TerminalDashboard {
+export function createDashboard(config?: Partial<TerminalDashboardConfig>): TerminalDashboard {
   return new TerminalDashboard(config);
 }
 
-export type { DashboardConfig, AgentDisplay, BudgetDisplay };
+export type { TerminalDashboardConfig, AgentDisplay, BudgetDisplay };

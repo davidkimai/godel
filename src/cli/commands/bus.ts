@@ -47,7 +47,7 @@ export function registerBusCommand(program: Command): void {
         };
         
         if (options.source) {
-          metadata.source = options.source;
+          metadata["source"] = options.source;
         }
 
         logger.info(`📤 Publishing to ${topic}...`);

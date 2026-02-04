@@ -383,7 +383,7 @@ export function createTracedMessageBusPublish<T extends (...args: unknown[]) => 
         return (originalPublish as Function)(topic, tracedMessage, metadata);
       },
       {
-        priority: metadata?.priority as 'low' | 'medium' | 'high' | 'critical',
+        priority: metadata?.["priority"] as 'low' | 'medium' | 'high' | 'critical',
       }
     );
   }) as T;
@@ -450,14 +450,14 @@ export function logEvent(
   const traceId = getCurrentTraceId();
   const correlationId = getBaggage('event.correlation_id');
   
-  logger.info({
+  logger.info(`[EventTracing] ${eventType}`, {
     event: eventType,
     event_id: eventId,
     agent_id: agentId,
     trace_id: traceId,
     correlation_id: correlationId,
     ...data,
-  }, `[EventTracing] ${eventType}`);
+  });
 }
 
 // ============================================================================

@@ -11,8 +11,8 @@ export interface BatchOptions {
   retryDelayMs?: number;
 }
 
-export interface BatchResult<T> {
-  success: T[];
+export interface BatchResult<T, R = T> {
+  success: R[];
   failed: Array<{ item: T; error: Error }>;
   total: number;
   duration: number;
@@ -60,7 +60,7 @@ export class BatchProcessor<T = unknown, R = unknown> {
     });
   }
 
-  async processAll(): Promise<BatchResult<T>> {
+  async processAll(): Promise<BatchResult<T, R>> {
     const start = Date.now();
     const success: R[] = [];
     const failed: Array<{ item: T; error: Error }> = [];
@@ -115,7 +115,7 @@ export class BatchProcessor<T = unknown, R = unknown> {
   }
 
   private async withRetry<T>(
-    fn: () => Promise<T>,
+    fn: () => T | Promise<T>,
     attempt = 0
   ): Promise<T> {
     try {
@@ -168,7 +168,7 @@ export async function batchProcess<T, R>(
   items: T[],
   processor: (item: T) => R | Promise<R>,
   options?: BatchOptions
-): Promise<BatchResult<T>> {
+): Promise<BatchResult<T, R>> {
   const batchProcessor = new BatchProcessor<T, R>(processor, options);
 
   // Add all items
@@ -195,7 +195,7 @@ export function createThrottled<T extends (...args: unknown[]) => Promise<unknow
     result.then(cleanup, cleanup);
 
     // Wait if at concurrency limit
-    const wait = async (): Promise<unknown> => {
+    const wait = async (): Promise<void> => {
       while (inFlight.size >= maxConcurrent) {
         await Promise.race(inFlight);
       }

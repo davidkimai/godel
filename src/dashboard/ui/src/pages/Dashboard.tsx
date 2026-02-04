@@ -30,7 +30,7 @@ import {
 import { Card, StatsCard, Badge, LoadingSpinner } from '../components/Layout';
 import { useDashboardStore, useUIStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useEventStream } from '../services/websocket.ts';
+import { useEventStream } from '../services/websocket';
 import {
   AgentStatus,
   SwarmState,
@@ -38,12 +38,8 @@ import {
   formatNumber,
   getStatusColor,
   calculateAgentMetrics
-} from '../types/index.ts';
-import {
-  formatCurrency,
-  formatNumber
-} from '../utils/index.ts';
-import type { Agent, Swarm, AgentEvent } from '../types/index.ts';
+} from '../types/index';
+import type { Agent, Swarm, AgentEvent } from '../types/index';
 
 // ============================================================================
 // Dashboard Page

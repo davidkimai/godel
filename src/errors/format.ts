@@ -137,8 +137,8 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
     const path = request.url;
 
     if (error.validation) {
-      const validationErrors: ValidationError[] = error.validation.map((ve) => ({
-        field: ve.instancePath || ve.params?.missingProperty || 'unknown',
+      const validationErrors: ValidationError[] = error.validation.map((ve: any) => ({
+        field: ve.instancePath || ve.params?.["missingProperty"] || 'unknown',
         message: ve.message || 'Invalid value',
         value: ve.data,
       }));

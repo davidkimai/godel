@@ -9,6 +9,7 @@ import { SwarmRepository } from '../../storage/repositories/SwarmRepository';
 import { AgentRepository } from '../../storage/repositories/AgentRepository';
 import { EventRepository } from '../../storage/repositories/EventRepository';
 import { logger } from '../../utils/logger';
+import { AgentStatus } from '../../models/agent';
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction
     const totalCost = agents.reduce((sum, a) => sum + (a.cost || 0), 0);
     const eventsLastHour = events.filter(e => {
       const hourAgo = Date.now() - 3600000;
-      return new Date(e.created_at).getTime() > hourAgo;
+      return new Date(e.timestamp).getTime() > hourAgo;
     }).length;
 
     res.json({
@@ -67,7 +68,7 @@ router.get('/cost', async (_req: Request, res: Response, next: NextFunction) => 
     
     // Calculate burn rate (last hour)
     const hourAgo = Date.now() - 3600000;
-    const recentAgents = agents.filter(a => new Date(a.created_at).getTime() > hourAgo);
+    const recentAgents = agents.filter(a => new Date(a.spawned_at).getTime() > hourAgo);
     const recentCost = recentAgents.reduce((sum, a) => sum + (a.cost || 0), 0);
     const hourlyRate = recentCost;
 
@@ -109,7 +110,7 @@ router.get('/cost/breakdown', async (_req: Request, res: Response, next: NextFun
       const hourEnd = hourStart + 3600000;
       
       const hourAgents = agents.filter(a => {
-        const created = new Date(a.created_at).getTime();
+        const created = new Date(a.spawned_at).getTime();
         return created >= hourStart && created < hourEnd;
       });
       
@@ -146,7 +147,7 @@ router.get('/agents', async (_req: Request, res: Response, next: NextFunction) =
       online: agents.filter(a => a.status === 'running').length,
       offline: agents.filter(a => a.status === 'pending').length,
       busy: agents.filter(a => a.status === 'running').length,
-      idle: agents.filter(a => a.status === 'idle' || !a.status).length,
+      idle: agents.filter(a => a.status === AgentStatus.PENDING || !a.status).length,
       error: agents.filter(a => a.status === 'failed').length
     };
 
@@ -188,13 +189,13 @@ router.get('/swarms', async (_req: Request, res: Response, next: NextFunction) =
 router.get('/events', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const eventRepo = new EventRepository();
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limit = parseInt(req.query["limit"] as string) || 100;
     
     const events = await eventRepo.list({ limit });
     
     const hourAgo = Date.now() - 3600000;
     const eventsLastHour = events.filter(e => {
-      const created = new Date(e.created_at).getTime();
+      const created = new Date(e.timestamp).getTime();
       return created > hourAgo;
     });
 

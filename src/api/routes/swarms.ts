@@ -46,6 +46,9 @@ import {
   type CompareBranches,
   type ListSwarmsQuery,
 } from '../schemas/swarm';
+
+// Re-export CompareBranches to fix import resolution
+export type { CompareBranches } from '../schemas/swarm';
 import { IdParamSchema } from '../schemas/common';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 

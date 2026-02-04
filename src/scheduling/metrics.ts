@@ -264,7 +264,7 @@ export class SchedulingMetrics {
     agentId?: string;
     payload: Record<string, unknown>;
   }): void {
-    const priorityClass = (event.payload.priority as { priorityClass: string })?.priorityClass || 'normal';
+    const priorityClass = (event.payload["priority"] as { priorityClass: string })?.priorityClass || 'normal';
 
     switch (event.type) {
       case 'scheduling.requested':
@@ -334,7 +334,7 @@ export class SchedulingMetrics {
       for (const node of nodes) {
         this.nodeAgentCount.set(
           { node_id: node.capacity['nodeId'] },
-          node.agents.length
+          node["agents"].length
         );
       }
 

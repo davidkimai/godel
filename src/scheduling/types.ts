@@ -318,6 +318,7 @@ export type SchedulingEventType =
   | 'scheduling.failed'
   | 'scheduling.preempted'
   | 'scheduling.resumed'
+  | 'scheduling.unscheduled'
   | 'resource.usage_updated'
   | 'node.heartbeat'
   | 'node.failed';

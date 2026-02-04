@@ -211,6 +211,8 @@ export interface Agent {
   label?: string;
   /** Current status */
   status: AgentStatus;
+  /** Lifecycle state */
+  lifecycleState?: string;
   /** Model identifier being used */
   model: string;
   /** Current task being executed */

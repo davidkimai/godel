@@ -414,14 +414,14 @@ export function logDatabaseEvent(
   const traceId = getCurrentTraceId();
   const dbName = getBaggage('db.name') || 'dash';
   
-  logger.info({
+  logger.info(`[DBTracing] ${eventType}`, {
     event: eventType,
     db_operation: operation,
     db_table: table,
     db_name: dbName,
     trace_id: traceId,
     ...data,
-  }, `[DBTracing] ${eventType}`);
+  });
 }
 
 // ============================================================================

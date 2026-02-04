@@ -11,6 +11,7 @@ import type { Event, CreateEventOptions } from '../../models/event';
 import type { Swarm, SwarmConfig, SwarmStatusInfo } from '../../core/swarm';
 import type { Message, MessageFilter } from '../../bus/index';
 import type { AgentState, RetryOptions, LifecycleMetrics } from '../../core/lifecycle';
+import type { Workflow, WorkflowExecution, WorkflowLog } from '../../workflow/types';
 
 // ============================================================================
 // API Response Types
@@ -115,6 +116,19 @@ export interface DashApiClient {
   // Config operations
   getConfig(): Promise<ApiResponse<Record<string, unknown>>>;
   updateConfig(config: Record<string, unknown>): Promise<ApiResponse<void>>;
+  
+  // Workflow operations
+  workflows: {
+    list(options?: ListOptions & { status?: string }): Promise<ApiResponse<PaginatedResponse<Workflow>>>;
+    get(id: string): Promise<ApiResponse<Workflow>>;
+    create(data: Omit<Workflow, 'id'>): Promise<ApiResponse<Workflow>>;
+    update(id: string, data: Partial<Workflow>): Promise<ApiResponse<Workflow>>;
+    delete(id: string): Promise<ApiResponse<void>>;
+    run(id: string, input: Record<string, unknown>): Promise<ApiResponse<WorkflowExecution>>;
+    stop(executionId: string): Promise<ApiResponse<void>>;
+    streamLogs(executionId: string): AsyncIterable<WorkflowLog>;
+    getLogs(executionId: string): Promise<ApiResponse<WorkflowLog[]>>;
+  };
 }
 
 // ============================================================================
@@ -952,6 +966,80 @@ export class DirectDashClient implements DashApiClient {
     
     return { success: true };
   }
+
+  // ============================================================================
+  // Workflow Operations
+  // ============================================================================
+
+  workflows = {
+    list: async (options: ListOptions & { status?: string } = {}): Promise<ApiResponse<PaginatedResponse<Workflow>>> => {
+      await this.initialize();
+      // Placeholder: Return empty list until workflow storage is implemented
+      return {
+        success: true,
+        data: {
+          items: [],
+          total: 0,
+          page: options.page || 1,
+          pageSize: options.pageSize || 50,
+          hasMore: false,
+        },
+      };
+    },
+    get: async (id: string): Promise<ApiResponse<Workflow>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Workflow ${id} not found` },
+      };
+    },
+    create: async (data: Omit<Workflow, 'id'>): Promise<ApiResponse<Workflow>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_IMPLEMENTED', message: 'Workflow creation not yet implemented' },
+      };
+    },
+    update: async (id: string, data: Partial<Workflow>): Promise<ApiResponse<Workflow>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Workflow ${id} not found` },
+      };
+    },
+    delete: async (id: string): Promise<ApiResponse<void>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_FOUND', message: `Workflow ${id} not found` },
+      };
+    },
+    run: async (id: string, _input: Record<string, unknown>): Promise<ApiResponse<WorkflowExecution>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_IMPLEMENTED', message: 'Workflow run not yet implemented' },
+      };
+    },
+    stop: async (_executionId: string): Promise<ApiResponse<void>> => {
+      await this.initialize();
+      return {
+        success: false,
+        error: { code: 'NOT_IMPLEMENTED', message: 'Workflow stop not yet implemented' },
+      };
+    },
+    streamLogs: async function* (_executionId: string): AsyncIterable<WorkflowLog> {
+      // Placeholder: yield empty
+      return;
+    },
+    getLogs: async (_executionId: string): Promise<ApiResponse<WorkflowLog[]>> => {
+      await this.initialize();
+      return {
+        success: true,
+        data: [],
+      };
+    },
+  };
 }
 
 // ============================================================================

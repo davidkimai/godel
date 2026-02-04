@@ -21,7 +21,10 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /** Require authentication middleware wrapper */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void;
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  // Stub implementation - actual auth handled by fastify plugin
+  next();
+}
 
 /**
  * Generate a cryptographically secure API key

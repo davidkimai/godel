@@ -149,6 +149,7 @@ router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRe
         await agentRepo.create({
           swarm_id: id as string,
           status: 'pending',
+          model: 'gpt-4',
           task: 'Auto-scaled agent',
         });
       }

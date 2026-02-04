@@ -472,13 +472,13 @@ export function logTaskEvent(
   const traceId = getCurrentTraceId();
   const correlationId = getBaggage('task.correlation_id');
   
-  logger.info({
+  logger.info(`[TaskTracing] ${eventType}`, {
     event: eventType,
     task_id: taskId,
     trace_id: traceId,
     correlation_id: correlationId,
     ...data,
-  }, `[TaskTracing] ${eventType}`);
+  });
 }
 
 // ============================================================================

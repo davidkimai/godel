@@ -19,7 +19,7 @@ export class EventLogStore extends EventEmitter {
   private buffer: EventLogEntry[] = [];
   private persisted: EventLogEntry[] = [];
   private options: Required<EventLogStoreOptions>;
-  private flushTimer?: NodeJS.Timer;
+  private flushTimer?: ReturnType<typeof setInterval>;
 
   constructor(options: EventLogStoreOptions = {}) {
     super();

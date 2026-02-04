@@ -195,7 +195,7 @@ export class AffinityEngine {
     allNodes: NodeAllocation[]
   ): { rule: AffinityRule; score: number; matched: boolean } {
     // Get agents on the target node
-    const agentsOnNode = node.agents;
+    const agentsOnNode = node["agents"];
     
     // For topology-based spreading, check other nodes in same topology
     let matchingAgents = agentsOnNode;
@@ -251,7 +251,7 @@ export class AffinityEngine {
     allNodes: NodeAllocation[]
   ): { rule: AffinityRule; score: number; matched: boolean } {
     // Get agents on the target node
-    const agentsOnNode = node.agents;
+    const agentsOnNode = node["agents"];
     
     // For topology-based spreading, check other nodes in same topology
     let matchingAgents = agentsOnNode;

@@ -75,7 +75,7 @@ export class ResourceTracker extends EventEmitter {
 
   private setupEventHandlers(): void {
     this.redis.on('error', (error) => {
-      logger.error('[ResourceTracker] Redis error:', error);
+      logger.error('[ResourceTracker] Redis error:', { error: error.message });
       this.emit('error', error);
     });
   }
@@ -221,7 +221,7 @@ export class ResourceTracker extends EventEmitter {
     if (!nodeData) return null;
 
     const node = JSON.parse(nodeData);
-    const agents = allocationData.agents ? JSON.parse(allocationData.agents) : [];
+    const agents = allocationData["agents"] ? JSON.parse(allocationData["agents"]) : [];
 
     return {
       capacity: {
@@ -358,7 +358,7 @@ export class ResourceTracker extends EventEmitter {
     }
 
     // Update allocation using Redis transaction for atomicity
-    const agents = currentData.agents ? JSON.parse(currentData.agents) : [];
+    const agents = currentData["agents"] ? JSON.parse(currentData["agents"]) : [];
     agents.push(agentId);
 
     const pipeline = this.redis.pipeline();
@@ -411,7 +411,7 @@ export class ResourceTracker extends EventEmitter {
     }
 
     // Update node allocation
-    const agents = nodeData.agents ? JSON.parse(nodeData.agents) : [];
+    const agents = nodeData["agents"] ? JSON.parse(nodeData["agents"]) : [];
     const updatedAgents = agents.filter((id: string) => id !== agentId);
 
     const pipeline = this.redis.pipeline();
@@ -479,7 +479,7 @@ export class ResourceTracker extends EventEmitter {
       cpu: parseFloat(data['cpu'] || '0'),
       memory: parseFloat(data['memory'] || '0'),
       gpuMemory: parseFloat(data['gpuMemory'] || '0'),
-      timestamp: new Date(parseInt(data.timestamp || '0', 10)),
+      timestamp: new Date(parseInt(data["timestamp"] || '0', 10)),
     };
   }
 

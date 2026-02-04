@@ -24,6 +24,7 @@ export interface Agent {
   id: string;
   label?: string;
   status: AgentStatus;
+  lifecycleState?: string;
   model: string;
   task: string;
   swarmId: string;
@@ -240,6 +241,7 @@ export interface WebSocketMessage {
   type: WebSocketMessageType | string;
   timestamp: number;
   clientId?: string;
+  payload?: Record<string, unknown>;
   event?: AgentEvent;
   agent?: Agent;
   swarm?: Swarm;
@@ -356,3 +358,5 @@ export interface Notification {
   timestamp: string;
   dismissible: boolean;
 }
+export { getStatusColor } from "../utils/index";
+export { formatNumber, formatCurrency } from "../utils/index";

@@ -73,6 +73,7 @@ export class WorkflowDesigner {
     this.layoutOptions = { ...DefaultLayoutOptions, ...layoutOptions };
     
     const workflowWithDefaults: Workflow = {
+      id: workflow?.id || `wf-${Date.now()}`,
       name: workflow?.name || 'new-workflow',
       description: workflow?.description,
       version: workflow?.version || '1.0.0',

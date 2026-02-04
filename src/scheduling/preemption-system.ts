@@ -132,7 +132,7 @@ export class PreemptionSystem extends EventEmitter {
 
     const candidates: PreemptionCandidate[] = [];
 
-    for (const agentId of allocation.agents) {
+    for (const agentId of allocation["agents"]) {
       const agentPriority = agentPriorities.get(agentId);
       
       if (!agentPriority) {

@@ -18,9 +18,9 @@ import {
 import { Card, Button, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useEventStream } from '../services/websocket.ts';
-import { EventType, AgentEvent } from '../types/index.ts';
-import { formatTimestamp, formatRelativeTime, cn } from '../utils/index.ts';
+import { useEventStream } from '../services/websocket';
+import { EventType, AgentEvent } from '../types/index';
+import { formatTimestamp, formatRelativeTime, cn } from '../utils/index';
 
 // ============================================================================
 // Events Page

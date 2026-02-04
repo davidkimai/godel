@@ -25,6 +25,7 @@ export interface Event {
 }
 
 export interface EventCreateInput {
+  source?: string;
   swarm_id?: string;
   agent_id?: string;
   type: string;

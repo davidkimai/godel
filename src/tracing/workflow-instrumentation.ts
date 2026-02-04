@@ -122,7 +122,7 @@ export async function instrumentWorkflowValidation<T>(
       const result = await fn();
       
       if (result && typeof result === 'object') {
-        const validation = result as { valid: boolean; errors: string[] };
+        const validation = result as unknown as { valid: boolean; errors: string[] };
         span.setAttributes({
           'validation.valid': validation.valid,
           'validation.error_count': validation.errors.length,
@@ -416,14 +416,14 @@ export function trackWorkflowEvent(
 ): void {
   const traceId = getCurrentTraceId();
   
-  logger.info({
+  logger.info(`[WorkflowTracing] ${eventType}`, {
     event: eventType,
     workflow_execution_id: executionId,
     workflow_id: workflowId,
     step_id: stepId,
     trace_id: traceId,
     ...data,
-  }, `[WorkflowTracing] ${eventType}`);
+  });
 }
 
 // ============================================================================

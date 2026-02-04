@@ -25,10 +25,9 @@ router.get('/', async (req: Request, res: Response) => {
     if (type) filters.types = [type as string];
     if (severity) filters.severity = severity as EventFilter['severity'];
     if (since) filters.since = new Date(since as string);
+    filters.limit = parseInt(limit as string, 10);
     
-    const events = await repo.findByFilter(filters, {
-      limit: parseInt(limit as string, 10),
-    });
+    const events = await repo.findByFilter(filters);
     
     res.json({ events });
   } catch (error) {
@@ -45,7 +44,7 @@ router.post('/', async (req: Request, res: Response) => {
     const event = await repo.create({
       type: eventType,
       source: 'api',
-      payload: JSON.stringify(payload || {}),
+      payload: (payload || {}) as Record<string, unknown>,
       agent_id: payload?.agentId,
       swarm_id: payload?.swarmId
     });

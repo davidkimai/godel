@@ -20,8 +20,8 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import { useAuthStore, useUIStore } from '../contexts/store.ts';
-import { cn } from '../utils/index.ts';
+import { useAuthStore, useUIStore } from '../contexts/store';
+import { cn } from '../utils/index';
 
 // ============================================================================
 // Sidebar

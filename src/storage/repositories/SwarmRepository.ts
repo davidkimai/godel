@@ -14,6 +14,8 @@ export interface Swarm {
   name: string;
   config: Record<string, unknown>;
   status: SwarmStatus;
+  budget_allocated?: number;
+  budget_consumed?: number;
   created_at: Date;
   updated_at: Date;
   completed_at?: Date;
@@ -25,6 +27,15 @@ export interface SwarmCreateInput {
   config?: Record<string, unknown>;
   status?: SwarmStatus;
   agents?: string[];
+  created_at?: Date;
+  budget_allocated?: number;
+  budget_consumed?: number;
+  budget_remaining?: number;
+  metrics?: {
+    totalAgents?: number;
+    completedAgents?: number;
+    failedAgents?: number;
+  };
 }
 
 export interface SwarmUpdateInput {

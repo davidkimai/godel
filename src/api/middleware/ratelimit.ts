@@ -136,7 +136,7 @@ export function createRateLimitMiddleware(config: Partial<RateLimitConfig> = {})
       if (result.retryAfter) {
         res.setHeader('Retry-After', result.retryAfter.toString());
       }
-      return res.status(429).json({
+      return void res.status(429).json({
         error: 'Too Many Requests',
         message: `Rate limit exceeded. Try again in ${result.retryAfter} seconds.`,
         retryAfter: result.retryAfter,
@@ -178,7 +178,7 @@ export function authRateLimitMiddleware() {
       if (result.retryAfter) {
         res.setHeader('Retry-After', result.retryAfter.toString());
       }
-      return res.status(429).json({
+      return void res.status(429).json({
         error: 'Too Many Requests',
         message: 'Too many authentication attempts. Please try again later.',
         retryAfter: result.retryAfter,

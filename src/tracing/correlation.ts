@@ -76,7 +76,7 @@ export function propagateCorrelationId<T extends Record<string, any>>(obj: T, co
   return {
     ...obj,
     headers: {
-      ...(obj.headers as Record<string, any>),
+      ...(obj["headers"] as Record<string, any>),
       [CORRELATION_ID_HEADER]: correlationId,
       [REQUEST_ID_HEADER]: correlationId,
     },

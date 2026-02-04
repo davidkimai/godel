@@ -82,7 +82,7 @@ class MetricsCollector {
     });
 
     this.redis.on('error', (err: Error) => {
-      logger.error('[AutoScaler] Redis connection error', err);
+      logger.error('[AutoScaler] Redis connection error', { error: err.message });
     });
 
     await this.redis.ping();

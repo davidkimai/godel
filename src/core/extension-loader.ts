@@ -373,7 +373,7 @@ function createExtensionAPI(
     
     log: (level: 'info' | 'warn' | 'error' | 'debug', message: string): void => {
       const timestamp = new Date().toISOString();
-      logger.log(level, `[${timestamp}] [${extension.name}] ${message}`);
+      logger.info(level, `[${timestamp}] [${extension.name}] ${message}`);
     },
     
     getConfig: <T>(key: string, defaultValue?: T): T => {

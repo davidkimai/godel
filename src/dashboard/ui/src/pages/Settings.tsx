@@ -18,7 +18,7 @@ import {
 import { Card, Button, Badge } from '../components/Layout';
 import { useAuthStore, useUIStore } from '../contexts/store';
 import { authApi } from '../services/api';
-import { cn } from '../utils/index.ts';
+import { cn } from '../utils/index';
 
 // ============================================================================
 // Settings Page

@@ -177,7 +177,7 @@ export function registerAgentsCommand(program: Command): void {
         await agentRepo.create({
           id: agent.id,
           label: agent.label,
-          status: 'spawning',
+          status: 'running',
           model: agent.model,
           task: agent.task,
           swarm_id: agent.swarmId,

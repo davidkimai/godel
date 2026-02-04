@@ -395,7 +395,7 @@ export class StructuredLogger {
     };
 
     const color = colors[entry.level] || '';
-    const reset = colors.RESET;
+    const reset = colors["RESET"];
 
     let output = `${color}[${entry.level}]${reset} ${entry.timestamp} ${entry.message}`;
     

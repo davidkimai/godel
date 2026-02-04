@@ -31,6 +31,20 @@ export enum StepStatus {
 }
 
 // ============================================================================
+// Workflow Log Type
+// ============================================================================
+
+export interface WorkflowLog {
+  id: string;
+  executionId: string;
+  stepId: string;
+  timestamp: Date;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  data?: Record<string, unknown>;
+}
+
+// ============================================================================
 // Zod Schemas for Validation
 // ============================================================================
 
@@ -101,7 +115,7 @@ export interface WorkflowStep {
 }
 
 export interface Workflow {
-  id?: string;
+  id: string;
   name: string;
   description?: string;
   version: string;

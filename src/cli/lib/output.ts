@@ -453,9 +453,9 @@ function getEventMessage(event: Event): string {
   if (!payload) return event.type;
   
   // Extract meaningful message from payload
-  if (typeof payload.message === 'string') return payload.message;
-  if (typeof payload.error === 'string') return payload.error;
-  if (typeof payload.reason === 'string') return payload.reason;
+  if (typeof payload["message"] === 'string') return payload["message"];
+  if (typeof payload["error"] === 'string') return payload["error"];
+  if (typeof payload["reason"] === 'string') return payload["reason"];
   
   return event.type;
 }

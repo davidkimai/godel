@@ -8,6 +8,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { Agent, Swarm, AgentEvent, CostMetrics, WebSocketMessage } from '../types';
 import { WebSocketMessageType } from '../types';
+import { logger } from '../../../../utils/logger';
 
 type MessageHandler = (message: WebSocketMessage) => void;
 type ConnectionHandler = () => void;
@@ -128,7 +129,7 @@ class WebSocketService {
       }
 
       // Handle authentication errors
-      if (message.type === 'error' && message.payload?.code === 'UNAUTHORIZED') {
+      if (message.type === 'error' && message.payload?.['code'] === 'UNAUTHORIZED') {
         console.error('[WebSocket] Authentication failed');
         // Redirect to login on auth failure
         window.location.href = '/login';

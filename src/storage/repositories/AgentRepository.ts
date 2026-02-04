@@ -18,6 +18,7 @@ export interface Agent {
   lifecycle_state: LifecycleState;
   model: string;
   task: string;
+  cost?: number;
   config: Record<string, unknown>;
   context?: Record<string, unknown>;
   code?: Record<string, unknown>;
@@ -36,7 +37,9 @@ export interface Agent {
 }
 
 export interface AgentCreateInput {
+  id?: string;
   swarm_id?: string;
+  parent_id?: string;
   label?: string;
   status?: AgentStatus;
   lifecycle_state?: LifecycleState;

@@ -276,7 +276,7 @@ export class Scheduler extends EventEmitter {
     }
 
     // Rank nodes by affinity
-    const agentLabels = agent.metadata?.labels as Record<string, string> || {};
+    const agentLabels = agent.metadata?.["labels"] as Record<string, string> || {};
     const rankedNodes = this.affinityEngine.rankNodes(agentLabels, nodes, affinity);
 
     // Try to schedule on ranked nodes
@@ -491,7 +491,7 @@ export class Scheduler extends EventEmitter {
 
       case 'spread':
         // Select node with lowest number of agents
-        candidates.sort((a, b) => a.node.agents.length - b.node.agents.length);
+        candidates.sort((a, b) => a.node["agents"].length - b.node["agents"].length);
         return candidates[0].node;
 
       default:
@@ -509,7 +509,7 @@ export class Scheduler extends EventEmitter {
   getMetrics(): typeof this.metrics & {
     averageLatencyMs: number;
     successRate: number;
-    clusterUtilization: Promise<ReturnType<ResourceTracker['getClusterUtilization']>>;
+    clusterUtilization: ReturnType<ResourceTracker['getClusterUtilization']>;
   } {
     const avgLatency = this.metrics.schedulingAttempts > 0
       ? this.metrics.totalLatencyMs / this.metrics.schedulingAttempts

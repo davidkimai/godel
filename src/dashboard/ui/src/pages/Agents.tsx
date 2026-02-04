@@ -16,10 +16,10 @@ import {
 import { Card, Button, Badge, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore, useAuthStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useAgentUpdates } from '../services/websocket.ts';
+import { useAgentUpdates } from '../services/websocket';
 import {
   AgentStatus,
-} from '../types/index.ts';
+} from '../types/index';
 import {
   formatCurrency,
   formatNumber,
@@ -28,8 +28,8 @@ import {
   getStatusColor,
   cn,
   filterAgents
-} from '../utils/index.ts';
-import type { Agent, LogEntry, Trace } from '../types/index.ts';
+} from '../utils/index';
+import type { Agent, LogEntry, Trace } from '../types/index';
 
 // ============================================================================
 // Agents Page

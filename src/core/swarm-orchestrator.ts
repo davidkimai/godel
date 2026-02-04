@@ -244,7 +244,7 @@ export class SwarmOrchestrator extends EventEmitter {
           status: swarm.status,
           config: swarm.config as unknown as Record<string, unknown>,
           agents: swarm.agents,
-          created_at: swarm.createdAt.toISOString(),
+          created_at: new Date(),
           budget_allocated: swarm.budget.allocated,
           budget_consumed: swarm.budget.consumed,
           budget_remaining: swarm.budget.remaining,

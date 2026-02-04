@@ -17,15 +17,14 @@ export type {
 } from './server';
 
 // Re-export hooks for React UI
-export { useWebSocket, useAgentUpdates, useSwarmUpdates, useCostUpdates, useEventStream } from './hooks/useWebSocket';
+export { useWebSocket, useAgentStatus, useBudget, useEventStream, useSwarmStatus } from './hooks/useWebSocket';
 export type { UseWebSocketOptions, UseWebSocketReturn } from './hooks/useWebSocket';
 
 // Legacy components (for terminal UI)
 export { TerminalDashboard, getDashboard, createDashboard } from './Dashboard';
-export type { DashboardConfig, AgentDisplay, BudgetDisplay } from './Dashboard';
+export type { TerminalDashboardConfig, AgentDisplay, BudgetDisplay } from './Dashboard';
 
 // Component types
-export { AgentGrid } from './components/AgentGrid';
-export { BudgetPanel } from './components/BudgetPanel';
-export { EventStream } from './components/EventStream';
-export { StatusBar } from './components/StatusBar';
+export type { Agent } from './components/AgentGrid';
+export type { Budget } from './components/BudgetPanel';
+export type { Event } from './components/EventStream';

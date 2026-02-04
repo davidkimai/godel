@@ -335,13 +335,13 @@ export function logAgentEvent(
   const traceId = getCurrentTraceId();
   const swarmId = getBaggage('swarm.id');
   
-  logger.info({
+  logger.info(`[AgentTracing] ${eventType}`, {
     event: eventType,
     agent_id: agentId,
     swarm_id: swarmId,
     trace_id: traceId,
     ...data,
-  }, `[AgentTracing] ${eventType}`);
+  });
 }
 
 // ============================================================================

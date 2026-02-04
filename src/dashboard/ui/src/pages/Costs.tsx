@@ -24,14 +24,18 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard,
+  Wallet,
+  PieChart,
+  Pie
 } from 'lucide-react';
-import { Card, StatsCard, LoadingSpinner } from '../components/Layout';
+import { Card, StatsCard, LoadingSpinner, Button } from '../components/Layout';
 import { useDashboardStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useCostUpdates } from '../services/websocket.ts';
-import { formatCurrency, formatNumber, formatDuration, cn } from '../utils/index.ts';
-import type { CostMetrics, CostBreakdown } from '../types/index.ts';
+import { useCostUpdates } from '../services/websocket';
+import { formatCurrency, formatNumber, formatDuration, cn } from '../utils/index';
+import type { CostMetrics, CostBreakdown } from '../types/index';
 
 // ============================================================================
 // Costs Page
