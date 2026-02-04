@@ -423,7 +423,7 @@ describe('Scenario 7: Database Consistency', () => {
       }
 
       // Attempt to use more connections than pool allows
-      const queries = Array(50).fill(null).map(() =
+      const queries = Array(50).fill(null).map(() =>
         db!.query('SELECT pg_sleep(0.1), 1 as num')
       );
 

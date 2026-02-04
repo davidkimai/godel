@@ -81,10 +81,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
       const client = getGlobalClient();
       
       // Update agent status to completed through lifecycle
-      await lifecycle.complete(agentId, { 
-        success: true, 
-        result: { findings: ['No issues found'] } 
-      });
+      await lifecycle.complete(agentId, 'Task completed successfully');
       
       // 5. Wait for completion
       await waitForStatus(
@@ -135,7 +132,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
       );
       
       // Complete the agent
-      await lifecycle.complete(agentId, { success: true });
+      await lifecycle.complete(agentId, "Task completed successfully");
       
       // Wait for completion
       await waitForStatus(
@@ -228,7 +225,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
       );
       
       // Complete successfully
-      await lifecycle.complete(agentId, { success: true });
+      await lifecycle.complete(agentId, "Task completed successfully");
       
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -327,7 +324,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
       );
       
       // 4. running → completed
-      await lifecycle.complete(agentId, { success: true });
+      await lifecycle.complete(agentId, "Task completed successfully");
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
         'completed',
@@ -352,7 +349,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
       // Try to complete a pending agent (should fail or wait)
       // This should be handled gracefully
       try {
-        await lifecycle.complete(agentId, { success: true });
+        await lifecycle.complete(agentId, "Task completed successfully");
       } catch (error) {
         // Expected - can't complete from pending
         expect(error).toBeDefined();
@@ -395,7 +392,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
         15000
       );
       
-      await lifecycle.complete(agentId, { success: true });
+      await lifecycle.complete(agentId, "Task completed successfully");
       
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -480,7 +477,7 @@ describe('Scenario 3: Agent Lifecycle', () => {
         if (session.shouldFail) {
           await lifecycle.fail(agentId, 'Planned failure');
         } else {
-          await lifecycle.complete(agentId, { success: true });
+          await lifecycle.complete(agentId, "Task completed successfully");
         }
       }
       

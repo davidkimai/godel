@@ -248,7 +248,7 @@ describe('Scenario 9: Error Handling', () => {
   describe('Rate Limiting (429)', () => {
     it('should return 429 when rate limit exceeded', async () => {
       // Send many rapid requests
-      const requests = Array(50).fill(null).map(() =
+      const requests = Array(50).fill(null).map(() =>
         apiClient.get('/health')
       );
 

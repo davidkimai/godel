@@ -111,17 +111,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       );
 
       // 5. Simulate agent processing and completing
-      await lifecycle.complete(agentId, {
-        success: true,
-        result: {
-          findings: [
-            { severity: 'info', file: 'src/auth/jwt.ts', line: 45, message: 'Consider adding token expiration check' },
-            { severity: 'warning', file: 'src/middleware/auth.ts', line: 23, message: 'Missing error handling for invalid tokens' },
-          ],
-          summary: 'Code review completed with 2 findings',
-          reviewedFiles: ['src/auth/jwt.ts', 'src/middleware/auth.ts'],
-        },
-      });
+      await lifecycle.complete(agentId, 'Code review completed with 2 findings');
 
       // 6. Wait for completion
       await waitForStatus(
@@ -178,13 +168,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
 
       // Complete all agents
       for (let i = 0; i < agentIds.length; i++) {
-        await lifecycle.complete(agentIds[i], {
-          success: true,
-          result: {
-            agentType: agentTypes[i],
-            findings: [`${agentTypes[i]} findings`],
-          },
-        });
+        await lifecycle.complete(agentIds[i], `${agentTypes[i]} completed with findings`);
       }
 
       // Wait for all to complete
@@ -246,16 +230,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       await adapter.sendMessage(sessionKey, 'Process this data and return results');
 
       // Phase 4: Dash executes and completes
-      await lifecycle.complete(agentId, {
-        success: true,
-        result: {
-          output: 'Task completed successfully',
-          metrics: {
-            processingTime: 1234,
-            tokensUsed: 567,
-          },
-        },
-      });
+      await lifecycle.complete(agentId, 'Task completed successfully with metrics');
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -319,7 +294,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       expect(messages.length).toBeGreaterThanOrEqual(0);
 
       // Complete the agent
-      await lifecycle.complete(result.dashAgentId, { success: true });
+      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
     }, testConfig.testTimeout);
   });
 
@@ -361,7 +336,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
       );
 
       // Complete successfully
-      await lifecycle.complete(agentId, { success: true });
+      await lifecycle.complete(agentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -415,12 +390,12 @@ describe('Scenario 10: End-to-End Workflow', () => {
       for (const key of childKeys) {
         const agentId = adapter.getDashAgentId(key);
         if (agentId) {
-          await lifecycle.complete(agentId, { success: true });
+          await lifecycle.complete(agentId, "Task completed successfully");
         }
       }
 
       // Complete parent
-      await lifecycle.complete(parentId, { success: true });
+      await lifecycle.complete(parentId, "Parent task completed");
 
       // Verify all completed
       for (const key of [parentKey, ...childKeys]) {
@@ -458,7 +433,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, { success: true });
+      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -530,7 +505,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
         success: true,
       };
 
-      await lifecycle.complete(result.dashAgentId, expectedResult);
+      await lifecycle.complete(result.dashAgentId, "Task completed with result");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -567,7 +542,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, { success: true });
+      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -600,7 +575,7 @@ describe('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, { success: true });
+      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),

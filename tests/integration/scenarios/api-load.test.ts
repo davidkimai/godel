@@ -92,7 +92,7 @@ describe('Scenario 4: API Load Testing', () => {
       const latencies: number[] = [];
       const swarmIds: string[] = [];
 
-      const requests = Array(concurrentCount).fill(null).map((_, i) =
+      const requests = Array(concurrentCount).fill(null).map((_, i) =>
         async () => {
           const start = Date.now();
           const response = await apiClient.post('/api/swarms', {
@@ -103,10 +103,10 @@ describe('Scenario 4: API Load Testing', () => {
           latencies.push(latency);
           
           expect(response.status).toBe(201);
-          expect(response.data.id).toBeDefined();
-          swarmIds.push(response.data.id);
+          expect((response.data as any).id).toBeDefined();
+          swarmIds.push((response.data as any).id);
           
-          return response.data.id;
+          return (response.data as any).id;
         }
       );
 
@@ -137,7 +137,7 @@ describe('Scenario 4: API Load Testing', () => {
       const latencies: number[] = [];
       const agentIds: string[] = [];
 
-      const requests = Array(concurrentCount).fill(null).map((_, i) =
+      const requests = Array(concurrentCount).fill(null).map((_, i) =>
         async () => {
           const start = Date.now();
           const response = await apiClient.post('/api/agents', {
@@ -149,9 +149,9 @@ describe('Scenario 4: API Load Testing', () => {
           latencies.push(latency);
           
           expect(response.status).toBe(201);
-          agentIds.push(response.data.id);
+          agentIds.push((response.data as any).id);
           
-          return response.data.id;
+          return (response.data as any).id;
         }
       );
 
@@ -218,7 +218,7 @@ describe('Scenario 4: API Load Testing', () => {
       const swarmId = swarmRes.data.id;
       localSwarmIds.push(swarmId);
 
-      const requests = Array(requestCount).fill(null).map((_, i) =
+      const requests = Array(requestCount).fill(null).map((_, i) =>
         async () => {
           if (i % 3 === 0) {
             // Write operation (30%)
@@ -293,7 +293,7 @@ describe('Scenario 4: API Load Testing', () => {
       const responses: number[] = [];
 
       // Send burst of requests
-      const requests = Array(burstSize).fill(null).map(() =
+      const requests = Array(burstSize).fill(null).map(() =>
         apiClient.get('/health')
           .then(r => r.status)
           .catch(e => e.status || 0)
