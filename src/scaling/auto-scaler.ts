@@ -81,7 +81,7 @@ class MetricsCollector {
       retryStrategy: (times) => Math.min(times * 1000, 10000),
     });
 
-    this.redis.on('error', (err) => {
+    this.redis.on('error', (err: Error) => {
       logger.error('[AutoScaler] Redis connection error:', err);
     });
 

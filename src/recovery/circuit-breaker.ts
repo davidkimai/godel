@@ -224,7 +224,7 @@ export class CircuitBreaker extends EventEmitter {
             service: this.config.name,
             fallbackResult,
           });
-          return fallbackResult instanceof Promise <T> 
+          return fallbackResult instanceof Promise<T> 
             ? (fallbackResult as unknown as T) 
             : fallbackResult;
         } catch (fallbackError) {
