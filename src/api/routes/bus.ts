@@ -97,7 +97,7 @@ export async function busRoutes(fastify: FastifyInstance) {
         if (error instanceof z.ZodError) {
           return reply.status(400).send(
             createErrorResponse(ErrorCodes.VALIDATION_ERROR, 'Validation failed', {
-              details: error.errors,
+              details: error.errors as unknown as Record<string, unknown>,
             })
           );
         }

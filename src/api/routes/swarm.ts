@@ -112,7 +112,7 @@ router.delete('/:id', validateParams(z.object({ id: idSchema })), async (req: Re
     // Kill all agents in swarm first
     const agents = await agentRepo.findBySwarmId(id as string);
     for (const agent of agents) {
-      await agentRepo.updateStatus(agent.id, 'killing');
+      await agentRepo.updateStatus(agent.id, 'killed');
     }
     
     // Delete swarm
@@ -148,7 +148,7 @@ router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRe
       for (let i = currentCount; i < targetCount; i++) {
         await agentRepo.create({
           swarm_id: id as string,
-          status: 'spawning',
+          status: 'pending',
           task: 'Auto-scaled agent',
         });
       }
@@ -156,7 +156,7 @@ router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRe
       // Scale down - kill excess agents
       const excess = currentAgents.slice(targetCount);
       for (const agent of excess) {
-        await agentRepo.updateStatus(agent.id, 'killing');
+        await agentRepo.updateStatus(agent.id, 'killed');
       }
     }
     

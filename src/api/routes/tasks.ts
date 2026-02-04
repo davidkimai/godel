@@ -12,7 +12,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { createTask } from '../../models/task';
+import { createTask, type QualityGate, type TaskReasoning, TaskStatus } from '../../models/task';
 import { createSuccessResponse, createErrorResponse, ErrorCodes } from '../lib/response';
 import { paginateArray, parsePaginationParams, createPaginationLinks } from '../lib/pagination';
 import {
@@ -136,8 +136,8 @@ export async function taskRoutes(fastify: FastifyInstance) {
           assigneeId: validated.assigneeId,
           dependsOn: validated.dependsOn,
           priority: validated.priority,
-          qualityGate: validated.qualityGate,
-          reasoning: validated.reasoning,
+          qualityGate: validated.qualityGate as QualityGate | undefined,
+          reasoning: validated.reasoning as TaskReasoning | undefined,
         });
         
         tasks.set(task.id, task);
@@ -154,7 +154,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
         if (error instanceof z.ZodError) {
           return reply.status(400).send(
             createErrorResponse(ErrorCodes.VALIDATION_ERROR, 'Validation failed', {
-              details: error.errors,
+              details: error.errors as unknown as Record<string, unknown>,
             })
           );
         }
@@ -250,7 +250,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
         
         if (validated.title) task.title = validated.title;
         if (validated.description) task.description = validated.description;
-        if (validated.status) task.status = validated.status;
+        if (validated.status) task.status = validated.status as TaskStatus;
         if (validated.priority) task.priority = validated.priority;
         if (validated.metadata) task.metadata = { ...task.metadata, ...validated.metadata };
         
@@ -373,8 +373,8 @@ export async function taskRoutes(fastify: FastifyInstance) {
         task.updatedAt = new Date();
         
         // If first assignment, set status to in_progress
-        if (task.status === 'pending') {
-          task.status = 'in_progress';
+        if (task.status === TaskStatus.PENDING) {
+          task.status = TaskStatus.IN_PROGRESS;
         }
         
         return reply.send(

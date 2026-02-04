@@ -163,11 +163,11 @@ function logError(error: Error, req: Request): void {
   };
 
   if (isDev) {
-    logEntry.message = (error as any).message || (error as any)['message'];
-    logEntry.stack = (error as any).stack || (error as any)['stack'];
+    logEntry['message'] = (error as any).message || (error as any)['message'];
+    logEntry['stack'] = (error as any).stack || (error as any)['stack'];
   } else {
     // In production, only log that an error occurred
-    logEntry.errorCode = error instanceof APIError ? error.code : 'UNKNOWN';
+    logEntry['errorCode'] = error instanceof APIError ? error.code : 'UNKNOWN';
   }
 
   console.error('[API Error]', JSON.stringify(logEntry));

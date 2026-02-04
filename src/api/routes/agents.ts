@@ -13,7 +13,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { AgentRepository } from '../../storage/repositories/AgentRepository';
-import { createAgent } from '../../models/agent';
+import { createAgent, AgentStatus } from '../../models/agent';
 import { createSuccessResponse, createErrorResponse, ErrorCodes } from '../lib/response';
 import { paginateArray, parsePaginationParams, createPaginationLinks } from '../lib/pagination';
 import {
@@ -131,7 +131,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         if (error instanceof z.ZodError) {
           return reply.status(400).send(
             createErrorResponse(ErrorCodes.VALIDATION_ERROR, 'Validation failed', {
-              details: error.errors,
+              details: error.errors as unknown as Record<string, unknown>,
             })
           );
         }
@@ -184,12 +184,12 @@ export async function agentRoutes(fastify: FastifyInstance) {
               agents.push({
                 id: dbAgent.id,
                 label: dbAgent.label,
-                status: dbAgent.status,
+                status: dbAgent.status as AgentStatus,
                 lifecycleState: dbAgent.lifecycle_state,
                 model: dbAgent.model,
                 task: dbAgent.task,
-                spawnedAt: dbAgent.spawned_at.toISOString(),
-                completedAt: dbAgent.completed_at?.toISOString(),
+                spawnedAt: new Date(dbAgent.spawned_at),
+                completedAt: dbAgent.completed_at ? new Date(dbAgent.completed_at) : undefined,
                 runtime: dbAgent.runtime,
                 swarmId: dbAgent.swarm_id,
                 parentId: undefined, // Not stored in DB
@@ -284,12 +284,12 @@ export async function agentRoutes(fastify: FastifyInstance) {
               agent = {
                 id: dbAgent.id,
                 label: dbAgent.label,
-                status: dbAgent.status,
+                status: dbAgent.status as AgentStatus,
                 lifecycleState: dbAgent.lifecycle_state,
                 model: dbAgent.model,
                 task: dbAgent.task,
-                spawnedAt: dbAgent.spawned_at.toISOString(),
-                completedAt: dbAgent.completed_at?.toISOString(),
+                spawnedAt: new Date(dbAgent.spawned_at),
+                completedAt: dbAgent.completed_at ? new Date(dbAgent.completed_at) : undefined,
                 runtime: dbAgent.runtime,
                 swarmId: dbAgent.swarm_id,
                 parentId: undefined,

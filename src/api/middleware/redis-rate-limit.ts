@@ -55,7 +55,7 @@ async function getRateLimiter(tier: string): Promise<RateLimiterRedis> {
     return limiters.get(tier)!;
   }
   
-  const config = TIER_CONFIGS[tier] || TIER_CONFIGS.anonymous;
+  const config = TIER_CONFIGS[tier] || TIER_CONFIGS['anonymous'];
   const redis = await getRedisClient();
   
   const limiter = new RateLimiterRedis({

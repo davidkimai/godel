@@ -121,9 +121,9 @@ export async function swarmRoutes(fastify: FastifyInstance) {
                 name: dbSwarm.name,
                 status: dbSwarm.status,
                 config: {
-                  maxAgents: dbSwarm.config.maxAgents,
-                  enableScaling: dbSwarm.config.enableScaling,
-                  enableBranching: dbSwarm.config.enableBranching,
+                  maxAgents: dbSwarm.config['maxAgents'],
+                  enableScaling: dbSwarm.config['enableScaling'],
+                  enableBranching: dbSwarm.config['enableBranching'],
                 },
                 metrics: {
                   runningAgents: dbSwarm.running_agents,
@@ -271,7 +271,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         if (error instanceof z.ZodError) {
           return reply.status(400).send(
             createErrorResponse(ErrorCodes.VALIDATION_ERROR, 'Validation failed', {
-              details: error.errors,
+              details: error.errors as unknown as Record<string, unknown>,
             })
           );
         }
