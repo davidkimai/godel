@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastHeartbeat": 1770228040224,
+  "lastHeartbeat": 1770228915901,
   "mode": "normal",
   "activeSwarms": {
     "cli-1770086777645": {
@@ -227,10 +227,12 @@
       "area": "bugfix",
       "model": "kimi-coding/k2p5",
       "priority": "CRITICAL",
-      "status": "running",
+      "status": "failed",
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770220822224.log",
-      "method": "kimi-cli-primary"
+      "method": "kimi-cli-primary",
+      "error": "Stuck - exceeded 2 hour threshold",
+      "ended": 1770228915816
     },
     "cli-1770221731586": {
       "started": 1770221731586,
@@ -701,11 +703,21 @@
       "openclaw": false,
       "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770228046720.log",
       "method": "kimi-cli-primary"
+    },
+    "cli-1770228925346": {
+      "started": 1770228925346,
+      "area": "bugfix",
+      "model": "kimi-coding/k2p5",
+      "priority": "CRITICAL",
+      "status": "running",
+      "openclaw": false,
+      "logFile": "/Users/jasontang/clawd/projects/dash/.dash/logs/swarm-spawn_bugfix-1770228925346.log",
+      "method": "kimi-cli-primary"
     }
   },
   "metrics": {
     "current": {
-      "timestamp": 1770228040224,
+      "timestamp": 1770228915901,
       "testCoverage": 0,
       "tsErrors": 0,
       "swarmCount": 8,
@@ -1474,19 +1486,25 @@
         "stuckAgents": 0,
         "buildPassing": false,
         "lastError": "Command failed: npm run build\n"
+      },
+      {
+        "timestamp": 1770228915901,
+        "testCoverage": 0,
+        "tsErrors": 0,
+        "swarmCount": 8,
+        "agentCount": 0,
+        "budgetSpent": 0,
+        "stuckAgents": 0,
+        "buildPassing": false,
+        "lastError": "Command failed: npm run build\n"
       }
     ]
   },
   "cooldowns": {
     "coverage": 1770088577649,
-    "bugfix": 1770228946724
+    "bugfix": 1770229825350
   },
   "decisions": [
-    {
-      "timestamp": 1770218125710,
-      "action": "spawn_bugfix",
-      "reason": "Build broken"
-    },
     {
       "timestamp": 1770219073964,
       "action": "spawn_bugfix",
@@ -1729,6 +1747,11 @@
     },
     {
       "timestamp": 1770228046724,
+      "action": "spawn_bugfix",
+      "reason": "Build broken"
+    },
+    {
+      "timestamp": 1770228925350,
       "action": "spawn_bugfix",
       "reason": "Build broken"
     }
