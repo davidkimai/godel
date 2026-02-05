@@ -1,7 +1,5 @@
 # Dash v2.0 - Agent Orchestration Platform
 
-<div align="center">
-
 **Multi-agent orchestration for complex AI tasks**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
@@ -10,22 +8,20 @@
 
 A production-ready platform for orchestrating multiple AI agents to collaborate on complex tasks.
 
-[Features](#features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
-
-</div>
+[Features](#features) | [Quick Start](#quick-start) | [Documentation](#documentation) | [Contributing](#contributing)
 
 ---
 
-## ✨ Features
+## Features
 
-- 🤖 **Agent Management** - Spawn, monitor, and terminate AI agents
-- 🐝 **Swarm Orchestration** - Coordinate groups of agents working together
-- 📊 **Real-time Monitoring** - WebSocket-based event streaming
-- ⚡ **Workflow Engine** - Define and execute multi-step workflows
-- 🔄 **Session Persistence** - SQLite-backed state management
-- 📈 **Observability** - Built-in metrics, tracing, and logging
+- **Agent Management** - Spawn, monitor, and terminate AI agents
+- **Swarm Orchestration** - Coordinate groups of agents working together
+- **Real-time Monitoring** - WebSocket-based event streaming
+- **Workflow Engine** - Define and execute multi-step workflows
+- **Session Persistence** - SQLite-backed state management
+- **Observability** - Built-in metrics, tracing, and logging
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -86,7 +82,7 @@ const response = await fetch('http://localhost:7373/api/agents', {
 });
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 dash/
@@ -94,16 +90,16 @@ dash/
 │   ├── api/              # REST API routes
 │   ├── cli/              # CLI commands
 │   ├── core/             # Core orchestration logic
-│   ├── storage/          # Database and persistence
-│   ├── workflow/         # Workflow engine
+│   ├── storage/           # Database and persistence
+│   ├── workflow/          # Workflow engine
 │   └── ...
 ├── dist/                 # Compiled JavaScript
-├── tests/                # Test suites
-├── docs/                # Documentation
+├── tests/                 # Test suites
+├── docs/                 # Documentation
 └── package.json
 ```
 
-## 🛠️ Development
+## Development
 
 ```bash
 # Install dependencies
@@ -122,13 +118,13 @@ npm test
 npm run build
 ```
 
-## 📖 Documentation
+## Documentation
 
 - [API Documentation](docs/openapi.yaml) - OpenAPI specification
 - [Architecture](docs/ARCHITECTURE.md) - System architecture
 - [Error Codes](docs/error-codes.md) - Reference for error codes
 
-## 🐳 Docker
+## Docker
 
 ```bash
 # Build and run with Docker
@@ -136,7 +132,7 @@ docker build -t dash .
 docker run -p 7373:7373 dash
 ```
 
-## 📦 Publishing to npm
+## Publishing to npm
 
 ```bash
 # Update version
@@ -149,9 +145,9 @@ npm run build
 npm publish --access public
 ```
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome. Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -159,11 +155,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with TypeScript and Fastify
 - Inspired by [OpenClaw](https://github.com/openclaw/openclaw)
