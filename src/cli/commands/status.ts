@@ -8,6 +8,7 @@
  * Usage: dash status [--simple] [--json]
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -37,16 +38,16 @@ export function statusCommand(): Command {
       };
       
       if (options.json) {
-        console.log(JSON.stringify(basicStatus, null, 2));
+        logger.info(JSON.stringify(basicStatus, null, 2));
         return;
       }
       
-      console.log('=== Dash Status ===');
-      console.log(`Version: ${basicStatus.version}`);
-      console.log(`Uptime: ${Math.floor(basicStatus.uptime / 60)}m ${Math.floor(basicStatus.uptime % 60)}s`);
-      console.log(`Memory: ${Math.round(basicStatus.memory.heapUsed / 1024 / 1024)}MB`);
-      console.log(`PID: ${basicStatus.pid}`);
-      console.log(`Timestamp: ${basicStatus.timestamp}`);
+      logger.info('=== Dash Status ===');
+      logger.info(`Version: ${basicStatus.version}`);
+      logger.info(`Uptime: ${Math.floor(basicStatus.uptime / 60)}m ${Math.floor(basicStatus.uptime % 60)}s`);
+      logger.info(`Memory: ${Math.round(basicStatus.memory.heapUsed / 1024 / 1024)}MB`);
+      logger.info(`PID: ${basicStatus.pid}`);
+      logger.info(`Timestamp: ${basicStatus.timestamp}`);
       
       // Try OpenClaw only if not --simple
       if (!options.simple) {
@@ -55,19 +56,19 @@ export function statusCommand(): Command {
           const hasOpenClaw = process.env['OPENCLAW_SESSION'] || process.env['OPENCLAW_GATEWAY_URL'];
           
           if (hasOpenClaw) {
-            console.log('\n=== OpenClaw Status ===');
-            console.log(JSON.stringify({
+            logger.info('\n=== OpenClaw Status ===');
+            logger.info(JSON.stringify({
               connected: true,
               mode: 'connected',
               version: process.env['OPENCLAW_VERSION'] || '1.0.0'
             }, null, 2));
           } else {
-            console.log('\n⚠️  OpenClaw: Not configured');
-            console.log('   Run: dash init to configure');
+            logger.info('\n⚠️  OpenClaw: Not configured');
+            logger.info('   Run: dash init to configure');
           }
         } catch (error) {
-          console.log('\n⚠️  OpenClaw: Not available');
-          console.log('   Run: dash init to configure');
+          logger.info('\n⚠️  OpenClaw: Not available');
+          logger.info('   Run: dash init to configure');
         }
       }
       

@@ -31,7 +31,8 @@ describe('config command', () => {
     await program.parseAsync(['config', 'get', 'server.port']);
     
     // Either succeeds with value or fails gracefully with "not found"
-    expect(console.log).toHaveBeenCalled() || expect(console.error).toHaveBeenCalled();
+    expect((console.log as jest.Mock).mock.calls.length + (console.error as jest.Mock).mock.calls.length)
+      .toBeGreaterThan(0);
   });
   
   it('should have list subcommand', async () => {

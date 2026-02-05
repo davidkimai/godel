@@ -4,9 +4,9 @@
  * and event filtering/routing.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { MissionEvent, EventType } from '../events/types';
-import { logger } from '../utils/logger';
 
 // Topic patterns:
 // - agent.{id}.commands    # Control messages to agent

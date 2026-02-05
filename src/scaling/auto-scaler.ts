@@ -11,6 +11,7 @@
  * - Event bus for scaling events
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import Redis from 'ioredis';
 import {
@@ -40,7 +41,6 @@ import {
   calculateCost,
   DEFAULT_COST_CONFIG,
 } from './cost-tracker';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Default Configuration
@@ -732,7 +732,11 @@ export function getGlobalAutoScaler(config?: Partial<AutoScalerConfig>): AutoSca
 }
 
 export function resetGlobalAutoScaler(): void {
-  globalAutoScaler?.stop().catch(console.error);
+  globalAutoScaler?.stop().catch((error) => {
+    logger.error('auto-scaler', 'Failed to stop auto-scaler', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
   globalAutoScaler = null;
 }
 

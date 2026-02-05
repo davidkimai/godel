@@ -8,11 +8,11 @@
  * - Extension discovery from ~/.dash/extensions/
  */
 
+import { logger } from '../utils/logger';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { createJiti } from 'jiti';
-import { logger } from '../utils/logger';
 import {
   ExtensionAPI,
   ExtensionFactory,

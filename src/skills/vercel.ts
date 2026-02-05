@@ -7,9 +7,9 @@
  * Vercel skills are npm packages with AGENTS.md or SKILL.md files.
  */
 
+import { logger } from '../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../utils/logger';
 import {
   UnifiedSkillMetadata,
   UnifiedSearchParams,

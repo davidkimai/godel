@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Metrics Commands
  * 
@@ -9,6 +8,7 @@ import { logger } from '../../utils/logger';
  * - swarmctl config - Configuration management
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatMetrics, type OutputFormat, formatOutput, formatSwarms, formatAgents, formatTasks } from '../lib/output';
@@ -38,7 +38,7 @@ export function registerMetricsCommand(program: Command): void {
         const response = await client.getMetrics();
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to get metrics:', response.error?.message);
+          logger.error('❌ Failed to get metrics:', response.error?.message);
           process.exit(1);
         }
 
@@ -51,7 +51,7 @@ export function registerMetricsCommand(program: Command): void {
         logger.info(formatMetrics(data, { format }));
 
       } catch (error) {
-        console.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -71,7 +71,7 @@ export function registerMetricsCommand(program: Command): void {
         const response = await client.listAgents({ pageSize: 1000 });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to get agents:', response.error?.message);
+          logger.error('❌ Failed to get agents:', response.error?.message);
           process.exit(1);
         }
 
@@ -124,7 +124,7 @@ export function registerMetricsCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get agent metrics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get agent metrics:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -144,7 +144,7 @@ export function registerMetricsCommand(program: Command): void {
         const response = await client.listSwarms({ pageSize: 1000 });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to get swarms:', response.error?.message);
+          logger.error('❌ Failed to get swarms:', response.error?.message);
           process.exit(1);
         }
 
@@ -209,7 +209,7 @@ export function registerMetricsCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get swarm metrics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get swarm metrics:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -233,7 +233,7 @@ export function registerStatusCommand(program: Command): void {
         ]);
 
         if (!healthResponse.success || !metricsResponse.success) {
-          console.error('❌ Failed to get system status');
+          logger.error('❌ Failed to get system status');
           process.exit(1);
         }
 
@@ -290,7 +290,7 @@ export function registerStatusCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get status:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get status:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -308,7 +308,7 @@ export function registerHealthCommand(program: Command): void {
         const response = await client.getHealth();
 
         if (!response.success || !response.data) {
-          console.error('❌ Health check failed');
+          logger.error('❌ Health check failed');
           if (options.exitCode) {
             process.exit(1);
           }
@@ -339,7 +339,7 @@ export function registerHealthCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Health check failed:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Health check failed:', error instanceof Error ? error.message : String(error));
         if (options.exitCode) {
           process.exit(1);
         }
@@ -362,7 +362,7 @@ export function registerConfigCommand(program: Command): void {
         const response = await client.getConfig();
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to get config:', response.error?.message);
+          logger.error('❌ Failed to get config:', response.error?.message);
           process.exit(1);
         }
 
@@ -377,7 +377,7 @@ export function registerConfigCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get config:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get config:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -402,14 +402,14 @@ export function registerConfigCommand(program: Command): void {
         const response = await client.updateConfig({ [key]: parsedValue });
 
         if (!response.success) {
-          console.error('❌ Failed to set config:', response.error?.message);
+          logger.error('❌ Failed to set config:', response.error?.message);
           process.exit(1);
         }
 
         logger.info(`✅ Set ${key} = ${JSON.stringify(parsedValue)}`);
 
       } catch (error) {
-        console.error('❌ Failed to set config:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to set config:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

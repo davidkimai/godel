@@ -8,25 +8,25 @@ import { jest } from '@jest/globals';
 // Mock dependencies before imports
 jest.unstable_mockModule('../src/services/swarm.service', () => ({
   SwarmService: jest.fn().mockImplementation(() => ({
-    initialize: jest.fn().mockResolvedValue(true),
-    registerAgent: jest.fn().mockResolvedValue({ id: 'agent-1', name: 'test-agent' }),
-    distributeTask: jest.fn().mockResolvedValue({ taskId: 'task-1', status: 'distributed' }),
-    getSwarmStatus: jest.fn().mockResolvedValue({ agents: 2, activeTasks: 3 }),
+    initialize: jest.fn().mockImplementation(async () => true),
+    registerAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent' })),
+    distributeTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', status: 'distributed' })),
+    getSwarmStatus: jest.fn().mockImplementation(async () => ({ agents: 2, activeTasks: 3 })),
   })),
 }));
 
 jest.unstable_mockModule('../src/services/agent.service', () => ({
   AgentService: jest.fn().mockImplementation(() => ({
-    createAgent: jest.fn().mockResolvedValue({ id: 'agent-1', name: 'test-agent', status: 'active' }),
-    getAgentStatus: jest.fn().mockResolvedValue({ status: 'active', tasksCompleted: 10 }),
+    createAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent', status: 'active' })),
+    getAgentStatus: jest.fn().mockImplementation(async () => ({ status: 'active', tasksCompleted: 10 })),
   })),
 }));
 
 jest.unstable_mockModule('../src/services/task.service', () => ({
   TaskService: jest.fn().mockImplementation(() => ({
-    createTask: jest.fn().mockResolvedValue({ id: 'task-1', title: 'Test Task', status: 'pending' }),
-    assignTask: jest.fn().mockResolvedValue({ taskId: 'task-1', agentId: 'agent-1' }),
-    completeTask: jest.fn().mockResolvedValue({ taskId: 'task-1', status: 'completed' }),
+    createTask: jest.fn().mockImplementation(async () => ({ id: 'task-1', title: 'Test Task', status: 'pending' })),
+    assignTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', agentId: 'agent-1' })),
+    completeTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', status: 'completed' })),
   })),
 }));
 

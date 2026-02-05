@@ -9,10 +9,10 @@
  * - Automatic cleanup of old checkpoints
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { getPool, type PostgresPool } from '../storage/postgres/pool';
 import type { PostgresConfig } from '../storage/postgres/config';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types
@@ -718,7 +718,11 @@ export function getGlobalCheckpointManager(config?: Partial<CheckpointConfig>): 
 }
 
 export function resetGlobalCheckpointManager(): void {
-  globalCheckpointManager?.shutdown().catch(console.error);
+  globalCheckpointManager?.shutdown().catch((error) => {
+    logger.error('recovery', 'Failed to shut down checkpoint manager', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
   globalCheckpointManager = null;
 }
 

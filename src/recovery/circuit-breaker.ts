@@ -9,8 +9,8 @@
  * Tracks failure rates per service with configurable thresholds.
  */
 
-import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
+import { EventEmitter } from 'events';
 
 // ============================================================================
 // Types

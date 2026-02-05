@@ -4,6 +4,7 @@
  * Secure LDAP/Active Directory authentication with input validation.
  */
 
+import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
 // ============================================================================
@@ -151,7 +152,7 @@ export class LDAPAuthStrategy {
       };
     } catch (error) {
       // Log securely - don't expose internal details
-      console.error('[LDAP Auth] Authentication failed:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('[LDAP Auth] Authentication failed:', error instanceof Error ? error.message : 'Unknown error');
       
       return {
         success: false,

@@ -2,8 +2,8 @@
  * Tasks Command - Manage tasks
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 
 export function registerTasksCommand(program: Command): void {
   const tasks = program

@@ -6,11 +6,11 @@
  * SECURITY: Includes Helmet, CSRF protection, secure cookies, and sanitized errors.
  */
 
+import { logger } from '../utils/logger';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createServer, Server as HttpServer } from 'http';
-import { logger } from '../utils';
 import { SwarmRepository } from '../storage/repositories/SwarmRepository';
 import { AgentRepository } from '../storage/repositories/AgentRepository';
 import { EventRepository } from '../storage/repositories/EventRepository';
@@ -393,5 +393,9 @@ export async function startServer(serverConfig?: Partial<ServerConfig>): Promise
 
 // CLI entry point
 if (require.main === module) {
-  startServer().catch(console.error);
+  startServer().catch((error) => {
+    logger.error('api/server', 'Failed to start server', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
 }

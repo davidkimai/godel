@@ -8,8 +8,8 @@
  * @module ThreadManager
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

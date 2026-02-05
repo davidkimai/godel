@@ -5,6 +5,7 @@
  * Replaces in-memory state with database-backed persistence.
  */
 
+import { logger } from '../utils/logger';
 import { SwarmOrchestrator, Swarm, SwarmConfig, SwarmState, SwarmStatusInfo } from './swarm-orchestrator';
 import { StatePersistence, PersistedSwarmState, PersistedAgentState, RecoveryResult, getGlobalStatePersistence } from './state-persistence';
 import { AgentLifecycle, AgentState, LifecycleState } from './lifecycle';
@@ -14,7 +15,6 @@ import { AgentEventBus } from './event-bus';
 import { SessionTree } from './session-tree';
 import { SwarmRepository } from '../storage';
 import { AgentStatus, CreateAgentOptions, Agent } from '../models/agent';
-import { logger } from '../utils/logger';
 import { safeExecute, SwarmNotFoundError } from '../errors';
 
 // ============================================================================

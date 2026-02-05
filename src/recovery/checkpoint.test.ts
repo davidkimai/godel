@@ -166,8 +166,8 @@ describe('CheckpointManager', () => {
       mockQuery.mockResolvedValue({ rows: [] });
 
       const provider: CheckpointProvider = {
-        getCheckpointData: vi.fn(() => Promise.resolve({ status: 'running' })),
-        restoreFromCheckpoint: vi.fn(() => Promise.resolve(true)),
+        getCheckpointData: jest.fn(() => Promise.resolve({ status: 'running' })),
+        restoreFromCheckpoint: jest.fn(() => Promise.resolve(true)),
         getEntityId: () => 'agent-123',
         getEntityType: () => 'agent',
       };
@@ -179,8 +179,8 @@ describe('CheckpointManager', () => {
 
     it('should unregister a provider', () => {
       const provider: CheckpointProvider = {
-        getCheckpointData: vi.fn(() => Promise.resolve({})),
-        restoreFromCheckpoint: vi.fn(() => Promise.resolve(true)),
+        getCheckpointData: jest.fn(() => Promise.resolve({})),
+        restoreFromCheckpoint: jest.fn(() => Promise.resolve(true)),
         getEntityId: () => 'agent-123',
         getEntityType: () => 'agent',
       };
@@ -212,8 +212,8 @@ describe('CheckpointManager', () => {
       });
 
       const provider: CheckpointProvider = {
-        getCheckpointData: vi.fn(() => Promise.resolve({})),
-        restoreFromCheckpoint: vi.fn(() => Promise.resolve(true)),
+        getCheckpointData: jest.fn(() => Promise.resolve({})),
+        restoreFromCheckpoint: jest.fn(() => Promise.resolve(true)),
         getEntityId: () => 'agent-123',
         getEntityType: () => 'agent',
       };

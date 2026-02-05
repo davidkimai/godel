@@ -5,11 +5,11 @@
  * with persistent event logging for audit trails and dashboard streaming.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Event Types

@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
+import { EventEmitter } from 'events';
 import { budgetController } from './budget-controller';
 import { decisionEngine, AuthorizationTier } from './decision-engine';
 

@@ -9,6 +9,7 @@
  * - Event-driven architecture
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { watch, type FSWatcher } from 'fs';
 import { stat, readFile } from 'fs/promises';
@@ -30,7 +31,6 @@ import type {
 } from './types';
 import { toSwarmConfig } from './yaml-loader';
 import type { SwarmManager } from '../core/swarm';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Config Diffing

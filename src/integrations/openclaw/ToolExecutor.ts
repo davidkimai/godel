@@ -13,8 +13,8 @@
  * All methods return ToolResult with proper error handling and large output support.
  */
 
-import WebSocket from 'ws';
 import { logger } from '../../utils/logger';
+import WebSocket from 'ws';
 import {
   ToolResult,
   ToolSuccessResult,

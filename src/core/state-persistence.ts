@@ -8,9 +8,9 @@
  * - Migration path from in-memory state
  */
 
+import { logger } from '../utils/logger';
 import { Mutex } from 'async-mutex';
 import { getDb, initDatabase, type StorageConfig } from '../storage/sqlite';
-import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 
 // ============================================================================

@@ -5,8 +5,8 @@
  * skill registry interface.
  */
 
-import * as path from 'path';
 import { logger } from '../utils/logger';
+import * as path from 'path';
 import { ClawHubClient, getGlobalClawHubClient } from '../integrations/openclaw/ClawHubClient';
 import {
   SkillMetadata,

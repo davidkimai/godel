@@ -7,8 +7,8 @@
  * - dash dashboard --port 7373  Custom port for API
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus, subscribeDashboard, type Message } from '../../bus/index';
@@ -151,7 +151,7 @@ export function registerDashboardCommand(program: Command): void {
         await keepAlive();
 
       } catch (error) {
-        console.error('❌ Dashboard error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Dashboard error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

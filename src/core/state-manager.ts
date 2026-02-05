@@ -1,6 +1,6 @@
+import { logger } from '../utils/logger';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // CONFIGURATION

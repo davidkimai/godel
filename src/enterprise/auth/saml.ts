@@ -4,6 +4,7 @@
  * Secure SAML 2.0 authentication with input validation.
  */
 
+import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
 // ============================================================================
@@ -191,7 +192,7 @@ export class SAMLAuthStrategy {
         user
       };
     } catch (error) {
-      console.error('[SAML Auth] Response processing failed:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('[SAML Auth] Response processing failed:', error instanceof Error ? error.message : 'Unknown error');
       
       return {
         success: false,

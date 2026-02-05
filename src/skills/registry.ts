@@ -5,8 +5,8 @@
  * Provides cross-registry skill discovery and management.
  */
 
-import * as path from 'path';
 import { logger } from '../utils/logger';
+import * as path from 'path';
 import { ClawHubAdapter, getGlobalClawHubAdapter } from './clawhub';
 import { VercelSkillsClient, getGlobalVercelSkillsClient } from './vercel';
 import {

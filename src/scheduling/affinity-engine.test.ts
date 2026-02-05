@@ -2,13 +2,13 @@
  * Affinity Engine Tests
  */
 
-import { AffinityEngine } from '../affinity-engine';
+import { AffinityEngine } from './affinity-engine';
 import {
   NodeAllocation,
   AgentAffinity,
   AffinityRule,
   LabelSelector,
-} from '../types';
+} from './types';
 
 describe('AffinityEngine', () => {
   let engine: AffinityEngine;

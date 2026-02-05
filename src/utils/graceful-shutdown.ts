@@ -1,5 +1,5 @@
+import { logger } from '../integrations/utils/logger';
 import { FastifyInstance } from 'fastify';
-import { logger } from './logger';
 
 interface ShutdownHook {
   name: string;

@@ -13,8 +13,8 @@
  * @module integrations/openclaw/AgentTools
  */
 
-import { Agent, AgentStatus } from '../../models/agent';
 import { logger } from '../../utils/logger';
+import { Agent, AgentStatus } from '../../models/agent';
 import { 
   OpenClawToolExecutor, 
   ToolExecutorConfig 

@@ -6,8 +6,8 @@
  * Reads configuration from the centralized config system.
  */
 
-import type { PoolClient } from 'pg';
 import { logger } from '../../utils/logger';
+import type { PoolClient } from 'pg';
 import { getConfig, type DatabaseConfig } from '../../config';
 
 // We'll use dynamic import for pg-pool to avoid type issues

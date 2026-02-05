@@ -1,6 +1,6 @@
+import { logger } from '../../utils/logger';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../../utils/logger';
 
 // Request ID middleware
 export async function requestIdMiddleware(

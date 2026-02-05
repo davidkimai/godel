@@ -12,6 +12,7 @@
  * - dash events stream/list
  */
 
+import { logger } from './integrations/utils/logger';
 import { Command } from 'commander';
 import { registerCommands } from './cli/index';
 import { readFileSync } from 'fs';
@@ -67,7 +68,7 @@ async function main(): Promise<void> {
       program.help();
     }
   } catch (error) {
-    console.error('❌ Fatal error:', error instanceof Error ? error.message : String(error));
+    logger.error('❌ Fatal error:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
@@ -78,12 +79,12 @@ async function main(): Promise<void> {
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught exception:', error.message);
+  logger.error('❌ Uncaught exception:', error.message);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  console.error('❌ Unhandled rejection:', reason);
+  logger.error('❌ Unhandled rejection:', reason);
   process.exit(1);
 });
 

@@ -3,9 +3,9 @@
  * Crash recovery and state persistence for 24/7 autonomous operation
  */
 
+import { logger } from '../utils/logger';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '../utils/logger';
 
 export interface StateVersion {
   version: string;

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { z } from 'zod';
 import type { Request, Response, NextFunction } from 'express';
 import {
@@ -264,10 +265,10 @@ export function validateCliArgs<T>(schema: z.ZodSchema<T>, data: unknown, option
   const result = validateSafe(schema, data);
   if (result.success === false) {
     if (options?.verbose !== false) {
-      console.error('Validation failed:');
+      logger.error('Validation failed:');
       const errorResult = result as { success: false; errors: Array<{ path: string; message: string }> };
       for (const error of errorResult.errors) {
-        console.error(`  ${error.path}: ${error.message}`);
+        logger.error(`  ${error.path}: ${error.message}`);
       }
     }
     if (options?.exitOnError !== false) {

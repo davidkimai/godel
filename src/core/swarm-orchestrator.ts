@@ -5,6 +5,7 @@
  * and supports session tree branching for A/B testing.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { Mutex } from 'async-mutex';
 import { AgentStatus, type Agent, type CreateAgentOptions } from '../models/agent';
@@ -31,7 +32,6 @@ import {
   assertExists,
   safeExecute,
 } from '../errors';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Core Swarm Types (previously in swarm.ts, now unified here)

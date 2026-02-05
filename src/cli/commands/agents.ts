@@ -11,8 +11,8 @@
  * - dash agents retry <agent-id> [--model <model>]
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 import { getGlobalLifecycle, type RetryOptions, type AgentState } from '../../core/lifecycle';
 import { getGlobalSwarmManager } from '../../core/swarm';
 import { getGlobalBus } from '../../bus/index';
@@ -104,7 +104,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`\n📊 Total: ${agents.length} agents`);
 
       } catch (error) {
-        console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -155,7 +155,7 @@ export function registerAgentsCommand(program: Command): void {
           const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
           const swarm = swarmManager.getSwarm(options.swarm);
           if (!swarm) {
-            console.error(`❌ Swarm ${options.swarm} not found`);
+            logger.error(`❌ Swarm ${options.swarm} not found`);
             process.exit(2);
           }
         }
@@ -196,7 +196,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`\n💡 Use 'dash agents status ${agent.id}' to check progress`);
 
       } catch (error) {
-        console.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -217,7 +217,7 @@ export function registerAgentsCommand(program: Command): void {
 
         const state = lifecycle.getState(agentId);
         if (!state) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
@@ -227,7 +227,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
         if (state.status !== AgentStatus.RUNNING) {
-          console.error(`❌ Cannot pause agent in ${state.status} state`);
+          logger.error(`❌ Cannot pause agent in ${state.status} state`);
           process.exit(2);
         }
 
@@ -236,7 +236,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info('✅ Agent paused');
 
       } catch (error) {
-        console.error('❌ Failed to pause agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to pause agent:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -257,7 +257,7 @@ export function registerAgentsCommand(program: Command): void {
 
         const state = lifecycle.getState(agentId);
         if (!state) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
@@ -271,7 +271,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info('✅ Agent resumed');
 
       } catch (error) {
-        console.error('❌ Failed to resume agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to resume agent:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -294,7 +294,7 @@ export function registerAgentsCommand(program: Command): void {
 
         const state = lifecycle.getState(agentId);
         if (!state) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
@@ -317,7 +317,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info('✅ Agent killed');
 
       } catch (error) {
-        console.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -341,7 +341,7 @@ export function registerAgentsCommand(program: Command): void {
 
         const state = lifecycle.getState(agentId);
         if (!state) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
@@ -400,7 +400,7 @@ export function registerAgentsCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get agent status:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get agent status:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -423,7 +423,7 @@ export function registerAgentsCommand(program: Command): void {
 
         const state = lifecycle.getState(agentId);
         if (!state) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
@@ -447,7 +447,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info('✅ Agent retry initiated');
 
       } catch (error) {
-        console.error('❌ Failed to retry agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to retry agent:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });
@@ -487,7 +487,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`\n   Success Rate:    ${successRate}%`);
 
       } catch (error) {
-        console.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get metrics:', error instanceof Error ? error.message : String(error));
         process.exit(3);
       }
     });

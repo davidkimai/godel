@@ -8,9 +8,9 @@
  * API Base: https://clawhub.ai/api/v1
  */
 
+import { logger } from '../../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../../utils/logger';
 import {
   ClawhubClientConfig,
   DEFAULT_CLAWHUB_CONFIG,

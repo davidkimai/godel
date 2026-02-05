@@ -80,6 +80,7 @@ export type {
 } from './integration';
 
 // Singleton instance
+import { logger } from '../utils/logger';
 import { TaskQueue } from './task-queue';
 
 let globalTaskQueue: TaskQueue | null = null;
@@ -98,7 +99,11 @@ export function getGlobalTaskQueue(
 
 export function resetGlobalTaskQueue(): void {
   if (globalTaskQueue) {
-    globalTaskQueue.stop().catch(console.error);
+    globalTaskQueue.stop().catch((error) => {
+      logger.error('queue', 'Failed to stop global task queue', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
     globalTaskQueue = null;
   }
 }

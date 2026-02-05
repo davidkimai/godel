@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
+import { EventEmitter } from 'events';
 import { decisionEngine, authorizeSwarm, DecisionRequest } from './decision-engine';
 import { swarmExecutor } from './swarm-executor';
 

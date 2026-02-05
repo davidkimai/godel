@@ -9,12 +9,12 @@
  * - Event bus notifications for failure events
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { CheckpointManager, CheckpointProvider } from './checkpoint';
 import { CircuitBreaker, CircuitBreakerRegistry } from './circuit-breaker';
 import { getPool, type PostgresPool } from '../storage/postgres/pool';
 import type { PostgresConfig } from '../storage/postgres/config';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

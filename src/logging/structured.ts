@@ -7,6 +7,7 @@
  * @module logging/structured
  */
 
+import { logger } from '../utils/logger';
 import { randomUUID } from 'crypto';
 
 // ============================================================================

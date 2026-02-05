@@ -5,6 +5,7 @@
  * Supports hard and soft constraints, label selectors, and topology-based spreading.
  */
 
+import { logger } from '../utils/logger';
 import {
   AffinityRule,
   LabelSelector,
@@ -12,7 +13,6 @@ import {
   NodeAllocation,
   AgentAffinity,
 } from './types';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // AFFINITY SCORE

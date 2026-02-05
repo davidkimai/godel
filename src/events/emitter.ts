@@ -3,10 +3,10 @@
  * Handles event publishing, filtering, and subscription management
  */
 
+import { logger } from '../utils/logger';
 import {
   generateEventId
 } from './types';
-import { logger } from '../utils/logger';
 
 import type {
   EventType,

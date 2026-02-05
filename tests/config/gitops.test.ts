@@ -156,6 +156,7 @@ describe('GitOps', () => {
       const diff: ConfigDiffResult = {
         identical: true,
         differences: [],
+        timestamp: new Date().toISOString(),
         summary: { added: 0, removed: 0, modified: 0 },
       };
       
@@ -172,6 +173,7 @@ describe('GitOps', () => {
           newValue: 'kimi-k2.5',
           type: 'added',
         }],
+        timestamp: new Date().toISOString(),
         summary: { added: 1, removed: 0, modified: 0 },
       };
       
@@ -190,6 +192,7 @@ describe('GitOps', () => {
           newValue: 10,
           type: 'modified',
         }],
+        timestamp: new Date().toISOString(),
         summary: { added: 0, removed: 0, modified: 1 },
       };
       

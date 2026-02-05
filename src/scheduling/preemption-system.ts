@@ -6,6 +6,7 @@
  * Supports checkpointing and graceful shutdown.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import {
   PriorityClass,
@@ -16,7 +17,6 @@ import {
   AgentCheckpoint,
 } from './types';
 import { ResourceTracker } from './resource-tracker';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // PREEMPTION CONFIG

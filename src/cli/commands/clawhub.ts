@@ -11,11 +11,11 @@
  * Per OPENCLAW_INTEGRATION_SPEC.md section F4.1
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClawHubClient, ClawHubClient } from '../../integrations/openclaw/ClawHubClient';
 import { getGlobalSkillInstaller, SkillInstaller } from '../../integrations/openclaw/SkillInstaller';
 import { SkillSearchParams, SkillMetadata, InstalledSkill } from '../../integrations/openclaw/ClawHubTypes';
-import { logger } from '../../utils/logger';
 import chalk from 'chalk';
 
 // ============================================================================
@@ -127,8 +127,8 @@ export function registerClawhubCommand(program: Command): void {
           logger.info(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
         }
       } catch (error) {
-        console.error(chalk.red('❌ Search failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Search failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -209,21 +209,21 @@ export function registerClawhubCommand(program: Command): void {
             logger.info(chalk.yellow(`   ${activation.error}`));
           }
         } else {
-          console.error(chalk.red('\n❌ Installation failed'));
+          logger.error(chalk.red('\n❌ Installation failed'));
           if (result.errors?.length) {
             for (const error of result.errors) {
-              console.error(chalk.red(`   ${error}`));
+              logger.error(chalk.red(`   ${error}`));
             }
           }
           process.exit(1);
         }
       } catch (error) {
-        console.error(chalk.red('❌ Installation failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Installation failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         
         if (error instanceof Error && error.message.includes('not found')) {
-          console.error(chalk.gray('\n💡 The skill may not exist. Try searching first:'));
-          console.error(chalk.gray(`   dash clawhub search ${skillSlug}`));
+          logger.error(chalk.gray('\n💡 The skill may not exist. Try searching first:'));
+          logger.error(chalk.gray(`   dash clawhub search ${skillSlug}`));
         }
         
         process.exit(1);
@@ -309,8 +309,8 @@ export function registerClawhubCommand(program: Command): void {
         logger.info(chalk.gray(`\nRegistry: ${client.getConfig().registryUrl}`));
         logger.info(chalk.gray(`Skills directory: ${client.getSkillsDirectory()}`));
       } catch (error) {
-        console.error(chalk.red('❌ Failed to list skills'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Failed to list skills'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -358,8 +358,8 @@ export function registerClawhubCommand(program: Command): void {
 
         logger.info(chalk.green(`✓ ${skillSlug} has been uninstalled`));
       } catch (error) {
-        console.error(chalk.red('❌ Uninstall failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Uninstall failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -444,12 +444,12 @@ export function registerClawhubCommand(program: Command): void {
         }
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
-          console.error(chalk.red(`❌ Skill not found: ${skillSlug}`));
-          console.error(chalk.gray('\nTry searching for it:'));
-          console.error(chalk.gray(`  dash clawhub search ${skillSlug}`));
+          logger.error(chalk.red(`❌ Skill not found: ${skillSlug}`));
+          logger.error(chalk.gray('\nTry searching for it:'));
+          logger.error(chalk.gray(`  dash clawhub search ${skillSlug}`));
         } else {
-          console.error(chalk.red('❌ Failed to fetch skill info'));
-          console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+          logger.error(chalk.red('❌ Failed to fetch skill info'));
+          logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         }
         process.exit(1);
       }
@@ -520,8 +520,8 @@ export function registerClawhubCommand(program: Command): void {
           }
         }
       } catch (error) {
-        console.error(chalk.red('❌ Update failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Update failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });

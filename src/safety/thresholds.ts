@@ -5,7 +5,7 @@
  * Supports configurable thresholds with actions: warn, notify, block, kill, audit.
  */
 
-import { logger } from '../utils';
+import { logger } from '../utils/logger';
 import type { BudgetTracking, BudgetType } from './budget';
 
 // ============================================================================
@@ -221,10 +221,10 @@ export function executeThresholdAction(
  * Execute warn action - log warning and continue
  */
 function executeWarn(tracking: BudgetTracking, threshold: number, message?: string): void {
-  console.warn(`[COST WARNING] ${message || `Budget at ${threshold}%`}`);
-  console.warn(`  Agent: ${tracking.agentId}`);
-  console.warn(`  Used: $${tracking.costUsed.total.toFixed(4)} / $${tracking.budgetConfig.maxCost}`);
-  console.warn(`  Tokens: ${tracking.tokensUsed.total.toLocaleString()}`);
+  logger.warn(`[COST WARNING] ${message || `Budget at ${threshold}%`}`);
+  logger.warn(`  Agent: ${tracking.agentId}`);
+  logger.warn(`  Used: $${tracking.costUsed.total.toFixed(4)} / $${tracking.budgetConfig.maxCost}`);
+  logger.warn(`  Tokens: ${tracking.tokensUsed.total.toLocaleString()}`);
 }
 
 /**
@@ -265,9 +265,9 @@ function executeBlock(tracking: BudgetTracking, threshold: number, message?: str
   const state = getOrCreateThresholdState(tracking.id);
   state.blockedAt = new Date();
 
-  console.error(`\n[BUDGET BLOCK] Agent ${tracking.agentId} has been blocked.`);
-  console.error(`Budget usage: ${threshold}% ($${tracking.costUsed.total.toFixed(4)})`);
-  console.error(`Approval required to continue.\n`);
+  logger.error(`\n[BUDGET BLOCK] Agent ${tracking.agentId} has been blocked.`);
+  logger.error(`Budget usage: ${threshold}% ($${tracking.costUsed.total.toFixed(4)})`);
+  logger.error(`Approval required to continue.\n`);
 }
 
 /**
@@ -286,9 +286,9 @@ function executeKill(tracking: BudgetTracking, threshold: number, message?: stri
     requestedBy: 'budget_system',
   });
 
-  console.error(`\n[BUDGET KILL] Agent ${tracking.agentId} has been terminated.`);
-  console.error(`Budget exceeded: ${threshold}% ($${tracking.costUsed.total.toFixed(4)})`);
-  console.error(`This is a critical budget overrun.\n`);
+  logger.error(`\n[BUDGET KILL] Agent ${tracking.agentId} has been terminated.`);
+  logger.error(`Budget exceeded: ${threshold}% ($${tracking.costUsed.total.toFixed(4)})`);
+  logger.error(`This is a critical budget overrun.\n`);
 }
 
 /**
@@ -313,9 +313,9 @@ function executeAudit(tracking: BudgetTracking, threshold: number, message?: str
   // Also kill the agent at this extreme threshold
   executeKill(tracking, threshold, message || 'Budget exceeded 110% - compliance review required');
 
-  console.error(`\n[BUDGET AUDIT] Agent ${tracking.agentId} flagged for compliance review.`);
-  console.error(`Severe budget overrun: ${threshold}%`);
-  console.error(`This incident has been logged for security review.\n`);
+  logger.error(`\n[BUDGET AUDIT] Agent ${tracking.agentId} flagged for compliance review.`);
+  logger.error(`Severe budget overrun: ${threshold}%`);
+  logger.error(`This incident has been logged for security review.\n`);
 }
 
 // ============================================================================

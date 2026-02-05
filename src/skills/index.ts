@@ -55,6 +55,7 @@ export {
 // Convenience API
 // ============================================================================
 
+import { logger } from '../utils/logger';
 import { UnifiedSkillRegistry, getGlobalSkillRegistry } from './registry';
 import {
   UnifiedSkillMetadata,

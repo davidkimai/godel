@@ -13,9 +13,9 @@
  * Per OPENCLAW_INTEGRATION_SPEC.md section 5.1
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import * as path from 'path';
-import { logger } from '../../utils/logger';
 import { 
   GatewayClient, 
   SessionManager, 
@@ -316,7 +316,7 @@ export function registerOpenClawCommand(program: Command): void {
         if (mode === 'real') {
           // In real mode, fail hard
           logger.error('openclaw', '❌ Failed to connect to OpenClaw Gateway');
-          console.error(`   Error: ${errorMessage}`);
+          logger.error(`   Error: ${errorMessage}`);
           logger.error('openclaw', '\n💡 Troubleshooting:');
           logger.error('openclaw', '   - Ensure OpenClaw Gateway is running: openclaw gateway status');
           logger.error('openclaw', '   - Check OPENCLAW_GATEWAY_URL environment variable');
@@ -393,7 +393,7 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info('\n💡 Connection is ready for commands');
       } catch (error) {
         logger.error('openclaw', '❌ Failed to get gateway status');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -483,7 +483,7 @@ export function registerOpenClawCommand(program: Command): void {
         }
       } catch (error) {
         logger.error('openclaw', '❌ Failed to list sessions');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -513,7 +513,7 @@ export function registerOpenClawCommand(program: Command): void {
           const mockClient = getMockClient();
           const session = mockClient.getSession(sessionKey);
           if (!session) {
-            console.error(`❌ Session not found: ${sessionKey}`);
+            logger.error(`❌ Session not found: ${sessionKey}`);
             process.exit(1);
           }
           
@@ -547,7 +547,7 @@ export function registerOpenClawCommand(program: Command): void {
         }
       } catch (error) {
         logger.error('openclaw', '❌ Failed to get session history');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -637,7 +637,7 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info(`\n💡 Use "dash openclaw send --session ${execution.sessionKey} <message>" to send a task`);
       } catch (error) {
         logger.error('openclaw', '❌ Failed to spawn agent');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -660,7 +660,7 @@ export function registerOpenClawCommand(program: Command): void {
         if (options.attach) {
           const validation = validateAttachmentPath(options.attach);
           if (!validation.valid) {
-            console.error(`❌ Invalid attachment: ${validation.error}`);
+            logger.error(`❌ Invalid attachment: ${validation.error}`);
             process.exit(1);
           }
         }
@@ -696,7 +696,7 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info(`✓ Status: ${result.status}`);
       } catch (error) {
         logger.error('openclaw', '❌ Failed to send message');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -737,7 +737,7 @@ export function registerOpenClawCommand(program: Command): void {
         }
       } catch (error) {
         logger.error('openclaw', '❌ Failed to kill session');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });
@@ -854,7 +854,7 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info('  dash openclaw bridge --stop');
       } catch (error) {
         logger.error('openclaw', '❌ Bridge command failed');
-        console.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
         process.exit(1);
       }
     });

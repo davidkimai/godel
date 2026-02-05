@@ -17,6 +17,7 @@
  * - Uses async-mutex library for exclusive access
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { Mutex } from 'async-mutex';
 import {
@@ -37,7 +38,6 @@ import {
   assertExists,
   safeExecute,
 } from '../errors';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

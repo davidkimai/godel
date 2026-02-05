@@ -5,6 +5,7 @@
  * list, get, and filtering operations.
  */
 
+import { logger } from '../utils/logger';
 import { 
   ApprovalRequest, 
   ApprovalStatus, 
@@ -14,7 +15,6 @@ import {
   logApprovalAudit,
   formatApprovalForDisplay
 } from './approval';
-import { logger } from '../utils';
 
 // ============================================================================
 // Queue Storage

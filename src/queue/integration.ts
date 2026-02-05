@@ -8,11 +8,11 @@
  * - Prometheus metrics export
  */
 
+import { logger } from '../utils/logger';
 import { TaskQueue } from './task-queue';
 import { QueueMetricsCollector } from './metrics';
 import { MessageBus } from '../bus';
 import { EventRepository } from '../storage/repositories/EventRepository';
-import { logger } from '../utils/logger';
 import type { QueueEvent, TaskResult, QueuedTask } from './types';
 import type { MissionEvent } from '../events/types';
 

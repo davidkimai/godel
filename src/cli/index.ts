@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { logger } from '../utils/logger';
 /**
  * swarmctl - Dash CLI
  * 
@@ -25,6 +24,7 @@ import { logger } from '../utils/logger';
  *   --format       Output format (table|json|jsonl)
  */
 
+import { logger } from '../utils/logger';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -92,7 +92,7 @@ program
     } else if (shell === 'zsh') {
       logger.info(generateZshCompletion());
     } else {
-      console.error(`❌ Unknown shell: ${shell}. Supported shells: bash, zsh`);
+      logger.error(`❌ Unknown shell: ${shell}. Supported shells: bash, zsh`);
       process.exit(1);
     }
   });

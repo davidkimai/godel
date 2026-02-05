@@ -7,9 +7,9 @@
  * SPEC: OPENCLAW_INTEGRATION_SPEC.md Section 4.5
  */
 
+import { logger } from '../../utils/logger';
 import { UsageMetrics, TokenBreakdown } from './UsageCalculator';
 import { SQLiteStorage } from '../../storage/sqlite';
-import { logger } from '../../utils';
 
 // ============================================================================
 // Types

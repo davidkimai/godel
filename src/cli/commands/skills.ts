@@ -11,6 +11,7 @@
  * - dash skills sources
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import { 
@@ -26,7 +27,6 @@ import {
   SkillNotFoundError,
   SourceNotAvailableError,
 } from '../../skills/types';
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Helper Functions
@@ -181,8 +181,8 @@ export function registerSkillsCommand(program: Command): void {
 
         logger.info(chalk.gray(`Skills directory: ${registry.getSkillsDirectory()}`));
       } catch (error) {
-        console.error(chalk.red('❌ Failed to list skills'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Failed to list skills'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -262,8 +262,8 @@ export function registerSkillsCommand(program: Command): void {
           logger.info(chalk.gray(`Use --limit ${Math.min(result.total, result.skills.length + 20)} to see more results`));
         }
       } catch (error) {
-        console.error(chalk.red('❌ Search failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Search failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -331,30 +331,30 @@ export function registerSkillsCommand(program: Command): void {
             }
           }
         } else {
-          console.error(chalk.red('\n❌ Installation failed'));
+          logger.error(chalk.red('\n❌ Installation failed'));
           if (result.errors?.length) {
             for (const error of result.errors) {
-              console.error(chalk.red(`   ${error}`));
+              logger.error(chalk.red(`   ${error}`));
             }
           }
           process.exit(1);
         }
       } catch (error) {
         if (error instanceof AmbiguousSkillError) {
-          console.error(chalk.yellow('⚠️  Multiple sources have this skill:'));
-          console.error(chalk.gray(`   ${error.sources.map(s => `${s}:${skillId}`).join(', ')}`));
-          console.error(chalk.gray('\n   Specify source with:'));
-          console.error(chalk.gray(`   dash skills install clawhub:${skillId}`));
-          console.error(chalk.gray(`   dash skills install vercel:${skillId}`));
+          logger.error(chalk.yellow('⚠️  Multiple sources have this skill:'));
+          logger.error(chalk.gray(`   ${error.sources.map(s => `${s}:${skillId}`).join(', ')}`));
+          logger.error(chalk.gray('\n   Specify source with:'));
+          logger.error(chalk.gray(`   dash skills install clawhub:${skillId}`));
+          logger.error(chalk.gray(`   dash skills install vercel:${skillId}`));
         } else if (error instanceof SkillNotFoundError) {
-          console.error(chalk.red(`❌ Skill not found: ${skillId}`));
-          console.error(chalk.gray('\n   Try searching first:'));
-          console.error(chalk.gray(`   dash skills search ${skillId}`));
+          logger.error(chalk.red(`❌ Skill not found: ${skillId}`));
+          logger.error(chalk.gray('\n   Try searching first:'));
+          logger.error(chalk.gray(`   dash skills search ${skillId}`));
         } else if (error instanceof SourceNotAvailableError) {
-          console.error(chalk.red(`❌ Source not available: ${error.source}`));
+          logger.error(chalk.red(`❌ Source not available: ${error.source}`));
         } else {
-          console.error(chalk.red('❌ Installation failed'));
-          console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+          logger.error(chalk.red('❌ Installation failed'));
+          logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         }
         process.exit(1);
       }
@@ -393,8 +393,8 @@ export function registerSkillsCommand(program: Command): void {
 
         logger.info(chalk.green(`✓ ${skillId} has been removed`));
       } catch (error) {
-        console.error(chalk.red('❌ Remove failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Remove failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -483,8 +483,8 @@ export function registerSkillsCommand(program: Command): void {
           }
         }
       } catch (error) {
-        console.error(chalk.red('❌ Update failed'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Update failed'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });
@@ -558,12 +558,12 @@ export function registerSkillsCommand(program: Command): void {
         }
       } catch (error) {
         if (error instanceof SkillNotFoundError) {
-          console.error(chalk.red(`❌ Skill not found: ${skillId}`));
-          console.error(chalk.gray('\nTry searching for it:'));
-          console.error(chalk.gray(`  dash skills search ${skillId}`));
+          logger.error(chalk.red(`❌ Skill not found: ${skillId}`));
+          logger.error(chalk.gray('\nTry searching for it:'));
+          logger.error(chalk.gray(`  dash skills search ${skillId}`));
         } else {
-          console.error(chalk.red('❌ Failed to fetch skill info'));
-          console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+          logger.error(chalk.red('❌ Failed to fetch skill info'));
+          logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         }
         process.exit(1);
       }
@@ -595,8 +595,8 @@ export function registerSkillsCommand(program: Command): void {
 
         logger.info(chalk.gray('Use --source <source> to search or install from a specific source.'));
       } catch (error) {
-        console.error(chalk.red('❌ Failed to list sources'));
-        console.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
+        logger.error(chalk.red('❌ Failed to list sources'));
+        logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
         process.exit(1);
       }
     });

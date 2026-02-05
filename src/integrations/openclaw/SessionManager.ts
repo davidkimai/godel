@@ -7,9 +7,9 @@
  * @module integrations/openclaw/SessionManager
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
-import { logger } from '../../utils/logger';
 import { GatewayClient } from './GatewayClient';
 import { EventHandler } from './types';
 

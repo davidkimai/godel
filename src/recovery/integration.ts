@@ -9,6 +9,7 @@
  * - Metrics export
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { CheckpointManager, CheckpointProvider } from './checkpoint';
 import { CircuitBreaker, CircuitBreakerRegistry, withCircuitBreaker } from './circuit-breaker';
@@ -16,7 +17,6 @@ import { SelfHealingController, AgentRecoveryHandler, SelfHealingConfig } from '
 import { RecoveryObservability } from './metrics';
 import type { RedisEventBus } from '../core/event-bus-redis';
 import type { PostgresConfig } from '../storage/postgres/config';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

@@ -5,6 +5,7 @@
  * Tracks workflow execution, step execution, and state transitions.
  */
 
+import { logger } from '../utils/logger';
 import { SpanKind, type Span } from '@opentelemetry/api';
 import { 
   withSpan, 
@@ -18,7 +19,6 @@ import {
   trace,
   type EventContext 
 } from './opentelemetry';
-import { logger } from '../utils/logger';
 import type { Workflow, WorkflowStep, WorkflowStatus, StepStatus } from '../workflow/types';
 
 // ============================================================================

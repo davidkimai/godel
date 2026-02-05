@@ -5,6 +5,7 @@
  * Used by OpenClaw and other commands that need to maintain state between CLI invocations.
  */
 
+import { logger } from '../integrations/utils/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -66,7 +67,7 @@ export function loadState(): CLIState {
       return { ...DEFAULT_STATE, ...parsed };
     }
   } catch (error) {
-    console.error('[cli-state.loadState] Error:', error);
+    logger.error('[cli-state.loadState] Error:', error);
   }
   return { ...DEFAULT_STATE };
 }
@@ -85,7 +86,7 @@ export function saveState(state: Partial<CLIState>): void {
     };
     fs.writeFileSync(STATE_FILE, JSON.stringify(updated, null, 2), 'utf-8');
   } catch (error) {
-    console.error('[cli-state.saveState] Error:', error);
+    logger.error('[cli-state.saveState] Error:', error);
   }
 }
 
@@ -145,7 +146,7 @@ export function resetState(): void {
       fs.unlinkSync(STATE_FILE);
     }
   } catch (error) {
-    console.error('[cli-state.resetState] Error:', error);
+    logger.error('[cli-state.resetState] Error:', error);
   }
 }
 

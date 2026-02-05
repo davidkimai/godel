@@ -7,9 +7,9 @@
  * Based on OPENCLAW_INTEGRATION_SPEC.md section F4.1
  */
 
+import { logger } from '../../utils/logger';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { logger } from '../../utils/logger';
 import { ClawHubClient } from './ClawHubClient';
 import {
   ParsedSkill,

@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Self-Improvement CLI Command
  * 
@@ -8,6 +7,7 @@ import { logger } from '../../utils/logger';
  * - dash self-improve report      Generate improvement report
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import {
   startSelfImprovementSession,
@@ -53,7 +53,7 @@ export function registerSelfImproveCommand(program: Command): void {
             logger.info(report);
             
           } catch (error) {
-            console.error('❌ Self-improvement failed:', error instanceof Error ? error.message : String(error));
+            logger.error('❌ Self-improvement failed:', error instanceof Error ? error.message : String(error));
             process.exit(1);
           }
         })

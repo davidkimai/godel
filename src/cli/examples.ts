@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * CLI Examples - Usage Examples for Dash Commands
  */
@@ -30,10 +31,10 @@ export function printHelp(command: string): void {
   const examples = EXAMPLES[command as keyof typeof EXAMPLES];
   if (!examples) return;
   
-  console.log(`\nExamples:`);
+  logger.info(`\nExamples:`);
   examples.forEach(ex => {
-    console.log(`  ${ex.command}`);
-    console.log(`     # ${ex.description}`);
+    logger.info(`  ${ex.command}`);
+    logger.info(`     # ${ex.description}`);
   });
 }
 

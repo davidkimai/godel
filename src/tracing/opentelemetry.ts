@@ -6,6 +6,7 @@
  * and database operations.
  */
 
+import { logger } from '../utils/logger';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
@@ -22,7 +23,6 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { AsyncHooksContextManager } from '@opentelemetry/context-async-hooks';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Configuration Types

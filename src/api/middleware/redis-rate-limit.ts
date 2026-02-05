@@ -1,7 +1,7 @@
+import { logger } from '../../utils/logger';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { createClient } from 'redis';
-import { logger } from '../../utils/logger';
 
 // Redis client
 let redisClient: ReturnType<typeof createClient> | null = null;

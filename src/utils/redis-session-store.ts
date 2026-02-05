@@ -1,5 +1,5 @@
+import { logger } from '../integrations/utils/logger';
 import Redis from 'ioredis';
-import { logger } from './logger';
 
 // Redis client for sessions
 let redisClient: Redis | null = null;

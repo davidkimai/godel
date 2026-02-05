@@ -2,8 +2,8 @@
  * Tests Command - Test management
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 
 export function registerTestsCommand(program: Command): void {
   const tests = program

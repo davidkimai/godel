@@ -8,8 +8,8 @@
  * - Default settings
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -145,7 +145,7 @@ export function registerInitCommand(program: Command): void {
         logger.info('     dash swarm create --name "My Swarm" --task "Hello World"\n');
 
       } catch (error) {
-        console.error('❌ Failed to initialize Dash:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to initialize Dash:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -181,7 +181,7 @@ export function registerInitCommand(program: Command): void {
         logger.info(`  Created:    ${config.createdAt}\n`);
 
       } catch (error) {
-        console.error('❌ Failed to show config:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to show config:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -214,7 +214,7 @@ export function registerInitCommand(program: Command): void {
         logger.info(`   New API Key: ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)\n`);
 
       } catch (error) {
-        console.error('❌ Failed to reset config:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to reset config:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

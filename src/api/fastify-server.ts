@@ -10,13 +10,13 @@
  * - Comprehensive error handling
  */
 
+import { logger } from '../utils/logger';
 import Fastify, { FastifyInstance, FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { logger } from '../utils';
 
 // Routes
 import agentRoutes from './routes/agents';
@@ -307,7 +307,7 @@ export async function startFastifyServer(
 // CLI entry point
 if (require.main === module) {
   startFastifyServer().catch((error) => {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error);
     process.exit(1);
   });
 }

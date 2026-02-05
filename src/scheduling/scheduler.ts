@@ -5,6 +5,7 @@
  * preemption, and bin-packing for efficient agent placement.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { Pool } from 'pg';
 import {
@@ -22,7 +23,6 @@ import {
 import { ResourceTracker } from './resource-tracker';
 import { AffinityEngine, AffinityScore } from './affinity-engine';
 import { PreemptionSystem, PreemptionRequest } from './preemption-system';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // SCHEDULER CONFIG

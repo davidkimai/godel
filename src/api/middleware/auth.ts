@@ -5,6 +5,7 @@
  * Uses cryptographically secure key generation.
  */
 
+import { logger } from '../../utils/logger';
 import { Request, Response, NextFunction } from 'express';
 import { randomBytes, timingSafeEqual } from 'crypto';
 
@@ -89,10 +90,10 @@ export function authMiddleware(apiKey: string) {
   if (isValidApiKeyFormat(apiKey)) {
     validKeys.add(apiKey);
   } else {
-    console.warn('[Auth] Default API key does not meet security requirements. Generating secure key.');
+    logger.warn('[Auth] Default API key does not meet security requirements. Generating secure key.');
     const secureKey = generateApiKey('default');
     validKeys.add(secureKey);
-    console.info(`[Auth] Generated secure API key: ${secureKey.slice(0, 20)}...`);
+    logger.info(`[Auth] Generated secure API key: ${secureKey.slice(0, 20)}...`);
   }
 
   return (req: Request, res: Response, next: NextFunction) => {

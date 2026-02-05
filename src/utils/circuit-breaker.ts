@@ -1,6 +1,6 @@
+import { logger } from '../integrations/utils/logger';
 import CircuitBreaker from 'opossum';
 import { EventEmitter } from 'events';
-import { logger } from './logger';
 
 export interface CircuitBreakerOptions {
   failureThreshold?: number;

@@ -7,6 +7,7 @@
  * - Dynamic skill loading during swarm execution
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { SkillRegistry } from './registry';
 import {
@@ -17,7 +18,6 @@ import {
   SkillMatch,
   SkillEvent,
 } from './types';
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Types

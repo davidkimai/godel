@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Task Commands
  * 
@@ -11,6 +10,7 @@ import { logger } from '../../utils/logger';
  * - swarmctl task cancel <task-id>
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatTasks, type OutputFormat } from '../lib/output';
@@ -42,7 +42,7 @@ export function registerTaskCommand(program: Command): void {
         });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to list tasks:', response.error?.message);
+          logger.error('❌ Failed to list tasks:', response.error?.message);
           process.exit(1);
         }
 
@@ -61,7 +61,7 @@ export function registerTaskCommand(program: Command): void {
           logger.info(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
         }
       } catch (error) {
-        console.error('❌ Failed to list tasks:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to list tasks:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -85,8 +85,8 @@ export function registerTaskCommand(program: Command): void {
         // Validate priority
         const validPriorities = ['low', 'medium', 'high', 'critical'];
         if (!validPriorities.includes(options.priority)) {
-          console.error(`❌ Invalid priority: ${options.priority}`);
-          console.error(`   Valid priorities: ${validPriorities.join(', ')}`);
+          logger.error(`❌ Invalid priority: ${options.priority}`);
+          logger.error(`   Valid priorities: ${validPriorities.join(', ')}`);
           process.exit(1);
         }
 
@@ -110,7 +110,7 @@ export function registerTaskCommand(program: Command): void {
         if (options.assignee) {
           const agentResponse = await client.getAgent(options.assignee);
           if (!agentResponse.success) {
-            console.error(`❌ Agent ${options.assignee} not found`);
+            logger.error(`❌ Agent ${options.assignee} not found`);
             process.exit(1);
           }
         }
@@ -124,7 +124,7 @@ export function registerTaskCommand(program: Command): void {
         });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to create task:', response.error?.message);
+          logger.error('❌ Failed to create task:', response.error?.message);
           process.exit(1);
         }
 
@@ -141,7 +141,7 @@ export function registerTaskCommand(program: Command): void {
         logger.info(`\n💡 Use 'swarmctl task get ${newTask.id}' to view details`);
 
       } catch (error) {
-        console.error('❌ Failed to create task:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to create task:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -160,7 +160,7 @@ export function registerTaskCommand(program: Command): void {
         const response = await client.getTask(taskId);
 
         if (!response.success || !response.data) {
-          console.error(`❌ Task ${taskId} not found`);
+          logger.error(`❌ Task ${taskId} not found`);
           process.exit(1);
         }
 
@@ -205,7 +205,7 @@ export function registerTaskCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get task:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get task:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -225,14 +225,14 @@ export function registerTaskCommand(program: Command): void {
         // Verify task exists
         const taskResponse = await client.getTask(taskId);
         if (!taskResponse.success) {
-          console.error(`❌ Task ${taskId} not found`);
+          logger.error(`❌ Task ${taskId} not found`);
           process.exit(1);
         }
 
         // Verify agent exists
         const agentResponse = await client.getAgent(agentId);
         if (!agentResponse.success) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(1);
         }
 
@@ -241,14 +241,14 @@ export function registerTaskCommand(program: Command): void {
         const response = await client.assignTask(taskId, agentId);
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to assign task:', response.error?.message);
+          logger.error('❌ Failed to assign task:', response.error?.message);
           process.exit(1);
         }
 
         logger.info('✅ Task assigned successfully');
 
       } catch (error) {
-        console.error('❌ Failed to assign task:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to assign task:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -267,7 +267,7 @@ export function registerTaskCommand(program: Command): void {
         // Verify task exists
         const taskResponse = await client.getTask(taskId);
         if (!taskResponse.success || !taskResponse.data) {
-          console.error(`❌ Task ${taskId} not found`);
+          logger.error(`❌ Task ${taskId} not found`);
           process.exit(1);
         }
 
@@ -283,14 +283,14 @@ export function registerTaskCommand(program: Command): void {
         const response = await client.completeTask(taskId);
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to complete task:', response.error?.message);
+          logger.error('❌ Failed to complete task:', response.error?.message);
           process.exit(1);
         }
 
         logger.info('✅ Task marked as complete');
 
       } catch (error) {
-        console.error('❌ Failed to complete task:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to complete task:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -310,7 +310,7 @@ export function registerTaskCommand(program: Command): void {
         // Verify task exists
         const taskResponse = await client.getTask(taskId);
         if (!taskResponse.success || !taskResponse.data) {
-          console.error(`❌ Task ${taskId} not found`);
+          logger.error(`❌ Task ${taskId} not found`);
           process.exit(1);
         }
 
@@ -322,7 +322,7 @@ export function registerTaskCommand(program: Command): void {
         }
 
         if (task.status === 'completed') {
-          console.error(`❌ Cannot cancel a completed task`);
+          logger.error(`❌ Cannot cancel a completed task`);
           process.exit(1);
         }
 
@@ -340,14 +340,14 @@ export function registerTaskCommand(program: Command): void {
         const response = await client.cancelTask(taskId);
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to cancel task:', response.error?.message);
+          logger.error('❌ Failed to cancel task:', response.error?.message);
           process.exit(1);
         }
 
         logger.info('✅ Task cancelled');
 
       } catch (error) {
-        console.error('❌ Failed to cancel task:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to cancel task:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

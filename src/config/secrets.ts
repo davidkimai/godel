@@ -9,10 +9,10 @@
  * - Batch resolution for efficiency
  */
 
+import { logger } from '../utils/logger';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
-import { logger } from '../utils/logger';
 
 const execAsync = promisify(exec);
 

@@ -10,9 +10,9 @@
  * Supports secret resolution from Vault and environment variable substitution.
  */
 
+import { logger } from '../utils/logger';
 import { readFileSync, existsSync } from 'fs';
 import * as YAML from 'yaml';
-import { logger } from '../utils/logger';
 import type { DashConfig, ConfigLoadOptions } from './types';
 import { 
   dashConfigSchema, 

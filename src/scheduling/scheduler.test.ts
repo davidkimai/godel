@@ -4,17 +4,17 @@
  * Comprehensive test suite for the scheduling system.
  */
 
-import { Scheduler } from '../scheduler';
-import { ResourceTracker } from '../resource-tracker';
-import { AffinityEngine } from '../affinity-engine';
-import { PreemptionSystem } from '../preemption-system';
+import { Scheduler } from './scheduler';
+import { ResourceTracker } from './resource-tracker';
+import { AffinityEngine } from './affinity-engine';
+import { PreemptionSystem } from './preemption-system';
 import {
   SchedulingRequest,
   PriorityClass,
   NodeCapacity,
   AgentAffinity,
-} from '../types';
-import { createAgent, Agent } from '../../models/agent';
+} from './types';
+import { createAgent, Agent } from '../models/agent';
 
 // Mock Redis
 jest.mock('ioredis', () => {

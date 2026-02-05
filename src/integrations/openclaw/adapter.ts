@@ -7,10 +7,10 @@
  * @module integrations/openclaw/adapter
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { getGlobalClient, type DashApiClient } from '../../cli/lib/client';
 import { getGlobalBus, type MessageBus, type Subscription } from '../../bus/index';
-import { logger } from '../../utils/logger';
 import {
   ApplicationError,
   NotFoundError,

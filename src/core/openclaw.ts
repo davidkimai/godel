@@ -17,11 +17,11 @@
  * @module core/openclaw
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
 import { AgentStatus } from '../models/agent';
 import { MessageBus } from '../bus/index';
-import { logger } from '../utils/logger';
 import {
   ApplicationError,
   NotFoundError,

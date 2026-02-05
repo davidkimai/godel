@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Message Bus Commands
  * 
@@ -9,6 +8,7 @@ import { logger } from '../../utils/logger';
  * - swarmctl bus status
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatMessages, type OutputFormat } from '../lib/output';
@@ -55,7 +55,7 @@ export function registerBusCommand(program: Command): void {
         const response = await client.publishMessage(topic, payload, metadata);
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to publish message:', response.error?.message);
+          logger.error('❌ Failed to publish message:', response.error?.message);
           process.exit(1);
         }
 
@@ -67,7 +67,7 @@ export function registerBusCommand(program: Command): void {
         logger.info(`   Timestamp: ${message.timestamp.toISOString()}`);
 
       } catch (error) {
-        console.error('❌ Failed to publish message:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to publish message:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -117,7 +117,7 @@ export function registerBusCommand(program: Command): void {
         const response = await client.subscribeToTopic(topic, messageHandler);
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to subscribe:', response.error?.message);
+          logger.error('❌ Failed to subscribe:', response.error?.message);
           process.exit(1);
         }
 
@@ -144,7 +144,7 @@ export function registerBusCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to subscribe:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to subscribe:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -193,7 +193,7 @@ export function registerBusCommand(program: Command): void {
         logger.info(`\n📊 Total: ${topics.length} topics`);
 
       } catch (error) {
-        console.error('❌ Failed to list topics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to list topics:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -269,7 +269,7 @@ export function registerBusCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get status:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get status:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

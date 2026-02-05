@@ -6,11 +6,11 @@
  * Eliminates port conflicts by ensuring only one server instance binds to a port.
  */
 
+import { logger } from '../utils/logger';
 import { createServer as createHttpServer, Server as HttpServer } from 'http';
 import express, { Request, Response, NextFunction, Router } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { logger } from '../utils';
 import { getConfig, type DashConfig } from '../config';
 import { startWebSocketServer } from './websocket';
 
@@ -721,7 +721,7 @@ export async function createServerConfigForTesting(
 // CLI entry point
 if (require.main === module) {
   startServer().catch((error) => {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server:', error);
     process.exit(1);
   });
 }

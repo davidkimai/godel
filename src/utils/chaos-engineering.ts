@@ -1,7 +1,7 @@
 // Chaos Engineering - Fault injection for testing resilience
 
+import { logger } from '../integrations/utils/logger';
 import { EventEmitter } from 'events';
-import { logger } from '../utils/logger';
 
 export interface ChaosScenario {
   name: string;

@@ -6,6 +6,7 @@
  * trace context propagation.
  */
 
+import { logger } from '../utils/logger';
 import { SpanKind, type Context } from '@opentelemetry/api';
 import { 
   withSpan, 
@@ -18,7 +19,6 @@ import {
   extractContext,
   type EventContext 
 } from './opentelemetry';
-import { logger } from '../utils/logger';
 import type { AgentEvent, AgentEventType } from '../core/event-bus';
 
 // ============================================================================

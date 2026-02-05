@@ -5,6 +5,7 @@
  * Tracks query execution with detailed attributes.
  */
 
+import { logger } from '../utils/logger';
 import { SpanKind } from '@opentelemetry/api';
 import { 
   withSpan, 
@@ -12,7 +13,6 @@ import {
   setBaggage,
   getBaggage,
 } from './opentelemetry';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Span Names

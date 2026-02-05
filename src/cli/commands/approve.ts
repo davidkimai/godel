@@ -9,8 +9,8 @@
  * - audit: Query audit trail
  */
 
+import { logger } from '../../utils/logger';
 import { Command, Option } from 'commander';
-import { logger } from '../../utils';
 import { respondToRequest, getAuditLogs, RiskLevel, OperationType } from '../../safety/approval';
 import { listPending, getApprovalDetails, getStats, formatListForDisplay, formatDetailsForDisplay } from '../../safety/pending';
 import { escalateRequest, emergencyOverride, isMonitoring, getEscalationConfig, startMonitoring, stopMonitoring } from '../../safety/escalation';
@@ -102,7 +102,7 @@ function createGetCommand(): Command {
       try {
         const request = getApprovalDetails(id, options.includeContext);
         if (!request) {
-          console.error(`Approval request not found: ${id}`);
+          logger.error(`Approval request not found: ${id}`);
           process.exit(1);
         }
         logger.info(formatDetailsForDisplay(request));
@@ -125,11 +125,11 @@ function createRespondCommand(): Command {
       try {
         const request = getApprovalDetails(id);
         if (!request) {
-          console.error(`Approval request not found: ${id}`);
+          logger.error(`Approval request not found: ${id}`);
           process.exit(1);
         }
         if (request.status !== 'pending') {
-          console.error(`Cannot respond to request with status: ${request.status}`);
+          logger.error(`Cannot respond to request with status: ${request.status}`);
           process.exit(1);
         }
         const decision = options.approve ? 'approve' : 'deny';
@@ -289,11 +289,11 @@ function createEscalateCommand(): Command {
       try {
         const request = getApprovalDetails(id);
         if (!request) {
-          console.error(`Approval request not found: ${id}`);
+          logger.error(`Approval request not found: ${id}`);
           process.exit(1);
         }
         if (request.status !== 'pending' && request.status !== 'escalated') {
-          console.error(`Cannot escalate request with status: ${request.status}`);
+          logger.error(`Cannot escalate request with status: ${request.status}`);
           process.exit(1);
         }
         const escalated = escalateRequest(request, options.reason);

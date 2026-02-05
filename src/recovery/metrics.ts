@@ -9,12 +9,12 @@
  * - Prometheus-compatible metrics export
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { Counter, Histogram, Gauge, Registry, collectDefaultMetrics } from 'prom-client';
 import type { CheckpointManager } from './checkpoint';
 import type { CircuitBreakerRegistry, CircuitBreakerStats, CircuitBreakerMetrics } from './circuit-breaker';
 import type { SelfHealingController, HealingStats, HealingMetrics } from './self-healing';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

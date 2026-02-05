@@ -7,6 +7,7 @@
  * - dash swarm status [id]
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 
 export function swarmCommand(): Command {
@@ -34,22 +35,22 @@ export function swarmCommand(): Command {
         }
         
         if (errors.length > 0) {
-          console.log('❌  Validation failed:\n');
-          errors.forEach(e => console.log(`   ${e}`));
-          console.log('\n💡  Usage examples:');
-          console.log('   dash swarm create -n "my-swarm" -t "Analyze this codebase"');
-          console.log('   dash swarm create --name research --task "Research AI agents"');
-          console.log('   dash swarm create -n test -t "Run tests" -a 2');
+          logger.info('❌  Validation failed:\n');
+          errors.forEach(e => logger.info(`   ${e}`));
+          logger.info('\n💡  Usage examples:');
+          logger.info('   dash swarm create -n "my-swarm" -t "Analyze this codebase"');
+          logger.info('   dash swarm create --name research --task "Research AI agents"');
+          logger.info('   dash swarm create -n test -t "Run tests" -a 2');
           process.exit(1);
         }
         
         // Create swarm stub
-        console.log(`✅  Swarm created: ${options.name}`);
-        console.log(`   Name: ${options.name}`);
-        console.log(`   Task: ${options.task}`);
-        console.log(`   Agents: ${options.agents}`);
-        console.log(`   Provider: ${options.provider}`);
-        console.log(`   Model: ${options.model}`);
+        logger.info(`✅  Swarm created: ${options.name}`);
+        logger.info(`   Name: ${options.name}`);
+        logger.info(`   Task: ${options.task}`);
+        logger.info(`   Agents: ${options.agents}`);
+        logger.info(`   Provider: ${options.provider}`);
+        logger.info(`   Model: ${options.model}`);
         
         process.exit(0);
       })
@@ -64,16 +65,16 @@ export function swarmCommand(): Command {
         const swarms: any[] = [];
         
         if (options.json) {
-          console.log(JSON.stringify(swarms, null, 2));
+          logger.info(JSON.stringify(swarms, null, 2));
         } else {
-          console.log('=== Swarms ===');
+          logger.info('=== Swarms ===');
           if (swarms.length === 0) {
-            console.log('No swarms found');
+            logger.info('No swarms found');
           } else {
             swarms.forEach(swarm => {
-              console.log(`- ${swarm.id}: ${swarm.name} (${swarm.status})`);
-              console.log(`  Task: ${swarm.task}`);
-              console.log(`  Agents: ${swarm.agentIds.length}`);
+              logger.info(`- ${swarm.id}: ${swarm.name} (${swarm.status})`);
+              logger.info(`  Task: ${swarm.task}`);
+              logger.info(`  Agents: ${swarm.agentIds.length}`);
             });
           }
         }
@@ -88,13 +89,13 @@ export function swarmCommand(): Command {
       .description('Show swarm status')
       .action(async (id) => {
         if (!id) {
-          console.log('❌  Swarm ID required');
-          console.log('💡  Usage: dash swarm status <id>');
+          logger.info('❌  Swarm ID required');
+          logger.info('💡  Usage: dash swarm status <id>');
           process.exit(1);
         }
         
-        console.log(`=== Swarm: ${id} ===`);
-        console.log(`Status: pending`);
+        logger.info(`=== Swarm: ${id} ===`);
+        logger.info(`Status: pending`);
         
         process.exit(0);
       })

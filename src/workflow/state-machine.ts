@@ -6,6 +6,7 @@
  * With retry logic and error handling.
  */
 
+import { logger } from '../utils/logger';
 import {
   Workflow,
   WorkflowStatus,
@@ -112,7 +113,7 @@ export class WorkflowStateMachine {
       try {
         listener(event);
       } catch (error) {
-        console.error('[WorkflowStateMachine] Event listener error:', error);
+        logger.error('[WorkflowStateMachine] Event listener error:', error);
       }
     }
   }
@@ -455,7 +456,7 @@ export class WorkflowStateMachine {
       // eslint-disable-next-line no-eval
       return eval(evaluated);
     } catch (error) {
-      console.error(`[WorkflowStateMachine] Expression evaluation error: ${expression}`, error);
+      logger.error(`[WorkflowStateMachine] Expression evaluation error: ${expression}`, error);
       return false;
     }
   }

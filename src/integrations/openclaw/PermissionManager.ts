@@ -5,8 +5,8 @@
  * and runtime permission checks for Dash agents using OpenClaw.
  */
 
-import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
+import { EventEmitter } from 'events';
 import {
   AgentPermissions,
   SandboxMode,

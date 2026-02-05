@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Cost Calculation Module
  *
@@ -5,7 +6,6 @@
  * Tracks cost history and supports multiple model pricing configurations.
  */
 
-import { logger } from '../utils';
 
 // ============================================================================
 // Types & Interfaces

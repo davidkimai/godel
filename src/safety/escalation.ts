@@ -5,6 +5,7 @@
  * logic for approval workflows.
  */
 
+import { logger } from '../utils/logger';
 import { 
   ApprovalRequest, 
   ApprovalStatus, 
@@ -23,7 +24,6 @@ import {
   findStaleRequests,
   getStats 
 } from './pending';
-import { logger } from '../utils';
 
 // ============================================================================
 // Escalation Configuration

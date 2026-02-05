@@ -1,7 +1,7 @@
+import { logger } from '../../utils/logger';
 import { Router, type Request, type Response } from 'express';
 import type { Server as WebSocketServer } from 'ws';
 import { EventRepository, type EventFilter } from '../../storage/repositories/EventRepository';
-import { logger } from '../../utils';
 
 const router = Router();
 

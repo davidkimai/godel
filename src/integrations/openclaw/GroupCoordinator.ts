@@ -8,9 +8,9 @@
  * @module GroupCoordinator
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { ThreadManager, Thread, ThreadMessage } from './ThreadManager';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Types

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Usage Calculator for OpenClaw Agent Costs
  * 
@@ -574,7 +575,7 @@ export class UsageCalculator {
     }
 
     // Default to GPT-4 Turbo pricing as fallback
-    console.warn(`[UsageCalculator] Unknown model ${modelId}, using default pricing`);
+    logger.warn(`[UsageCalculator] Unknown model ${modelId}, using default pricing`);
     return this.modelPricing['gpt-4-turbo'] || {
       inputCostPer1M: 10.00,
       outputCostPer1M: 30.00,

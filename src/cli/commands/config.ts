@@ -6,6 +6,7 @@
  * - dash config list
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -67,15 +68,15 @@ export function configCommand(): Command {
       const value = getNestedValue(config, key);
       
       if (value === undefined) {
-        console.error(`❌  Config key not found: ${key}`);
-        console.log('💡  Use "dash config list" to see all available keys');
+        logger.error(`❌  Config key not found: ${key}`);
+        logger.info('💡  Use "dash config list" to see all available keys');
         process.exit(1);
       }
       
       if (typeof value === 'object') {
-        console.log(JSON.stringify(value, null, 2));
+        logger.info(JSON.stringify(value, null, 2));
       } else {
-        console.log(`${key}=${value}`);
+        logger.info(`${key}=${value}`);
       }
       
       process.exit(0);
@@ -88,13 +89,13 @@ export function configCommand(): Command {
       const config = loadConfig();
       
       if (Object.keys(config).length === 0) {
-        console.log('⚠️  No configuration found');
-        console.log('💡  Create dash.config.yaml in the current directory');
+        logger.info('⚠️  No configuration found');
+        logger.info('💡  Create dash.config.yaml in the current directory');
         process.exit(0);
       }
       
-      console.log('=== Dash Configuration ===');
-      console.log(JSON.stringify(config, null, 2));
+      logger.info('=== Dash Configuration ===');
+      logger.info(JSON.stringify(config, null, 2));
       
       process.exit(0);
     });
@@ -103,8 +104,8 @@ export function configCommand(): Command {
   cmd.command('set <key> <value>')
     .description('Set a configuration value')
     .action(async (key, value) => {
-      console.log(`⚠️  config set not implemented yet`);
-      console.log('💡  Edit dash.config.yaml directly');
+      logger.info(`⚠️  config set not implemented yet`);
+      logger.info('💡  Edit dash.config.yaml directly');
       process.exit(1);
     });
   

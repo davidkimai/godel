@@ -1,8 +1,8 @@
-import { logger } from '../../utils/logger';
 /**
  * Safety Command - Safety checks
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 
 export function registerSafetyCommand(program: Command): void {

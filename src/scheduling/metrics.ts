@@ -5,9 +5,9 @@
  * Includes scheduling latency, resource utilization, preemption count, etc.
  */
 
+import { logger } from '../utils/logger';
 import { Counter, Gauge, Histogram, Registry } from 'prom-client';
 import { Scheduler } from './scheduler';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // SCHEDULING METRICS CLASS

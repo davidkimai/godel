@@ -9,8 +9,8 @@
  *   dash quality status
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { logger } from '../../utils';
 import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import * as path from 'path';
@@ -440,7 +440,7 @@ Examples:
       try {
         await handleLint(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -453,7 +453,7 @@ Examples:
       try {
         await handleTypes(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -465,7 +465,7 @@ Examples:
       try {
         await handleSecurity(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -478,7 +478,7 @@ Examples:
       try {
         await handleGate(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -490,7 +490,7 @@ Examples:
       try {
         await handleStatus(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -521,7 +521,7 @@ Examples:
       try {
         await handleLint(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -534,7 +534,7 @@ Examples:
       try {
         await handleTypes(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -546,7 +546,7 @@ Examples:
       try {
         await handleSecurity(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -559,7 +559,7 @@ Examples:
       try {
         await handleGate(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -587,7 +587,7 @@ export function qualityLintCommand(): Command {
       try {
         await handleLint(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -606,7 +606,7 @@ export function qualityTypesCommand(): Command {
       try {
         await handleTypes(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -625,7 +625,7 @@ export function qualitySecurityCommand(): Command {
       try {
         await handleSecurity(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -645,7 +645,7 @@ export function qualityGateCommand(): Command {
       try {
         await handleGate(options);
       } catch (error) {
-        console.error('❌ Error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

@@ -8,9 +8,9 @@
  * @module integrations/openclaw/event-bridge
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { getGlobalBus, type MessageBus, type Message, type Subscription } from '../../bus/index';
-import { logger } from '../../utils/logger';
 import {
   ApplicationError,
   DashErrorCode,

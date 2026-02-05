@@ -20,6 +20,7 @@ import {
 // ============================================================================
 
 const simpleWorkflow: Workflow = {
+  id: 'workflow-simple',
   name: 'simple-workflow',
   version: '1.0.0',
   onFailure: 'stop',
@@ -46,6 +47,7 @@ const simpleWorkflow: Workflow = {
 };
 
 const parallelWorkflow: Workflow = {
+  id: 'workflow-parallel',
   name: 'parallel-workflow',
   version: '1.0.0',
   onFailure: 'stop',
@@ -90,6 +92,7 @@ const parallelWorkflow: Workflow = {
 };
 
 const conditionalWorkflow: Workflow = {
+  id: 'workflow-conditional',
   name: 'conditional-workflow',
   version: '1.0.0',
   onFailure: 'stop',
@@ -153,6 +156,7 @@ steps:
 
   test('should validate workflow with missing step references', () => {
     const workflow: Workflow = {
+      id: 'workflow-invalid',
       name: 'invalid-workflow',
       version: '1.0.0',
       onFailure: 'stop',
@@ -176,6 +180,7 @@ steps:
 
   test('should detect cycles in workflow', () => {
     const workflow: Workflow = {
+      id: 'workflow-cyclic-validate',
       name: 'cyclic-workflow',
       version: '1.0.0',
       onFailure: 'stop',
@@ -241,6 +246,7 @@ describe('DAG Utilities', () => {
 
   test('should detect cycles', () => {
     const cyclicWorkflow: Workflow = {
+      id: 'workflow-cyclic-dag',
       name: 'cyclic',
       version: '1.0.0',
       onFailure: 'stop',
@@ -478,6 +484,7 @@ describe('Workflow Engine', () => {
     const engine = createWorkflowEngine(mockSuccessExecutor);
     
     const cyclicWorkflow: Workflow = {
+      id: 'workflow-cyclic-exec',
       name: 'cyclic',
       version: '1.0.0',
       onFailure: 'stop',

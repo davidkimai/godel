@@ -4,10 +4,10 @@
  */
 
 
+import { logger } from '../utils/logger';
 import { Server as WebSocketServer, WebSocket } from 'ws';
 
 import { EventEmitter } from './emitter';
-import { logger } from '../utils/logger';
 
 import type {
   EventType,

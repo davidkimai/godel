@@ -4,6 +4,7 @@
  * Secure OAuth 2.0 and OpenID Connect authentication with input validation.
  */
 
+import { logger } from '../../utils/logger';
 import { z } from 'zod';
 
 // ============================================================================
@@ -309,7 +310,7 @@ export class OAuthAuthStrategy {
         user
       };
     } catch (error) {
-      console.error('[OAuth Auth] Callback handling failed:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('[OAuth Auth] Callback handling failed:', error instanceof Error ? error.message : 'Unknown error');
       
       return {
         success: false,

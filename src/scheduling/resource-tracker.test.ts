@@ -2,8 +2,8 @@
  * Resource Tracker Tests
  */
 
-import { ResourceTracker } from '../resource-tracker';
-import { NodeCapacity, ResourceRequirements } from '../types';
+import { ResourceTracker } from './resource-tracker';
+import { NodeCapacity, ResourceRequirements } from './types';
 
 // Mock Redis
 const mockRedis = {

@@ -5,10 +5,10 @@
  * including database connectivity, Redis, disk space, and memory usage.
  */
 
+import { logger } from '../utils/logger';
 import { Request, Response, Router } from 'express';
 import { promises as fs } from 'fs';
 import { hostname } from 'os';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // HEALTH CHECK TYPES

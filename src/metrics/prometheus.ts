@@ -5,10 +5,10 @@
  * Includes gauges, counters, and histograms for all key system metrics.
  */
 
+import { logger } from '../utils/logger';
 import { register, Counter, Gauge, Histogram, collectDefaultMetrics } from 'prom-client';
 import { AgentEventBus, AgentEvent, AgentEventType } from '../core/event-bus';
 import { SwarmOrchestrator } from '../core/swarm-orchestrator';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // METRIC LABELS

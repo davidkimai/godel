@@ -3,8 +3,8 @@
  * Provides replay functionality for debugging and auditing
  */
 
-import { EventEmitter } from './emitter';
 import { logger } from '../utils/logger';
+import { EventEmitter } from './emitter';
 
 import type {
   MissionEvent,

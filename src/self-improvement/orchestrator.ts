@@ -15,6 +15,7 @@
  * - Tracks improvement effectiveness over time
  */
 
+import { logger } from '../utils/logger';
 import { getDb, SQLiteStorage } from '../storage/sqlite';
 import { SELF_IMPROVEMENT_CONFIG, SELF_IMPROVEMENT_SWARMS } from './config';
 import { 
@@ -43,7 +44,6 @@ import {
   ImprovementEntry,
   getImprovementStore,
 } from '../integrations/openclaw/ImprovementStore';
-import { logger } from '../utils';
 
 export interface ImprovementResult {
   success: boolean;
@@ -525,7 +525,11 @@ export async function runImprovementCycle(
     logger.info('self-improvement/orchestrator', 'Agents running', { count: agents.length });
     
     // Start polling usage (runs in background)
-    pollAgentUsage(budgetTracker, agents).catch(console.error);
+    pollAgentUsage(budgetTracker, agents).catch((error) => {
+      logger.error('self-improvement/orchestrator', 'Failed to poll agent usage', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
 
     // Wait for agents to complete (in real impl, would poll for status)
     // For now, simulate with a delay
@@ -788,7 +792,7 @@ if (require.main === module) {
       logger.info('self-improvement/orchestrator', 'Learning data accumulated');
       
     } catch (error) {
-      console.error('Self-improvement failed:', error);
+      logger.error('Self-improvement failed:', error);
       process.exit(1);
     }
   })();

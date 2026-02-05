@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Events Commands
  * 
@@ -8,6 +7,7 @@ import { logger } from '../../utils/logger';
  * - swarmctl events get <event-id>
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatEvents, type OutputFormat } from '../lib/output';
@@ -42,7 +42,7 @@ export function registerEventsCommand(program: Command): void {
             const multiplier = unit === 'm' ? 60 * 1000 : unit === 'h' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
             since = new Date(Date.now() - parseInt(num) * multiplier);
           } else {
-            console.error('❌ Invalid since format. Use: 30m, 1h, 1d');
+            logger.error('❌ Invalid since format. Use: 30m, 1h, 1d');
             process.exit(1);
           }
         }
@@ -52,7 +52,7 @@ export function registerEventsCommand(program: Command): void {
         if (options.until) {
           until = new Date(options.until);
           if (isNaN(until.getTime())) {
-            console.error('❌ Invalid until date format');
+            logger.error('❌ Invalid until date format');
             process.exit(1);
           }
         }
@@ -69,7 +69,7 @@ export function registerEventsCommand(program: Command): void {
         });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to list events:', response.error?.message);
+          logger.error('❌ Failed to list events:', response.error?.message);
           process.exit(1);
         }
 
@@ -88,7 +88,7 @@ export function registerEventsCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to list events:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to list events:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -156,7 +156,7 @@ export function registerEventsCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Stream error:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Stream error:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -174,7 +174,7 @@ export function registerEventsCommand(program: Command): void {
         const response = await client.getEvent(eventId);
 
         if (!response.success || !response.data) {
-          console.error(`❌ Event ${eventId} not found`);
+          logger.error(`❌ Event ${eventId} not found`);
           process.exit(1);
         }
 
@@ -198,7 +198,7 @@ export function registerEventsCommand(program: Command): void {
         logger.info(JSON.stringify(event.payload, null, 4).replace(/^/gm, '     '));
 
       } catch (error) {
-        console.error('❌ Failed to get event:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get event:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

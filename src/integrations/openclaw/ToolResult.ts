@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * ToolResult.ts - Result capture and streaming for OpenClaw tools
  * 
@@ -8,7 +9,6 @@
  * - Result metadata (duration, success, timestamps)
  */
 
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Types

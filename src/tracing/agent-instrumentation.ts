@@ -6,6 +6,7 @@
  * parent-child span relationships.
  */
 
+import { logger } from '../utils/logger';
 import { SpanKind, SpanStatusCode, type Span, type Context } from '@opentelemetry/api';
 import { 
   withSpan, 
@@ -17,7 +18,6 @@ import {
   getCurrentTraceId,
   type EventContext 
 } from './opentelemetry';
-import { logger } from '../utils/logger';
 import type { AgentLifecycle, AgentState, LifecycleState } from '../core/lifecycle';
 import type { Agent } from '../models/agent';
 

@@ -5,6 +5,7 @@
  * Provides resource allocation, monitoring, and node capacity tracking.
  */
 
+import { logger } from '../utils/logger';
 import Redis from 'ioredis';
 import { EventEmitter } from 'events';
 import {
@@ -13,7 +14,6 @@ import {
   NodeCapacity,
   NodeAllocation,
 } from './types';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // CONSTANTS

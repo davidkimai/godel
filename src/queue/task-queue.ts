@@ -10,9 +10,9 @@
  * - Work distribution across agents
  */
 
+import { logger } from '../utils/logger';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../utils/logger';
 import type {
   QueuedTask,
   EnqueueTaskOptions,

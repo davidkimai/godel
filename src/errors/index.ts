@@ -286,6 +286,7 @@ function sleep(ms: number): Promise<void> {
 // =============================================================================
 
 // Import types for internal use (after all exports to avoid conflicts)
+import { logger } from '../utils/logger';
 import type { ApplicationError, ValidationError, NotFoundError } from './custom';
 
 /**
@@ -338,7 +339,7 @@ export async function safeExecute<T>(
     return await Promise.resolve(fn());
   } catch (error) {
     if (options.logError !== false) {
-      console.error(`[${options.context || 'safeExecute'}] Error:`, error);
+      logger.error(`[${options.context || 'safeExecute'}] Error:`, error);
     }
     return fallback;
   }

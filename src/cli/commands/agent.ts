@@ -1,4 +1,3 @@
-import { logger } from '../../utils/logger';
 /**
  * Agent Commands
  * 
@@ -10,6 +9,7 @@ import { logger } from '../../utils/logger';
  * - swarmctl agent logs <agent-id> [--follow]
  */
 
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatAgents, type OutputFormat } from '../lib/output';
@@ -41,7 +41,7 @@ export function registerAgentCommand(program: Command): void {
         });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to list agents:', response.error?.message);
+          logger.error('❌ Failed to list agents:', response.error?.message);
           process.exit(1);
         }
 
@@ -60,7 +60,7 @@ export function registerAgentCommand(program: Command): void {
           logger.info(`\n📄 Page ${response.data.page} of ${Math.ceil(response.data.total / response.data.pageSize)}`);
         }
       } catch (error) {
-        console.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to list agents:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -101,7 +101,7 @@ export function registerAgentCommand(program: Command): void {
         if (options.swarm) {
           const swarmResponse = await client.getSwarm(options.swarm);
           if (!swarmResponse.success) {
-            console.error(`❌ Swarm ${options.swarm} not found`);
+            logger.error(`❌ Swarm ${options.swarm} not found`);
             process.exit(1);
           }
         }
@@ -117,7 +117,7 @@ export function registerAgentCommand(program: Command): void {
         });
 
         if (!response.success || !response.data) {
-          console.error('❌ Failed to spawn agent:', response.error?.message);
+          logger.error('❌ Failed to spawn agent:', response.error?.message);
           process.exit(1);
         }
 
@@ -133,7 +133,7 @@ export function registerAgentCommand(program: Command): void {
         logger.info(`\n💡 Use 'swarmctl agent get ${newAgent.id}' to check progress`);
 
       } catch (error) {
-        console.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -153,7 +153,7 @@ export function registerAgentCommand(program: Command): void {
         const response = await client.getAgent(agentId);
 
         if (!response.success || !response.data) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(1);
         }
 
@@ -224,7 +224,7 @@ export function registerAgentCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get agent:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -244,7 +244,7 @@ export function registerAgentCommand(program: Command): void {
 
         const getResponse = await client.getAgent(agentId);
         if (!getResponse.success || !getResponse.data) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(1);
         }
 
@@ -268,14 +268,14 @@ export function registerAgentCommand(program: Command): void {
         const response = await client.killAgent(agentId, options.force);
 
         if (!response.success) {
-          console.error('❌ Failed to kill agent:', response.error?.message);
+          logger.error('❌ Failed to kill agent:', response.error?.message);
           process.exit(1);
         }
 
         logger.info('✅ Agent killed');
 
       } catch (error) {
-        console.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to kill agent:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -296,7 +296,7 @@ export function registerAgentCommand(program: Command): void {
         // Verify agent exists
         const getResponse = await client.getAgent(agentId);
         if (!getResponse.success) {
-          console.error(`❌ Agent ${agentId} not found`);
+          logger.error(`❌ Agent ${agentId} not found`);
           process.exit(1);
         }
 
@@ -333,7 +333,7 @@ export function registerAgentCommand(program: Command): void {
           const logsResponse = await client.getAgentLogs(agentId, { lines: parseInt(options.lines, 10) });
 
           if (!logsResponse.success) {
-            console.error('❌ Failed to get logs:', logsResponse.error?.message);
+            logger.error('❌ Failed to get logs:', logsResponse.error?.message);
             process.exit(1);
           }
 
@@ -351,7 +351,7 @@ export function registerAgentCommand(program: Command): void {
         }
 
       } catch (error) {
-        console.error('❌ Failed to get logs:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get logs:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

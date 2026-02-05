@@ -7,9 +7,9 @@
  * @module integrations/openclaw/AgentExecutor
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { SessionManager, SessionsSpawnParams, SessionsSpawnResponse, SessionsSendResponse, Message } from './SessionManager';
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Types

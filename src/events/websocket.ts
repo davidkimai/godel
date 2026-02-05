@@ -5,9 +5,9 @@
  * Port: 7374 (W-E-B-S-O-C-K-E-T on T9)
  */
 
+import { logger } from '../utils/logger';
 import { WebSocketServer, WebSocket } from 'ws';
 import { EventEmitter } from 'events';
-import { logger } from '../utils';
 // EventBus import will be added when EventBus module is implemented
 // import { getEventBus } from '../events/EventBus';
 

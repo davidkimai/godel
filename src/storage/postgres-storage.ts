@@ -11,6 +11,7 @@
  * - Health check endpoint
  */
 
+import { logger } from '../utils/logger';
 import { PostgresPool, getPool } from './postgres/pool';
 
 export interface PostgresConfig {
@@ -82,7 +83,7 @@ export class PostgresStorage {
 
       this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize PostgreSQL storage:', error);
+      logger.error('Failed to initialize PostgreSQL storage:', error);
       throw error;
     }
   }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Approval Workflow Module - SPEC_APPROVAL_WORKFLOW.md
  * 
@@ -5,7 +6,6 @@
  * and risk assessment for human-in-loop approval workflows.
  */
 
-import { logger } from '../utils';
 
 // ============================================================================
 // Type Definitions

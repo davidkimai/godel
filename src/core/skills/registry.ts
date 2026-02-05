@@ -5,6 +5,7 @@
  * auto-loading based on context, and integration with the swarm.
  */
 
+import { logger } from '../../utils/logger';
 import { EventEmitter } from 'events';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -29,7 +30,6 @@ import {
   formatSkillsForPrompt,
   LoadAllSkillsOptions,
 } from './loader';
-import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Default Configuration

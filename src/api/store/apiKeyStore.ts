@@ -1,5 +1,5 @@
-import { EventEmitter } from 'events';
 import { logger } from '../../utils/logger';
+import { EventEmitter } from 'events';
 import { hashApiKey, compareApiKey } from '../../utils/crypto';
 import { ApiKeyRepository } from '../../storage/repositories/ApiKeyRepository';
 

@@ -8,6 +8,7 @@
  * - Prometheus metrics for monitoring
  */
 
+import { logger } from '../utils/logger';
 import { AutoScaler } from './auto-scaler';
 import {
   ScalingPolicy,
@@ -20,7 +21,6 @@ import { SwarmOrchestrator } from '../core/swarm-orchestrator';
 import { RedisEventBus } from '../core/event-bus-redis';
 import { PrometheusMetrics } from '../metrics/prometheus';
 import { SwarmRepository, BudgetRepository } from '../storage/repositories';
-import { logger } from '../utils/logger';
 
 // ============================================================================
 // Scaling Service

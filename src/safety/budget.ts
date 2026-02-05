@@ -6,10 +6,10 @@
  * Budget configurations are persisted to disk for cross-session survival.
  */
 
+import { logger } from '../utils/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { logger } from '../utils';
 import { calculateCost, getCostPerThousandTokens, MODEL_PRICING } from './cost';
 import { checkThresholds, executeThresholdAction, ThresholdConfig, ThresholdCheckResult } from './thresholds';
 
@@ -192,7 +192,7 @@ function loadPersistedBudgets(): void {
       logger.debug(`Loaded ${budgetConfigs.size} budget configs and ${budgetAlerts.size} alert sets from disk`);
     }
   } catch (error) {
-    console.error('Warning: Failed to load persisted budgets:', error);
+    logger.error('Warning: Failed to load persisted budgets:', error);
     // Start with empty maps
     budgetConfigs = new Map();
     budgetAlerts = new Map();
@@ -214,7 +214,7 @@ function savePersistedBudgets(): void {
     fs.writeFileSync(BUDGETS_FILE, JSON.stringify(persisted, null, 2), 'utf-8');
     logger.debug(`Saved ${budgetConfigs.size} budget configs to disk`);
   } catch (error) {
-    console.error('Warning: Failed to save budgets to disk:', error);
+    logger.error('Warning: Failed to save budgets to disk:', error);
   }
 }
 

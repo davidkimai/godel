@@ -9,12 +9,12 @@
  *   dash tests watch <agent-id>
  */
 
+import { logger } from '../../../utils/logger';
 import { join } from 'path';
 
 import { Command } from 'commander';
 
 import { memoryStore } from '../../../storage/index';
-import { logger } from '../../../utils';
 import { 
   parseCoverage, 
   formatCoverageSummary, 

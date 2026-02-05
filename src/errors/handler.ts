@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import type { Request, Response, NextFunction } from 'express';
 import {
   ApplicationError,
@@ -72,10 +73,27 @@ function recordMetric(error: ApplicationError): void {
 // =============================================================================
 
 export function errorHandler(options: ErrorHandlerOptions = {}) {
+  const defaultLogger = (error: unknown, context?: Record<string, unknown>) => {
+    if (typeof error === 'string') {
+      logger.error('errors', error, context);
+      return;
+    }
+
+    if (error instanceof Error) {
+      logger.error('errors', error.message, {
+        ...context,
+        stack: error.stack,
+      });
+      return;
+    }
+
+    logger.error('errors', 'Unknown error', { ...context, error });
+  };
+
   const {
     includeStackTrace = process.env['NODE_ENV'] !== 'production',
     logErrors = true,
-    logger = console.error,
+    logger: logFn = defaultLogger,
     onError,
   } = options;
 
@@ -92,7 +110,7 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
 
       // Log error
       if (logErrors) {
-        logger(error.toLogEntry(), {
+        logFn(error.toLogEntry(), {
           path: req.path,
           method: req.method,
           query: req.query,
@@ -105,7 +123,7 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
         try {
           await onError(error, req);
         } catch (callbackError) {
-          logger('Error in error callback:', callbackError);
+          logFn('Error in error callback:', { error: callbackError });
         }
       }
 
@@ -130,7 +148,7 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
     // Handle validation errors from zod
     if (error instanceof ValidationError) {
       if (logErrors) {
-        logger('Validation error:', error.message);
+        logFn('Validation error:', { error: error.message });
       }
 
       res.status(400).json({
@@ -146,7 +164,7 @@ export function errorHandler(options: ErrorHandlerOptions = {}) {
     const stack = error instanceof Error ? error['stack'] : undefined;
 
     if (logErrors) {
-      logger('Unhandled error:', error);
+      logFn('Unhandled error:', { error });
     }
 
     const response: Record<string, unknown> = {
@@ -179,28 +197,28 @@ export function handleCLIError(error: unknown, options: CLIOptions = {}): void {
   const { exitOnError = true, verbose = false, exitCode = 1 } = options;
 
   if (error instanceof ApplicationError) {
-    console.error(`\n❌  ${error.toCLI()}`);
+    logger.error(`\n❌  ${error.toCLI()}`);
     
     if (verbose && error.context) {
-      console.error('\nContext:');
+      logger.error('\nContext:');
       for (const [key, value] of Object.entries(error.context)) {
-        console.error(`  ${key}: ${JSON.stringify(value)}`);
+        logger.error(`  ${key}: ${JSON.stringify(value)}`);
       }
     }
 
     if (verbose && error.stack) {
-      console.error('\nStack trace:');
-      console.error(error.stack);
+      logger.error('\nStack trace:');
+      logger.error(error.stack);
     }
   } else if (error instanceof Error) {
-    console.error(`\n❌  Error: ${error.message}`);
+    logger.error(`\n❌  Error: ${error.message}`);
     
     if (verbose && error.stack) {
-      console.error('\nStack trace:');
-      console.error(error.stack);
+      logger.error('\nStack trace:');
+      logger.error(error.stack);
     }
   } else {
-    console.error(`\n❌  Unknown error: ${String(error)}`);
+    logger.error(`\n❌  Unknown error: ${String(error)}`);
   }
 
   if (exitOnError) {
@@ -224,10 +242,16 @@ export async function handleBackgroundError(
   context: BackgroundJobContext,
   options: { logger?: (msg: string, meta?: unknown) => void } = {}
 ): Promise<{ retry: boolean; delay?: number }> {
-  const { logger = console.error } = options;
+  const defaultLogger = (message: string, meta?: unknown) => {
+    logger.error('background', message, {
+      meta,
+    });
+  };
+
+  const { logger: logFn = defaultLogger } = options;
   const { jobId, jobType, attempt, maxRetries = 3 } = context;
 
-  logger(`Background job error:`, {
+  logFn('Background job error:', {
     jobId,
     jobType,
     attempt,

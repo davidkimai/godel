@@ -5,6 +5,7 @@
  * Tracks task enqueue, dequeue, processing, and completion.
  */
 
+import { logger } from '../utils/logger';
 import { SpanKind, type Context } from '@opentelemetry/api';
 import { 
   withSpan, 
@@ -15,7 +16,6 @@ import {
   getCurrentTraceId,
   type EventContext 
 } from './opentelemetry';
-import { logger } from '../utils/logger';
 import type { QueuedTask, TaskQueueStatus, DistributionStrategy } from '../queue/types';
 
 // ============================================================================

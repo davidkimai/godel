@@ -3,8 +3,8 @@
  * Builds and analyzes dependency graphs with circular dependency detection
  */
 
-import { parseImports, detectLanguage } from './parser';
 import { logger } from '../utils/logger';
+import { parseImports, detectLanguage } from './parser';
 import { ApplicationError, DashErrorCode, safeExecute } from '../errors';
 
 import type { DependencyGraph, LanguageType } from './types';

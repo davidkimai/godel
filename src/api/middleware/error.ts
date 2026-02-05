@@ -5,6 +5,7 @@
  * Sanitizes error messages in production to prevent information leakage.
  */
 
+import { logger } from '../../utils/logger';
 import { Request, Response, NextFunction } from 'express';
 
 /**
@@ -170,7 +171,7 @@ function logError(error: Error, req: Request): void {
     logEntry['errorCode'] = error instanceof APIError ? error.code : 'UNKNOWN';
   }
 
-  console.error('[API Error]', JSON.stringify(logEntry));
+  logger.error('[API Error]', JSON.stringify(logEntry));
 }
 
 /**

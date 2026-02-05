@@ -8,6 +8,7 @@
  * Uses the centralized configuration system.
  */
 
+import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
 import { promisify } from 'util';
@@ -15,7 +16,6 @@ import { gzip, gunzip } from 'zlib';
 import Redis, { RedisOptions } from 'ioredis';
 import { z } from 'zod';
 import { getConfig, type EventBusConfig, type RedisConfig } from '../config';
-import { logger } from '../utils/logger';
 import {
   AgentEvent,
   AgentEventType,

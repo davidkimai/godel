@@ -1,8 +1,8 @@
+import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { createWorkflowEngine } from '../../workflow/engine';
 import { getGlobalClient as getClient } from '../lib/client';
 import { formatOutput } from '../lib/output';
-import { logger } from '../../utils/logger';
 
 export function createWorkflowCommand(): Command {
   const cmd = new Command('workflow')
