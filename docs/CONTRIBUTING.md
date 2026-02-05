@@ -597,8 +597,8 @@ jobs:
 ## Additional Resources
 
 - [Architecture Overview](ARCHITECTURE.md)
-- [API Documentation](API_ENDPOINT_REFERENCE.md)
-- [CLI Reference](CLI_COMMAND_REFERENCE.md)
+- [API Documentation](API.md)
+- [CLI Reference](CLI.md)
 
 ---
 

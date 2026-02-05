@@ -26,7 +26,7 @@ Dash is a well-architected agent orchestration platform with strong foundations 
 - ✅ **Zod validation schemas** (`src/validation/schemas.ts`) with strict input validation
 - ✅ **SSE (Server-Sent Events)** endpoint for event streaming (`/api/events/stream`)
 - ✅ **Structured error responses** with error codes
-- ✅ **OpenAPI-ready documentation** in `docs/API_ENDPOINT_REFERENCE.md`
+- ✅ **OpenAPI-ready documentation** in `docs/API.md`
 
 **API Coverage Assessment:**
 | Resource | CRUD | Actions | Events | Grade |
@@ -450,5 +450,5 @@ These three changes would elevate Dash from "B+" to "A-" agent-first readiness.
 | Logging | `src/logging/structured.ts` |
 | Tracing | `src/tracing/index.ts` |
 | Validation | `src/validation/schemas.ts` |
-| Docs | `README.md`, `SKILL.md`, `docs/API_ENDPOINT_REFERENCE.md`, `docs/extensions.md` |
+| Docs | `README.md`, `SKILL.md`, `docs/API.md`, `docs/extensions.md` |
 | Config | `.env.example` |
