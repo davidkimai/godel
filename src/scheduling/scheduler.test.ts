@@ -12,6 +12,7 @@ import {
   SchedulingRequest,
   PriorityClass,
   NodeCapacity,
+  NodeAllocation,
   AgentAffinity,
 } from './types';
 import { createAgent, Agent } from '../models/agent';
@@ -38,6 +39,14 @@ jest.mock('ioredis', () => {
     expire: jest.fn(),
     quit: jest.fn(),
   }));
+});
+
+const createNodeAllocation = (capacity: NodeCapacity): NodeAllocation => ({
+  capacity,
+  allocated: { cpu: 0, memory: 0 },
+  agents: [],
+  lastHeartbeat: new Date(),
+  healthy: true,
 });
 
 describe('Scheduler', () => {
@@ -91,20 +100,27 @@ describe('Scheduler', () => {
 
   describe('Resource-Aware Scheduling', () => {
     beforeEach(async () => {
-      // Register test nodes
-      await scheduler.registerNode({
+      const node1: NodeCapacity = {
         nodeId: 'node-1',
         labels: { zone: 'us-east-1a', type: 'compute' },
         cpu: 4,
         memory: 16384,
-      });
+      };
 
-      await scheduler.registerNode({
+      const node2: NodeCapacity = {
         nodeId: 'node-2',
         labels: { zone: 'us-east-1b', type: 'compute' },
         cpu: 8,
         memory: 32768,
-      });
+      };
+
+      await scheduler.registerNode(node1);
+      await scheduler.registerNode(node2);
+
+      jest.spyOn(resourceTracker, 'getAllNodeAllocations').mockResolvedValue([
+        createNodeAllocation(node1),
+        createNodeAllocation(node2),
+      ]);
     });
 
     it('should schedule agent on node with available resources', async () => {
@@ -146,7 +162,7 @@ describe('Scheduler', () => {
       const result = await scheduler.schedule(request);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Insufficient resources');
+      expect(result.error).toContain('Insufficient resources available');
     });
 
     it('should respect resource limits per node', async () => {
@@ -172,19 +188,27 @@ describe('Scheduler', () => {
 
   describe('Affinity Rules', () => {
     beforeEach(async () => {
-      await scheduler.registerNode({
+      const node1: NodeCapacity = {
         nodeId: 'node-1',
         labels: { zone: 'us-east-1a', type: 'compute' },
         cpu: 8,
         memory: 32768,
-      });
+      };
 
-      await scheduler.registerNode({
+      const node2: NodeCapacity = {
         nodeId: 'node-2',
         labels: { zone: 'us-east-1b', type: 'gpu' },
         cpu: 8,
         memory: 32768,
-      });
+      };
+
+      await scheduler.registerNode(node1);
+      await scheduler.registerNode(node2);
+
+      jest.spyOn(resourceTracker, 'getAllNodeAllocations').mockResolvedValue([
+        createNodeAllocation(node1),
+        createNodeAllocation(node2),
+      ]);
     });
 
     it('should respect hard node affinity constraints', async () => {
@@ -257,12 +281,18 @@ describe('Scheduler', () => {
 
   describe('Preemption', () => {
     beforeEach(async () => {
-      await scheduler.registerNode({
+      const node1: NodeCapacity = {
         nodeId: 'node-1',
         labels: {},
         cpu: 4,
         memory: 16384,
-      });
+      };
+
+      await scheduler.registerNode(node1);
+
+      jest.spyOn(resourceTracker, 'getAllNodeAllocations').mockResolvedValue([
+        createNodeAllocation(node1),
+      ]);
     });
 
     it('should preempt lower priority agents when needed', async () => {
@@ -348,12 +378,18 @@ describe('Scheduler', () => {
 
   describe('Metrics', () => {
     it('should track scheduling metrics', async () => {
-      await scheduler.registerNode({
+      const node1: NodeCapacity = {
         nodeId: 'node-1',
         labels: {},
         cpu: 8,
         memory: 32768,
-      });
+      };
+
+      await scheduler.registerNode(node1);
+
+      jest.spyOn(resourceTracker, 'getAllNodeAllocations').mockResolvedValue([
+        createNodeAllocation(node1),
+      ]);
 
       const agent = createAgent({
         model: 'test-model',
@@ -387,12 +423,18 @@ describe('Scheduler', () => {
 
   describe('Scheduling History', () => {
     it('should store scheduling history', async () => {
-      await scheduler.registerNode({
+      const node1: NodeCapacity = {
         nodeId: 'node-1',
         labels: {},
         cpu: 8,
         memory: 32768,
-      });
+      };
+
+      await scheduler.registerNode(node1);
+
+      jest.spyOn(resourceTracker, 'getAllNodeAllocations').mockResolvedValue([
+        createNodeAllocation(node1),
+      ]);
 
       const agent = createAgent({
         model: 'test-model',

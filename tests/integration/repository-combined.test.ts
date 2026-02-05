@@ -5,13 +5,16 @@
 
 import { jest } from '@jest/globals';
 
+type AnyRecord = Record<string, unknown>;
+const asRecord = (data: unknown): AnyRecord => (data ?? {}) as AnyRecord;
+
 // Mock repository implementations
 const mockAgentRepository = {
   agents: new Map(),
   
   create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
     const id = `repo-agent-${Date.now()}`;
-    const agent = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+    const agent = { id, ...asRecord(data), createdAt: new Date(), updatedAt: new Date() };
     mockAgentRepository.agents.set(id, agent);
     return agent;
   }),
@@ -27,7 +30,7 @@ const mockAgentRepository = {
   update: jest.fn().mockImplementation(async (id: string, data: Record<string, unknown>) => {
     const agent = mockAgentRepository.agents.get(id);
     if (agent) {
-      const updated = { ...agent, ...data, updatedAt: new Date() };
+      const updated = { ...agent, ...asRecord(data), updatedAt: new Date() };
       mockAgentRepository.agents.set(id, updated);
       return updated;
     }
@@ -44,7 +47,7 @@ const mockTaskRepository = {
   
   create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
     const id = `repo-task-${Date.now()}`;
-    const task = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+    const task = { id, ...asRecord(data), createdAt: new Date(), updatedAt: new Date() };
     mockTaskRepository.tasks.set(id, task);
     return task;
   }),
@@ -69,7 +72,7 @@ const mockTaskRepository = {
   update: jest.fn().mockImplementation(async (id: string, data: Record<string, unknown>) => {
     const task = mockTaskRepository.tasks.get(id);
     if (task) {
-      const updated = { ...task, ...data, updatedAt: new Date() };
+      const updated = { ...task, ...asRecord(data), updatedAt: new Date() };
       mockTaskRepository.tasks.set(id, updated);
       return updated;
     }
@@ -93,7 +96,7 @@ const mockSwarmRepository = {
   }),
   
   updateConfig: jest.fn().mockImplementation(async (updates: Record<string, unknown>) => {
-    mockSwarmRepository.config = { ...mockSwarmRepository.config, ...updates };
+    mockSwarmRepository.config = { ...mockSwarmRepository.config, ...asRecord(updates) };
     return { ...mockSwarmRepository.config };
   }),
   

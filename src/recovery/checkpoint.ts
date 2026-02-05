@@ -115,13 +115,13 @@ export class CheckpointManager extends EventEmitter {
 
     try {
       this.pool = await getPool(this.config.postgresConfig);
+      this.isInitialized = true;
       await this.createSchema();
       
       if (this.config.enabled) {
         this.startCleanupTask();
       }
 
-      this.isInitialized = true;
       logger.info('[CheckpointManager] Initialized successfully');
       this.emit('initialized');
     } catch (error) {

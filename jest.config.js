@@ -41,7 +41,8 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@dash/(.*)$': '<rootDir>/src/$1',
-    '^@jtan15010/dash$': '<rootDir>/src/index.ts'
+    '^@jtan15010/dash$': '<rootDir>/src/index.ts',
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   globals: {
     'ts-jest': {
