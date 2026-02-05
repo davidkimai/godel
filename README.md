@@ -256,8 +256,8 @@ Access the dashboard at `http://localhost:7373` when the server is running.
 | Document | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design |
-| [API.md](docs/API.md) | REST API reference |
-| [CLI.md](docs/CLI.md) | CLI command reference |
+| [API_ENDPOINT_REFERENCE.md](docs/API_ENDPOINT_REFERENCE.md) | REST API reference |
+| [CLI_COMMAND_REFERENCE.md](docs/CLI_COMMAND_REFERENCE.md) | CLI command reference |
 
 ## Docker
 
