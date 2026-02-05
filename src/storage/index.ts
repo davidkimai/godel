@@ -10,4 +10,4 @@ export { getDb, initDatabase, closeDatabase } from './sqlite';
 export * from './query-optimizer';
 export { RedisFallback, FallbackState, type RedisFallbackConfig, type FallbackStats } from './redis-fallback';
 export type { AgentStorageInterface, AgentData, SwarmData } from './types';
-export { AgentSQLiteStorage, createAgentStorage, getAgentStorage, setAgentStorage } from './factory.js';
+export { AgentSQLiteStorage, createAgentStorage, getAgentStorage, setAgentStorage } from './factory';

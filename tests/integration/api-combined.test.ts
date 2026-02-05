@@ -6,20 +6,20 @@
 import { jest } from '@jest/globals';
 
 // Mock API routes and services
-jest.unstable_mockModule('../src/services/agent.service', () => ({
+jest.unstable_mockModule('../../src/services/agent.service', () => ({
   AgentService: jest.fn().mockImplementation(() => ({
-    createAgent: jest.fn().mockResolvedValue({ id: 'agent-api-1', name: 'api-agent', status: 'active' }),
-    getAgent: jest.fn().mockResolvedValue({ id: 'agent-api-1', name: 'api-agent', status: 'active' }),
-    listAgents: jest.fn().mockResolvedValue([
+    createAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'api-agent', status: 'active' })),
+    getAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'api-agent', status: 'active' })),
+    listAgents: jest.fn().mockImplementation(async () => ([
       { id: 'agent-1', name: 'agent-1', status: 'active' },
       { id: 'agent-2', name: 'agent-2', status: 'idle' },
-    ]),
-    updateAgent: jest.fn().mockResolvedValue({ id: 'agent-api-1', name: 'updated-agent', status: 'active' }),
-    deleteAgent: jest.fn().mockResolvedValue(true),
+    ])),
+    updateAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'updated-agent', status: 'active' })),
+    deleteAgent: jest.fn().mockImplementation(async () => true),
   })),
 }));
 
-jest.unstable_mockModule('../src/services/task.service', () => ({
+jest.unstable_mockModule('../../src/services/task.service', () => ({
   TaskService: jest.fn().mockImplementation(() => ({
     createTask: jest.fn().mockResolvedValue({ id: 'task-api-1', title: 'API Task', status: 'pending' }),
     getTask: jest.fn().mockResolvedValue({ id: 'task-api-1', title: 'API Task', status: 'pending' }),
@@ -32,7 +32,7 @@ jest.unstable_mockModule('../src/services/task.service', () => ({
   })),
 }));
 
-jest.unstable_mockModule('../src/services/swarm.service', () => ({
+jest.unstable_mockModule('../../src/services/swarm.service', () => ({
   SwarmService: jest.fn().mockImplementation(() => ({
     getSwarmInfo: jest.fn().mockResolvedValue({ 
       version: '1.0.0', 
@@ -55,9 +55,9 @@ describe('API Integration Tests', () => {
   let swarmService: any;
 
   beforeAll(async () => {
-    const agentModule = await import('../src/services/agent.service');
-    const taskModule = await import('../src/services/task.service');
-    const swarmModule = await import('../src/services/swarm.service');
+    const agentModule = await import('../../src/services/agent.service');
+    const taskModule = await import('../../src/services/task.service');
+    const swarmModule = await import('../../src/services/swarm.service');
     
     agentService = new agentModule.AgentService();
     taskService = new taskModule.TaskService();
