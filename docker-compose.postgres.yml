@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dash-postgres
+    environment:
+      POSTGRES_USER: dash
+      POSTGRES_PASSWORD: dash_password
+      POSTGRES_DB: dash
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dash -d dash"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dash-network
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dash-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@dash.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - dash-network
+
+networks:
+  dash-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -35,10 +35,10 @@ import { registerEventsCommand } from './commands/events';
 import { registerBusCommand } from './commands/bus';
 import { 
   registerMetricsCommand, 
-  registerStatusCommand, 
-  registerHealthCommand,
-  registerConfigCommand 
+  registerHealthCommand 
 } from './commands/metrics';
+import { configCommand } from './commands/config';
+import { statusCommand } from './commands/status';
 
 // Get version from package.json
 function getVersion(): string {
@@ -77,9 +77,9 @@ registerTaskCommand(program);
 registerEventsCommand(program);
 registerBusCommand(program);
 registerMetricsCommand(program);
-registerStatusCommand(program);
+program.addCommand(statusCommand());
+program.addCommand(configCommand());
 registerHealthCommand(program);
-registerConfigCommand(program);
 
 // Add completion command
 program
@@ -111,9 +111,9 @@ export function registerCommands(program: Command): void {
   registerEventsCommand(program);
   registerBusCommand(program);
   registerMetricsCommand(program);
-  registerStatusCommand(program);
+  program.addCommand(statusCommand());
+  program.addCommand(configCommand());
   registerHealthCommand(program);
-  registerConfigCommand(program);
 }
 
 // Run if executed directly
