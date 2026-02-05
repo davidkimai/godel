@@ -5,47 +5,49 @@
 
 import { jest } from '@jest/globals';
 
+const mockAsync = <T>(value: T) => jest.fn<Promise<T>, any[]>().mockResolvedValue(value);
+
 // Mock API routes and services
 jest.unstable_mockModule('../../src/services/agent.service', () => ({
   AgentService: jest.fn().mockImplementation(() => ({
-    createAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'api-agent', status: 'active' })),
-    getAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'api-agent', status: 'active' })),
-    listAgents: jest.fn().mockImplementation(async () => ([
+    createAgent: mockAsync({ id: 'agent-api-1', name: 'api-agent', status: 'active' }),
+    getAgent: mockAsync({ id: 'agent-api-1', name: 'api-agent', status: 'active' }),
+    listAgents: mockAsync([
       { id: 'agent-1', name: 'agent-1', status: 'active' },
       { id: 'agent-2', name: 'agent-2', status: 'idle' },
-    ])),
-    updateAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-api-1', name: 'updated-agent', status: 'active' })),
-    deleteAgent: jest.fn().mockImplementation(async () => true),
+    ]),
+    updateAgent: mockAsync({ id: 'agent-api-1', name: 'updated-agent', status: 'active' }),
+    deleteAgent: mockAsync(true),
   })),
 }));
 
 jest.unstable_mockModule('../../src/services/task.service', () => ({
   TaskService: jest.fn().mockImplementation(() => ({
-    createTask: jest.fn().mockImplementation(async () => ({ id: 'task-api-1', title: 'API Task', status: 'pending' })),
-    getTask: jest.fn().mockImplementation(async () => ({ id: 'task-api-1', title: 'API Task', status: 'pending' })),
-    listTasks: jest.fn().mockImplementation(async () => ([
+    createTask: mockAsync({ id: 'task-api-1', title: 'API Task', status: 'pending' }),
+    getTask: mockAsync({ id: 'task-api-1', title: 'API Task', status: 'pending' }),
+    listTasks: mockAsync([
       { id: 'task-1', title: 'Task 1', status: 'completed' },
       { id: 'task-2', title: 'Task 2', status: 'in-progress' },
-    ])),
-    updateTask: jest.fn().mockImplementation(async () => ({ id: 'task-api-1', title: 'Updated Task', status: 'in-progress' })),
-    deleteTask: jest.fn().mockImplementation(async () => true),
+    ]),
+    updateTask: mockAsync({ id: 'task-api-1', title: 'Updated Task', status: 'in-progress' }),
+    deleteTask: mockAsync(true),
   })),
 }));
 
 jest.unstable_mockModule('../../src/services/swarm.service', () => ({
   SwarmService: jest.fn().mockImplementation(() => ({
-    getSwarmInfo: jest.fn().mockImplementation(async () => ({ 
-      version: '1.0.0', 
-      agents: 5, 
+    getSwarmInfo: mockAsync({
+      version: '1.0.0',
+      agents: 5,
       tasks: 10,
-      status: 'healthy' 
-    })),
-    getSwarmStats: jest.fn().mockImplementation(async () => ({
+      status: 'healthy',
+    }),
+    getSwarmStats: mockAsync({
       totalTasks: 100,
       completedTasks: 85,
       activeAgents: 5,
       avgTaskTime: 120,
-    })),
+    }),
   })),
 }));
 

@@ -5,28 +5,30 @@
 
 import { jest } from '@jest/globals';
 
+const mockAsync = <T>(value: T) => jest.fn<Promise<T>, any[]>().mockResolvedValue(value);
+
 // Mock dependencies before imports
 jest.unstable_mockModule('../../src/services/swarm.service', () => ({
   SwarmService: jest.fn().mockImplementation(() => ({
-    initialize: jest.fn().mockImplementation(async () => true),
-    registerAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent' })),
-    distributeTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', status: 'distributed' })),
-    getSwarmStatus: jest.fn().mockImplementation(async () => ({ agents: 2, activeTasks: 3 })),
+    initialize: mockAsync(true),
+    registerAgent: mockAsync({ id: 'agent-1', name: 'test-agent' }),
+    distributeTask: mockAsync({ taskId: 'task-1', status: 'distributed' }),
+    getSwarmStatus: mockAsync({ agents: 2, activeTasks: 3 }),
   })),
 }));
 
 jest.unstable_mockModule('../../src/services/agent.service', () => ({
   AgentService: jest.fn().mockImplementation(() => ({
-    createAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent', status: 'active' })),
-    getAgentStatus: jest.fn().mockImplementation(async () => ({ status: 'active', tasksCompleted: 10 })),
+    createAgent: mockAsync({ id: 'agent-1', name: 'test-agent', status: 'active' }),
+    getAgentStatus: mockAsync({ status: 'active', tasksCompleted: 10 }),
   })),
 }));
 
 jest.unstable_mockModule('../../src/services/task.service', () => ({
   TaskService: jest.fn().mockImplementation(() => ({
-    createTask: jest.fn().mockImplementation(async () => ({ id: 'task-1', title: 'Test Task', status: 'pending' })),
-    assignTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', agentId: 'agent-1' })),
-    completeTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', status: 'completed' })),
+    createTask: mockAsync({ id: 'task-1', title: 'Test Task', status: 'pending' }),
+    assignTask: mockAsync({ taskId: 'task-1', agentId: 'agent-1' }),
+    completeTask: mockAsync({ taskId: 'task-1', status: 'completed' }),
   })),
 }));
 
