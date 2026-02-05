@@ -56,7 +56,7 @@ describe('OpenClaw Connection Integration', () => {
       const client = new OpenClawGatewayClient({
         host: '127.0.0.1',
         port: 18789,
-        token: 'test-token',
+        token: undefined,
       });
 
       // Mock successful connection
@@ -74,7 +74,7 @@ describe('OpenClaw Connection Integration', () => {
       const client = new OpenClawGatewayClient({
         host: 'unreachable-host',
         port: 99999,
-        token: 'test-token',
+        token: undefined,
       });
 
       // Suppress unhandled errors - the error event gets emitted after rejection
