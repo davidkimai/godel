@@ -55,6 +55,7 @@ describe('OpenClawEventBridge', () => {
     (getGlobalBus as jest.Mock).mockReturnValue(mockBus);
 
     bridge = new OpenClawEventBridge(mockConfig);
+    bridge.on('error', () => {});
   });
 
   afterEach(async () => {

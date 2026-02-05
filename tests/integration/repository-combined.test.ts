@@ -42,7 +42,7 @@ const mockAgentRepository = {
 const mockTaskRepository = {
   tasks: new Map(),
   
-  create: jest.fn().mockImplementation(async (data) => {
+  create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
     const id = `repo-task-${Date.now()}`;
     const task = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
     mockTaskRepository.tasks.set(id, task);
@@ -66,7 +66,7 @@ const mockTaskRepository = {
     return tasks;
   }),
   
-  update: jest.fn().mockImplementation(async (id, data) => {
+  update: jest.fn().mockImplementation(async (id: string, data: Record<string, unknown>) => {
     const task = mockTaskRepository.tasks.get(id);
     if (task) {
       const updated = { ...task, ...data, updatedAt: new Date() };
@@ -92,7 +92,7 @@ const mockSwarmRepository = {
     return { ...mockSwarmRepository.config };
   }),
   
-  updateConfig: jest.fn().mockImplementation(async (updates) => {
+  updateConfig: jest.fn().mockImplementation(async (updates: Record<string, unknown>) => {
     mockSwarmRepository.config = { ...mockSwarmRepository.config, ...updates };
     return { ...mockSwarmRepository.config };
   }),
