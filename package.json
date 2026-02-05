@@ -4,6 +4,28 @@
   "description": "Dash - Agent Orchestration Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidkimai/dash.git"
+  },
+  "homepage": "https://github.com/davidkimai/dash",
+  "bugs": {
+    "url": "https://github.com/davidkimai/dash/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "David Kim",
+    "email": "davidkimai@github.com"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "orchestration",
+    "swarm",
+    "llm",
+    "kimi",
+    "claude"
+  ],
   "bin": {
     "dash": "./dist/index.js",
     "swarmctl": "./dist/cli/index.js"
