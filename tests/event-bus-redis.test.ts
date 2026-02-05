@@ -579,7 +579,7 @@ describe('RedisEventBus', () => {
     });
 
     it('should auto-generate node ID if not provided', async () => {
-      eventBus = createRedisEventBus({
+      eventBus = await createRedisEventBus({
         ...config,
         nodeId: undefined,
       });
@@ -825,7 +825,7 @@ describe('RedisEventBus', () => {
       const originalUrl = process.env['REDIS_URL'];
       process.env['REDIS_URL'] = 'redis://custom:6379/1';
 
-      eventBus = createRedisEventBus({ nodeId: 'test' });
+      eventBus = await createRedisEventBus({ nodeId: 'test' });
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Should use the environment variable
@@ -862,7 +862,7 @@ describe('RedisEventBus', () => {
         syncDelivery: false,
       };
 
-      eventBus = createRedisEventBus(fullConfig);
+      eventBus = await createRedisEventBus(fullConfig);
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(eventBus.getNodeId()).toBe('custom-node');

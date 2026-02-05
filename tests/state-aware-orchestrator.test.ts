@@ -17,6 +17,8 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 
+jest.setTimeout(20000);
+
 // Mock dependencies
 const createMockAgentLifecycle = () => ({
   spawn: jest.fn().mockResolvedValue({
