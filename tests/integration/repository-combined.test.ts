@@ -9,7 +9,7 @@ import { jest } from '@jest/globals';
 const mockAgentRepository = {
   agents: new Map(),
   
-  create: jest.fn().mockImplementation(async (data) => {
+  create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
     const id = `repo-agent-${Date.now()}`;
     const agent = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
     mockAgentRepository.agents.set(id, agent);
@@ -24,7 +24,7 @@ const mockAgentRepository = {
     return Array.from(mockAgentRepository.agents.values());
   }),
   
-  update: jest.fn().mockImplementation(async (id, data) => {
+  update: jest.fn().mockImplementation(async (id: string, data: Record<string, unknown>) => {
     const agent = mockAgentRepository.agents.get(id);
     if (agent) {
       const updated = { ...agent, ...data, updatedAt: new Date() };

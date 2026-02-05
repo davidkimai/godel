@@ -6,7 +6,7 @@
 import { jest } from '@jest/globals';
 
 // Mock dependencies before imports
-jest.unstable_mockModule('../src/services/swarm.service', () => ({
+jest.unstable_mockModule('../../src/services/swarm.service', () => ({
   SwarmService: jest.fn().mockImplementation(() => ({
     initialize: jest.fn().mockImplementation(async () => true),
     registerAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent' })),
@@ -15,14 +15,14 @@ jest.unstable_mockModule('../src/services/swarm.service', () => ({
   })),
 }));
 
-jest.unstable_mockModule('../src/services/agent.service', () => ({
+jest.unstable_mockModule('../../src/services/agent.service', () => ({
   AgentService: jest.fn().mockImplementation(() => ({
     createAgent: jest.fn().mockImplementation(async () => ({ id: 'agent-1', name: 'test-agent', status: 'active' })),
     getAgentStatus: jest.fn().mockImplementation(async () => ({ status: 'active', tasksCompleted: 10 })),
   })),
 }));
 
-jest.unstable_mockModule('../src/services/task.service', () => ({
+jest.unstable_mockModule('../../src/services/task.service', () => ({
   TaskService: jest.fn().mockImplementation(() => ({
     createTask: jest.fn().mockImplementation(async () => ({ id: 'task-1', title: 'Test Task', status: 'pending' })),
     assignTask: jest.fn().mockImplementation(async () => ({ taskId: 'task-1', agentId: 'agent-1' })),
@@ -36,9 +36,9 @@ describe('Full Swarm Workflow E2E', () => {
   let taskService: any;
 
   beforeAll(async () => {
-    const swarmModule = await import('../src/services/swarm.service');
-    const agentModule = await import('../src/services/agent.service');
-    const taskModule = await import('../src/services/task.service');
+    const swarmModule = await import('../../src/services/swarm.service');
+    const agentModule = await import('../../src/services/agent.service');
+    const taskModule = await import('../../src/services/task.service');
     
     swarmService = new swarmModule.SwarmService();
     agentService = new agentModule.AgentService();
