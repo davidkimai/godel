@@ -36,7 +36,7 @@ redis:
 
 auth:
   apiKeys:
-    - dash-dev-key
+    - dash_default_837e00f4a7b9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
   jwtSecret: dev-secret-change-in-production
   tokenExpirySeconds: 86400  # 24 hours for dev
   refreshTokenExpirySeconds: 604800  # 7 days
