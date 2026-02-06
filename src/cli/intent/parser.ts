@@ -38,7 +38,28 @@ const DEFAULT_CONFIG: ParserConfig = {
  * Built-in intent patterns for natural language matching.
  * Each pattern includes primary regex patterns, keywords, and complexity indicators.
  */
+// NOTE: Patterns are matched in order, so more specific patterns should come first
 const BUILT_IN_PATTERNS: IntentPattern[] = [
+  // TEST patterns (must come before implement since "write tests" is more specific than "write")
+  {
+    type: 'test',
+    patterns: [
+      // Allow adjectives between write/add/create and tests (including hyphenated words)
+      /^write\s+(?:[\w-]+\s+)*tests?\s+(?:for\s+)?(.+)$/i,
+      /^add\s+(?:[\w-]+\s+)*tests?\s+(?:for\s+)?(.+)$/i,
+      /^create\s+(?:[\w-]+\s+)*tests?\s+(?:for\s+)?(.+)$/i,
+      /^test\s+(.+)$/i,
+      /^verify\s+(.+)$/i,
+      /^validate\s+(.+)$/i,
+      /^check\s+(.+)$/i,
+    ],
+    keywords: ['test', 'tests', 'testing', 'verify', 'validate', 'check', 'assert', 'spec'],
+    complexityIndicators: {
+      low: ['unit', 'simple', 'basic'],
+      medium: ['integration', 'component', 'feature'],
+      high: ['e2e', 'end-to-end', 'comprehensive', 'full coverage', 'load', 'performance'],
+    },
+  },
   {
     type: 'implement',
     patterns: [
@@ -75,24 +96,6 @@ const BUILT_IN_PATTERNS: IntentPattern[] = [
       low: ['minor', 'small', 'quick', 'simple cleanup'],
       medium: ['code', 'module', 'component', 'function'],
       high: ['architecture', 'system', 'large-scale', 'major', 'core', 'fundamental'],
-    },
-  },
-  {
-    type: 'test',
-    patterns: [
-      /^test\s+(.+)$/i,
-      /^write tests?\s+(?:for\s+)?(.+)$/i,
-      /^add tests?\s+(?:for\s+)?(.+)$/i,
-      /^create tests?\s+(?:for\s+)?(.+)$/i,
-      /^verify\s+(.+)$/i,
-      /^validate\s+(.+)$/i,
-      /^check\s+(.+)$/i,
-    ],
-    keywords: ['test', 'tests', 'testing', 'verify', 'validate', 'check', 'assert', 'spec'],
-    complexityIndicators: {
-      low: ['unit', 'simple', 'basic'],
-      medium: ['integration', 'component', 'feature'],
-      high: ['e2e', 'end-to-end', 'comprehensive', 'full coverage', 'load', 'performance'],
     },
   },
   {
@@ -145,7 +148,7 @@ const BUILT_IN_PATTERNS: IntentPattern[] = [
     keywords: ['fix', 'repair', 'resolve', 'debug', 'solve', 'correct', 'patch', 'bug', 'issue', 'error', 'problem'],
     complexityIndicators: {
       low: ['typo', 'minor', 'simple', 'quick'],
-      medium: ['bug', 'issue', 'error', 'defect'],
+      medium: ['issue', 'error', 'defect', 'broken', 'problem'],
       high: ['critical', 'complex', 'deep', 'root cause', 'systemic'],
     },
   },
@@ -265,13 +268,21 @@ function assessComplexity(
   
   // Input length heuristic
   const wordCount = input.split(/\s+/).length;
-  if (wordCount <= 5) lowScore++;
-  else if (wordCount <= 15) mediumScore++;
-  else highScore++;
   
-  // Determine complexity
+  // Determine complexity based on indicators first, then word count as tiebreaker
+  
+  // High complexity indicators always win
   if (highScore > 0) return 'high';
-  if (lowScore > 0 && highScore === 0) return 'low';
+  
+  // Word count can override medium indicators for very short or very long inputs
+  if (wordCount <= 2) return 'low';      // Very short inputs are low complexity
+  if (wordCount >= 10) return 'high';    // Very long inputs are high complexity
+  
+  // Otherwise use indicator scores
+  if (mediumScore > 0) return 'medium';
+  if (lowScore > 0) return 'low';
+  
+  // Default to medium for medium-length inputs with no indicators
   return 'medium';
 }
 

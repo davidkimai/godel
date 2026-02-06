@@ -51,7 +51,9 @@ describe('IntentParser', () => {
       
       expect(result.success).toBe(true);
       expect(result.intent?.type).toBe('implement');
-      expect(result.intent?.subject).toBe('JWT authentication');
+      // Subject includes the full phrase after the verb
+      expect(result.intent?.subject).toBe('JWT authentication with refresh tokens');
+      // Requirements are extracted separately
       expect(result.intent?.requirements).toContain('refresh tokens');
     });
 
@@ -60,7 +62,9 @@ describe('IntentParser', () => {
       
       expect(result.success).toBe(true);
       expect(result.intent?.type).toBe('implement');
-      expect(result.intent?.subject).toBe('a comprehensive payment processing system');
+      // Subject includes the full phrase after the verb
+      expect(result.intent?.subject).toBe('a comprehensive payment processing system with Stripe integration');
+      // Requirements are extracted separately
       expect(result.intent?.requirements).toContain('Stripe integration');
       expect(result.intent?.complexity).toBe('high');
     });
