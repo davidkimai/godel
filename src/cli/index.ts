@@ -41,6 +41,9 @@ import {
 import { configCommand } from './commands/config';
 import { statusCommand } from './commands/status';
 import { registerDoCommand } from './intent';
+import { registerDashboardCommand } from './commands/dashboard';
+import { registerWorktreeCommand } from './commands/worktree';
+import { registerPiCommand } from './commands/pi';
 
 // Get version from package.json
 function getVersion(): string {
@@ -83,6 +86,9 @@ program.addCommand(statusCommand());
 program.addCommand(configCommand());
 registerHealthCommand(program);
 registerDoCommand(program);
+registerDashboardCommand(program);
+registerWorktreeCommand(program);
+registerPiCommand(program);
 
 // Add completion command
 program
@@ -118,6 +124,9 @@ export function registerCommands(program: Command): void {
   program.addCommand(configCommand());
   registerHealthCommand(program);
   registerDoCommand(program);
+  registerDashboardCommand(program);
+  registerWorktreeCommand(program);
+  registerPiCommand(program);
 }
 
 // Run if executed directly
@@ -146,7 +155,7 @@ _swarmctl_completions() {
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   
   # Top-level commands
-  local commands="do swarm agent task events bus metrics status health config completion"
+  local commands="do swarm agent task events bus metrics status health config dashboard worktree pi completion"
   
   # Swarm subcommands
   local swarm_cmds="list create get scale destroy"
