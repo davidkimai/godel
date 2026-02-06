@@ -2202,6 +2202,387 @@ class RetryHandler {
 
 ---
 
+## Agent-First Orchestration Architecture
+
+### Philosophy: Agents as First-Class Citizens
+
+Traditional orchestration treats agents as passive resources—tasks are assigned TO agents. Dash treats agents as active participants—agents negotiate, coordinate, and self-organize.
+
+**Traditional Model (Resource-Centric):**
+```
+Scheduler → Assigns Task → Agent → Executes → Reports Back
+```
+
+**Agent-First Model (Actor-Centric):**
+```
+Intent Published → Agents Subscribe → Negotiate Assignment → 
+Self-Coordinate → Execute Collectively → Report Collectively
+```
+
+### The Agent-First Command Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    INTENT LAYER                              │
+│  User describes desired outcome in natural language          │
+└──────────────────────┬──────────────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│              ORCHESTRATION LAYER                             │
+│  Intent → Decomposition → Dependency Graph → Dispatch Plan   │
+└──────────────────────┬──────────────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│                  AGENT SWARM LAYER                           │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
+│  │ Agent-1  │  │ Agent-2  │  │ Agent-3  │  │ Agent-N  │    │
+│  │ (Coord)  │  │ (Worker) │  │ (Worker) │  │ (Spec)   │    │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘    │
+│       │              │              │              │         │
+│       └──────────────┴──────────────┴──────────────┘         │
+│              P2P Coordination (Gossip Protocol)              │
+└──────────────────────┬──────────────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   EXECUTION LAYER                            │
+│  Git Operations, API Calls, Tool Execution, Testing          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Intent Decomposition Engine
+
+**Natural Language → Structured Plan:**
+
+```typescript
+interface IntentDecomposer {
+  // Input: "Build user authentication with OAuth"
+  decompose(intent: string): ExecutionPlan;
+}
+
+interface ExecutionPlan {
+  id: string;
+  originalIntent: string;
+  
+  // Decomposed into atomic tasks with dependencies
+  tasks: Task[];
+  
+  // Dependency graph for parallelization
+  dependencyGraph: DAG;
+  
+  // Estimated resource requirements
+  estimates: {
+    agentCount: number;
+    estimatedDuration: Duration;
+    estimatedCost: number;
+  };
+  
+  // Quality gates that must pass
+  gates: QualityGate[];
+}
+
+// Example decomposition
+const plan = decomposer.decompose("Build user authentication with OAuth");
+
+/*
+Output:
+{
+  tasks: [
+    { id: "T1", description: "Design auth flow", dependencies: [], agent: "architect" },
+    { id: "T2", description: "Create DB schema", dependencies: ["T1"], agent: "backend" },
+    { id: "T3", description: "Implement OAuth", dependencies: ["T2"], agent: "backend" },
+    { id: "T4", description: "Build UI components", dependencies: ["T1"], agent: "frontend" },
+    { id: "T5", description: "Security review", dependencies: ["T3", "T4"], agent: "security" },
+    { id: "T6", description: "Write tests", dependencies: ["T3", "T4"], agent: "qa" }
+  ],
+  dependencyGraph: {
+    parallelGroups: [
+      ["T1"],
+      ["T2", "T4"],
+      ["T3"],
+      ["T5", "T6"]
+    ]
+  }
+}
+*/
+```
+
+### Dynamic Agent Specialization
+
+**Agent Profiles Evolve Over Time:**
+
+```typescript
+interface AgentProfile {
+  id: string;
+  baseCapabilities: string[];
+  
+  // Learned specializations
+  specializations: Specialization[];
+  
+  // Performance metrics by task type
+  performanceHistory: Map<TaskType, PerformanceMetrics>;
+  
+  // Current state
+  currentLoad: number;
+  activeTasks: string[];
+  availability: 'available' | 'busy' | 'offline';
+}
+
+interface Specialization {
+  domain: string;           // e.g., "react", "oauth", "database"
+  confidence: number;       // 0-1 based on success rate
+  evidence: TaskEvidence[]; // Which tasks support this
+}
+
+// Specialization inference
+class SpecializationEngine {
+  analyzePerformance(agent: AgentProfile): void {
+    // Pattern: Agent consistently succeeds at React tasks
+    const reactTasks = agent.performanceHistory.get('react');
+    if (reactTasks.successRate > 0.9 && reactTasks.count > 5) {
+      agent.specializations.push({
+        domain: 'react',
+        confidence: reactTasks.successRate,
+        evidence: reactTasks.completedTasks
+      });
+    }
+  }
+}
+```
+
+### Self-Healing Mechanisms
+
+**Automatic Recovery Patterns:**
+
+```typescript
+interface SelfHealingPolicy {
+  // When to trigger healing
+  triggers: Trigger[];
+  
+  // Healing strategies
+  strategies: HealingStrategy[];
+  
+  // Escalation thresholds
+  escalation: EscalationPolicy;
+}
+
+type Trigger =
+  | { type: 'agent_crash'; agentId: string }
+  | { type: 'task_timeout'; taskId: string; duration: number }
+  | { type: 'error_pattern'; pattern: string; count: number }
+  | { type: 'performance_degradation'; metric: string; threshold: number };
+
+type HealingStrategy =
+  | { type: 'retry'; maxAttempts: number; backoff: BackoffStrategy }
+  | { type: 'escalate_model'; from: string; to: string }
+  | { type: 'spawn_specialist'; specialization: string }
+  | { type: 'redistribute_work'; from: string; to: string[] }
+  | { type: 'checkpoint_restore'; checkpointId: string };
+
+// Example healing flow
+const healingFlow = {
+  trigger: { type: 'task_timeout', taskId: 'T123', duration: 300000 },
+  
+  strategies: [
+    // Level 1: Simple retry
+    { type: 'retry', maxAttempts: 2, backoff: 'exponential' },
+    
+    // Level 2: Escalate to more capable model
+    { type: 'escalate_model', from: 'gpt-4o', to: 'claude-opus' },
+    
+    // Level 3: Spawn debugging specialist
+    { type: 'spawn_specialist', specialization: 'debugging' },
+    
+    // Level 4: Escalate to human
+    { type: 'escalate_human', reason: 'Multiple recovery attempts failed' }
+  ]
+};
+```
+
+### Collective Intelligence Patterns
+
+**Knowledge Sharing Among Agents:**
+
+```typescript
+interface KnowledgeBase {
+  // Shared learnings
+  patterns: CodePattern[];
+  pitfalls: Pitfall[];
+  solutions: Solution[];
+}
+
+interface KnowledgeSharing {
+  // Agent A learned something useful
+  share(learning: Learning, context: TaskContext): void;
+  
+  // Agent B queries for relevant knowledge
+  query(context: TaskContext): RelevantKnowledge[];
+}
+
+// Example: Pattern propagation
+const pattern: CodePattern = {
+  id: 'auth-middleware-pattern',
+  description: 'Express auth middleware using JWT',
+  code: '...',
+  context: { framework: 'express', language: 'typescript' },
+  successRate: 0.95,
+  firstDiscoveredBy: 'agent-3',
+  adoptedBy: ['agent-7', 'agent-12', 'agent-15']
+};
+
+// When Agent-5 encounters auth task
+const relevant = knowledgeBase.query({
+  context: { task: 'implement authentication', framework: 'express' }
+});
+// Returns: [auth-middleware-pattern, ...]
+```
+
+### Swarm Coordination Protocols
+
+**Gossip-Based Task Distribution:**
+
+```typescript
+interface SwarmCoordination {
+  // Agents gossip about available work
+  gossip(): void;
+  
+  // Agents volunteer for tasks they can handle
+  volunteer(task: Task, agent: AgentProfile): boolean;
+  
+  // Consensus on task assignment
+  electAssignee(task: Task, volunteers: AgentProfile[]): AgentProfile;
+}
+
+// Gossip message
+interface GossipMessage {
+  agentId: string;
+  timestamp: Date;
+  
+  // What's this agent working on
+  activeTasks: TaskSummary[];
+  
+  // What capacity remains
+  availableCapacity: number;
+  
+  // Specializations (for targeted task routing)
+  specializations: string[];
+  
+  // Agent can handle these task types
+  canHandle: string[];
+}
+```
+
+### The "Hive Mind" Dashboard
+
+**Real-Time Swarm Visualization:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ DASH SWARM VIEW                                          [Live] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Active Swarms: 3          Agents: 23/25         Tasks: 47/50   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ Feature: OAuth Integration                              │   │
+│  │ Progress: ████████████████████░░░░░  78%               │   │
+│  │                                                         │   │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │   │
+│  │  │Arch-1 ✓ │→ │Back-1 ✓ │→ │Back-2 ▶ │  │Front-1 ⏸│   │   │
+│  │  │  2m     │  │  5m     │  │  3m     │  │ waiting │   │   │
+│  │  └─────────┘  └─────────┘  └─────────┘  └─────────┘   │   │
+│  │                                                         │   │
+│  │  ┌─────────┐  ┌─────────┐                              │   │
+│  │  │SecRev-1 │  │Tests-1  │                              │   │   │
+│  │  │ pending │  │ pending │                              │   │   │
+│  │  └─────────┘  └─────────┘                              │   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  [⚡ Real-time]  [🔍 Inspect]  [⏸ Pause]  [🛑 Cancel]          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Intent-to-Execution Pipeline
+
+**Complete Flow:**
+
+```typescript
+// 1. Intent Capture
+const intent = "Add Stripe payment integration with webhook handling";
+
+// 2. Intent Understanding (LLM-based)
+const understanding = await nlpEngine.understand(intent);
+/*
+{
+  domain: 'payment_processing',
+  provider: 'stripe',
+  components: ['backend_api', 'webhook_handler', 'frontend_form'],
+  security_considerations: ['pci_compliance', 'webhook_signature'],
+  estimated_complexity: 'medium'
+}
+*/
+
+// 3. Task Decomposition
+const tasks = decomposer.decompose(understanding);
+
+// 4. Agent Matching
+const assignments = matcher.match(tasks, availableAgents);
+
+// 5. Dependency Resolution
+const schedule = scheduler.schedule(assignments);
+
+// 6. Execution
+const execution = executor.execute(schedule);
+
+// 7. Monitoring & Self-Healing
+const monitor = watcher.watch(execution, {
+  onIssue: (issue) => healer.heal(issue),
+  onComplete: (result) => notifier.notify(result)
+});
+```
+
+### Cognitive Load Optimization
+
+**Minimizing Human Mental Overhead:**
+
+| Traditional Approach | Agent-First Approach | Cognitive Savings |
+|---------------------|---------------------|-------------------|
+| Choose agent manually | System selects based on specialization | -80% decision fatigue |
+| Monitor 5+ terminals | Single dashboard, alerts only for issues | -90% context switching |
+| Debug failures manually | Auto-diagnosis with suggested fixes | -70% troubleshooting time |
+| Coordinate dependencies manually | Automatic dependency resolution | -95% coordination overhead |
+| Review every change | Batch review with confidence scores | -60% review time |
+
+**The "Inbox Zero" for Agents:**
+- Dashboard shows only: (1) Completed work ready for review, (2) Issues requiring human judgment
+- Everything else is handled autonomously
+- Human attention is the scarce resource—system optimizes for preserving it
+
+### Implementation Architecture
+
+```
+src/
+├── intent/
+│   ├── nlp-engine.ts          # Natural language understanding
+│   ├── decomposer.ts          # Task decomposition
+│   └── validator.ts           # Intent validation
+├── swarm/
+│   ├── coordinator.ts         # P2P coordination logic
+│   ├── gossip-protocol.ts     # Agent communication
+│   ├── specialization.ts      # Dynamic specialization
+│   └── consensus.ts           # Distributed consensus
+├── healing/
+│   ├── watcher.ts             # Health monitoring
+│   ├── strategies.ts          # Recovery strategies
+│   └── escalation.ts          # Human escalation
+└── knowledge/
+    ├── patterns.ts            # Learned patterns
+    ├── sharing.ts             # Knowledge propagation
+    └── query.ts               # Contextual retrieval
+```
+
+---
+
 ## Specifications Summary
 
 ### New Capabilities Added
