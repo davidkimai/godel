@@ -60,15 +60,15 @@ Dash automatically:
 - **Conflict Prevention**: Concurrent work on different branches without conflicts
 
 ### Agent Role System
-Gas Town-inspired specialized roles for coordinated workflows:
+Specialized roles for coordinated multi-agent workflows:
 
 | Role | Purpose | Tools |
 |------|---------|-------|
-| **Coordinator (Mayor)** | Orchestrates multi-agent workflows | delegate, query_status, create_convoy |
-| **Worker (Polecat)** | Ephemeral task executor | read, write, edit, bash, todo_write |
-| **Reviewer (Witness)** | Quality assurance and validation | read, diff, comment, approve, reject |
+| **Coordinator** | Orchestrates multi-agent workflows | delegate, query_status, create_convoy |
+| **Worker** | Ephemeral task executor | read, write, edit, bash, todo_write |
+| **Reviewer** | Quality assurance and validation | read, diff, comment, approve, reject |
 | **Refinery** | Merge conflicts and integration | git_merge, git_rebase, resolve_conflict |
-| **Monitor (Deacon)** | System health and alerting | query_metrics, check_health, alert |
+| **Monitor** | System health and alerting | query_metrics, check_health, alert |
 
 ### Federation Architecture
 - **Multi-Instance Management**: Route across 10-50+ OpenClaw instances
@@ -611,7 +611,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 - Built with TypeScript, Fastify, PostgreSQL, and Redis
 - Pi integration powered by [@mariozechner/pi-coding-agent](https://github.com/mariozechner/pi-coding-agent)
 - Inspired by [OpenClaw](https://github.com/openclaw/openclaw)
-- Gas Town agent roles concept by Michael Feathers
 - Tree-structured sessions inspired by Pi CLI
 
 ---
