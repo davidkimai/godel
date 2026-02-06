@@ -32,6 +32,7 @@ import { resolve } from 'path';
 import { registerSwarmCommand } from './commands/swarm';
 import { registerAgentCommand } from './commands/agent';
 import { registerTaskCommand } from './commands/task';
+import { registerTaskListCommand } from './commands/tasklist';
 import { registerEventsCommand } from './commands/events';
 import { registerBusCommand } from './commands/bus';
 import { 
@@ -79,6 +80,7 @@ program.option(
 registerSwarmCommand(program);
 registerAgentCommand(program);
 registerTaskCommand(program);
+registerTaskListCommand(program);
 registerEventsCommand(program);
 registerBusCommand(program);
 registerMetricsCommand(program);
@@ -117,6 +119,7 @@ export function registerCommands(program: Command): void {
   registerSwarmCommand(program);
   registerAgentCommand(program);
   registerTaskCommand(program);
+  registerTaskListCommand(program);
   registerEventsCommand(program);
   registerBusCommand(program);
   registerMetricsCommand(program);
