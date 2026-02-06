@@ -314,16 +314,16 @@ export class DefaultAuditLogger implements AuditLogger {
 
     switch (entry.event) {
       case 'tool.execution.started':
-        this.logger.debug('ToolInterceptor', `Tool execution started: ${entry.tool}`, logData);
+        this.logger.debug(`[ToolInterceptor] Tool execution started: ${entry.tool}`, logData);
         break;
       case 'tool.execution.completed':
-        this.logger.info('ToolInterceptor', `Tool execution completed: ${entry.tool}`, logData);
+        this.logger.info(`[ToolInterceptor] Tool execution completed: ${entry.tool}`, logData);
         break;
       case 'tool.execution.failed':
-        this.logger.error('ToolInterceptor', `Tool execution failed: ${entry.tool}`, logData);
+        this.logger.error(`[ToolInterceptor] Tool execution failed: ${entry.tool}`, logData);
         break;
       case 'tool.execution.blocked':
-        this.logger.warn('ToolInterceptor', `Tool execution blocked: ${entry.tool}`, logData);
+        this.logger.warn(`[ToolInterceptor] Tool execution blocked: ${entry.tool}`, logData);
         break;
     }
   }
@@ -562,6 +562,8 @@ export const readTool: Tool = {
   async execute(args, context) {
     const { path: filePath, offset = 0, limit = 1000 } = args;
     const fullPath = resolveInWorktree(String(filePath), context.worktreePath);
+    const offsetNum = Number(offset) || 0;
+    const limitNum = Number(limit) || 1000;
 
     // Check if file exists
     try {
@@ -578,14 +580,14 @@ export const readTool: Tool = {
     const lines = content.split('\n');
 
     // Apply offset and limit
-    const slicedLines = lines.slice(offset, offset + limit);
+    const slicedLines = lines.slice(offsetNum, offsetNum + limitNum);
     const result = slicedLines.join('\n');
 
     return {
       content: result,
       totalLines: lines.length,
       readLines: slicedLines.length,
-      truncated: lines.length > limit,
+      truncated: lines.length > limitNum,
     };
   },
 };
@@ -760,7 +762,7 @@ export const bashTool: Tool = {
     const dangerousPatterns = [
       /rm\s+-rf\s+\//,
       />\s*\/dev\/(null|zero|random|urandom)/,
-      /:\(\)\{\s*:\|:\s*&\s*\};:\s*\/,
+      /:\(\)\{\s*:\|:\s*&\s*\};/,
       /curl.*\|.*sh/,
       /wget.*\|.*sh/,
     ];
@@ -847,15 +849,15 @@ export const todoWriteTool: Tool = {
 
     // Validate and normalize todo items
     const normalizedTodos: TodoItem[] = todos.map((todo: Record<string, unknown>) => {
-      if (!todo.id || !todo.content || !todo.status) {
+      if (!todo['id'] || !todo['content'] || !todo['status']) {
         throw new Error('Each todo must have id, content, and status');
       }
 
       const normalized: TodoItem = {
-        id: String(todo.id),
-        content: String(todo.content),
-        status: todo.status as TodoItem['status'],
-        priority: (todo.priority as TodoItem['priority']) || 'medium',
+        id: String(todo['id']),
+        content: String(todo['content']),
+        status: todo['status'] as TodoItem['status'],
+        priority: (todo['priority'] as TodoItem['priority']) || 'medium',
       };
 
       // Set completion timestamp if completed
@@ -931,8 +933,7 @@ export const treeNavigateTool: Tool = {
 
     switch (action) {
       case 'show_tree': {
-        // Return tree visualization
-        const visualization = treeManager.visualizeTree(tree);
+        // Return tree information
         return {
           success: true,
           tree: {
@@ -946,10 +947,10 @@ export const treeNavigateTool: Tool = {
               id: b.id,
               name: b.name,
               status: b.status,
-              nodeCount: treeManager.getBranchNodeCount(tree, b.id),
+              baseNodeId: b.baseNodeId,
+              headNodeId: b.headNodeId,
             })),
           },
-          visualization,
         };
       }
 
@@ -994,12 +995,16 @@ export const treeNavigateTool: Tool = {
       }
 
       case 'fork': {
-        const { name } = args;
+        const { name, nodeId: forkNodeId } = args;
         if (!name || typeof name !== 'string') {
           throw new Error('Fork name is required');
         }
 
-        const forkedSession = await treeManager.forkSession(sessionId, {
+        const fromNodeId = forkNodeId && typeof forkNodeId === 'string'
+          ? forkNodeId
+          : tree.currentNodeId;
+
+        const forkedSession = await treeManager.forkSession(sessionId, fromNodeId, {
           name,
         });
 
@@ -1095,9 +1100,9 @@ export const DEFAULT_POLICIES: ToolPolicy[] = [
     priority: 300,
     description: 'Block known dangerous bash commands',
     condition: (toolName, _context, args) => {
-      if (toolName !== 'bash' || !args?.command) return false;
+      if (toolName !== 'bash' || !args?.['command']) return false;
 
-      const command = String(args.command).toLowerCase();
+      const command = String(args['command']).toLowerCase();
       const dangerousPatterns = [
         'rm -rf /',
         'rm -rf /*',
@@ -1857,7 +1862,7 @@ export const BUILTIN_TOOLS: Record<string, Tool> = {
 /**
  * List of all built-in tool names
  */
-export const BUILTIN_TOOL_NAMES = Object.keys(BUILTIN_TOOLS) as const;
+export const BUILTIN_TOOL_NAMES = ['read', 'write', 'edit', 'bash', 'todo_write', 'tree_navigate'] as const;
 
 /**
  * Type for built-in tool names

@@ -186,5 +186,50 @@ export type {
   ErrorCategory,
 } from './router';
 
+// Export ToolInterceptor and tools
+export {
+  // Classes
+  ToolInterceptor,
+  DefaultAuditLogger,
+  // Built-in tools
+  readTool,
+  writeTool,
+  editTool,
+  bashTool,
+  todoWriteTool,
+  treeNavigateTool,
+  // Constants
+  BUILTIN_TOOLS,
+  BUILTIN_TOOL_NAMES,
+  DEFAULT_POLICIES,
+  // Utility functions
+  resolveInWorktree,
+  executeBash,
+  applyEdits,
+  generateDiff,
+  // Factory functions
+  createDefaultToolInterceptor,
+  createReadOnlyToolInterceptor,
+  createKubernetesExecutor,
+} from './tools';
+
+// Export tool types
+export type {
+  ToolCall,
+  ToolResult,
+  ToolContext,
+  JSONSchema,
+  Tool,
+  PolicyDecision,
+  ToolPolicy,
+  RemoteExecutor,
+  AuditLogEntry,
+  AuditLogger,
+  AuditQuery,
+  TodoItem,
+  EditOperation,
+  BuiltInToolName,
+} from './tools';
+
 // Default export
 export { PiRegistry as default } from './registry';

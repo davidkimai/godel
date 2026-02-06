@@ -105,3 +105,6 @@ export type {
   ModelInfo,
   Message,
 } from '@dash/ai';
+
+// Federation - OpenClaw Instance Federation Layer
+export * from './federation';
