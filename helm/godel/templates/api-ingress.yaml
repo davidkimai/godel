@@ -1,21 +1,21 @@
-{{- if .Values.dashApi.ingress.enabled -}}
+{{- if .Values.godelApi.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "dash.fullname" . }}-api
+  name: {{ include "godel.fullname" . }}-api
   labels:
-    {{- include "dash.apiLabels" . | nindent 4 }}
-  {{- with .Values.dashApi.ingress.annotations }}
+    {{- include "godel.apiLabels" . | nindent 4 }}
+  {{- with .Values.godelApi.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.dashApi.ingress.className }}
-  ingressClassName: {{ .Values.dashApi.ingress.className }}
+  {{- if .Values.godelApi.ingress.className }}
+  ingressClassName: {{ .Values.godelApi.ingress.className }}
   {{- end }}
-  {{- if .Values.dashApi.ingress.tls }}
+  {{- if .Values.godelApi.ingress.tls }}
   tls:
-    {{- range .Values.dashApi.ingress.tls }}
+    {{- range .Values.godelApi.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -24,7 +24,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.dashApi.ingress.hosts }}
+    {{- range .Values.godelApi.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
@@ -33,9 +33,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "dash.fullname" $ }}-api
+                name: {{ include "godel.fullname" $ }}-api
                 port:
-                  number: {{ $.Values.dashApi.service.port }}
+                  number: {{ $.Values.godelApi.service.port }}
           {{- end }}
     {{- end }}
 {{- end }}

@@ -363,7 +363,7 @@ export class DashSessionManager {
   
   constructor(sessionDir?: string) {
     this.sessionManager = new SessionManager({
-      dir: sessionDir || '~/.dash/sessions'
+      dir: sessionDir || '~/.godel/sessions'
     });
   }
   

@@ -51,6 +51,15 @@ if (process.env.CI) {
 // Mock fetch globally for tests
 (globalThis as any).fetch = jest.fn();
 
+// Mock uuid for ES module compatibility
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => `mock-uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`),
+  v1: jest.fn(() => `mock-uuid-v1-${Date.now()}`),
+  v5: jest.fn(() => `mock-uuid-v5-${Date.now()}`),
+  parse: jest.fn((id: string) => id),
+  stringify: jest.fn((id: string) => id),
+}));
+
 // Mock setInterval/clearInterval for deterministic tests
 jest.spyOn(global, 'setInterval');
 jest.spyOn(global, 'clearInterval');

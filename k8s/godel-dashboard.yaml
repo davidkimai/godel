@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dash-dashboard
-  namespace: dash
+  name: godel-godelboard
+  namespace: godel
   labels:
-    app.kubernetes.io/name: dash-dashboard
-    app.kubernetes.io/component: dashboard
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/name: godel-godelboard
+    app.kubernetes.io/component: godelboard
+    app.kubernetes.io/part-of: godel-platform
 spec:
   replicas: 2
   strategy:
@@ -16,30 +16,30 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app.kubernetes.io/name: dash-dashboard
+      app.kubernetes.io/name: godel-godelboard
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: dash-dashboard
-        app.kubernetes.io/component: dashboard
+        app.kubernetes.io/name: godel-godelboard
+        app.kubernetes.io/component: godelboard
     spec:
       containers:
-        - name: dash-dashboard
-          image: dash/dash-dashboard:latest
+        - name: godel-godelboard
+          image: godel/godel-godelboard:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               name: http
           envFrom:
             - configMapRef:
-                name: dash-config
+                name: godel-config
             - configMapRef:
-                name: dash-dashboard-config
+                name: godel-godelboard-config
             - secretRef:
-                name: dash-secrets
+                name: godel-secrets
           env:
             - name: DASH_API_URL
-              value: "http://dash-api:3001"
+              value: "http://godel-api:3001"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -71,14 +71,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: dash-dashboard
-  namespace: dash
+  name: godel-godelboard
+  namespace: godel
   labels:
-    app.kubernetes.io/name: dash-dashboard
-    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/name: godel-godelboard
+    app.kubernetes.io/component: godelboard
 spec:
   selector:
-    app.kubernetes.io/name: dash-dashboard
+    app.kubernetes.io/name: godel-godelboard
   ports:
     - port: 3000
       targetPort: 3000

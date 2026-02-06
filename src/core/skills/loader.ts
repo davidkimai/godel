@@ -673,7 +673,7 @@ export function resolveSkillPath(p: string, cwd: string): string {
 export interface LoadAllSkillsOptions {
   /** Working directory for project-local skills */
   cwd?: string;
-  /** User skills directory (~/.dash/skills) */
+  /** User skills directory (~/.godel/skills) */
   userSkillsDir?: string;
   /** Project skills directory */
   projectSkillsDir?: string;
@@ -741,10 +741,10 @@ export function loadAllSkills(options: LoadAllSkillsOptions = {}): LoadSkillsRes
 
   // Load from default directories
   if (includeDefaults) {
-    // User skills (~/.dash/skills)
+    // User skills (~/.godel/skills)
     addSkills(loadSkillsFromDir({ dir: userSkillsDir, source: 'user' }), 'user');
 
-    // Project skills (./.dash/skills)
+    // Project skills (./.godel/skills)
     addSkills(loadSkillsFromDir({ dir: projectSkillsDir, source: 'project' }), 'project');
 
     // Built-in skills (./skills)

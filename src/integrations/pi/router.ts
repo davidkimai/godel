@@ -1027,11 +1027,12 @@ export class ModelRouter extends EventEmitter {
    * Main routing method - selects the best provider for a request.
    *
    * @param request - Routing request
+   * @param strategyName - Optional routing strategy override
    * @returns Routing decision
    * @throws {PiRegistryError} If no suitable provider found
    */
-  route(request: RoutingRequest): RoutingDecision {
-    const strategyName = this.defaultStrategy;
+  route(request: RoutingRequest, strategyName?: string): RoutingDecision {
+    strategyName = strategyName || this.defaultStrategy;
     const strategy = this.strategies.get(strategyName);
 
     if (!strategy) {

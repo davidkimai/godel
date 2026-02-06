@@ -6,7 +6,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/jest\\.setup\\.(ci|test)\\.ts$/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid)/)'
+    '/node_modules/(?!(uuid|nanoid)/)'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ci.ts'],
   transform: {

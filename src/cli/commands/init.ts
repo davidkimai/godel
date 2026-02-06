@@ -2,7 +2,7 @@
  * Init Command - Initialize Dash configuration
  * 
  * Sets up:
- * - ~/.dash/ directory structure
+ * - ~/.godel/ directory structure
  * - Initial configuration file
  * - API key generation
  * - Default settings
@@ -89,7 +89,7 @@ export function registerInitCommand(program: Command): void {
           process.exit(1);
         }
 
-        // Create ~/.dash/ directory
+        // Create ~/.godel/ directory
         if (!existsSync(DASH_DIR)) {
           mkdirSync(DASH_DIR, { recursive: true, mode: 0o700 });
           logger.info(`✅ Created directory: ${DASH_DIR}`);

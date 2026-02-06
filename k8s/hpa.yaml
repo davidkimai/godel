@@ -1,17 +1,17 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: dash-api-hpa
-  namespace: dash
+  name: godel-api-hpa
+  namespace: godel
   labels:
-    app.kubernetes.io/name: dash-api-hpa
+    app.kubernetes.io/name: godel-api-hpa
     app.kubernetes.io/component: autoscaler
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/part-of: godel-platform
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: dash-api
+    name: godel-api
   minReplicas: 3
   maxReplicas: 20
   metrics:
@@ -30,7 +30,7 @@ spec:
     - type: Pods
       pods:
         metric:
-          name: dash_active_agents
+          name: godel_active_agents
         target:
           type: AverageValue
           averageValue: "10"
@@ -55,17 +55,17 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: dash-dashboard-hpa
-  namespace: dash
+  name: godel-godelboard-hpa
+  namespace: godel
   labels:
-    app.kubernetes.io/name: dash-dashboard-hpa
+    app.kubernetes.io/name: godel-godelboard-hpa
     app.kubernetes.io/component: autoscaler
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/part-of: godel-platform
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: dash-dashboard
+    name: godel-godelboard
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -99,12 +99,12 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dash-custom-metrics
-  namespace: dash
+  name: godel-custom-metrics
+  namespace: godel
 data:
   # Custom metrics for HPA based on application metrics
-  dash_active_agents: |
-    seriesQuery: 'dash_active_agents{namespace="dash"}'
+  godel_active_agents: |
+    seriesQuery: 'godel_active_agents{namespace="godel"}'
     resources:
       overrides:
         namespace:

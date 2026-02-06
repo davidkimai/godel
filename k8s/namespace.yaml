@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dash
+  name: godel
   labels:
-    name: dash
-    app.kubernetes.io/name: dash
+    name: godel
+    app.kubernetes.io/name: godel
     app.kubernetes.io/component: namespace
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/part-of: godel-platform
   annotations:
     description: "Dash Agent Orchestration Platform namespace"
 ---
@@ -14,8 +14,8 @@ metadata:
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: dash-quota
-  namespace: dash
+  name: godel-quota
+  namespace: godel
 spec:
   hard:
     requests.cpu: "20"
@@ -30,8 +30,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
-  name: dash-limits
-  namespace: dash
+  name: godel-limits
+  namespace: godel
 spec:
   limits:
     - default:

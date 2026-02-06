@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dash-ingress
-  namespace: dash
+  name: godel-ingress
+  namespace: godel
   labels:
-    app.kubernetes.io/name: dash-ingress
+    app.kubernetes.io/name: godel-ingress
     app.kubernetes.io/component: ingress
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/part-of: godel-platform
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
@@ -19,28 +19,28 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api.dash.local
-        - dashboard.dash.local
-      secretName: dash-tls
+        - api.godel.local
+        - godelboard.godel.local
+      secretName: godel-tls
   rules:
-    - host: api.dash.local
+    - host: api.godel.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dash-api
+                name: godel-api
                 port:
                   number: 3001
-    - host: dashboard.dash.local
+    - host: godelboard.godel.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dash-dashboard
+                name: godel-godelboard
                 port:
                   number: 3000
 ---
@@ -48,20 +48,20 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dash-ingress-http
-  namespace: dash
+  name: godel-ingress-http
+  namespace: godel
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   rules:
-    - host: api.dash.local
+    - host: api.godel.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dash-api
+                name: godel-api
                 port:
                   number: 3001

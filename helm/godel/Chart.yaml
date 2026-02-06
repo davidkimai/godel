@@ -1,5 +1,5 @@
 apiVersion: v2
-name: dash
+name: godel
 description: Dash - Agent Orchestration Platform
 type: application
 version: 2.0.0
@@ -9,12 +9,12 @@ keywords:
   - orchestration
   - ai
   - automation
-home: https://github.com/davidkimai/dash
+home: https://github.com/davidkimai/godel
 sources:
-  - https://github.com/davidkimai/dash
+  - https://github.com/davidkimai/godel
 maintainers:
   - name: Dash Team
-    email: team@dash.dev
+    email: team@godel.dev
 dependencies:
   - name: postgresql
     version: 12.x.x

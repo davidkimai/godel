@@ -1,0 +1,17 @@
+{{- if .Values.godelDashboard.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "godel.fullname" . }}-godelboard
+  labels:
+    {{- include "godel.godelboardLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.godelDashboard.service.type }}
+  ports:
+    - port: {{ .Values.godelDashboard.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "godel.godelboardSelectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,66 @@
+{{- if .Values.godelDashboard.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "godel.fullname" . }}-godelboard
+  labels:
+    {{- include "godel.godelboardLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.godelDashboard.autoscaling.enabled }}
+  replicas: {{ .Values.godelDashboard.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "godel.godelboardSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.godelDashboard.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "godel.godelboardSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "godel.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.godelDashboard.securityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-godelboard
+          securityContext:
+            {{- toYaml .Values.godelDashboard.securityContext | nindent 12 }}
+          image: "{{ .Values.godelDashboard.image.repository }}:{{ .Values.godelDashboard.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.godelDashboard.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.godelDashboard.service.port }}
+              protocol: TCP
+          env:
+            - name: DASH_API_URL
+              value: "http://{{ include "godel.fullname" . }}-api:{{ .Values.godelApi.service.port }}"
+            {{- range $key, $value := .Values.godelDashboard.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.godelDashboard.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.godelDashboard.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.godelDashboard.resources | nindent 12 }}
+      {{- with .Values.godelDashboard.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.godelDashboard.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.godelDashboard.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,4 +1,4 @@
-# Default values for dash.
+# Default values for godel.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -13,12 +13,12 @@ nameOverride: ""
 fullnameOverride: ""
 
 # Dash API configuration
-dashApi:
+godelApi:
   enabled: true
   replicaCount: 3
   
   image:
-    repository: dash/dash-api
+    repository: godel/godel-api
     pullPolicy: IfNotPresent
     tag: "latest"
   
@@ -58,14 +58,14 @@ dashApi:
       nginx.ingress.kubernetes.io/proxy-body-size: "50m"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
-      - host: api.dash.local
+      - host: api.godel.local
         paths:
           - path: /
             pathType: Prefix
     tls:
-      - secretName: dash-tls
+      - secretName: godel-tls
         hosts:
-          - api.dash.local
+          - api.godel.local
   
   resources:
     limits:
@@ -85,7 +85,7 @@ dashApi:
       - type: Pods
         pods:
           metric:
-            name: dash_active_agents
+            name: godel_active_agents
           target:
             averageValue: "10"
   
@@ -125,12 +125,12 @@ dashApi:
     MAX_CONCURRENT_AGENTS: "50"
 
 # Dash Dashboard configuration
-dashDashboard:
+godelDashboard:
   enabled: true
   replicaCount: 2
   
   image:
-    repository: dash/dash-dashboard
+    repository: godel/godel-godelboard
     pullPolicy: IfNotPresent
     tag: "latest"
   
@@ -160,14 +160,14 @@ dashDashboard:
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
-      - host: dashboard.dash.local
+      - host: godelboard.godel.local
         paths:
           - path: /
             pathType: Prefix
     tls:
-      - secretName: dash-tls
+      - secretName: godel-tls
         hosts:
-          - dashboard.dash.local
+          - godelboard.godel.local
   
   resources:
     limits:
@@ -210,9 +210,9 @@ dashDashboard:
 postgresql:
   enabled: true
   auth:
-    username: dash_user
-    database: dash
-    existingSecret: dash-secrets
+    username: godel_user
+    database: godel
+    existingSecret: godel-secrets
     secretKeys:
       adminPasswordKey: DATABASE_PASSWORD
       userPasswordKey: DATABASE_PASSWORD
@@ -235,7 +235,7 @@ redis:
   enabled: true
   auth:
     enabled: true
-    existingSecret: dash-secrets
+    existingSecret: godel-secrets
     existingSecretPasswordKey: REDIS_PASSWORD
   
   master:

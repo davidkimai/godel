@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: dash
+  namespace: godel
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/component: database
-    app.kubernetes.io/part-of: dash-platform
+    app.kubernetes.io/part-of: godel-platform
 spec:
   serviceName: postgres
   replicas: 1
@@ -27,14 +27,14 @@ spec:
               name: postgres
           env:
             - name: POSTGRES_USER
-              value: "dash_user"
+              value: "godel_user"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: dash-secrets
+                  name: godel-secrets
                   key: DATABASE_PASSWORD
             - name: POSTGRES_DB
-              value: "dash"
+              value: "godel"
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
@@ -52,7 +52,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - dash_user
+                - godel_user
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -62,7 +62,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - dash_user
+                - godel_user
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
@@ -80,7 +80,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: dash
+  namespace: godel
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/component: database

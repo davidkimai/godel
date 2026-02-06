@@ -71,7 +71,7 @@ Validation: Research is based on primary sources requested by the user and mappe
 - Root code/config/docs/tests and all first-party source under `src/`, `tests/`, `config/`, `migrations/`, `monitoring/`, `scripts/`, `examples/`, `docs/`, `sdk/`, `skills/`.
 
 ### Excluded from deep line-by-line behavioral review
-- Third-party/vendor/generated artifacts: `node_modules/`, `dist/`, `dist-test/`, `src/dashboard/ui/dist/`, large runtime state/log stores (`logs/`, `.dash/` runtime logs/db files).
+- Third-party/vendor/generated artifacts: `node_modules/`, `dist/`, `dist-test/`, `src/dashboard/ui/dist/`, large runtime state/log stores (`logs/`, `.godel/` runtime logs/db files).
 
 Reason: These are generated or runtime data and not authoritative implementation sources.
 

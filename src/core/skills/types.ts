@@ -122,9 +122,9 @@ export interface SkillTool {
  * Skill registry configuration
  */
 export interface SkillRegistryConfig {
-  /** User skills directory (~/.dash/skills) */
+  /** User skills directory (~/.godel/skills) */
   userSkillsDir: string;
-  /** Project skills directory (./.dash/skills) */
+  /** Project skills directory (./.godel/skills) */
   projectSkillsDir: string;
   /** Built-in skills directory */
   builtinSkillsDir: string;
@@ -347,8 +347,8 @@ export const MAX_COMPATIBILITY_LENGTH = 500;
 
 /** Default skill directories */
 export const DEFAULT_SKILL_DIRS = {
-  user: '.dash/skills',
-  project: '.dash/skills',
+  user: '.godel/skills',
+  project: '.godel/skills',
   builtin: 'skills',
 } as const;
 

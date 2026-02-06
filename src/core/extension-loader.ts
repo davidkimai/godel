@@ -5,7 +5,7 @@
  * - JIT TypeScript compilation using jiti
  * - Permission-based security sandbox
  * - Hot reloading
- * - Extension discovery from ~/.dash/extensions/
+ * - Extension discovery from ~/.godel/extensions/
  */
 
 import { logger } from '../utils/logger';
@@ -478,12 +478,12 @@ export class ExtensionLoader {
       }
     };
     
-    // 1. Global extensions: ~/.dash/extensions/
+    // 1. Global extensions: ~/.godel/extensions/
     if (fs.existsSync(EXTENSIONS_DIR)) {
       discoverExtensionsInDir(EXTENSIONS_DIR).forEach(addPath);
     }
     
-    // 2. Project-local extensions: ./.dash/extensions/
+    // 2. Project-local extensions: ./.godel/extensions/
     const localExtDir = path.join(this.options.cwd, '.dash', 'extensions');
     if (fs.existsSync(localExtDir)) {
       discoverExtensionsInDir(localExtDir).forEach(addPath);
