@@ -178,6 +178,56 @@ describe('OpenClawCore', () => {
       expect(core.isInitialized).toBe(false);
     });
   });
+
+  describe('concurrency controls', () => {
+    it('should reject spawn when max concurrent session limit is reached', async () => {
+      const internal = core as any;
+      internal.initialized = true;
+      internal.maxConcurrentSessions = 1;
+      internal.sessions.set('existing-session', {
+        sessionId: 'existing-session',
+        agentId: 'agent-1',
+        status: 'running',
+        createdAt: new Date(),
+        startedAt: new Date(),
+        metadata: {},
+      });
+
+      await expect(core.spawnSession({
+        agentId: 'agent-2',
+        task: 'Run another task',
+      })).rejects.toThrow('concurrency limit reached');
+    });
+
+    it('should map a spawned session to its selected gateway', async () => {
+      const internal = core as any;
+      internal.initialized = true;
+      internal.maxConcurrentSessions = 10;
+
+      const mockGatewayEntry = {
+        id: 'gateway-1',
+        activeSessions: 0,
+        config: { host: 'localhost', port: 18789 },
+        client: {
+          sessionsSpawn: jest.fn().mockResolvedValue({
+            sessionKey: 'session-key-1',
+            sessionId: 'session-id-1',
+          }),
+        },
+      };
+
+      internal.selectGatewayForSpawn = jest.fn().mockResolvedValue(mockGatewayEntry);
+
+      const sessionKey = await core.spawnSession({
+        agentId: 'agent-3',
+        task: 'Spawn with gateway mapping',
+      });
+
+      expect(sessionKey).toBe('session-key-1');
+      expect(internal.sessionGatewayMap.get('session-key-1')).toBe('gateway-1');
+      expect(mockGatewayEntry.activeSessions).toBe(1);
+    });
+  });
 });
 
 // Export MockOpenClawClient for use in other tests

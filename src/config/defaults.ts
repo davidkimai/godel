@@ -134,10 +134,17 @@ export const defaultBudgetConfig: BudgetConfig = {
 
 export const defaultOpenClawConfig: OpenClawConfig = {
   gatewayUrl: 'ws://127.0.0.1:18789',
+  gatewayUrls: undefined,
   gatewayToken: undefined,
   sessionId: undefined,
   mode: 'restricted',
   sandboxMode: 'non-main',
+  maxConcurrentSessions: 50,
+  perGatewayMaxConcurrentSessions: 25,
+  autoStartGateway: false,
+  gatewayStartCommand: undefined,
+  gatewayStartupTimeoutMs: 30000,
+  gatewayStartupProbeIntervalMs: 1000,
   mockMode: false,
   verbose: false,
 };

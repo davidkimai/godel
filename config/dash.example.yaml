@@ -191,6 +191,11 @@ budget:
 openclaw:
   # Gateway WebSocket URL
   gatewayUrl: ws://127.0.0.1:18789
+
+  # Optional pool of gateway URLs for load-aware orchestration
+  # gatewayUrls:
+  #   - ws://127.0.0.1:18789
+  #   - ws://127.0.0.1:18790
   
   # Gateway authentication token
   # Option 1: Direct value (not recommended for production)
@@ -205,6 +210,22 @@ openclaw:
   
   # Sandbox mode: none, non-main, docker
   sandboxMode: non-main
+
+  # Maximum concurrent OpenClaw sessions in Dash
+  maxConcurrentSessions: 50
+
+  # Maximum sessions per gateway in a pooled setup
+  perGatewayMaxConcurrentSessions: 25
+
+  # Auto-start gateway daemon when no gateway is reachable
+  autoStartGateway: false
+
+  # Optional explicit daemon command override
+  # gatewayStartCommand: openclaws gateway start
+
+  # Startup probing controls
+  gatewayStartupTimeoutMs: 30000
+  gatewayStartupProbeIntervalMs: 1000
   
   # Enable mock mode for testing
   mockMode: false

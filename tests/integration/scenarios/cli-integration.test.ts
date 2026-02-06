@@ -10,7 +10,10 @@
 import { execSync } from 'child_process';
 import { testConfig } from '../config';
 
-describe('Scenario 5: CLI Integration', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 5: CLI Integration', () => {
   const cliPath = 'swarmctl';
   const createdSwarms: string[] = [];
   const createdAgents: string[] = [];

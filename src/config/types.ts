@@ -242,6 +242,8 @@ export interface BudgetConfig {
 export interface OpenClawConfig {
   /** Gateway WebSocket URL */
   gatewayUrl: string;
+  /** Optional pool of gateway URLs for load distribution */
+  gatewayUrls?: string[];
   /** Gateway authentication token */
   gatewayToken?: string;
   /** Session identifier */
@@ -250,6 +252,18 @@ export interface OpenClawConfig {
   mode: 'restricted' | 'full';
   /** Sandbox mode */
   sandboxMode: 'none' | 'non-main' | 'docker';
+  /** Maximum concurrent OpenClaw sessions managed by Dash */
+  maxConcurrentSessions: number;
+  /** Maximum sessions assigned to a single gateway instance */
+  perGatewayMaxConcurrentSessions: number;
+  /** Automatically launch gateway daemon when unavailable */
+  autoStartGateway: boolean;
+  /** Optional daemon command override (for openclaws/openclawd/openclaw variants) */
+  gatewayStartCommand?: string;
+  /** Time to wait for gateway startup */
+  gatewayStartupTimeoutMs: number;
+  /** Retry interval while probing gateway startup */
+  gatewayStartupProbeIntervalMs: number;
   /** Enable mock mode for testing */
   mockMode: boolean;
   /** Verbose logging */

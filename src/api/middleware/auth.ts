@@ -7,14 +7,24 @@
 
 import { logger } from '../../utils/logger';
 import { Request, Response, NextFunction } from 'express';
-import { randomBytes, timingSafeEqual } from 'crypto';
+import { randomBytes, timingSafeEqual, createHmac } from 'crypto';
 
 // In-memory key storage (in production, use database with hashed keys)
 const validKeys = new Set<string>();
+const validSessions = new Map<string, number>();
 
 // API key format: dash_<prefix>_<32-char-hex>
 const API_KEY_PATTERN = /^dash_[a-z]+_[a-f0-9]{64}$/;
 const API_KEY_PREFIX = 'dash';
+const PUBLIC_PATH_PREFIXES = [
+  '/health',
+  '/api/auth',
+  '/api/v1/auth',
+  '/api/openapi.json',
+  '/api/v1/openapi.json',
+  '/api/docs',
+  '/api/v1/docs',
+];
 
 /** Authenticated request with API key */
 export interface AuthenticatedRequest extends Request {
@@ -23,8 +33,45 @@ export interface AuthenticatedRequest extends Request {
 
 /** Require authentication middleware wrapper */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  // Stub implementation - actual auth handled by fastify plugin
-  next();
+  if (isPublicPath(req.path)) {
+    next();
+    return;
+  }
+
+  const apiKey = extractApiKey(req);
+  if (apiKey && isValidKey(apiKey)) {
+    (req as AuthenticatedRequest).apiKey = apiKey;
+    next();
+    return;
+  }
+
+  const sessionToken = typeof (req as any).cookies?.['session'] === 'string'
+    ? (req as any).cookies['session']
+    : null;
+  if (sessionToken && isValidSessionToken(sessionToken)) {
+    next();
+    return;
+  }
+
+  const bearerToken = extractBearerToken(req);
+  if (bearerToken) {
+    const jwtSecret = process.env['DASH_JWT_SECRET'] || process.env['JWT_SECRET'];
+    if (jwtSecret) {
+      const { valid } = validateJwtToken(bearerToken, jwtSecret, {
+        issuer: process.env['DASH_JWT_ISSUER'],
+        audience: process.env['DASH_JWT_AUDIENCE'],
+      });
+      if (valid) {
+        next();
+        return;
+      }
+    }
+  }
+
+  res.status(401).json({
+    error: 'Unauthorized',
+    message: 'Authentication required. Provide X-API-Key or valid Bearer token.',
+  });
 }
 
 /**
@@ -71,51 +118,123 @@ function secureCompareKeys(provided: string, stored: string): boolean {
  * Check if a key is valid
  */
 function isValidKey(key: string): boolean {
-  // First check format
-  if (!isValidApiKeyFormat(key)) {
-    return false;
-  }
-  
-  // Then check against stored keys (timing-safe)
+  // Check against stored keys (timing-safe)
   for (const storedKey of Array.from(validKeys)) {
     if (secureCompareKeys(key, storedKey)) {
       return true;
     }
   }
+
+  // Also allow explicitly configured runtime key if present
+  const configured = process.env['DASH_API_KEY'];
+  if (configured && secureCompareKeys(key, configured)) {
+    return true;
+  }
   return false;
 }
 
+function isPublicPath(path: string): boolean {
+  return PUBLIC_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+function extractApiKey(req: Request): string | null {
+  const key = req.headers['x-api-key'];
+  if (typeof key === 'string' && key.length > 0) {
+    return key;
+  }
+
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('ApiKey ')) {
+    return authHeader.slice(7).trim();
+  }
+
+  return null;
+}
+
+function extractBearerToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim();
+  }
+  return null;
+}
+
+function validateJwtToken(
+  token: string,
+  secret: string,
+  options?: { issuer?: string; audience?: string }
+): { valid: boolean; payload?: Record<string, unknown> } {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { valid: false };
+    }
+
+    const [headerSegment, payloadSegment, signatureSegment] = parts;
+    const expectedSignature = createHmac('sha256', secret)
+      .update(`${headerSegment}.${payloadSegment}`)
+      .digest('base64url');
+    if (
+      expectedSignature.length !== signatureSegment.length
+      || !timingSafeEqual(Buffer.from(expectedSignature, 'utf8'), Buffer.from(signatureSegment, 'utf8'))
+    ) {
+      return { valid: false };
+    }
+
+    const header = JSON.parse(Buffer.from(headerSegment, 'base64url').toString('utf8'));
+    if (header?.alg !== 'HS256') {
+      return { valid: false };
+    }
+
+    const payload = JSON.parse(Buffer.from(payloadSegment, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) return { valid: false };
+    if (payload.nbf && payload.nbf > now) return { valid: false };
+    if (options?.issuer && payload.iss !== options.issuer) return { valid: false };
+    if (options?.audience) {
+      const aud = payload.aud;
+      const audOk = Array.isArray(aud) ? aud.includes(options.audience) : aud === options.audience;
+      if (!audOk) return { valid: false };
+    }
+
+    return { valid: true, payload };
+  } catch {
+    return { valid: false };
+  }
+}
+
 export function authMiddleware(apiKey: string) {
-  // Add default key if it's in valid format, otherwise generate one
-  if (isValidApiKeyFormat(apiKey)) {
+  // Always register explicit configured key when provided
+  if (apiKey && apiKey.trim().length > 0) {
     validKeys.add(apiKey);
+    if (!isValidApiKeyFormat(apiKey)) {
+      logger.warn('[Auth] API key does not match recommended secure format; continuing with configured key.');
+    }
   } else {
-    logger.warn('[Auth] Default API key does not meet security requirements. Generating secure key.');
+    logger.warn('[Auth] No API key configured. Generating secure key.');
     const secureKey = generateApiKey('default');
     validKeys.add(secureKey);
     logger.info(`[Auth] Generated secure API key: ${secureKey.slice(0, 20)}...`);
   }
 
   return (req: Request, res: Response, next: NextFunction) => {
-    // Skip auth for health endpoint
-    if (req.path === '/health') {
+    if (isPublicPath(req.path)) {
       return next();
     }
 
-    const key = req.headers['x-api-key'] as string;
+    const key = extractApiKey(req);
+    const sessionToken = typeof (req as any).cookies?.['session'] === 'string'
+      ? (req as any).cookies['session']
+      : null;
+
+    if (sessionToken && isValidSessionToken(sessionToken)) {
+      return next();
+    }
 
     if (!key) {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'API key required. Set X-API-Key header.'
-      });
-    }
-
-    // Validate key format
-    if (!isValidApiKeyFormat(key)) {
-      return res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid API key format'
       });
     }
 
@@ -141,6 +260,26 @@ export function addApiKey(key: string): void {
 
 export function revokeApiKey(key: string): void {
   validKeys.delete(key);
+}
+
+export function registerSessionToken(token: string, expiresAtMs: number): void {
+  validSessions.set(token, expiresAtMs);
+}
+
+export function revokeSessionToken(token: string): void {
+  validSessions.delete(token);
+}
+
+export function isValidSessionToken(token: string): boolean {
+  const expiresAt = validSessions.get(token);
+  if (!expiresAt) {
+    return false;
+  }
+  if (expiresAt < Date.now()) {
+    validSessions.delete(token);
+    return false;
+  }
+  return true;
 }
 
 export function listApiKeys(): string[] {

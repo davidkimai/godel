@@ -7,6 +7,7 @@
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync } from 'fastify';
+import { createHmac, timingSafeEqual } from 'crypto';
 
 export interface AuthConfig {
   /** API key for X-API-Key authentication */
@@ -74,26 +75,63 @@ function extractBearerToken(request: FastifyRequest): string | null {
  * Simple JWT validation (without external library dependency)
  * Note: For production, use @fastify/jwt plugin
  */
-function validateJwtToken(token: string, secret: string): { valid: boolean; payload?: Record<string, unknown> } {
+function validateJwtToken(
+  token: string,
+  secret: string,
+  options?: { issuer?: string; audience?: string }
+): { valid: boolean; payload?: Record<string, unknown> } {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
       return { valid: false };
     }
-    
+
+    const [headerSegment, payloadSegment, signatureSegment] = parts;
+    const signingInput = `${headerSegment}.${payloadSegment}`;
+
+    // Verify HMAC-SHA256 signature (HS256)
+    const expectedSignature = createHmac('sha256', secret)
+      .update(signingInput)
+      .digest('base64url');
+    const signatureMatches =
+      expectedSignature.length === signatureSegment.length &&
+      timingSafeEqual(Buffer.from(expectedSignature, 'utf8'), Buffer.from(signatureSegment, 'utf8'));
+    if (!signatureMatches) {
+      return { valid: false };
+    }
+
+    const header = JSON.parse(Buffer.from(headerSegment, 'base64url').toString());
+    if (header?.alg !== 'HS256') {
+      return { valid: false };
+    }
+
     // Decode payload
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    
+    const payload = JSON.parse(Buffer.from(payloadSegment, 'base64url').toString());
+
     // Check expiration
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       return { valid: false };
     }
-    
+
     // Check not before
     if (payload.nbf && payload.nbf > Math.floor(Date.now() / 1000)) {
       return { valid: false };
     }
-    
+
+    // Optional issuer/audience checks
+    if (options?.issuer && payload.iss !== options.issuer) {
+      return { valid: false };
+    }
+    if (options?.audience) {
+      const aud = payload.aud;
+      const audienceMatch = Array.isArray(aud)
+        ? aud.includes(options.audience)
+        : aud === options.audience;
+      if (!audienceMatch) {
+        return { valid: false };
+      }
+    }
+
     return { valid: true, payload };
   } catch {
     return { valid: false };
@@ -104,11 +142,12 @@ function validateJwtToken(token: string, secret: string): { valid: boolean; payl
  * Check if route is public
  */
 function isPublicRoute(path: string, publicRoutes: string[]): boolean {
+  const normalizedPath = path.split('?')[0];
   return publicRoutes.some(route => {
     if (route.endsWith('*')) {
-      return path.startsWith(route.slice(0, -1));
+      return normalizedPath.startsWith(route.slice(0, -1));
     }
-    return path === route;
+    return normalizedPath === route;
   });
 }
 
@@ -152,7 +191,10 @@ const authPlugin: FastifyPluginAsync<AuthConfig> = async (fastify: FastifyInstan
     const bearerToken = extractBearerToken(request);
     if (bearerToken) {
       if (config.enableJwt && config.jwtSecret) {
-        const { valid, payload } = validateJwtToken(bearerToken, config.jwtSecret);
+        const { valid, payload } = validateJwtToken(bearerToken, config.jwtSecret, {
+          issuer: config.jwtIssuer,
+          audience: config.jwtAudience,
+        });
         
         if (valid && payload) {
           request.authType = 'bearer';
@@ -173,17 +215,6 @@ const authPlugin: FastifyPluginAsync<AuthConfig> = async (fastify: FastifyInstan
             message: 'Invalid or expired token',
           },
         });
-        return;
-      }
-      
-      // Simple token validation (for demo purposes)
-      if (bearerToken === config.apiKey) {
-        request.authType = 'bearer';
-        request.user = {
-          id: 'token-user',
-          role: 'admin',
-          permissions: ['*'],
-        };
         return;
       }
       

@@ -88,27 +88,57 @@ export class EventRepository {
    */
   async create(input: EventCreateInput): Promise<Event> {
     this.ensureInitialized();
-    
-    const result = await this.pool!.query<EventRow>(
-      `INSERT INTO events (
-        swarm_id, agent_id, type, payload, timestamp,
-        correlation_id, parent_event_id, entity_type, severity
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *`,
-      [
-        input.swarm_id || null,
-        input.agent_id || null,
-        input.type,
-        JSON.stringify(input.payload || {}),
-        input.timestamp?.toISOString() || new Date().toISOString(),
-        input.correlation_id || null,
-        input.parent_event_id || null,
-        input.entity_type || 'system',
-        input.severity || 'info',
-      ]
-    );
 
-    return this.mapRow(result.rows[0]);
+    try {
+      const result = await this.pool!.query<EventRow>(
+        `INSERT INTO events (
+          swarm_id, agent_id, type, payload, timestamp,
+          correlation_id, parent_event_id, entity_type, severity
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING *`,
+        [
+          input.swarm_id || null,
+          input.agent_id || null,
+          input.type,
+          JSON.stringify(input.payload || {}),
+          input.timestamp?.toISOString() || new Date().toISOString(),
+          input.correlation_id || null,
+          input.parent_event_id || null,
+          input.entity_type || 'system',
+          input.severity || 'info',
+        ]
+      );
+
+      return this.mapRow(result.rows[0]);
+    } catch (error) {
+      if (!isLegacyEventSchemaError(error)) {
+        throw error;
+      }
+
+      // Legacy schema compatibility (event_type/source columns).
+      const fallback = await this.pool!.query<EventRow>(
+        `INSERT INTO events (
+          swarm_id, agent_id, event_type, source, payload, timestamp
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *`,
+        [
+          input.swarm_id || null,
+          input.agent_id || null,
+          input.type,
+          JSON.stringify({
+            source: input.source || 'self-improvement',
+            entity_type: input.entity_type || 'system',
+            severity: input.severity || 'info',
+            correlation_id: input.correlation_id || null,
+            parent_event_id: input.parent_event_id || null,
+          }),
+          JSON.stringify(input.payload || {}),
+          input.timestamp?.toISOString() || new Date().toISOString(),
+        ]
+      );
+
+      return this.mapRow(fallback.rows[0]);
+    }
   }
 
   /**
@@ -436,17 +466,28 @@ export class EventRepository {
   }
 
   private mapRow(row: EventRow): Event {
+    const source = this.parseJson(row.source || null);
+    const type = row.type || row.event_type || 'unknown';
+    const entityType = (
+      row.entity_type
+      || (typeof source['entity_type'] === 'string' ? source['entity_type'] : 'system')
+    ) as EntityType;
+    const severity = (
+      row.severity
+      || (typeof source['severity'] === 'string' ? source['severity'] : 'info')
+    ) as EventSeverity;
+
     return {
       id: row.id,
       swarm_id: row.swarm_id || undefined,
       agent_id: row.agent_id || undefined,
-      type: row.type,
+      type,
       payload: this.parseJson(row.payload),
       timestamp: new Date(row.timestamp),
-      correlation_id: row.correlation_id || undefined,
-      parent_event_id: row.parent_event_id || undefined,
-      entity_type: row.entity_type as EntityType,
-      severity: row.severity as EventSeverity,
+      correlation_id: row.correlation_id || (typeof source['correlation_id'] === 'string' ? source['correlation_id'] : undefined),
+      parent_event_id: row.parent_event_id || (typeof source['parent_event_id'] === 'string' ? source['parent_event_id'] : undefined),
+      entity_type: entityType,
+      severity,
     };
   }
 
@@ -468,13 +509,15 @@ interface EventRow {
   id: string;
   swarm_id?: string;
   agent_id?: string;
-  type: string;
+  type?: string;
+  event_type?: string;
+  source?: string | Record<string, unknown>;
   payload: string | Record<string, unknown>;
   timestamp: string;
   correlation_id?: string;
   parent_event_id?: string;
-  entity_type: string;
-  severity: string;
+  entity_type?: string;
+  severity?: string;
 }
 
 interface EventStats24hRow {
@@ -487,3 +530,12 @@ interface EventStats24hRow {
 }
 
 export default EventRepository;
+
+function isLegacyEventSchemaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes('column "type"')
+    || message.includes('column "entity_type"')
+    || message.includes('column "severity"')
+  );
+}

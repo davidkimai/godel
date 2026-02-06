@@ -149,7 +149,10 @@ export class StatePersistence extends EventEmitter {
   }
 
   private async createSchema(): Promise<void> {
-    const db = await this.ensureDb();
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    const db = this.db;
 
     // State versions table for optimistic locking
     await db.run(`

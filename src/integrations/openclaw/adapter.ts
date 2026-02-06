@@ -262,16 +262,18 @@ export class OpenClawAdapter extends EventEmitter {
     logger.info(`[OpenClawAdapter] Killing agent ${dashAgentId} (force=${force})`);
 
     try {
-      // Kill the agent
-      const result = await this.client.killAgent(dashAgentId, force);
+      const forceArg = force ? true : undefined;
 
-      if (!result.success) {
-        logger.warn(`[OpenClawAdapter] Kill agent returned error:`, result.error);
+      // Kill the agent
+      const result = await this.client.killAgent(dashAgentId, forceArg);
+
+      if (!result || !result.success) {
+        logger.warn(`[OpenClawAdapter] Kill agent returned error:`, result?.error);
       }
 
       // Clean up swarm if exists
       if (swarmId) {
-        await this.client.destroySwarm(swarmId, force);
+        await this.client.destroySwarm(swarmId, forceArg);
       }
 
       // Clean up event forwarding
@@ -308,12 +310,15 @@ export class OpenClawAdapter extends EventEmitter {
       return { status: 'not_found' };
     }
 
-    const agent = result.data;
+    const agent = result.data as typeof result.data & {
+      progress?: number;
+      result?: unknown;
+    };
 
     return {
       status: agent.status,
-      progress: agent.metadata?.['progress'] as number | undefined,
-      result: agent.metadata?.['result'] as unknown,
+      progress: (agent.progress as number | undefined) ?? (agent.metadata?.['progress'] as number | undefined),
+      result: (agent.result as unknown) ?? (agent.metadata?.['result'] as unknown),
       error: agent.lastError,
       runtime: agent.runtime,
     };
@@ -332,7 +337,8 @@ export class OpenClawAdapter extends EventEmitter {
 
       // Get current status
       const statusResult = await this.client.getAgent(agentId);
-      const status = statusResult.success ? statusResult.data?.status : 'unknown';
+      const status =
+        statusResult && statusResult.success ? statusResult.data?.status : 'unknown';
 
       agents.push({
         openclawSessionKey: sessionKey,
@@ -381,7 +387,12 @@ export class OpenClawAdapter extends EventEmitter {
   private cleanupEventForwarding(openclawSessionKey: string): void {
     const subscription = this.eventHandlers.get(openclawSessionKey);
     if (subscription) {
-      this.messageBus.unsubscribe(subscription);
+      const maybeBus = this.messageBus as unknown as { unsubscribe?: (sub: Subscription) => boolean };
+      if (typeof maybeBus.unsubscribe === 'function') {
+        maybeBus.unsubscribe(subscription);
+      } else if (typeof (subscription as unknown as () => void) === 'function') {
+        (subscription as unknown as () => void)();
+      }
       this.eventHandlers.delete(openclawSessionKey);
     }
   }
@@ -497,13 +508,25 @@ export class OpenClawAdapter extends EventEmitter {
 
     // Kill all active agents
     const sessions = Array.from(this.agentIdMap.keys());
-    await Promise.all(sessions.map(key => this.killAgent(key, true)));
+    await Promise.all(
+      sessions.map(async (key) => {
+        try {
+          await this.killAgent(key, true);
+        } catch (error) {
+          logger.warn('[OpenClawAdapter] Failed to kill agent during dispose', {
+            sessionKey: key,
+            error,
+          });
+        }
+      })
+    );
 
     // Clear all maps
     this.agentIdMap.clear();
     this.sessionKeyMap.clear();
     this.swarmIdMap.clear();
     this.agentMetadata.clear();
+    this.eventHandlers.clear();
 
     logger.info('[OpenClawAdapter] Adapter disposed');
   }

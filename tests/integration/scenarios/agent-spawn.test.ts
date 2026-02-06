@@ -16,7 +16,10 @@ import {
 } from '../../../src/cli/lib/client';
 import { testConfig, waitForStatus } from '../config';
 
-describe('Scenario 1: OpenClaw Agent Spawn', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
   let adapter: OpenClawAdapter;
   let createdAgentIds: string[] = [];
   let createdSwarmIds: string[] = [];

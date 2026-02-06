@@ -11,7 +11,10 @@ import { OpenClawEventBridge } from '../../../src/integrations/openclaw/event-br
 import { getGlobalBus, MessageBus } from '../../../src/bus/index';
 import { testConfig, waitForCondition, calculateLatencyStats } from '../config';
 
-describe('Scenario 2: Event Streaming', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 2: Event Streaming', () => {
   let eventBridge: OpenClawEventBridge;
   let mockWebhookEvents: any[] = [];
   let messageBus: MessageBus;

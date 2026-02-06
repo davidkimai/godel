@@ -11,7 +11,10 @@ import { logger } from '../../../src/utils/logger';
 import WebSocket from 'ws';
 import { testConfig, waitForCondition } from '../config';
 
-describe('Scenario 6: WebSocket Stability', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 6: WebSocket Stability', () => {
   const wsUrl = testConfig.websocketUrl;
   const apiKey = testConfig.dashApiKey;
   

@@ -130,11 +130,11 @@ describe('OpenClawAdapter', () => {
       expect(mockClient.createSwarm).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'openclaw-session-1',
-          config: expect.objectContaining({
+          task: 'Review PR #123',
+          model: 'claude-3',
+          metadata: expect.objectContaining({
             agentType: 'code-review',
-            task: 'Review PR #123',
-            model: 'claude-3',
-            timeout: 60000,
+            openclawSessionKey: 'session-1',
           }),
         })
       );

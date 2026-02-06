@@ -14,13 +14,13 @@ export const testConfig = {
   openclawSessionKey: process.env['OPENCLAW_SESSION_KEY'] || 'test-session',
   
   // Database Configuration
-  databaseUrl: process.env['TEST_DATABASE_URL'] || 'postgresql://dash_user:dash_password@localhost:5432/dash_test',
+  databaseUrl: process.env['TEST_DATABASE_URL'] || 'postgresql://dash:dash@localhost:5432/dash_test',
   
   // Redis Configuration
   redisUrl: process.env['TEST_REDIS_URL'] || 'redis://localhost:6379/1',
   
   // WebSocket Configuration
-  websocketUrl: process.env['TEST_WEBSOCKET_URL'] || 'ws://localhost:7373/ws',
+  websocketUrl: process.env['TEST_WEBSOCKET_URL'] || 'ws://localhost:7373/events',
   
   // Test Timeouts
   testTimeout: 60000,  // 60 seconds
@@ -154,7 +154,17 @@ export function createTestApiClient() {
     let data: T;
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
-      data = await response.json() as T;
+      const parsed = await response.json() as unknown as Record<string, unknown>;
+      if (
+        parsed
+        && typeof parsed === 'object'
+        && Object.prototype.hasOwnProperty.call(parsed, 'success')
+        && Object.prototype.hasOwnProperty.call(parsed, 'data')
+      ) {
+        data = parsed['data'] as T;
+      } else {
+        data = parsed as T;
+      }
     } else {
       data = await response.text() as unknown as T;
     }

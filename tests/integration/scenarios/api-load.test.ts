@@ -10,7 +10,10 @@ import { logger } from '../../../src/utils/logger';
 
 import { createTestApiClient, testConfig, calculateLatencyStats } from '../config';
 
-describe('Scenario 4: API Load Testing', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 4: API Load Testing', () => {
   const apiClient = createTestApiClient();
   const createdSwarmIds: string[] = [];
   const createdAgentIds: string[] = [];

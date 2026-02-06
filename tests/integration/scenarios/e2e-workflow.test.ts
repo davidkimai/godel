@@ -15,7 +15,10 @@ import { getGlobalClient } from '../../../src/cli/lib/client';
 import { getGlobalLifecycle, AgentLifecycle } from '../../../src/core/lifecycle';
 import { testConfig, waitForStatus, waitForCondition } from '../config';
 
-describe('Scenario 10: End-to-End Workflow', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 10: End-to-End Workflow', () => {
   let adapter: OpenClawAdapter;
   let eventBridge: OpenClawEventBridge;
   let messageBus: MessageBus;

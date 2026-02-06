@@ -168,10 +168,28 @@ export type BudgetSchema = z.infer<typeof budgetSchema>;
 
 export const openclawSchema = z.object({
   gatewayUrl: z.string().default('ws://127.0.0.1:18789'),
+  gatewayUrls: z.union([
+    z.string().transform((val) => val.split(',').map((s) => s.trim()).filter(Boolean)),
+    z.array(z.string()),
+  ]).optional(),
   gatewayToken: z.string().optional().default(''),
   sessionId: z.string().optional(),
   mode: z.enum(['restricted', 'full']).default('restricted'),
   sandboxMode: z.enum(['none', 'non-main', 'docker']).default('non-main'),
+  maxConcurrentSessions: z.coerce.number().default(50).refine((val) => val >= 1, {
+    message: 'Must be at least 1',
+  }),
+  perGatewayMaxConcurrentSessions: z.coerce.number().default(25).refine((val) => val >= 1, {
+    message: 'Must be at least 1',
+  }),
+  autoStartGateway: z.boolean().default(false),
+  gatewayStartCommand: z.string().optional().default(''),
+  gatewayStartupTimeoutMs: z.coerce.number().default(30000).refine((val) => val >= 1000, {
+    message: 'Must be at least 1000',
+  }),
+  gatewayStartupProbeIntervalMs: z.coerce.number().default(1000).refine((val) => val >= 100, {
+    message: 'Must be at least 100',
+  }),
   mockMode: z.boolean().default(false),
   verbose: z.boolean().default(false),
 });

@@ -11,7 +11,10 @@ import { logger } from '../../../src/utils/logger';
 import { createTestApiClient, testConfig } from '../config';
 import { OpenClawAdapter } from '../../../src/integrations/openclaw/adapter';
 
-describe('Scenario 9: Error Handling', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 9: Error Handling', () => {
   const apiClient = createTestApiClient();
   const createdResources: { type: string; id: string }[] = [];
 

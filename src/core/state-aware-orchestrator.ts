@@ -116,6 +116,19 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     this.statePersistence.on('audit.logged', ({ entityType, entityId, action }) => {
       logger.debug(`[StateAwareOrchestrator] Audit: ${action} on ${entityType} ${entityId}`);
     });
+
+    // Recovery handlers must be registered before recoverAll() emits events.
+    this.statePersistence.on('recovery.swarm', (persistedSwarm: PersistedSwarmState) => {
+      this.recoverSwarm(persistedSwarm);
+    });
+
+    this.statePersistence.on('recovery.agent', (persistedAgent: PersistedAgentState) => {
+      this.recoverAgent(persistedAgent);
+    });
+
+    this.statePersistence.on('recovery.session', (sessionData: { id: string; sessionTreeId: string }) => {
+      this.recoverSession(sessionData);
+    });
   }
 
   // ============================================================================
@@ -167,23 +180,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
    */
   private async performRecovery(): Promise<RecoveryResult> {
     logger.info('[StateAwareOrchestrator] Starting state recovery...');
-
-    const result = await this.statePersistence.recoverAll();
-
-    // Subscribe to recovery events
-    this.statePersistence.on('recovery.swarm', (persistedSwarm: PersistedSwarmState) => {
-      this.recoverSwarm(persistedSwarm);
-    });
-
-    this.statePersistence.on('recovery.agent', (persistedAgent: PersistedAgentState) => {
-      this.recoverAgent(persistedAgent);
-    });
-
-    this.statePersistence.on('recovery.session', (sessionData: { id: string; sessionTreeId: string }) => {
-      this.recoverSession(sessionData);
-    });
-
-    return result;
+    return this.statePersistence.recoverAll();
   }
 
   private recoverSwarm(persistedSwarm: PersistedSwarmState): void {

@@ -421,7 +421,7 @@ export class DashboardServer extends EventEmitter {
   private setupWebSocketServer(): void {
     if (!this.server) return;
 
-    this.wss = new WebSocketServer({ server: this.server, path: '/ws' });
+    this.wss = new WebSocketServer({ server: this.server, path: '/events' });
 
     this.wss.on('connection', (ws: WebSocket) => {
       const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

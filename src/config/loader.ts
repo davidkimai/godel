@@ -164,7 +164,15 @@ function applyEnvVarOverrides(config: Record<string, unknown>): void {
     'auth.jwtSecret': process.env['DASH_JWT_SECRET'],
     'logging.level': process.env['LOG_LEVEL'],
     'metrics.enabled': process.env['METRICS_ENABLED'],
+    'openclaw.gatewayUrl': process.env['OPENCLAW_GATEWAY_URL'],
+    'openclaw.gatewayUrls': process.env['OPENCLAW_GATEWAY_URLS'],
     'openclaw.gatewayToken': process.env['OPENCLAW_GATEWAY_TOKEN'],
+    'openclaw.maxConcurrentSessions': process.env['OPENCLAW_MAX_CONCURRENT_SESSIONS'],
+    'openclaw.perGatewayMaxConcurrentSessions': process.env['OPENCLAW_PER_GATEWAY_MAX_CONCURRENT_SESSIONS'],
+    'openclaw.autoStartGateway': process.env['OPENCLAW_AUTO_START_GATEWAY'],
+    'openclaw.gatewayStartCommand': process.env['OPENCLAW_GATEWAY_START_COMMAND'],
+    'openclaw.gatewayStartupTimeoutMs': process.env['OPENCLAW_GATEWAY_STARTUP_TIMEOUT_MS'],
+    'openclaw.gatewayStartupProbeIntervalMs': process.env['OPENCLAW_GATEWAY_STARTUP_PROBE_INTERVAL_MS'],
   };
 
   for (const [path, value] of Object.entries(overrides)) {

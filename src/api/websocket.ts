@@ -105,14 +105,22 @@ export function startWebSocketServer(server: Server, apiKey: string): WebSocketS
   return wss;
 }
 
-function handleMessage(ws: WebSocket, message: { action?: string; topics?: string[] }) {
+function handleMessage(
+  ws: WebSocket,
+  message: { action?: string; topics?: string[]; type?: string; topic?: string }
+) {
   const client = clients.get(ws);
   if (!client) return;
 
-  switch (message.action) {
+  const action = message.action || message.type;
+  const topics = Array.isArray(message.topics)
+    ? message.topics
+    : (typeof message.topic === 'string' ? [message.topic] : undefined);
+
+  switch (action) {
     case 'subscribe':
-      if (message.topics) {
-        message.topics.forEach(topic => client.topics.add(topic));
+      if (topics) {
+        topics.forEach(topic => client.topics.add(topic));
         ws.send(JSON.stringify({
           type: 'subscribed',
           topics: Array.from(client.topics)
@@ -121,8 +129,8 @@ function handleMessage(ws: WebSocket, message: { action?: string; topics?: strin
       break;
 
     case 'unsubscribe':
-      if (message.topics) {
-        message.topics.forEach(topic => client.topics.delete(topic));
+      if (topics) {
+        topics.forEach(topic => client.topics.delete(topic));
       }
       break;
 
@@ -133,7 +141,7 @@ function handleMessage(ws: WebSocket, message: { action?: string; topics?: strin
     default:
       ws.send(JSON.stringify({
         type: 'error',
-        message: `Unknown action: ${message.action}`
+        message: `Unknown action: ${action}`
       }));
   }
 }

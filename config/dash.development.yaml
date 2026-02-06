@@ -70,9 +70,16 @@ budget:
 
 openclaw:
   gatewayUrl: ws://127.0.0.1:18789
+  # gatewayUrls: ["ws://127.0.0.1:18789", "ws://127.0.0.1:18790"]
   # gatewayToken: ${VAULT:secret/dash/openclaw#token}
   mode: restricted
   sandboxMode: non-main
+  maxConcurrentSessions: 50
+  perGatewayMaxConcurrentSessions: 25
+  autoStartGateway: true
+  # gatewayStartCommand: openclaws gateway start
+  gatewayStartupTimeoutMs: 30000
+  gatewayStartupProbeIntervalMs: 1000
   mockMode: false
   verbose: true
 

@@ -108,7 +108,9 @@ export class SQLiteStorage {
    */
   clearStatementCache(): void {
     for (const stmt of this.statementCache.values()) {
-      stmt.finalize();
+      if (typeof stmt.finalize === 'function') {
+        stmt.finalize();
+      }
     }
     this.statementCache.clear();
   }

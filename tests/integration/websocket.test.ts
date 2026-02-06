@@ -8,10 +8,14 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import WebSocket from 'ws';
 
-const WS_URL = process.env['TEST_WS_URL'] || 'ws://localhost:3001/ws';
+const WS_URL = process.env['TEST_WS_URL'] || 'ws://localhost:3001/events';
 const API_URL = process.env['TEST_API_URL'] || 'http://localhost:3001';
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
 
-const describeIfWebsocket = process.env['RUN_WEBSOCKET_TESTS'] === 'true' ? describe : describe.skip;
+const describeIfWebsocket =
+  process.env['RUN_WEBSOCKET_TESTS'] === 'true' && RUN_LIVE_INTEGRATION_TESTS
+    ? describe
+    : describe.skip;
 
 describeIfWebsocket('Dash WebSocket Integration', () => {
   let ws: WebSocket | null = null;

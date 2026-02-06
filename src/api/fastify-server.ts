@@ -25,8 +25,9 @@ import taskRoutes from './routes/tasks';
 import busRoutes from './routes/bus';
 import logsRoutes from './routes/logs';
 import capabilitiesRoutes from './routes/capabilities';
+import metricsApiRoutes from './routes/metrics';
 import { healthRoutes } from './health';
-import { metricsRoutes, setupMetricsPlugin } from '../metrics/collector';
+import { metricsRoutes as collectorMetricsRoutes, setupMetricsPlugin } from '../metrics/collector';
 import { setupCorrelationMiddleware, tracingRoutes } from '../tracing/correlation';
 import { setupErrorHandler } from '../errors/format';
 
@@ -191,10 +192,14 @@ export async function createFastifyServer(
       publicRoutes: [
         '/health',
         '/health/detailed',
+        '/health/ready',
+        '/health/live',
         '/api/v1/openapi.json',
         '/api/v1/docs',
         '/api/v1/docs/*',
         '/api/v1/capabilities',
+        '/api/openapi.json',
+        '/api/capabilities',
       ],
     };
     await fastify.register(authPlugin, authConfig);
@@ -266,11 +271,27 @@ export async function createFastifyServer(
   await fastify.register(swarmRoutes, { prefix: '/api/v1/swarms' });
   await fastify.register(taskRoutes, { prefix: '/api/v1/tasks' });
   await fastify.register(busRoutes, { prefix: '/api/v1/bus' });
-  await fastify.register(metricsRoutes, { prefix: '/api/v1/metrics' });
+  await fastify.register(metricsApiRoutes, { prefix: '/api/v1/metrics' });
   await fastify.register(logsRoutes, { prefix: '/api/v1/logs' });
+
+  // Compatibility aliases for /api/*
+  await fastify.register(capabilitiesRoutes, { prefix: '/api/capabilities' });
+  await fastify.register(healthRoutes, { prefix: '/api/health' });
+  await fastify.register(agentRoutes, { prefix: '/api/agents' });
+  await fastify.register(swarmRoutes, { prefix: '/api/swarms' });
+  await fastify.register(taskRoutes, { prefix: '/api/tasks' });
+  await fastify.register(busRoutes, { prefix: '/api/bus' });
+  await fastify.register(metricsApiRoutes, { prefix: '/api/metrics' });
+  await fastify.register(logsRoutes, { prefix: '/api/logs' });
+
+  // Collector metrics endpoints (Prometheus/ops) at root
+  await fastify.register(collectorMetricsRoutes);
   
   // OpenAPI JSON endpoint
   fastify.get('/api/v1/openapi.json', async (_request, reply) => {
+    return reply.send(fastify.swagger());
+  });
+  fastify.get('/api/openapi.json', async (_request, reply) => {
     return reply.send(fastify.swagger());
   });
   

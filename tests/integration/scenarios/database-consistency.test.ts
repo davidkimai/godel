@@ -11,7 +11,10 @@ import { logger } from '../../../src/utils/logger';
 import { Pool } from 'pg';
 import { testConfig, waitForCondition } from '../config';
 
-describe('Scenario 7: Database Consistency', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 7: Database Consistency', () => {
   let db: Pool | null = null;
 
   beforeAll(async () => {

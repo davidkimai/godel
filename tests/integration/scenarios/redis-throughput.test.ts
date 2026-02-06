@@ -11,7 +11,10 @@ import { logger } from '../../../src/utils/logger';
 import Redis from 'ioredis';
 import { testConfig, waitForCondition, calculateLatencyStats } from '../config';
 
-describe('Scenario 8: Redis Event Bus Throughput', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 8: Redis Event Bus Throughput', () => {
   let redis: Redis | null = null;
   let subscriber: Redis | null = null;
   const testChannel = 'dash:test:events';

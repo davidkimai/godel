@@ -69,8 +69,14 @@ budget:
 
 openclaw:
   gatewayUrl: ws://localhost:18789
+  gatewayUrls: ["ws://localhost:18789"]
   mode: restricted
   sandboxMode: none
+  maxConcurrentSessions: 10
+  perGatewayMaxConcurrentSessions: 10
+  autoStartGateway: false
+  gatewayStartupTimeoutMs: 5000
+  gatewayStartupProbeIntervalMs: 250
   mockMode: true  # Enable mock mode for tests
   verbose: false
 

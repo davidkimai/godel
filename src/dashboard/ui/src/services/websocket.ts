@@ -28,7 +28,7 @@ interface WebSocketOptions {
   heartbeatInterval?: number;
 }
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:7373/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:7373/events';
 
 class WebSocketService {
   private ws: WebSocket | null = null;

@@ -46,7 +46,7 @@ async function checkExternalService(): Promise<{ status: string; latency?: numbe
 }
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
     const [db, cache, external] = await Promise.all([
       checkDatabase(),
       checkCache(),
@@ -71,11 +71,11 @@ export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
     reply.status(statusCode).send(result);
   });
 
-  fastify.get('/health/live', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/live', async (_request: FastifyRequest, reply: FastifyReply) => {
     reply.send({ status: 'alive', timestamp: new Date().toISOString() });
   });
 
-  fastify.get('/health/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/ready', async (_request: FastifyRequest, reply: FastifyReply) => {
     const [db] = await Promise.all([checkDatabase()]);
     if (db.status === 'up') {
       reply.send({ status: 'ready' });

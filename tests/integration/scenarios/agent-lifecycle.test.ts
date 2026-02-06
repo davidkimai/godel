@@ -14,7 +14,10 @@ import { getGlobalBus, MessageBus } from '../../../src/bus/index';
 import { testConfig, waitForStatus, waitForCondition } from '../config';
 import { AgentStatus } from '../../../src/models/agent';
 
-describe('Scenario 3: Agent Lifecycle', () => {
+const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
+const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
+
+describeLive('Scenario 3: Agent Lifecycle', () => {
   let adapter: OpenClawAdapter;
   let lifecycle: AgentLifecycle;
   let messageBus: MessageBus;

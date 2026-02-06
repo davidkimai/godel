@@ -184,7 +184,7 @@ export class DashOrchestrationSkill {
       
       // If agent ID provided, check that specific agent
       if (parsed.agentId) {
-        const result = await this.adapter.getAgent(dashAgentId);
+        const result = await this.adapter.getAgent(parsed.agentId);
         if (!result.success || !result.data) {
           context.error(`Agent ${parsed.agentId} not found`);
           return;

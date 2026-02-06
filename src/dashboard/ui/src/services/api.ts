@@ -20,6 +20,7 @@ import type {
 } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7373';
+const API_PREFIX = (import.meta.env.VITE_API_PREFIX || '/api/v1').replace(/\/+$/, '');
 
 // ============================================================================
 // HTTP Client
@@ -40,6 +41,10 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const normalizedEndpoint = endpoint.startsWith('/api/')
+    ? endpoint.replace(/^\/api(?=\/)/, API_PREFIX)
+    : endpoint;
+
   const token = localStorage.getItem('dash_token');
   const apiKey = localStorage.getItem('dash_api_key');
   
@@ -55,7 +60,7 @@ async function fetchApi<T>(
     headers['X-API-Key'] = apiKey;
   }
   
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     ...options,
     headers,
   });

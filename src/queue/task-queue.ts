@@ -206,16 +206,8 @@ export class TaskQueue {
       task.status = 'scheduled';
       logger.debug(`[TaskQueue] Task ${task.id} scheduled for ${new Date(scheduledTime).toISOString()}`);
     } else {
-      // Add to priority queue
-      const score = this.priorityToScore(task.priority);
-      await this.redis.zadd(
-        KEYS.priorityQueue(prefix, task.priority),
-        score,
-        task.id
-      );
-      
-      // Also add to pending queue for quick lookup
-      await this.redis.lpush(KEYS.pendingQueue(prefix), task.id);
+      // Add to pending structures
+      await this.enqueuePendingTask(task.id, task.priority);
     }
 
     // Update metrics
@@ -249,45 +241,36 @@ export class TaskQueue {
       return null; // Agent at capacity
     }
 
-    // Try to get task from priority queues (critical -> high -> medium -> low)
-    const priorities: Array<QueuedTask['priority']> = ['critical', 'high', 'medium', 'low'];
-    
-    for (const priority of priorities) {
-      const taskId = await this.redis.rpop(KEYS.pendingQueue(prefix));
-      
-      if (taskId) {
-        // Also remove from priority sorted set
-        await this.redis.zrem(KEYS.priorityQueue(prefix, priority), taskId);
+    const taskId = await this.popNextPendingTaskId();
+    if (taskId) {
+      const task = await this.getTask(taskId);
+      if (task && task.status === 'pending') {
+        // Assign to agent
+        task.status = 'assigned';
+        task.assigneeId = agentId;
+        await this.updateTask(task);
         
-        const task = await this.getTask(taskId);
-        if (task && task.status === 'pending') {
-          // Assign to agent
-          task.status = 'assigned';
-          task.assigneeId = agentId;
-          await this.updateTask(task);
-          
-          // Add to processing set
-          await this.redis.zadd(
-            KEYS.processingSet(prefix),
-            Date.now(),
-            taskId
-          );
-          
-          // Update agent load
-          await this.updateAgentLoad(agentId, 1);
-          
-          // Emit event
-          await this.emit({
-            type: 'task.assigned',
-            timestamp: new Date(),
-            taskId: task.id,
-            agentId,
-            payload: { priority: task.priority, type: task.type },
-          });
-          
-          logger.debug(`[TaskQueue] Task ${task.id} assigned to agent ${agentId}`);
-          return task;
-        }
+        // Add to processing set
+        await this.redis.zadd(
+          KEYS.processingSet(prefix),
+          Date.now(),
+          taskId
+        );
+        
+        // Update agent load
+        await this.updateAgentLoad(agentId, 1);
+        
+        // Emit event
+        await this.emit({
+          type: 'task.assigned',
+          timestamp: new Date(),
+          taskId: task.id,
+          agentId,
+          payload: { priority: task.priority, type: task.type },
+        });
+        
+        logger.debug(`[TaskQueue] Task ${task.id} assigned to agent ${agentId}`);
+        return task;
       }
     }
     
@@ -299,7 +282,7 @@ export class TaskQueue {
    */
   async claimTask(agentId?: string): Promise<QueuedTask | null> {
     const prefix = this.config.redis.keyPrefix || 'dash:queue';
-    
+
     // If agentId provided, use direct dequeue
     if (agentId) {
       return this.dequeue(agentId);
@@ -312,8 +295,8 @@ export class TaskQueue {
       return null;
     }
 
-    // Get next pending task
-    const taskId = await this.redis.rpop(KEYS.pendingQueue(prefix));
+    // Get next pending task by priority
+    const taskId = await this.popNextPendingTaskId();
     
     if (!taskId) {
       return null;
@@ -451,6 +434,7 @@ export class TaskQueue {
       throw new Error(`Task ${taskId} not found`);
     }
     
+    const previousAssignee = task.assigneeId;
     task.retryCount++;
     task.lastError = error;
     
@@ -478,8 +462,8 @@ export class TaskQueue {
       await this.redis.zrem(KEYS.processingSet(prefix), taskId);
       
       // Update agent load
-      if (task.assigneeId) {
-        await this.updateAgentLoad(task.assigneeId, -1);
+      if (previousAssignee) {
+        await this.updateAgentLoad(previousAssignee, -1);
       }
       
       // Update metrics
@@ -528,6 +512,7 @@ export class TaskQueue {
     await this.redis.zrem(KEYS.scheduledQueue(prefix), taskId);
     await this.redis.zrem(KEYS.processingSet(prefix), taskId);
     await this.redis.lrem(KEYS.pendingQueue(prefix), 0, taskId);
+    await this.removeFromPriorityQueues(taskId);
     
     // Update agent load if task was assigned
     if (wasProcessing && task.assigneeId) {
@@ -629,7 +614,7 @@ export class TaskQueue {
         task.status = 'pending';
         task.assigneeId = undefined;
         await this.updateTask(task);
-        await this.redis.lpush(KEYS.pendingQueue(prefix), task.id);
+        await this.enqueuePendingTask(task.id, task.priority);
         
         logger.warn(`[TaskQueue] Task ${task.id} requeued due to agent ${agentId} unregistering`);
       }
@@ -762,6 +747,8 @@ export class TaskQueue {
     
     // Remove from processing set
     await this.redis.zrem(KEYS.processingSet(prefix), task.id);
+    await this.redis.lrem(KEYS.pendingQueue(prefix), 0, task.id);
+    await this.removeFromPriorityQueues(task.id);
     
     // Update agent load
     if (task.assigneeId) {
@@ -826,7 +813,7 @@ export class TaskQueue {
     task.deadLetterReason = undefined;
     
     await this.updateTask(task);
-    await this.redis.lpush(KEYS.pendingQueue(prefix), task.id);
+    await this.enqueuePendingTask(task.id, task.priority);
     
     logger.info(`[TaskQueue] Dead letter task ${taskId} replayed`);
   }
@@ -860,7 +847,7 @@ export class TaskQueue {
       task.status = 'pending';
       task.scheduledFor = undefined;
       await this.updateTask(task);
-      await this.redis.lpush(KEYS.pendingQueue(prefix), taskId);
+      await this.enqueuePendingTask(taskId, task.priority);
       
       logger.debug(`[TaskQueue] Scheduled task ${taskId} moved to pending`);
     }
@@ -945,7 +932,13 @@ export class TaskQueue {
    */
   async getQueueDepth(): Promise<number> {
     const prefix = this.config.redis.keyPrefix || 'dash:queue';
-    return this.redis.llen(KEYS.pendingQueue(prefix));
+    const [critical, high, medium, low] = await Promise.all([
+      this.redis.zcard(KEYS.priorityQueue(prefix, 'critical')),
+      this.redis.zcard(KEYS.priorityQueue(prefix, 'high')),
+      this.redis.zcard(KEYS.priorityQueue(prefix, 'medium')),
+      this.redis.zcard(KEYS.priorityQueue(prefix, 'low')),
+    ]);
+    return critical + high + medium + low;
   }
 
   /**
@@ -1012,8 +1005,43 @@ export class TaskQueue {
   }
 
   private async requeueTask(task: QueuedTask): Promise<void> {
+    await this.enqueuePendingTask(task.id, task.priority);
+  }
+
+  private async enqueuePendingTask(taskId: string, priority: QueuedTask['priority']): Promise<void> {
     const prefix = this.config.redis.keyPrefix || 'dash:queue';
-    await this.redis.lpush(KEYS.pendingQueue(prefix), task.id);
+    const score = this.priorityToScore(priority);
+    await this.redis.zadd(KEYS.priorityQueue(prefix, priority), score, taskId);
+    await this.redis.lpush(KEYS.pendingQueue(prefix), taskId);
+  }
+
+  private async popNextPendingTaskId(): Promise<string | null> {
+    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const priorities: Array<QueuedTask['priority']> = ['critical', 'high', 'medium', 'low'];
+
+    for (const priority of priorities) {
+      const priorityQueueKey = KEYS.priorityQueue(prefix, priority);
+      const [taskId] = await this.redis.zrevrange(priorityQueueKey, 0, 0);
+      if (!taskId) {
+        continue;
+      }
+
+      const removed = await this.redis.zrem(priorityQueueKey, taskId);
+      if (removed > 0) {
+        await this.redis.lrem(KEYS.pendingQueue(prefix), 0, taskId);
+        return taskId;
+      }
+    }
+
+    return null;
+  }
+
+  private async removeFromPriorityQueues(taskId: string): Promise<void> {
+    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const priorities: Array<QueuedTask['priority']> = ['critical', 'high', 'medium', 'low'];
+    await Promise.all(
+      priorities.map((priority) => this.redis.zrem(KEYS.priorityQueue(prefix, priority), taskId))
+    );
   }
 
   private async updateAgentLoad(agentId: string, delta: number): Promise<void> {

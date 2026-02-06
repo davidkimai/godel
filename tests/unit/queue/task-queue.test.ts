@@ -245,6 +245,50 @@ describe('TaskQueue', () => {
       const task = await queue.dequeue('agent-1');
       expect(task).toBeNull();
     });
+
+    it('should dequeue from priority queues in order', async () => {
+      const mockRedis = (queue as any).redis;
+      const now = new Date().toISOString();
+
+      // getAgent -> getTask
+      mockRedis.get
+        .mockResolvedValueOnce(JSON.stringify({
+          id: 'agent-1',
+          skills: [],
+          capacity: 5,
+          currentLoad: 0,
+          status: 'idle',
+          lastHeartbeat: now,
+        }))
+        .mockResolvedValueOnce(JSON.stringify({
+          id: 'task-critical',
+          type: 'test',
+          payload: {},
+          priority: 'critical',
+          status: 'pending',
+          retryCount: 0,
+          maxRetries: 3,
+          retryDelayMs: 1000,
+          progress: 0,
+          createdAt: now,
+          metadata: {},
+        }));
+
+      mockRedis.zrevrange
+        .mockResolvedValueOnce(['task-critical']) // critical queue
+        .mockResolvedValue([]); // fallback for any additional calls
+      mockRedis.zrem.mockResolvedValue(1);
+
+      const task = await queue.dequeue('agent-1');
+
+      expect(task?.id).toBe('task-critical');
+      expect(mockRedis.zrevrange).toHaveBeenCalledWith(
+        'test:queue:queue:priority:critical',
+        0,
+        0
+      );
+      expect(mockRedis.rpop).not.toHaveBeenCalled();
+    });
   });
 
   describe('Task Completion', () => {
@@ -304,6 +348,20 @@ describe('TaskQueue', () => {
     it('should return false when unsubscribing non-existent handler', () => {
       const result = queue.offEvent('non-existent-id');
       expect(result).toBe(false);
+    });
+  });
+
+  describe('Queue Metrics', () => {
+    it('should calculate queue depth from priority queues', async () => {
+      const mockRedis = (queue as any).redis;
+      mockRedis.zcard
+        .mockResolvedValueOnce(2) // critical
+        .mockResolvedValueOnce(3) // high
+        .mockResolvedValueOnce(5) // medium
+        .mockResolvedValueOnce(7); // low
+
+      const depth = await queue.getQueueDepth();
+      expect(depth).toBe(17);
     });
   });
 });

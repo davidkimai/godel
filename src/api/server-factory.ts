@@ -11,11 +11,17 @@ import { createServer as createHttpServer, Server as HttpServer } from 'http';
 import express, { Request, Response, NextFunction, Router } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { timingSafeEqual } from 'crypto';
 import { getConfig, type DashConfig } from '../config';
 import { startWebSocketServer } from './websocket';
 
 // Express middleware
-import { authMiddleware, generateApiKey } from './middleware/auth';
+import {
+  authMiddleware,
+  generateApiKey,
+  registerSessionToken,
+  revokeSessionToken,
+} from './middleware/auth';
 import { smartRateLimitMiddleware, authRateLimitMiddleware } from './middleware/ratelimit';
 import { errorHandler, APIError, asyncHandler } from './middleware/error';
 import { applySecurityHeaders, getCorsConfig } from './middleware/security';
@@ -201,14 +207,17 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   // SECURITY: Auth endpoints with stricter rate limiting
   if (config.enableAuth) {
     app.use('/api/v1/auth', authRateLimitMiddleware());
+    app.use('/api/auth', authRateLimitMiddleware());
   }
   setupAuthRoutes(app, config);
 
   // API Routes
-  app.use('/api/v1', createApiRoutes(config));
+  const apiRouter = await createApiRoutes(config);
+  app.use('/api/v1', apiRouter);
+  app.use('/api', apiRouter);
 
   // API Capabilities endpoint
-  app.get('/api/v1/capabilities', (_req: Request, res: Response) => {
+  const capabilitiesHandler = (_req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
@@ -236,7 +245,9 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
         timestamp: new Date().toISOString(),
       },
     });
-  });
+  };
+  app.get('/api/v1/capabilities', capabilitiesHandler);
+  app.get('/api/capabilities', capabilitiesHandler);
 
   // 404 handler
   app.use((_req: Request, res: Response) => {
@@ -300,6 +311,7 @@ async function checkDatabase(): Promise<{
  */
 function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig): void {
   const authRouter = Router();
+  const sessionTtlMs = 24 * 60 * 60 * 1000;
 
   // Generate CSRF token endpoint
   authRouter.get('/csrf', (req: Request, res: Response) => {
@@ -322,9 +334,7 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
       throw new APIError('Username and password required', 400, 'BAD_REQUEST');
     }
 
-    // TODO: Implement actual credential validation against database
-    // This is a placeholder - this with actual auth logic
-    const isValid = validateCredentials(username, password);
+    const isValid = await validateCredentials(username, password);
 
     if (!isValid) {
       throw new APIError('Invalid credentials', 401, 'UNAUTHORIZED');
@@ -333,6 +343,10 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
     // Generate session token
     const sessionToken = generateApiKey('session');
     const csrfToken = generateApiKey('csrf').slice(0, 32);
+    const role = username === (process.env['DASH_ADMIN_USERNAME'] || 'admin') ? 'admin' : 'user';
+    const expiresAt = Date.now() + sessionTtlMs;
+    sessionStore.set(sessionToken, { username, role, expiresAt });
+    registerSessionToken(sessionToken, expiresAt);
 
     // SECURITY: Set httpOnly session cookie (not accessible to JavaScript)
     res.cookie('session', sessionToken, {
@@ -355,9 +369,9 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
     res.json({
       success: true,
       user: {
-        id: 'user-1',
+        id: `user-${username}`,
         username,
-        role: 'admin',
+        role,
       },
       csrfToken,
     });
@@ -365,6 +379,11 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
 
   // Logout - clears session cookie
   authRouter.post('/logout', (req: Request, res: Response) => {
+    const sessionToken = req.cookies?.['session'];
+    if (sessionToken) {
+      sessionStore.delete(sessionToken);
+      revokeSessionToken(sessionToken);
+    }
     res.clearCookie('session');
     res.clearCookie('csrf_token');
     res.json({ success: true });
@@ -372,30 +391,49 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
 
   // Get current user
   authRouter.get('/me', (req: Request, res: Response) => {
-    const session = req.cookies?.["session"];
+    const sessionToken = req.cookies?.["session"];
 
-    if (!session) {
+    if (!sessionToken) {
       throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
     }
 
-    // TODO: Validate session and return user info
+    const session = sessionStore.get(sessionToken);
+    if (!session || session.expiresAt < Date.now()) {
+      if (sessionToken) {
+        sessionStore.delete(sessionToken);
+        revokeSessionToken(sessionToken);
+      }
+      throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
+    }
+
     res.json({
       success: true,
       user: {
-        id: 'user-1',
-        username: 'admin',
-        role: 'admin',
+        id: `user-${session.username}`,
+        username: session.username,
+        role: session.role,
       },
     });
   });
 
   // Refresh session
   authRouter.post('/refresh', (req: Request, res: Response) => {
-    const session = req.cookies?.["session"];
+    const sessionToken = req.cookies?.["session"];
 
-    if (!session) {
+    if (!sessionToken) {
       throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
     }
+
+    const session = sessionStore.get(sessionToken);
+    if (!session || session.expiresAt < Date.now()) {
+      sessionStore.delete(sessionToken);
+      revokeSessionToken(sessionToken);
+      throw new APIError('Not authenticated', 401, 'UNAUTHORIZED');
+    }
+
+    session.expiresAt = Date.now() + sessionTtlMs;
+    sessionStore.set(sessionToken, session);
+    registerSessionToken(sessionToken, session.expiresAt);
 
     const newCsrfToken = generateApiKey('csrf').slice(0, 32);
 
@@ -411,34 +449,62 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
   });
 
   app.use('/api/v1/auth', authRouter);
+  app.use('/api/auth', authRouter);
 }
 
 /**
- * Placeholder for credential validation
- * TODO: Replace with actual database validation
+ * Runtime credential validation for dashboard auth endpoints
  */
-function validateCredentials(username: string, password: string): boolean {
-  // This is a placeholder - implement actual credential validation
-  // For now, accept any non-empty credentials in development
-  if (process.env['NODE_ENV'] === 'development') {
+const sessionStore = new Map<string, { username: string; role: 'admin' | 'user' | 'readonly'; expiresAt: number }>();
+
+function secureStringCompare(left: string, right: string): boolean {
+  const leftBuf = Buffer.from(left, 'utf8');
+  const rightBuf = Buffer.from(right, 'utf8');
+  if (leftBuf.length !== rightBuf.length) {
+    return false;
+  }
+  return timingSafeEqual(leftBuf, rightBuf);
+}
+
+async function validateCredentials(username: string, password: string): Promise<boolean> {
+  const configuredUsername = process.env['DASH_ADMIN_USERNAME'];
+  const configuredPassword = process.env['DASH_ADMIN_PASSWORD'];
+
+  if (configuredUsername && configuredPassword) {
+    return secureStringCompare(username, configuredUsername) && secureStringCompare(password, configuredPassword);
+  }
+
+  // Explicit opt-in for development-only credential fallback.
+  if (process.env['NODE_ENV'] !== 'production' && process.env['DASH_ALLOW_DEV_AUTH'] === 'true') {
     return username.length > 0 && password.length >= 8;
   }
+
   return false;
 }
 
 /**
  * Create API routes
  */
-function createApiRoutes(config: UnifiedServerConfig) {
+async function createApiRoutes(config: UnifiedServerConfig) {
   const router = Router();
   const swarmRepo = new SwarmRepository();
   const agentRepo = new AgentRepository();
   const eventRepo = new EventRepository();
+  await Promise.all([
+    swarmRepo.initialize(),
+    agentRepo.initialize(),
+    eventRepo.initialize(),
+  ]);
 
   // CSRF middleware for state-changing routes
   const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
     // Skip for GET requests
     if (req.method === 'GET') return next();
+
+    // API-key authenticated clients are non-browser callers and don't use cookies.
+    if (typeof (req as any).apiKey === 'string' && (req as any).apiKey.length > 0) {
+      return next();
+    }
 
     const csrfHeader = req.headers['x-csrf-token'];
     const csrfCookie = req.cookies?.["csrf_token"];
@@ -465,7 +531,15 @@ function createApiRoutes(config: UnifiedServerConfig) {
 
   router.get('/swarms/:id', asyncHandler(async (req: Request, res: Response) => {
     const id = getIdParam(req);
-    const swarm = await swarmRepo.findById(id);
+    let swarm;
+    try {
+      swarm = await swarmRepo.findById(id);
+    } catch (error) {
+      if (isInvalidUuidError(error)) {
+        throw new APIError('Swarm not found', 404, 'NOT_FOUND');
+      }
+      throw error;
+    }
     if (!swarm) {
       throw new APIError('Swarm not found', 404, 'NOT_FOUND');
     }
@@ -504,8 +578,29 @@ function createApiRoutes(config: UnifiedServerConfig) {
     });
   }));
 
-  router.post('/agents', csrfProtection, validators.createAgent, asyncHandler(async (req: Request, res: Response) => {
-    const agent = await agentRepo.create(req.body);
+  router.post('/agents', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
+    const body = (req.body || {}) as Record<string, unknown>;
+    const swarmId = body['swarm_id'] ?? body['swarmId'];
+    const task = body['task'];
+    const model = body['model'];
+
+    if (typeof swarmId !== 'string' || swarmId.length === 0) {
+      throw new APIError('swarm_id (or swarmId) is required', 400, 'BAD_REQUEST');
+    }
+    if (typeof task !== 'string' || task.trim().length === 0) {
+      throw new APIError('task is required', 400, 'BAD_REQUEST');
+    }
+    if (typeof model !== 'string' || model.trim().length === 0) {
+      throw new APIError('model is required', 400, 'BAD_REQUEST');
+    }
+
+    const agent = await agentRepo.create({
+      ...body,
+      swarm_id: swarmId,
+      task,
+      model,
+      budget_limit: (body['budget_limit'] as number | undefined) ?? (body['budgetLimit'] as number | undefined),
+    });
     res.status(201).json({
       success: true,
       data: agent,
@@ -515,7 +610,15 @@ function createApiRoutes(config: UnifiedServerConfig) {
 
   router.get('/agents/:id', asyncHandler(async (req: Request, res: Response) => {
     const id = getIdParam(req);
-    const agent = await agentRepo.findById(id);
+    let agent;
+    try {
+      agent = await agentRepo.findById(id);
+    } catch (error) {
+      if (isInvalidUuidError(error)) {
+        throw new APIError('Agent not found', 404, 'NOT_FOUND');
+      }
+      throw error;
+    }
     if (!agent) {
       throw new APIError('Agent not found', 404, 'NOT_FOUND');
     }
@@ -563,14 +666,21 @@ function createApiRoutes(config: UnifiedServerConfig) {
   }));
 
   // POST /events - Create a new event
-  router.post('/events', csrfProtection, validators.createEvent, asyncHandler(async (req: Request, res: Response) => {
-    const { eventType, payload } = req.body;
+  router.post('/events', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
+    const body = (req.body || {}) as Record<string, unknown>;
+    const eventType = body['eventType'] ?? body['type'];
+    const payload = (body['payload'] || {}) as Record<string, unknown>;
+
+    if (typeof eventType !== 'string' || eventType.length === 0) {
+      throw new APIError('eventType (or type) is required', 400, 'BAD_REQUEST');
+    }
+
     const event = await eventRepo.create({
       type: eventType,
       source: 'self-improvement',
-      payload: (payload || {}) as Record<string, unknown>,
-      agent_id: payload?.agentId,
-      swarm_id: payload?.swarmId
+      payload,
+      agent_id: typeof payload['agentId'] === 'string' ? payload['agentId'] : undefined,
+      swarm_id: typeof payload['swarmId'] === 'string' ? payload['swarmId'] : undefined
     });
     res.status(201).json({
       success: true,
@@ -706,6 +816,11 @@ export async function startServer(
       }
     });
   });
+}
+
+function isInvalidUuidError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('invalid input syntax for type uuid');
 }
 
 /**

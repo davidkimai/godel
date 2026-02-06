@@ -20,6 +20,7 @@
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
+import { spawn, spawnSync, type ChildProcess } from 'child_process';
 import { AgentStatus } from '../models/agent';
 import { MessageBus } from '../bus/index';
 import {
@@ -98,6 +99,16 @@ export interface SessionStatus {
     total: number;
   };
   cost: number;
+}
+
+export interface OpenClawCoreOptions {
+  gatewayUrls?: string[];
+  maxConcurrentSessions?: number;
+  perGatewayMaxConcurrentSessions?: number;
+  autoStartGateway?: boolean;
+  gatewayStartCommand?: string;
+  gatewayStartupTimeoutMs?: number;
+  gatewayStartupProbeIntervalMs?: number;
 }
 
 export type SessionEvent = 
@@ -768,20 +779,55 @@ export class OpenClawGatewayClient extends EventEmitter {
  */
 export class OpenClawCore extends EventEmitter {
   private gateway: OpenClawGatewayClient;
+  private gatewayPool: Array<{
+    id: string;
+    client: OpenClawGatewayClient;
+    config: GatewayConfig;
+    activeSessions: number;
+  }> = [];
   private messageBus: MessageBus;
   private sessions: Map<string, OpenClawSession> = new Map();
   private agentSessionMap: Map<string, string> = new Map();
+  private sessionGatewayMap: Map<string, string> = new Map();
   private initialized = false;
+  private maxConcurrentSessions: number;
+  private perGatewayMaxConcurrentSessions: number;
+  private autoStartGateway: boolean;
+  private gatewayStartCommand?: string;
+  private gatewayStartupTimeoutMs: number;
+  private gatewayStartupProbeIntervalMs: number;
+  private gatewayProcess: ChildProcess | null = null;
 
-  constructor(messageBus: MessageBus, gatewayConfig?: Partial<GatewayConfig>) {
+  constructor(
+    messageBus: MessageBus,
+    gatewayConfig?: Partial<GatewayConfig>,
+    options: Partial<OpenClawCoreOptions> = {}
+  ) {
     super();
     this.messageBus = messageBus;
-    this.gateway = new OpenClawGatewayClient(gatewayConfig, {
-      autoReconnect: true,
-      subscriptions: ['agent', 'chat', 'presence', 'tick'],
-    });
+    const resolvedOptions = this.resolveCoreOptions(options);
+    this.maxConcurrentSessions = resolvedOptions.maxConcurrentSessions;
+    this.perGatewayMaxConcurrentSessions = resolvedOptions.perGatewayMaxConcurrentSessions;
+    this.autoStartGateway = resolvedOptions.autoStartGateway;
+    this.gatewayStartCommand = resolvedOptions.gatewayStartCommand;
+    this.gatewayStartupTimeoutMs = resolvedOptions.gatewayStartupTimeoutMs;
+    this.gatewayStartupProbeIntervalMs = resolvedOptions.gatewayStartupProbeIntervalMs;
 
-    this.setupGatewayListeners();
+    const gatewayConfigs = this.resolveGatewayConfigs(gatewayConfig, resolvedOptions.gatewayUrls);
+    this.gatewayPool = gatewayConfigs.map((cfg, index) => ({
+      id: `gateway-${index + 1}`,
+      config: cfg,
+      activeSessions: 0,
+      client: new OpenClawGatewayClient(cfg, {
+        autoReconnect: true,
+        subscriptions: ['agent', 'chat', 'presence', 'tick'],
+      }),
+    }));
+
+    this.gateway = this.gatewayPool[0]!.client;
+    for (const gatewayEntry of this.gatewayPool) {
+      this.setupGatewayListeners(gatewayEntry.id, gatewayEntry.client);
+    }
   }
 
   // ============================================================================
@@ -797,12 +843,30 @@ export class OpenClawCore extends EventEmitter {
       return;
     }
 
-    logger.info('[OpenClawCore] Initializing OpenClaw core primitive...');
+    logger.info('[OpenClawCore] Initializing OpenClaw core primitive...', {
+      gateways: this.gatewayPool.map((entry) => `${entry.config.host}:${entry.config.port}`),
+      maxConcurrentSessions: this.maxConcurrentSessions,
+      perGatewayMaxConcurrentSessions: this.perGatewayMaxConcurrentSessions,
+      autoStartGateway: this.autoStartGateway,
+    });
 
     try {
-      await this.gateway.connect();
+      let connectedGateways = await this.connectGatewayPool();
+
+      if (connectedGateways === 0 && this.autoStartGateway) {
+        logger.warn('[OpenClawCore] No gateway available. Attempting to start OpenClaw daemon process.');
+        this.startGatewayProcess();
+        connectedGateways = await this.waitForGatewayConnectivity();
+      }
+
+      if (connectedGateways === 0) {
+        throw new ConnectionError('No OpenClaw gateway instances are reachable');
+      }
+
       this.initialized = true;
-      logger.info('[OpenClawCore] OpenClaw core primitive initialized and connected');
+      logger.info('[OpenClawCore] OpenClaw core primitive initialized and connected', {
+        connectedGateways,
+      });
       this.emit('initialized');
     } catch (error) {
       logger.error('[OpenClawCore] Failed to initialize OpenClaw:', error as string | Record<string, unknown>);
@@ -820,8 +884,9 @@ export class OpenClawCore extends EventEmitter {
    * Connect to Gateway (idempotent)
    */
   async connect(): Promise<void> {
-    if (!this.gateway.connected) {
-      await this.gateway.connect();
+    const connectedGateways = await this.connectGatewayPool();
+    if (connectedGateways === 0) {
+      throw new ConnectionError('No OpenClaw gateway instances are connected');
     }
   }
 
@@ -829,7 +894,7 @@ export class OpenClawCore extends EventEmitter {
    * Disconnect from Gateway
    */
   async disconnect(): Promise<void> {
-    await this.gateway.disconnect();
+    await Promise.allSettled(this.gatewayPool.map((entry) => entry.client.disconnect()));
     this.initialized = false;
   }
 
@@ -844,7 +909,10 @@ export class OpenClawCore extends EventEmitter {
    * Check if connected to Gateway
    */
   get isConnected(): boolean {
-    return this.gateway.connected;
+    return this.gatewayPool.some((entry) => {
+      const state = entry.client.connectionState;
+      return state === 'connected' || state === 'authenticated' || entry.client.connected;
+    });
   }
 
   // ============================================================================
@@ -858,7 +926,24 @@ export class OpenClawCore extends EventEmitter {
   async spawnSession(options: SessionSpawnOptions): Promise<string> {
     this.assertInitialized();
 
-    const response = await this.gateway.sessionsSpawn({
+    const activeSessionCount = this.getActiveSessionCount();
+    if (activeSessionCount >= this.maxConcurrentSessions) {
+      throw new ApplicationError(
+        `OpenClaw concurrency limit reached (${this.maxConcurrentSessions})`,
+        DashErrorCode.SESSION_SPAWN_FAILED,
+        429,
+        {
+          activeSessions: activeSessionCount,
+          maxConcurrentSessions: this.maxConcurrentSessions,
+          agentId: options.agentId,
+        },
+        true
+      );
+    }
+
+    const gatewayEntry = await this.selectGatewayForSpawn();
+
+    const response = await gatewayEntry.client.sessionsSpawn({
       model: options.model,
       skills: (options.context?.['skills'] as string[]) || [],
       systemPrompt: options.task,
@@ -881,13 +966,21 @@ export class OpenClawCore extends EventEmitter {
 
     this.sessions.set(response.sessionKey, session);
     this.agentSessionMap.set(options.agentId, response.sessionKey);
+    this.sessionGatewayMap.set(response.sessionKey, gatewayEntry.id);
+    gatewayEntry.activeSessions++;
 
-    logger.info(`[OpenClawCore] Session ${response.sessionKey} spawned for agent ${options.agentId}`);
+    logger.info(`[OpenClawCore] Session ${response.sessionKey} spawned for agent ${options.agentId}`, {
+      gateway: gatewayEntry.id,
+      gatewayAddress: `${gatewayEntry.config.host}:${gatewayEntry.config.port}`,
+      gatewayActiveSessions: gatewayEntry.activeSessions,
+      globalActiveSessions: this.getActiveSessionCount(),
+    });
 
     this.emit('session.spawned', {
       agentId: options.agentId,
       sessionId: response.sessionKey,
       model: options.model,
+      gateway: gatewayEntry.id,
     });
 
     return response.sessionKey;
@@ -903,13 +996,16 @@ export class OpenClawCore extends EventEmitter {
       return;
     }
 
-    await this.gateway.sessionsKill(sessionId);
+    const gatewayEntry = this.getGatewayForSession(sessionId) ?? this.gatewayPool[0];
+    await gatewayEntry.client.sessionsKill(sessionId);
 
     const session = this.sessions.get(sessionId);
     if (session) {
       session.status = 'killed';
       session.completedAt = new Date();
     }
+
+    this.releaseGatewayCapacity(sessionId);
 
     this.emit('session.killed', { agentId, sessionId, force });
   }
@@ -933,7 +1029,15 @@ export class OpenClawCore extends EventEmitter {
    * Check if an agent has a session
    */
   hasSession(agentId: string): boolean {
-    return this.agentSessionMap.has(agentId);
+    const sessionId = this.agentSessionMap.get(agentId);
+    if (!sessionId) {
+      return false;
+    }
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return false;
+    }
+    return session.status !== 'completed' && session.status !== 'failed' && session.status !== 'killed';
   }
 
   /**
@@ -965,10 +1069,39 @@ export class OpenClawCore extends EventEmitter {
    * List all active sessions
    */
   getActiveSessions(): Array<{ agentId: string; sessionId: string }> {
-    return Array.from(this.agentSessionMap.entries()).map(([agentId, sessionId]) => ({
-      agentId,
-      sessionId,
-    }));
+    return Array.from(this.agentSessionMap.entries())
+      .filter(([, sessionId]) => {
+        const session = this.sessions.get(sessionId);
+        return session && (session.status === 'pending' || session.status === 'running' || session.status === 'paused');
+      })
+      .map(([agentId, sessionId]) => ({ agentId, sessionId }));
+  }
+
+  async sendSessionMessage(sessionKey: string, message: string, attachments?: unknown[]): Promise<SessionsSendResponse> {
+    this.assertInitialized();
+    const gatewayEntry = this.getGatewayForSession(sessionKey) ?? this.gatewayPool[0];
+    return gatewayEntry.client.sessionsSend(sessionKey, message, attachments);
+  }
+
+  async getSessionHistory(sessionKey: string, limit?: number): Promise<Message[]> {
+    this.assertInitialized();
+    const gatewayEntry = this.getGatewayForSession(sessionKey) ?? this.gatewayPool[0];
+    return gatewayEntry.client.sessionsHistory(sessionKey, limit);
+  }
+
+  async killSessionBySessionKey(sessionKey: string): Promise<void> {
+    this.assertInitialized();
+    const gatewayEntry = this.getGatewayForSession(sessionKey) ?? this.gatewayPool[0];
+    await gatewayEntry.client.sessionsKill(sessionKey);
+    this.releaseGatewayCapacity(sessionKey);
+  }
+
+  async listSessions(): Promise<SessionInfo[]> {
+    this.assertInitialized();
+    const sessionLists = await Promise.allSettled(
+      this.gatewayPool.map((entry) => entry.client.sessionsList())
+    );
+    return sessionLists.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
   }
 
   // ============================================================================
@@ -981,7 +1114,8 @@ export class OpenClawCore extends EventEmitter {
    */
   async useTool(tool: OpenClawTool, params: Record<string, unknown>): Promise<unknown> {
     this.assertInitialized();
-    return this.gateway.executeTool(tool, params);
+    const gatewayEntry = this.selectGatewayForTool();
+    return gatewayEntry.client.executeTool(tool, params);
   }
 
   /**
@@ -1064,22 +1198,279 @@ export class OpenClawCore extends EventEmitter {
   // Private Methods
   // ============================================================================
 
-  private setupGatewayListeners(): void {
-    this.gateway.on('connected', () => {
-      this.emit('connected');
+  private setupGatewayListeners(gatewayId: string, gatewayClient: OpenClawGatewayClient): void {
+    gatewayClient.on('connected', () => {
+      this.emit('connected', { gateway: gatewayId });
     });
 
-    this.gateway.on('disconnected', () => {
-      this.emit('disconnected');
+    gatewayClient.on('disconnected', () => {
+      this.emit('disconnected', { gateway: gatewayId });
     });
 
-    this.gateway.on('error', (error) => {
+    gatewayClient.on('error', (error) => {
       this.emit('error', error);
     });
 
-    this.gateway.on('agent', (payload: unknown, event: Event) => {
+    gatewayClient.on('agent', (payload: unknown) => {
       this.handleAgentEvent(payload as AgentEventPayload);
     });
+  }
+
+  private resolveCoreOptions(options: Partial<OpenClawCoreOptions>): Required<OpenClawCoreOptions> {
+    const gatewayUrlsFromEnv = process.env['OPENCLAW_GATEWAY_URLS']
+      ?.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const singleGatewayUrl = process.env['OPENCLAW_GATEWAY_URL'];
+
+    const gatewayUrls = options.gatewayUrls
+      ?? gatewayUrlsFromEnv
+      ?? (singleGatewayUrl ? [singleGatewayUrl] : []);
+
+    const parsePositiveNumber = (value: unknown, fallback: number): number => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    };
+
+    return {
+      gatewayUrls,
+      maxConcurrentSessions: parsePositiveNumber(
+        options.maxConcurrentSessions ?? process.env['OPENCLAW_MAX_CONCURRENT_SESSIONS'],
+        50
+      ),
+      perGatewayMaxConcurrentSessions: parsePositiveNumber(
+        options.perGatewayMaxConcurrentSessions
+        ?? process.env['OPENCLAW_PER_GATEWAY_MAX_CONCURRENT_SESSIONS'],
+        25
+      ),
+      autoStartGateway:
+        options.autoStartGateway
+        ?? (process.env['OPENCLAW_AUTO_START_GATEWAY'] || '').toLowerCase() === 'true',
+      gatewayStartCommand: options.gatewayStartCommand ?? process.env['OPENCLAW_GATEWAY_START_COMMAND'] ?? '',
+      gatewayStartupTimeoutMs: parsePositiveNumber(
+        options.gatewayStartupTimeoutMs
+        ?? process.env['OPENCLAW_GATEWAY_STARTUP_TIMEOUT_MS'],
+        30000
+      ),
+      gatewayStartupProbeIntervalMs: parsePositiveNumber(
+        options.gatewayStartupProbeIntervalMs
+        ?? process.env['OPENCLAW_GATEWAY_STARTUP_PROBE_INTERVAL_MS'],
+        1000
+      ),
+    };
+  }
+
+  private resolveGatewayConfigs(
+    gatewayConfig?: Partial<GatewayConfig>,
+    gatewayUrls: string[] = []
+  ): GatewayConfig[] {
+    const parsedConfigs = gatewayUrls
+      .map((url) => this.parseGatewayUrl(url))
+      .filter((value): value is Partial<GatewayConfig> => value !== null);
+
+    if (gatewayConfig && (gatewayConfig.host || gatewayConfig.port)) {
+      parsedConfigs.unshift(gatewayConfig);
+    } else if (parsedConfigs.length === 0) {
+      parsedConfigs.push(gatewayConfig || {});
+    }
+
+    const configs = parsedConfigs.map((cfg) => ({
+      ...DEFAULT_GATEWAY_CONFIG,
+      ...cfg,
+      token: cfg.token ?? process.env['OPENCLAW_GATEWAY_TOKEN'],
+    }));
+
+    return configs.filter((cfg, index, arr) => {
+      return arr.findIndex((candidate) => candidate.host === cfg.host && candidate.port === cfg.port) === index;
+    });
+  }
+
+  private parseGatewayUrl(url: string): Partial<GatewayConfig> | null {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
+        return null;
+      }
+      return {
+        host: parsed.hostname,
+        port: parsed.port ? Number(parsed.port) : (parsed.protocol === 'wss:' ? 443 : 80),
+      };
+    } catch {
+      logger.warn(`[OpenClawCore] Invalid gateway URL ignored: ${url}`);
+      return null;
+    }
+  }
+
+  private async connectGatewayPool(): Promise<number> {
+    const results = await Promise.allSettled(
+      this.gatewayPool.map(async (gatewayEntry) => {
+        const state = gatewayEntry.client.connectionState;
+        if (state === 'connected' || state === 'authenticated') {
+          return true;
+        }
+        await gatewayEntry.client.connect();
+        return true;
+      })
+    );
+
+    return results.reduce((count, result, index) => {
+      if (result.status === 'fulfilled') {
+        return count + 1;
+      }
+      const gatewayEntry = this.gatewayPool[index];
+      logger.warn('[OpenClawCore] Gateway connection failed', {
+        gateway: gatewayEntry?.id,
+        host: gatewayEntry?.config.host,
+        port: gatewayEntry?.config.port,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+      return count;
+    }, 0);
+  }
+
+  private async waitForGatewayConnectivity(): Promise<number> {
+    const timeoutAt = Date.now() + this.gatewayStartupTimeoutMs;
+    while (Date.now() < timeoutAt) {
+      const connectedGateways = await this.connectGatewayPool();
+      if (connectedGateways > 0) {
+        return connectedGateways;
+      }
+      await new Promise((resolve) => setTimeout(resolve, this.gatewayStartupProbeIntervalMs));
+    }
+    return 0;
+  }
+
+  private startGatewayProcess(): void {
+    if (this.gatewayProcess) {
+      return;
+    }
+
+    const command = this.resolveGatewayStartCommand();
+    if (!command) {
+      logger.warn('[OpenClawCore] Auto-start requested but no OpenClaw gateway command is available.');
+      return;
+    }
+
+    const [binary, ...args] = command;
+    const child = spawn(binary, args, {
+      detached: true,
+      stdio: 'ignore',
+      env: process.env,
+    });
+    child.unref();
+    this.gatewayProcess = child;
+    logger.info('[OpenClawCore] Started OpenClaw gateway process', { command: [binary, ...args].join(' ') });
+  }
+
+  private resolveGatewayStartCommand(): string[] | null {
+    if (this.gatewayStartCommand && this.gatewayStartCommand.trim().length > 0) {
+      return this.gatewayStartCommand.trim().split(/\s+/);
+    }
+
+    const candidates: string[][] = [
+      ['openclaws', 'gateway', 'start'],
+      ['openclaw', 'gateway', 'start'],
+      ['openclawd', 'start'],
+      ['openclawd'],
+    ];
+
+    for (const command of candidates) {
+      const probe = spawnSync('which', [command[0]], { encoding: 'utf8' });
+      if (probe.status === 0) {
+        return command;
+      }
+    }
+
+    return null;
+  }
+
+  private getGatewayForSession(sessionKey: string): {
+    id: string;
+    client: OpenClawGatewayClient;
+    config: GatewayConfig;
+    activeSessions: number;
+  } | undefined {
+    const gatewayId = this.sessionGatewayMap.get(sessionKey);
+    if (!gatewayId) {
+      return undefined;
+    }
+    return this.gatewayPool.find((entry) => entry.id === gatewayId);
+  }
+
+  private async selectGatewayForSpawn(): Promise<{
+    id: string;
+    client: OpenClawGatewayClient;
+    config: GatewayConfig;
+    activeSessions: number;
+  }> {
+    const sorted = [...this.gatewayPool].sort((a, b) => a.activeSessions - b.activeSessions);
+    for (const gatewayEntry of sorted) {
+      if (gatewayEntry.activeSessions >= this.perGatewayMaxConcurrentSessions) {
+        continue;
+      }
+
+      const state = gatewayEntry.client.connectionState;
+      if (state !== 'connected' && state !== 'authenticated') {
+        try {
+          await gatewayEntry.client.connect();
+        } catch {
+          continue;
+        }
+      }
+
+      return gatewayEntry;
+    }
+
+    throw new ApplicationError(
+      'No OpenClaw gateway capacity available',
+      DashErrorCode.SESSION_SPAWN_FAILED,
+      429,
+      {
+        perGatewayMaxConcurrentSessions: this.perGatewayMaxConcurrentSessions,
+        gateways: this.gatewayPool.map((entry) => ({
+          id: entry.id,
+          activeSessions: entry.activeSessions,
+        })),
+      },
+      true
+    );
+  }
+
+  private selectGatewayForTool(): {
+    id: string;
+    client: OpenClawGatewayClient;
+    config: GatewayConfig;
+    activeSessions: number;
+  } {
+    const connected = this.gatewayPool.find((entry) => {
+      const state = entry.client.connectionState;
+      return state === 'connected' || state === 'authenticated';
+    });
+    return connected || this.gatewayPool[0]!;
+  }
+
+  private getActiveSessionCount(): number {
+    return Array.from(this.sessions.values()).filter((session) => {
+      return session.status === 'pending' || session.status === 'running' || session.status === 'paused';
+    }).length;
+  }
+
+  private releaseGatewayCapacity(sessionKey: string): void {
+    const gatewayEntry = this.getGatewayForSession(sessionKey);
+    if (gatewayEntry) {
+      gatewayEntry.activeSessions = Math.max(0, gatewayEntry.activeSessions - 1);
+    }
+    this.sessionGatewayMap.delete(sessionKey);
+  }
+
+  private isTerminalSessionStatus(status?: string): boolean {
+    const normalized = String(status || '').toLowerCase();
+    return normalized === 'completed'
+      || normalized === 'failed'
+      || normalized === 'killed'
+      || normalized === 'done'
+      || normalized === 'error'
+      || normalized === 'cancelled';
   }
 
   private handleAgentEvent(payload: AgentEventPayload): void {
@@ -1098,6 +1489,15 @@ export class OpenClawCore extends EventEmitter {
       },
       { source: 'openclaw', priority: 'high' }
     );
+
+    if (this.isTerminalSessionStatus(payload.status)) {
+      this.releaseGatewayCapacity(payload.sessionKey);
+      const session = this.sessions.get(payload.sessionKey);
+      if (session) {
+        session.status = payload.status === 'failed' || payload.status === 'error' ? 'failed' : 'completed';
+        session.completedAt = new Date();
+      }
+    }
 
     this.emit('agent.event', { agentId, ...payload });
   }
@@ -1214,28 +1614,28 @@ export class AgentToolContext {
    * Send a message to a session
    */
   async sessionsSend(sessionKey: string, message: string, attachments?: unknown[]): Promise<SessionsSendResponse> {
-    return this.openclaw['gateway'].sessionsSend(sessionKey, message, attachments);
+    return this.openclaw.sendSessionMessage(sessionKey, message, attachments);
   }
 
   /**
    * Get session history
    */
   async sessionsHistory(sessionKey: string, limit?: number): Promise<Message[]> {
-    return this.openclaw['gateway'].sessionsHistory(sessionKey, limit);
+    return this.openclaw.getSessionHistory(sessionKey, limit);
   }
 
   /**
    * Kill a session
    */
   async sessionsKill(sessionKey: string): Promise<void> {
-    return this.openclaw['gateway'].sessionsKill(sessionKey);
+    return this.openclaw.killSessionBySessionKey(sessionKey);
   }
 
   /**
    * List all sessions
    */
   async sessionsList(): Promise<SessionInfo[]> {
-    return this.openclaw['gateway'].sessionsList();
+    return this.openclaw.listSessions();
   }
 
   get agent_id(): string {
@@ -1252,7 +1652,11 @@ let globalOpenClawCore: OpenClawCore | null = null;
 /**
  * Get or create the global OpenClaw core primitive instance
  */
-export function getOpenClawCore(messageBus?: MessageBus, config?: Partial<GatewayConfig>): OpenClawCore {
+export function getOpenClawCore(
+  messageBus?: MessageBus,
+  config?: Partial<GatewayConfig>,
+  options: Partial<OpenClawCoreOptions> = {}
+): OpenClawCore {
   if (!globalOpenClawCore) {
     if (!messageBus) {
       throw new ApplicationError(
@@ -1263,7 +1667,7 @@ export function getOpenClawCore(messageBus?: MessageBus, config?: Partial<Gatewa
         false
       );
     }
-    globalOpenClawCore = new OpenClawCore(messageBus, config);
+    globalOpenClawCore = new OpenClawCore(messageBus, config, options);
   }
   return globalOpenClawCore;
 }

@@ -13,6 +13,7 @@ import { User, UserRole } from '../types';
 // ============================================================================
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7373';
+const AUTH_PREFIX = (import.meta.env.VITE_AUTH_PREFIX || '/api/v1/auth').replace(/\/+$/, '');
 
 // CSRF Token storage (not in localStorage - use memory only)
 let csrfToken: string | null = null;
@@ -103,6 +104,10 @@ interface FetchOptions extends RequestInit {
 }
 
 async function fetchWithAuth(endpoint: string, options: FetchOptions = {}): Promise<unknown> {
+  const normalizedEndpoint = endpoint.startsWith('/api/auth')
+    ? endpoint.replace(/^\/api\/auth/, AUTH_PREFIX)
+    : endpoint;
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...options.headers as Record<string, string>,
@@ -117,7 +122,7 @@ async function fetchWithAuth(endpoint: string, options: FetchOptions = {}): Prom
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
     ...options,
     headers,
     credentials: 'include', // Important: sends httpOnly cookies

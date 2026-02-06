@@ -298,7 +298,8 @@ describe('StatePersistence', () => {
 
       const result = await persistence.recoverAll();
 
-      expect(result.swarmsRecovered).toBe(2); // All swarms, not just active
+      // Recovery only restores active/in-flight entities.
+      expect(result.swarmsRecovered).toBe(1);
       expect(result.agentsRecovered).toBe(1);
       expect(result.errors).toHaveLength(0);
     });
