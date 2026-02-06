@@ -88,9 +88,11 @@ export interface Task {
   status: TaskStatus;
 
   // Dependencies
-  /** Task IDs that must complete before this task */
+  /** Task IDs that must complete before this task (alias: blockedBy) */
   dependsOn: string[];
-  /** Task IDs blocked by this task */
+  /** Alias for dependsOn - tasks that block this task (Claude Code style) */
+  blockedBy?: string[];
+  /** Task IDs blocked by this task (alias: blocks) */
   blocks: string[];
 
   // Assignment
@@ -99,6 +101,13 @@ export interface Task {
   /** Git worktree path for this task */
   worktree?: string;
 
+  // Display
+  /** 
+   * Present continuous form for progress display (e.g., "Implementing auth")
+   * Falls back to title if not provided
+   */
+  activeForm?: string;
+
   // Metadata
   /** Priority level */
   priority: TaskPriority;
@@ -106,6 +115,11 @@ export interface Task {
   type: TaskType;
   /** Tags for categorization */
   tags: string[];
+  /** 
+   * Arbitrary key-value metadata for tracking 
+   * (e.g., { feature: "auth", phase: "2.1", epic: "oauth" })
+   */
+  metadata?: Record<string, string>;
 
   // Git integration
   /** Git branch for this task */

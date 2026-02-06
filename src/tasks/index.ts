@@ -56,6 +56,24 @@ export {
 // TaskList Service
 export { TaskListService } from './tasklist';
 
+// Hydration (spec files → tasks)
+export {
+  TaskHydrator,
+  hydrateFromMarkdown,
+  ParsedTask,
+  ParsedSpec,
+  HydrationResult,
+} from './hydration';
+
+// Sync (tasks → spec files)
+export {
+  TaskSync,
+  syncToMarkdown,
+  syncToChecklist,
+  SyncOptions,
+  SyncResult,
+} from './sync';
+
 // Constants
 export const DEFAULT_TASK_LIST_ID = 'default';
 export const TASKS_DIR_NAME = 'tasks';

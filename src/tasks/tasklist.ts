@@ -46,12 +46,16 @@ export interface Task {
   status: TaskStatus;
   /** IDs of tasks this task depends on */
   dependsOn: string[];
+  /** Alias for dependsOn - tasks that block this task */
+  blockedBy?: string[];
   /** IDs of tasks blocked by this task */
   blocks: string[];
   /** Assigned agent ID */
   assignee?: string;
   /** Git worktree path */
   worktree?: string;
+  /** Present continuous form for display (e.g., "Implementing auth") */
+  activeForm?: string;
   /** Task priority */
   priority: TaskPriority;
   /** Task type */
@@ -62,6 +66,8 @@ export interface Task {
   branch?: string;
   /** Associated commits */
   commits: string[];
+  /** Arbitrary metadata key-value pairs */
+  metadata?: Record<string, string>;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */

@@ -18,6 +18,7 @@
 import { Command } from 'commander';
 import * as chalk from 'chalk';
 import { logger } from '../../utils/logger';
+import { registerHydrateCommand, registerSyncCommand } from './task-sync';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -773,4 +774,8 @@ export function registerTaskCommand(program: Command): void {
         process.exit(1);
       }
     });
+
+  // Hydrate and sync commands
+  registerHydrateCommand(task);
+  registerSyncCommand(task);
 }
