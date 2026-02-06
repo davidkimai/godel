@@ -23,6 +23,9 @@ interface HealthCheckResult {
 }
 
 const DEFAULT_TIMEOUT_MS = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+const DEFAULT_HEALTH_CACHE_TTL_MS = Number(process.env['DASH_HEALTH_CACHE_TTL_MS'] || 5000);
+let healthCache: { value: DependencyCheck[]; expiresAt: number } | null = null;
+let healthCheckInFlight: Promise<DependencyCheck[]> | null = null;
 
 function parseBoolean(value: string | undefined, defaultValue = false): boolean {
   if (value == null) return defaultValue;
@@ -240,11 +243,30 @@ function buildHealthResult(dependencies: DependencyCheck[]): HealthCheckResult {
 }
 
 async function getDependencyChecks(): Promise<DependencyCheck[]> {
-  return Promise.all([
-    checkDatabase(),
-    checkRedis(),
-    checkOpenClaw(),
-  ]);
+  const now = Date.now();
+  if (healthCache && healthCache.expiresAt > now) {
+    return healthCache.value;
+  }
+
+  if (!healthCheckInFlight) {
+    healthCheckInFlight = Promise.all([
+      checkDatabase(),
+      checkRedis(),
+      checkOpenClaw(),
+    ])
+      .then((value) => {
+        healthCache = {
+          value,
+          expiresAt: Date.now() + DEFAULT_HEALTH_CACHE_TTL_MS,
+        };
+        return value;
+      })
+      .finally(() => {
+        healthCheckInFlight = null;
+      });
+  }
+
+  return healthCheckInFlight;
 }
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {

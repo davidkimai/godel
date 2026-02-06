@@ -49,13 +49,13 @@ export function setupCorrelationMiddleware(fastify: FastifyInstance): void {
     (request as any).tracingContext = context;
   });
 
-  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply, payload) => {
     const correlationId = request['correlationId'];
     if (correlationId) {
       reply.header(CORRELATION_ID_HEADER, correlationId);
       reply.header(REQUEST_ID_HEADER, correlationId);
     }
-    return reply;
+    return payload;
   });
 }
 

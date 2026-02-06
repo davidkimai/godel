@@ -141,8 +141,35 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
     app.use(authMiddleware(config.apiKey));
   }
 
+  const healthCacheTtlMs = Number(process.env['DASH_HEALTH_CACHE_TTL_MS'] || 5000);
+  let cachedHealth: { value: CombinedDependencyHealth; expiresAt: number } | null = null;
+  let healthInFlight: Promise<CombinedDependencyHealth> | null = null;
+
+  const getHealthSnapshot = async (): Promise<CombinedDependencyHealth> => {
+    const now = Date.now();
+    if (cachedHealth && cachedHealth.expiresAt > now) {
+      return cachedHealth.value;
+    }
+
+    if (!healthInFlight) {
+      healthInFlight = collectDependencyHealth()
+        .then((value) => {
+          cachedHealth = {
+            value,
+            expiresAt: Date.now() + healthCacheTtlMs,
+          };
+          return value;
+        })
+        .finally(() => {
+          healthInFlight = null;
+        });
+    }
+
+    return healthInFlight;
+  };
+
   const healthHandler = asyncHandler(async (_req: Request, res: Response) => {
-    const health = await collectDependencyHealth();
+    const health = await getHealthSnapshot();
     const statusCode = health.status === 'unhealthy' ? 503 : 200;
     res.status(statusCode).json({
       status: health.status,
@@ -157,7 +184,7 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   app.get('/health', healthHandler);
   app.get('/health/detailed', healthHandler);
   app.get('/health/ready', asyncHandler(async (_req: Request, res: Response) => {
-    const health = await collectDependencyHealth();
+    const health = await getHealthSnapshot();
     const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
 
     if (!blocking) {
@@ -179,7 +206,7 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   app.get('/api/v1/health', healthHandler);
   app.get('/api/v1/health/detailed', healthHandler);
   app.get('/api/v1/health/ready', asyncHandler(async (_req: Request, res: Response) => {
-    const health = await collectDependencyHealth();
+    const health = await getHealthSnapshot();
     const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
     if (!blocking) {
       res.json({ status: 'ready' });
@@ -194,7 +221,7 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   app.get('/api/health', healthHandler);
   app.get('/api/health/detailed', healthHandler);
   app.get('/api/health/ready', asyncHandler(async (_req: Request, res: Response) => {
-    const health = await collectDependencyHealth();
+    const health = await getHealthSnapshot();
     const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
     if (!blocking) {
       res.json({ status: 'ready' });
