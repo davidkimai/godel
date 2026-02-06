@@ -211,6 +211,7 @@ export class DirectDashClient implements DashApiClient {
   private swarmRepo: SwarmRepository | null = null;
   private taskStore: InMemoryTaskStore;
   private initialized = false;
+  private initializePromise: Promise<void> | null = null;
   private dbPath: string;
   private subscriptions: Map<string, Subscription> = new Map();
 
@@ -221,35 +222,47 @@ export class DirectDashClient implements DashApiClient {
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-
-    // Ensure data directory exists
-    const dataDir = resolve(process.cwd(), '.dash');
-    if (!existsSync(dataDir)) {
-      mkdirSync(dataDir, { recursive: true });
+    if (this.initializePromise) {
+      await this.initializePromise;
+      return;
     }
 
-    const fullDbPath = resolve(dataDir, this.dbPath);
-    
-    // Initialize database
-    await initDatabase({ dbPath: fullDbPath, enableWAL: true });
+    this.initializePromise = (async () => {
+      // Ensure data directory exists
+      const dataDir = resolve(process.cwd(), '.dash');
+      if (!existsSync(dataDir)) {
+        mkdirSync(dataDir, { recursive: true });
+      }
 
-    // Initialize message bus
-    this.messageBus = getGlobalBus();
+      const fullDbPath = resolve(dataDir, this.dbPath);
+      
+      // Initialize database
+      await initDatabase({ dbPath: fullDbPath, enableWAL: true });
 
-    // Initialize lifecycle
-    this.lifecycle = getGlobalLifecycle(memoryStore.agents, this.messageBus);
-    this.lifecycle.start();
+      // Initialize message bus
+      this.messageBus = getGlobalBus();
 
-    // Initialize swarm manager
-    this.swarmManager = getGlobalSwarmManager(this.lifecycle, this.messageBus, memoryStore.agents);
-    this.swarmManager.start();
+      // Initialize lifecycle
+      this.lifecycle = getGlobalLifecycle(memoryStore.agents, this.messageBus);
+      await this.lifecycle.start();
 
-    // Initialize repositories
-    this.agentRepo = new AgentRepository();
-    this.eventRepo = new EventRepository();
-    this.swarmRepo = new SwarmRepository();
+      // Initialize swarm manager
+      this.swarmManager = getGlobalSwarmManager(this.lifecycle, this.messageBus, memoryStore.agents);
+      this.swarmManager.start();
 
-    this.initialized = true;
+      // Initialize repositories
+      this.agentRepo = new AgentRepository();
+      this.eventRepo = new EventRepository();
+      this.swarmRepo = new SwarmRepository();
+
+      this.initialized = true;
+    })();
+
+    try {
+      await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
+    }
   }
 
   // ============================================================================

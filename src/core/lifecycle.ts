@@ -103,6 +103,7 @@ export class AgentLifecycle extends EventEmitter {
   private retryDelays: Map<string, number> = new Map(); // Track retry delays per agent
   private readonly DEFAULT_MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 1000; // 1 second
+  private startPromise: Promise<void> | null = null;
 
   // RACE CONDITION FIX: One mutex per agent for exclusive state transitions
   private mutexes: Map<string, Mutex> = new Map();
@@ -147,15 +148,30 @@ export class AgentLifecycle extends EventEmitter {
    * Initializes OpenClaw core primitive as part of startup
    */
   async start(): Promise<void> {
-    this.active = true;
-    
-    // Initialize OpenClaw core primitive
-    logger.info('[AgentLifecycle] Starting lifecycle manager, initializing OpenClaw core...');
-    await this.openclaw.initialize();
-    await this.openclaw.connect();
-    
-    this.emit('lifecycle.started');
-    logger.info('[AgentLifecycle] Lifecycle manager started with OpenClaw core active');
+    if (this.active) {
+      return;
+    }
+    if (this.startPromise) {
+      await this.startPromise;
+      return;
+    }
+
+    this.startPromise = (async () => {
+      // Initialize OpenClaw core primitive
+      logger.info('[AgentLifecycle] Starting lifecycle manager, initializing OpenClaw core...');
+      await this.openclaw.initialize();
+      await this.openclaw.connect();
+
+      this.active = true;
+      this.emit('lifecycle.started');
+      logger.info('[AgentLifecycle] Lifecycle manager started with OpenClaw core active');
+    })();
+
+    try {
+      await this.startPromise;
+    } finally {
+      this.startPromise = null;
+    }
   }
 
   /**
@@ -171,6 +187,10 @@ export class AgentLifecycle extends EventEmitter {
    * RACE CONDITION FIX: Protected by creationMutex to prevent ID collisions
    */
   async spawn(options: SpawnOptions): Promise<Agent> {
+    if (!this.active && this.startPromise) {
+      await this.startPromise;
+    }
+
     assert(
       this.active,
       'AgentLifecycle is not started. Call lifecycle.start() first',

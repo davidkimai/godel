@@ -196,8 +196,18 @@ export interface SandboxConfig {
  * Parameters for sessions_spawn method
  */
 export interface SessionsSpawnParams {
+  /** Task prompt for the spawned session */
+  task: string;
+  /** Optional label for logs/UI */
+  label?: string;
+  /** Optional OpenClaw agent id override */
+  agentId?: string;
   /** Model to use (default: configured default) */
   model?: string;
+  /** Run timeout in seconds */
+  runTimeoutSeconds?: number;
+  /** Cleanup policy */
+  cleanup?: 'delete' | 'keep';
   /** Thinking level: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' */
   thinking?: string;
   /** Verbose output */
@@ -206,7 +216,7 @@ export interface SessionsSpawnParams {
   workspace?: string;
   /** Skills to load */
   skills?: string[];
-  /** System prompt */
+  /** System prompt (legacy/optional compatibility) */
   systemPrompt?: string;
   /** Sandbox configuration */
   sandbox?: SandboxConfig;
@@ -218,8 +228,18 @@ export interface SessionsSpawnParams {
  * Response from sessions_spawn method
  */
 export interface SessionsSpawnResponse {
-  sessionKey: string;
-  sessionId: string;
+  /** Session key in legacy Dash/OpenClaw payloads */
+  sessionKey?: string;
+  /** Session id in legacy payloads */
+  sessionId?: string;
+  /** Session key in current OpenClaw payloads */
+  childSessionKey?: string;
+  /** Spawn run id in current OpenClaw payloads */
+  runId?: string;
+  /** Request acceptance status in current OpenClaw payloads */
+  status?: string;
+  /** Optional free-form message from gateway */
+  message?: string;
 }
 
 /**
@@ -423,6 +443,8 @@ export type GatewayErrorCode =
   | 'AUTHENTICATION_ERROR'
   | 'TIMEOUT_ERROR'
   | 'REQUEST_ERROR'
+  | 'INVALID_REQUEST'
+  | 'INVALID_RESPONSE'
   | 'SESSION_NOT_FOUND'
   | 'SESSION_EXISTS'
   | 'PERMISSION_DENIED'

@@ -31,7 +31,7 @@ export function registerDashboardCommand(program: Command): void {
         const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         // Start managers
-        lifecycle.start();
+        await lifecycle.start();
         swarmManager.start();
 
         const port = parseInt(options.port, 10);

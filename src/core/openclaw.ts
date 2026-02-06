@@ -245,10 +245,15 @@ export class OpenClawGatewayClient extends EventEmitter {
       try {
         this.ws = new WebSocket(wsUrl);
 
-        this.ws.once('open', () => {
+        this.ws.once('open', async () => {
           clearTimeout(timeout);
-          this.handleOpen();
-          resolve();
+          try {
+            await this.handleOpen();
+            resolve();
+          } catch (error) {
+            this.handleError(error as Error);
+            reject(error);
+          }
         });
 
         this.ws.once('error', (error) => {
@@ -323,39 +328,50 @@ export class OpenClawGatewayClient extends EventEmitter {
    * Authenticate with the Gateway using token
    */
   async authenticate(): Promise<void> {
-    if (!this.config.token) {
-      throw new GatewayError('AUTHENTICATION_ERROR', 'No token provided. Set OPENCLAW_GATEWAY_TOKEN environment variable.');
+    this.setState('authenticating');
+    const connectParams: Record<string, unknown> = {
+      client: {
+        id: 'node',
+        mode: 'client',
+        platform: 'node',
+        version: '2.0.0',
+      },
+      minProtocol: 1,
+      maxProtocol: 1,
+    };
+    if (this.config.token) {
+      connectParams['auth'] = { token: this.config.token };
     }
 
-    this.setState('authenticating');
+    const originalRequestTimeout = this.config.requestTimeout;
+    this.config.requestTimeout = Math.min(this.config.requestTimeout, this.options.connectionTimeout);
 
     try {
-      await this.request('connect', {
-        auth: {
-          token: this.config.token,
-        },
-        client: {
-          id: 'node',
-          mode: 'client',
-          platform: 'node',
-          version: '2.0.0',
-        },
-        minProtocol: 1,
-        maxProtocol: 1,
-      });
+      await this.request('connect', connectParams);
 
       this.setState('authenticated');
       this.emit('authenticated');
 
       if (this.options.subscriptions) {
         for (const event of this.options.subscriptions) {
-          await this.subscribeToEvent(event);
+          this.subscribeToEvent(event).catch((error) => {
+            this.emit(
+              'error',
+              new GatewayError('REQUEST_ERROR', `Failed to subscribe to event: ${event}`, error)
+            );
+          });
         }
       }
 
     } catch (error) {
       this.setState('error');
-      throw new GatewayError('AUTHENTICATION_ERROR', 'Authentication failed', error);
+      throw new GatewayError(
+        this.config.token ? 'AUTHENTICATION_ERROR' : 'CONNECTION_ERROR',
+        this.config.token ? 'Authentication failed' : 'Gateway handshake failed',
+        error
+      );
+    } finally {
+      this.config.requestTimeout = originalRequestTimeout;
     }
   }
 
@@ -479,7 +495,11 @@ export class OpenClawGatewayClient extends EventEmitter {
   }
 
   async sessionsSpawn(params?: SessionsSpawnParams): Promise<SessionsSpawnResponse> {
-    return await this.requestWithReconnect<SessionsSpawnResponse>('sessions_spawn', (params ?? {}) as Record<string, unknown>);
+    const response = await this.requestWithReconnect<Record<string, unknown>>(
+      'sessions_spawn',
+      (params ?? {}) as Record<string, unknown>
+    );
+    return this.normalizeSpawnResponse(response);
   }
 
   async sessionsSend(sessionKey: string, message: string, attachments?: unknown[]): Promise<SessionsSendResponse> {
@@ -578,22 +598,39 @@ export class OpenClawGatewayClient extends EventEmitter {
   // Private Methods
   // ============================================================================
 
+  private normalizeSpawnResponse(response: Record<string, unknown>): SessionsSpawnResponse {
+    const sessionKeyCandidate =
+      (typeof response['sessionKey'] === 'string' && response['sessionKey'])
+      || (typeof response['childSessionKey'] === 'string' && response['childSessionKey'])
+      || (typeof response['sessionId'] === 'string' && response['sessionId']);
+
+    if (!sessionKeyCandidate) {
+      throw new GatewayError('INVALID_RESPONSE', 'sessions_spawn response missing session key', response);
+    }
+
+    const sessionId =
+      (typeof response['sessionId'] === 'string' && response['sessionId'])
+      || sessionKeyCandidate;
+
+    return {
+      ...(response as SessionsSpawnResponse),
+      sessionKey: sessionKeyCandidate,
+      sessionId,
+      childSessionKey:
+        (typeof response['childSessionKey'] === 'string' && response['childSessionKey'])
+        || sessionKeyCandidate,
+    };
+  }
+
   private async subscribeToEvent(event: string): Promise<void> {
     await this.request('subscribe', { event });
   }
 
-  private handleOpen(): void {
+  private async handleOpen(): Promise<void> {
     this.stats.connectedAt = new Date();
     this.reconnectionState = null;
     this.emit('connected');
-
-    if (this.config.token) {
-      this.authenticate().catch((error) => {
-        this.emit('error', error);
-      });
-    } else {
-      this.setState('connected');
-    }
+    await this.authenticate();
 
     this.startHeartbeat();
   }
@@ -943,14 +980,73 @@ export class OpenClawCore extends EventEmitter {
 
     const gatewayEntry = await this.selectGatewayForSpawn();
 
-    const response = await gatewayEntry.client.sessionsSpawn({
+    const skills = Array.isArray(options.context?.['skills'])
+      ? options.context?.['skills'] as string[]
+      : undefined;
+    const spawnParams: SessionsSpawnParams = {
+      task: options.task,
       model: options.model,
-      skills: (options.context?.['skills'] as string[]) || [],
-      systemPrompt: options.task,
-    });
+      label: typeof options.context?.['label'] === 'string' ? options.context['label'] as string : undefined,
+      runTimeoutSeconds:
+        typeof options.timeout === 'number' && options.timeout > 0
+          ? Math.ceil(options.timeout / 1000)
+          : undefined,
+      skills,
+      thinking: typeof options.context?.['thinking'] === 'string' ? options.context['thinking'] as string : undefined,
+      workspace: typeof options.context?.['workspace'] === 'string' ? options.context['workspace'] as string : undefined,
+      systemPrompt:
+        typeof options.context?.['systemPrompt'] === 'string'
+          ? options.context['systemPrompt'] as string
+          : undefined,
+    };
+
+    let response: SessionsSpawnResponse;
+    try {
+      response = await gatewayEntry.client.sessionsSpawn(spawnParams);
+    } catch (error) {
+      const errorCode = error instanceof GatewayError ? String(error.code) : '';
+      const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+      const shouldRetryLegacy =
+        error instanceof GatewayError
+        && (
+          errorCode === 'INVALID_REQUEST'
+          || (errorCode === 'REQUEST_ERROR'
+            && (errorMessage.includes('task') || errorMessage.includes('systemprompt')))
+        );
+
+      if (!shouldRetryLegacy) {
+        throw error;
+      }
+
+      logger.warn('[OpenClawCore] sessions_spawn rejected modern payload; retrying legacy payload', {
+        agentId: options.agentId,
+        gateway: gatewayEntry.id,
+        error: errorMessage || errorCode,
+      });
+
+      const legacyPayload: Record<string, unknown> = {
+        model: options.model,
+        systemPrompt: options.task,
+        skills: skills ?? [],
+      };
+
+      if (spawnParams.thinking) legacyPayload['thinking'] = spawnParams.thinking;
+      if (spawnParams.workspace) legacyPayload['workspace'] = spawnParams.workspace;
+      if (spawnParams.runTimeoutSeconds) legacyPayload['runTimeoutSeconds'] = spawnParams.runTimeoutSeconds;
+
+      response = await gatewayEntry.client.sessionsSpawn(legacyPayload as unknown as SessionsSpawnParams);
+    }
+
+    const sessionKey = response.sessionKey
+      ?? response.childSessionKey
+      ?? response.sessionId;
+
+    if (!sessionKey) {
+      throw new GatewayError('INVALID_RESPONSE', 'sessions_spawn did not return a usable session key', response);
+    }
 
     const session: OpenClawSession = {
-      sessionId: response.sessionKey,
+      sessionId: sessionKey,
       agentId: options.agentId,
       status: 'running',
       createdAt: new Date(),
@@ -964,12 +1060,12 @@ export class OpenClawCore extends EventEmitter {
       },
     };
 
-    this.sessions.set(response.sessionKey, session);
-    this.agentSessionMap.set(options.agentId, response.sessionKey);
-    this.sessionGatewayMap.set(response.sessionKey, gatewayEntry.id);
+    this.sessions.set(sessionKey, session);
+    this.agentSessionMap.set(options.agentId, sessionKey);
+    this.sessionGatewayMap.set(sessionKey, gatewayEntry.id);
     gatewayEntry.activeSessions++;
 
-    logger.info(`[OpenClawCore] Session ${response.sessionKey} spawned for agent ${options.agentId}`, {
+    logger.info(`[OpenClawCore] Session ${sessionKey} spawned for agent ${options.agentId}`, {
       gateway: gatewayEntry.id,
       gatewayAddress: `${gatewayEntry.config.host}:${gatewayEntry.config.port}`,
       gatewayActiveSessions: gatewayEntry.activeSessions,
@@ -978,12 +1074,12 @@ export class OpenClawCore extends EventEmitter {
 
     this.emit('session.spawned', {
       agentId: options.agentId,
-      sessionId: response.sessionKey,
+      sessionId: sessionKey,
       model: options.model,
       gateway: gatewayEntry.id,
     });
 
-    return response.sessionKey;
+    return sessionKey;
   }
 
   /**

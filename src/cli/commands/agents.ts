@@ -148,7 +148,7 @@ export function registerAgentsCommand(program: Command): void {
           process.exit(1);
         }
 
-        lifecycle.start();
+        await lifecycle.start();
 
         // Validate swarm if specified
         if (options.swarm) {
@@ -213,7 +213,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -253,7 +253,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -290,7 +290,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -336,7 +336,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
         const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
 
         const state = lifecycle.getState(agentId);
@@ -419,7 +419,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -464,7 +464,7 @@ export function registerAgentsCommand(program: Command): void {
         // Initialize lifecycle
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        lifecycle.start();
+        await lifecycle.start();
 
         const metrics = lifecycle.getMetrics();
 
