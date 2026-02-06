@@ -548,3 +548,1605 @@ Validation: Recursive verification executed for impacted subsystems; remaining l
 - `openclawd` binary naming is not explicit in current public docs; official docs emphasize daemonized `openclaw gateway` service model.
 
 Validation: Ambiguities are explicitly called out with concrete workaround steps.
+
+---
+
+# Extended Technical Specifications v2.0
+
+## Competitive Research Integration
+
+Based on systematic analysis of frontier competitors (Gas Town, Conductor, Loom, Pi), the following specifications extend Dash capabilities to match and exceed industry standards.
+
+---
+
+## Pi Integration Architecture (First-Class Primitive)
+
+### Overview
+Pi is the multi-provider coding agent CLI by Mario Zechner and serves as the primary agent runtime in OpenClaw. Dash must integrate Pi as a first-class primitive for model orchestration.
+
+### Pi Architecture Components
+
+**1. Multi-Provider LLM API (`@mariozechner/pi-ai`)**
+- Unified interface across 15+ providers (Anthropic, OpenAI, Google, Azure, Groq, Cerebras, etc.)
+- Provider-specific optimizations and fallbacks
+- OAuth and API key authentication support
+
+**2. Agent Runtime (`@mariozechner/pi-agent-core`)**
+- Tool calling framework with state management
+- Conversation persistence
+- Tree-structured session support
+
+**3. Coding Agent CLI (`@mariozechner/pi-coding-agent`)**
+- Four execution modes: interactive, print/JSON, RPC, SDK
+- Built-in tools: read, write, edit, bash
+- Model switching mid-session (Ctrl+L / `/model`)
+- Todo tracking with `todo_write` tool
+
+### Dash-Pi Integration Design
+
+**Integration Layer: `src/integrations/pi/`**
+
+```
+src/integrations/pi/
+├── client.ts          # Pi RPC client wrapper
+├── provider.ts        # Provider registry and routing
+├── session.ts         # Pi session lifecycle management
+├── tools.ts           # Tool call routing and execution
+├── tree.ts            # Tree-structured session navigation
+└── types.ts           # TypeScript type definitions
+```
+
+**Configuration Schema:**
+```typescript
+interface PiConfig {
+  // Provider configurations
+  providers: {
+    [name: string]: {
+      type: 'anthropic' | 'openai' | 'google' | 'azure' | ...;
+      apiKey?: string;           // Server-side only
+      oauth?: OAuthConfig;
+      defaultModel: string;
+      models: string[];          // Available models
+      capabilities: string[];    // vision, reasoning, code, etc.
+      costPer1kTokens: { input: number; output: number };
+      rateLimit: { rpm: number; tpm: number };
+    }
+  };
+  
+  // Routing configuration
+  routing: {
+    defaultProvider: string;
+    fallbackChain: string[];
+    costOptimization: boolean;
+    capabilityMatching: boolean;
+  };
+  
+  // Session configuration
+  sessions: {
+    persistence: 'memory' | 'redis' | 'database';
+    treeHistory: boolean;
+    maxBranches: number;
+    compactThreshold: number;    // Messages before summarization
+  };
+  
+  // Tool configuration
+  tools: {
+    enabled: string[];
+    customTools: CustomToolConfig[];
+    sandboxMode: 'local' | 'remote' | 'container';
+  };
+}
+```
+
+**API Extensions:**
+
+```typescript
+// POST /api/v1/sessions
+{
+  "agent_id": "agent_123",
+  "pi_config": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5",
+    "thinking": "high",
+    "tools": ["read", "write", "edit", "bash", "todo_write"]
+  }
+}
+
+// POST /api/v1/tasks
+{
+  "payload": {
+    "type": "pi_execute",
+    "prompt": "Implement user authentication",
+    "pi_config": {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "todo_enabled": true
+    }
+  },
+  "priority": "high"
+}
+
+// GET /api/v1/sessions/:id/tree
+{
+  "root": {
+    "id": "msg_001",
+    "role": "user",
+    "content": "Implement auth",
+    "children": [
+      {
+        "id": "msg_002",
+        "role": "assistant",
+        "tool_calls": [...],
+        "children": [...]
+      }
+    ]
+  },
+  "current_branch": "msg_005",
+  "branches": [...]
+}
+
+// POST /api/v1/sessions/:id/fork
+{
+  "from_message_id": "msg_003",
+  "new_session_id": "session_456"
+}
+```
+
+**Session State Synchronization:**
+
+```typescript
+interface PiSessionState {
+  sessionId: string;
+  provider: string;
+  model: string;
+  
+  // Conversation tree
+  tree: ConversationTree;
+  currentNodeId: string;
+  
+  // Tool state
+  pendingToolCalls: ToolCall[];
+  toolResults: ToolResult[];
+  
+  // Todo tracking
+  todos: TodoItem[];
+  
+  // Context management
+  contextSize: number;
+  summary?: string;  // Compacted context
+  
+  // Persistence
+  checkpointAt: Date;
+  checkpointData: Buffer;  // Serialized Pi session
+}
+```
+
+**Implementation Notes:**
+- Pi sessions run in RPC mode for headless operation
+- State checkpoints stored in Redis/PostgreSQL for recovery
+- Tool execution routed through Dash's sandbox layer
+- Cost tracking per provider and model
+
+---
+
+## Git Worktree Session Isolation
+
+### Overview
+Implement Gas Town-inspired git worktree isolation for concurrent agent work on different branches without conflicts.
+
+### Architecture
+
+**Worktree Manager: `src/core/worktree/`**
+
+```typescript
+interface WorktreeManager {
+  // Create isolated worktree for session
+  createWorktree(config: WorktreeConfig): Promise<Worktree>;
+  
+  // Share dependencies across worktrees
+  linkDependencies(worktree: Worktree, repoConfig: RepoConfig): Promise<void>;
+  
+  // Cleanup worktree
+  removeWorktree(worktree: Worktree, options: CleanupOptions): Promise<void>;
+  
+  // List active worktrees
+  listWorktrees(repository: string): Promise<Worktree[]>;
+}
+
+interface WorktreeConfig {
+  repository: string;           // Git repository path
+  baseBranch: string;           // Branch to create worktree from
+  sessionId: string;            // Associated Dash session
+  dependencies: {
+    shared: string[];           // Paths to share (node_modules, .venv)
+    isolated: string[];         // Paths to isolate (.env, build/)
+  };
+  cleanup: 'immediate' | 'on_success' | 'delayed' | 'manual';
+}
+
+interface Worktree {
+  id: string;
+  path: string;                 // Filesystem path
+  gitDir: string;               // Git directory
+  branch: string;
+  sessionId: string;
+  createdAt: Date;
+  lastActivity: Date;
+  status: 'active' | 'suspended' | 'cleanup_pending';
+}
+```
+
+**Dependency Sharing Strategy:**
+
+```
+Repository: ~/projects/myapp
+├── .git/                    # Main git directory
+├── node_modules/            # Shared via symlink
+├── src/
+└── package.json
+
+Worktrees: ~/projects/myapp-dash-worktrees/
+├── wt-session-001/          # Branch: feature/auth
+│   ├── src/                 # Isolated
+│   ├── node_modules -> ~/projects/myapp/node_modules
+│   ├── .env                 # Isolated, copied from template
+│   └── package.json         # Same as base
+├── wt-session-002/          # Branch: feature/payments
+└── wt-session-003/          # Branch: bugfix/login
+```
+
+**Database Schema:**
+
+```sql
+CREATE TABLE worktrees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES sessions(id),
+    repository_path VARCHAR(500) NOT NULL,
+    worktree_path VARCHAR(500) NOT NULL,
+    git_dir VARCHAR(500) NOT NULL,
+    base_branch VARCHAR(255) NOT NULL,
+    current_branch VARCHAR(255) NOT NULL,
+    dependencies_shared JSONB NOT NULL DEFAULT '[]',
+    cleanup_policy VARCHAR(20) NOT NULL DEFAULT 'on_success',
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    cleaned_up_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_worktrees_session ON worktrees(session_id);
+CREATE INDEX idx_worktrees_status ON worktrees(status);
+```
+
+**API Endpoints:**
+
+```typescript
+// POST /api/v1/worktrees
+{
+  "repository": "/home/user/projects/myapp",
+  "base_branch": "main",
+  "dependencies": {
+    "shared": ["node_modules", ".venv"],
+    "isolated": [".env", "dist/"]
+  },
+  "cleanup": "on_success"
+}
+
+// Response
+{
+  "id": "wt_abc123",
+  "path": "/home/user/projects/myapp-dash-worktrees/wt-abc123",
+  "branch": "dash/session-abc123",
+  "status": "active"
+}
+
+// GET /api/v1/worktrees
+{
+  "items": [
+    {
+      "id": "wt_abc123",
+      "repository": "myapp",
+      "branch": "feature/auth",
+      "session_id": "session_456",
+      "status": "active",
+      "last_activity": "2026-01-15T10:30:00Z"
+    }
+  ]
+}
+
+// DELETE /api/v1/worktrees/:id
+// Cleanup worktree and optionally merge changes
+{
+  "merge": true,
+  "target_branch": "main"
+}
+```
+
+**Agent Integration:**
+
+```typescript
+// Agent tool: worktree
+const worktreeTool = {
+  name: 'worktree',
+  description: 'Manage git worktrees for isolated development',
+  parameters: {
+    action: {
+      type: 'string',
+      enum: ['create', 'switch', 'commit', 'push', 'cleanup']
+    },
+    branch: { type: 'string' },
+    message: { type: 'string' }
+  },
+  execute: async (params, context) => {
+    const worktree = await worktreeManager.getForSession(context.sessionId);
+    // Execute git commands in worktree context
+  }
+};
+```
+
+---
+
+## Multi-Model Provider Orchestration
+
+### Overview
+Route tasks to different LLM providers based on task characteristics, cost optimization, and capability requirements.
+
+### Provider Registry
+
+```typescript
+interface ProviderRegistry {
+  // Provider metadata
+  providers: Map<string, Provider>;
+  
+  // Routing decisions
+  selectProvider(task: Task, context: RoutingContext): ProviderSelection;
+  
+  // Health monitoring
+  checkHealth(providerId: string): Promise<HealthStatus>;
+  
+  // Cost tracking
+  getCostEstimate(providerId: string, tokenEstimate: number): CostEstimate;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+  type: 'anthropic' | 'openai' | 'google' | ...;
+  
+  // Models
+  models: Model[];
+  defaultModel: string;
+  
+  // Capabilities
+  capabilities: string[];  // vision, reasoning, code, long_context, etc.
+  
+  // Cost
+  pricing: {
+    inputPer1k: number;
+    outputPer1k: number;
+    currency: string;
+  };
+  
+  // Limits
+  rateLimits: {
+    requestsPerMinute: number;
+    tokensPerMinute: number;
+  };
+  
+  // Status
+  health: HealthStatus;
+  currentLoad: number;
+}
+
+interface Model {
+  id: string;
+  name: string;
+  contextWindow: number;
+  capabilities: string[];
+  costModifier: number;  // 1.0 = baseline
+}
+```
+
+### Routing Strategies
+
+```typescript
+interface RoutingStrategy {
+  name: string;
+  select(
+    task: Task,
+    providers: Provider[],
+    context: RoutingContext
+  ): ProviderSelection;
+}
+
+// Strategy 1: Cost-Optimized
+const costOptimizedStrategy: RoutingStrategy = {
+  name: 'cost_optimized',
+  select: (task, providers) => {
+    // Use cheaper models for simple tasks
+    const capabilityMatch = providers.filter(p =>
+      hasAllCapabilities(p, task.requiredCapabilities)
+    );
+    return capabilityMatch.sort((a, b) =>
+      a.pricing.inputPer1k - b.pricing.inputPer1k
+    )[0];
+  }
+};
+
+// Strategy 2: Capability-Matched
+const capabilityStrategy: RoutingStrategy = {
+  name: 'capability_matched',
+  select: (task, providers) => {
+    // Match task to best-capable provider
+    const scored = providers.map(p => ({
+      provider: p,
+      score: scoreCapabilityMatch(p, task)
+    }));
+    return scored.sort((a, b) => b.score - a.score)[0].provider;
+  }
+};
+
+// Strategy 3: Fallback Chain
+const fallbackStrategy: RoutingStrategy = {
+  name: 'fallback_chain',
+  select: (task, providers, context) => {
+    // Try primary, fall back on failure
+    const chain = context.fallbackChain || ['anthropic', 'openai', 'google'];
+    for (const providerId of chain) {
+      const provider = providers.find(p => p.id === providerId);
+      if (provider?.health.status === 'healthy') {
+        return provider;
+      }
+    }
+    throw new Error('No healthy providers available');
+  }
+};
+```
+
+### Task-Level Provider Selection
+
+```typescript
+// POST /api/v1/tasks
+{
+  "payload": {
+    "type": "code_generation",
+    "description": "Implement complex algorithm"
+  },
+  "routing": {
+    "strategy": "capability_matched",
+    "preferred_provider": "anthropic",
+    "fallback_chain": ["anthropic", "openai"],
+    "cost_limit": 0.50,  // USD
+    "required_capabilities": ["reasoning", "code"]
+  }
+}
+
+// Response includes actual provider used
+{
+  "id": "task_123",
+  "provider_used": "anthropic",
+  "model_used": "claude-opus-4",
+  "estimated_cost": 0.23
+}
+```
+
+---
+
+## Tree-Structured Session Navigation
+
+### Overview
+Implement Pi-style tree-structured conversation navigation for complex agent workflows with branching and forking.
+
+### Data Model
+
+```typescript
+interface ConversationTree {
+  root: MessageNode;
+  currentNodeId: string;
+  branches: Branch[];
+  metadata: TreeMetadata;
+}
+
+interface MessageNode {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  toolCalls?: ToolCall[];
+  toolResults?: ToolResult[];
+  parentId?: string;
+  children: string[];  // Node IDs
+  timestamp: Date;
+  
+  // Context management
+  tokenCount: number;
+  cumulativeTokens: number;  // Tokens from root to this node
+  summary?: string;  // If compacted
+}
+
+interface Branch {
+  id: string;
+  name: string;
+  headNodeId: string;
+  baseNodeId: string;  // Where branch diverged
+  createdAt: Date;
+  status: 'active' | 'merged' | 'abandoned';
+}
+
+interface TreeMetadata {
+  totalNodes: number;
+  totalTokens: number;
+  compactedNodes: number;
+  maxDepth: number;
+}
+```
+
+### Operations
+
+```typescript
+interface TreeOperations {
+  // Navigate tree
+  getNode(nodeId: string): MessageNode;
+  getPathToRoot(nodeId: string): MessageNode[];
+  getChildren(nodeId: string): MessageNode[];
+  
+  // Branch operations
+  createBranch(fromNodeId: string, name: string): Branch;
+  switchBranch(branchId: string): void;
+  mergeBranch(branchId: string, targetNodeId: string): void;
+  
+  // Fork session
+  forkSession(fromNodeId: string, newSessionConfig: SessionConfig): Session;
+  
+  // Context management
+  compactHistory(threshold: number): void;  // Summarize old nodes
+  getMessagesForContext(nodeId: string): Message[];
+  
+  // Visualization
+  getTreeVisualization(): TreeVisualization;
+}
+```
+
+### API Endpoints
+
+```typescript
+// GET /api/v1/sessions/:id/tree
+{
+  "root": {
+    "id": "msg_root",
+    "role": "system",
+    "content": "You are a helpful assistant",
+    "children": ["msg_001"]
+  },
+  "nodes": {
+    "msg_001": {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Implement auth",
+      "parentId": "msg_root",
+      "children": ["msg_002"],
+      "timestamp": "2026-01-15T10:00:00Z"
+    },
+    "msg_002": {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "I'll implement authentication",
+      "toolCalls": [...],
+      "parentId": "msg_001",
+      "children": ["msg_003", "msg_004"],  // Branched!
+      "timestamp": "2026-01-15T10:00:05Z"
+    }
+  },
+  "branches": [
+    {
+      "id": "branch_main",
+      "name": "main",
+      "headNodeId": "msg_003",
+      "baseNodeId": "msg_root",
+      "status": "active"
+    },
+    {
+      "id": "branch_explore",
+      "name": "explore-oauth",
+      "headNodeId": "msg_004",
+      "baseNodeId": "msg_002",
+      "status": "active"
+    }
+  ],
+  "currentBranch": "branch_main",
+  "currentNode": "msg_003"
+}
+
+// POST /api/v1/sessions/:id/tree/branch
+{
+  "from_node_id": "msg_002",
+  "name": "alternative-approach"
+}
+
+// POST /api/v1/sessions/:id/tree/fork
+{
+  "from_node_id": "msg_002",
+  "new_session": {
+    "agent_id": "agent_456",
+    "inherit_context": true
+  }
+}
+
+// POST /api/v1/sessions/:id/tree/compact
+{
+  "threshold_tokens": 100000,
+  "preserve_recent": 10
+}
+```
+
+### CLI Commands (Pi-Compatible)
+
+```bash
+# Inside Pi/Dash session
+/tree                    # Show tree visualization
+/branch new-feature      # Create new branch from current node  
+/switch main             # Switch to branch
+/fork                    # Fork to new session
+/compact                 # Compact old history
+```
+
+---
+
+## Agent Role System
+
+### Overview
+Implement Gas Town-inspired specialized agent roles for coordinated multi-agent workflows.
+
+### Role Definitions
+
+```typescript
+interface AgentRole {
+  id: string;
+  name: string;
+  description: string;
+  
+  // Prompting
+  systemPrompt: string;
+  promptTemplate: string;
+  
+  // Capabilities
+  tools: string[];
+  permissions: Permission[];
+  
+  // Behavior
+  maxIterations: number;
+  autoSubmit: boolean;
+  requireApproval: boolean;
+  
+  // Communication
+  canMessage: string[];  // Role IDs this role can message
+  broadcastChannels: string[];
+}
+
+// Built-in Roles (Gas Town-inspired)
+const BUILTIN_ROLES: AgentRole[] = [
+  {
+    id: 'coordinator',
+    name: 'Coordinator (Mayor)',
+    description: 'Orchestrates multi-agent workflows',
+    systemPrompt: 'You are the Coordinator. Your job is to...',
+    tools: ['delegate', 'query_status', 'create_convoy', 'send_message'],
+    permissions: ['read_all', 'delegate_tasks', 'manage_agents'],
+    maxIterations: 50,
+    autoSubmit: true,
+    canMessage: ['worker', 'reviewer', 'monitor']
+  },
+  {
+    id: 'worker',
+    name: 'Worker (Polecat)',
+    description: 'Ephemeral task executor',
+    systemPrompt: 'You are a Worker agent. Complete the assigned task...',
+    tools: ['read', 'write', 'edit', 'bash', 'todo_write'],
+    permissions: ['read_assigned', 'write_assigned'],
+    maxIterations: 20,
+    autoSubmit: false,
+    canMessage: ['coordinator']
+  },
+  {
+    id: 'reviewer',
+    name: 'Reviewer (Witness)',
+    description: 'Reviews and validates work',
+    systemPrompt: 'You are a Reviewer. Check the work for...',
+    tools: ['read', 'diff', 'comment', 'approve', 'reject'],
+    permissions: ['read_all', 'comment', 'approve'],
+    maxIterations: 10,
+    autoSubmit: false,
+    canMessage: ['coordinator', 'worker']
+  },
+  {
+    id: 'refinery',
+    name: 'Refinery',
+    description: 'Handles merge conflicts and integration',
+    systemPrompt: 'You are the Refinery. Resolve conflicts...',
+    tools: ['read', 'write', 'git_merge', 'git_rebase', 'resolve_conflict'],
+    permissions: ['read_all', 'write_all', 'git_operations'],
+    maxIterations: 30,
+    autoSubmit: true,
+    canMessage: ['coordinator']
+  },
+  {
+    id: 'monitor',
+    name: 'Monitor (Deacon)',
+    description: 'Watches system health and alerts',
+    systemPrompt: 'You are the Monitor. Watch for...',
+    tools: ['query_metrics', 'check_health', 'alert', 'escalate'],
+    permissions: ['read_metrics', 'read_logs', 'send_alerts'],
+    maxIterations: 1000,  // Long-running
+    autoSubmit: true,
+    canMessage: ['coordinator']
+  }
+];
+```
+
+### Role Assignment
+
+```typescript
+// POST /api/v1/agents
+{
+  "name": "auth-worker-001",
+  "role": "worker",
+  "capabilities": ["typescript", "nodejs"],
+  "worktree": {
+    "repository": "myapp",
+    "branch": "feature/auth"
+  }
+}
+
+// POST /api/v1/swarms
+{
+  "name": "feature-auth-swarm",
+  "coordinator": {
+    "role": "coordinator",
+    "model": "claude-opus-4"
+  },
+  "workers": [
+    { "role": "worker", "count": 3, "model": "claude-sonnet-4" },
+    { "role": "reviewer", "count": 1, "model": "claude-sonnet-4" }
+  ],
+  "task": {
+    "description": "Implement user authentication",
+    "acceptance_criteria": [...]
+  }
+}
+```
+
+### Inter-Agent Communication
+
+```typescript
+// Message passing between agents
+interface AgentMessage {
+  id: string;
+  from: string;      // Agent ID
+  to: string;        // Agent ID or broadcast
+  role: string;
+  type: 'task' | 'status' | 'result' | 'alert' | 'query';
+  content: string;
+  payload: any;
+  timestamp: Date;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+}
+
+// Agent mailbox
+interface AgentMailbox {
+  agentId: string;
+  messages: AgentMessage[];
+  unreadCount: number;
+  
+  send(message: AgentMessage): Promise<void>;
+  receive(filter?: MessageFilter): Promise<AgentMessage[]>;
+  markRead(messageId: string): Promise<void>;
+}
+```
+
+---
+
+## Remote Execution Environment ("Weaver")
+
+### Overview
+Implement Loom-inspired remote execution environments for sandboxed agent operations.
+
+### Architecture
+
+```typescript
+interface RemoteExecutionProvider {
+  // Provider types
+  type: 'kubernetes' | 'firecracker' | 'docker' | 'vm';
+  
+  // Lifecycle
+  createEnvironment(config: EnvironmentConfig): Promise<Environment>;
+  destroyEnvironment(envId: string): Promise<void>;
+  
+  // Execution
+  executeCommand(envId: string, command: string): Promise<CommandResult>;
+  syncFiles(envId: string, localPath: string, remotePath: string): Promise<void>;
+  
+  // Monitoring
+  getResourceUsage(envId: string): Promise<ResourceUsage>;
+}
+
+interface EnvironmentConfig {
+  // Resources
+  cpu: number;           // CPU cores
+  memory: string;        // e.g., "4Gi"
+  disk: string;          // e.g., "20Gi"
+  gpu?: string;          // e.g., "nvidia-tesla-t4"
+  
+  // Networking
+  networkPolicy: 'isolated' | 'egress-only' | 'full';
+  allowedHosts?: string[];
+  
+  // Storage
+  volumes: VolumeConfig[];
+  persistentStorage: boolean;
+  
+  // Security
+  runAsUser: number;
+  runAsGroup: number;
+  readOnlyRootFilesystem: boolean;
+  capabilities: string[];
+  
+  // Image
+  image: string;
+  initCommands: string[];
+}
+
+interface Environment {
+  id: string;
+  status: 'creating' | 'ready' | 'busy' | 'error' | 'destroying';
+  endpoint: string;      // SSH or exec endpoint
+  createdAt: Date;
+  expiresAt: Date;       // Auto-cleanup
+  resourceUsage: ResourceUsage;
+}
+```
+
+### Kubernetes Implementation
+
+```yaml
+# Kubernetes CRD: AgentSession
+apiVersion: dash.dev/v1
+kind: AgentSession
+metadata:
+  name: session-abc123
+spec:
+  resources:
+    cpu: 2
+    memory: "4Gi"
+    disk: "20Gi"
+  image: "dash-agent:latest"
+  volumes:
+    - name: workspace
+      emptyDir: {}
+    - name: shared-cache
+      persistentVolumeClaim:
+        claimName: agent-cache
+  networkPolicy: egress-only
+  ttl: 3600  # Auto-destroy after 1 hour idle
+  
+status:
+  phase: Running
+  podName: agent-session-abc123
+  endpoint: "exec://agent-session-abc123"
+  startedAt: "2026-01-15T10:00:00Z"
+```
+
+### Firecracker MicroVM Implementation
+
+```typescript
+// Firecracker microVM for ultra-fast startup
+class FirecrackerProvider implements RemoteExecutionProvider {
+  async createEnvironment(config: EnvironmentConfig): Promise<Environment> {
+    // 1. Create microVM with pre-built rootfs
+    const vm = await this.firecracker.createVM({
+      kernel: '/opt/dash/firecracker-kernel',
+      rootfs: '/opt/dash/agent-rootfs.ext4',
+      cpu: config.cpu,
+      memory: config.memory,
+      network: 'tap0'
+    });
+    
+    // 2. Mount workspace volume
+    await vm.mountVolume('workspace', config.volumes[0]);
+    
+    // 3. Start agent daemon
+    await vm.exec('/usr/local/bin/agent-daemon --mode=remote');
+    
+    return {
+      id: vm.id,
+      status: 'ready',
+      endpoint: `firecracker://${vm.ip}:7373`,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 3600000),
+      resourceUsage: { cpu: 0, memory: 0 }
+    };
+  }
+  
+  // Cold start: ~100ms
+  // Warm start (snapshot restore): ~10ms
+}
+```
+
+---
+
+## Server-Side LLM Proxy
+
+### Overview
+Implement Loom-inspired server-side proxy to keep API keys secure and enable unified access control.
+
+### Architecture
+
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Client    │──────▶│  Dash Proxy  │──────▶│  Anthropic  │
+│  (CLI/UI)   │      │   (Secure)   │      │   (Claude)  │
+└─────────────┘      └──────────────┘      └─────────────┘
+                            │
+                            ▼
+                     ┌──────────────┐
+                     │  Provider B  │
+                     │  (OpenAI)    │
+                     └──────────────┘
+```
+
+### Proxy Implementation
+
+```typescript
+interface LlmProxy {
+  // Provider management
+  registerProvider(config: ProviderConfig): void;
+  
+  // Request handling
+  handleCompletion(req: CompletionRequest): Promise<CompletionResponse>;
+  handleStreaming(req: StreamingRequest): AsyncIterable<Chunk>;
+  
+  // Routing
+  routeRequest(req: Request): Provider;
+  
+  // Monitoring
+  logUsage(usage: TokenUsage): void;
+  enforceRateLimit(userId: string): boolean;
+}
+
+interface CompletionRequest {
+  // User provides model hint, proxy resolves to actual provider
+  model_hint: string;  // "smart", "fast", "cheap", "claude", "gpt-4"
+  
+  // Or explicit provider
+  provider?: string;
+  model?: string;
+  
+  messages: Message[];
+  tools?: Tool[];
+  temperature?: number;
+  max_tokens?: number;
+  
+  // Routing hints
+  routing?: {
+    fallback_allowed: boolean;
+    cost_limit?: number;
+    latency_requirement?: 'low' | 'normal';
+  };
+}
+
+// Provider adapters
+interface ProviderAdapter {
+  name: string;
+  
+  // Transform request to provider format
+  transformRequest(req: CompletionRequest): ProviderRequest;
+  
+  // Transform response to standard format
+  transformResponse(res: ProviderResponse): CompletionResponse;
+  
+  // Health check
+  checkHealth(): Promise<HealthStatus>;
+  
+  // Cost calculation
+  calculateCost(usage: TokenUsage): number;
+}
+```
+
+### API Endpoints
+
+```typescript
+// POST /proxy/v1/chat/completions
+// OpenAI-compatible endpoint
+{
+  "model": "claude-sonnet-4",  // Or "smart", "fast"
+  "messages": [...],
+  "stream": true,
+  "routing": {
+    "fallback_allowed": true,
+    "cost_limit": 0.10
+  }
+}
+
+// Response (OpenAI-compatible format)
+{
+  "id": "chatcmpl-abc123",
+  "model": "claude-sonnet-4-5",
+  "provider": "anthropic",
+  "choices": [...],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 200,
+    "total_tokens": 300,
+    "cost_usd": 0.023
+  }
+}
+
+// GET /proxy/v1/models
+{
+  "data": [
+    {
+      "id": "claude-opus-4",
+      "provider": "anthropic",
+      "capabilities": ["reasoning", "code", "vision"],
+      "cost_per_1k": { "input": 0.015, "output": 0.075 }
+    },
+    {
+      "id": "gpt-4o",
+      "provider": "openai",
+      "capabilities": ["vision", "code"],
+      "cost_per_1k": { "input": 0.005, "output": 0.015 }
+    }
+  ]
+}
+```
+
+### Security Features
+
+```typescript
+interface ProxySecurity {
+  // Authentication
+  authenticateRequest(req: Request): Promise<AuthResult>;
+  
+  // Authorization
+  checkPermissions(user: User, action: string): boolean;
+  
+  // Rate limiting
+  checkRateLimit(userId: string, model: string): boolean;
+  
+  // Audit logging
+  logRequest(req: Request, res: Response): void;
+  
+  // Content filtering
+  filterInput(messages: Message[]): Message[];
+  filterOutput(content: string): string;
+  
+  // PII detection
+  detectPII(content: string): PIIReport;
+}
+```
+
+---
+
+## Pi Integration Core Components (Detailed)
+
+Based on the complete Pi-Dash integration design, the following core components provide detailed implementation specifications:
+
+### PiRegistry
+
+**Purpose:** Discover, monitor, and manage Pi instances across different deployment modes.
+
+```typescript
+interface PiRegistry {
+  // Discovery strategies
+  discoverInstances(strategy: DiscoveryStrategy): Promise<PiInstance[]>;
+  
+  // Instance management
+  register(instance: PiInstance): void;
+  unregister(instanceId: string): void;
+  
+  // Health monitoring
+  monitorHealth(instanceId: string): HealthStatus;
+  
+  // Capacity tracking
+  getAvailableCapacity(): CapacityReport;
+  
+  // Selection
+  selectInstance(criteria: SelectionCriteria): PiInstance;
+}
+
+interface PiInstance {
+  id: string;
+  endpoint: string;           // RPC endpoint
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  provider: string;           // anthropic, openai, etc.
+  model: string;
+  capabilities: string[];
+  currentLoad: number;
+  maxCapacity: number;
+  lastHeartbeat: Date;
+  version: string;
+  metadata: Record<string, any>;
+}
+
+type DiscoveryStrategy = 
+  | { type: 'static'; instances: PiInstance[] }
+  | { type: 'openclaw_gateway'; gatewayUrl: string }
+  | { type: 'kubernetes'; namespace: string; labelSelector: string }
+  | { type: 'auto_spawn'; spawnConfig: SpawnConfig };
+```
+
+**Discovery Strategies:**
+1. **Static:** Pre-configured instance list
+2. **OpenClaw Gateway:** Query OpenClaw gateway for available Pi sessions
+3. **Kubernetes:** Discover Pi pods via K8s API
+4. **Auto-Spawn:** Dynamically spawn new Pi instances on demand
+
+### PiSessionManager
+
+**Purpose:** Full lifecycle management of Pi sessions with persistence and recovery.
+
+```typescript
+interface PiSessionManager {
+  // Lifecycle
+  create(config: SessionConfig): Promise<PiSession>;
+  pause(sessionId: string): Promise<void>;
+  resume(sessionId: string): Promise<PiSession>;
+  terminate(sessionId: string, options: TerminateOptions): Promise<void>;
+  
+  // State management
+  checkpoint(sessionId: string): Promise<Checkpoint>;
+  restore(checkpointId: string): Promise<PiSession>;
+  migrate(sessionId: string, targetInstance: string): Promise<void>;
+  
+  // Query
+  getSession(sessionId: string): PiSession;
+  listSessions(filter?: SessionFilter): PiSession[];
+}
+
+interface PiSession {
+  id: string;
+  instanceId: string;
+  status: 'creating' | 'active' | 'paused' | 'resuming' | 'terminating';
+  
+  // Pi configuration
+  provider: string;
+  model: string;
+  tools: string[];
+  systemPrompt?: string;
+  
+  // State
+  treeRoot: TreeNode;
+  currentNodeId: string;
+  checkpointCount: number;
+  
+  // Metrics
+  createdAt: Date;
+  lastActivity: Date;
+  tokenUsage: TokenUsage;
+  costIncurred: number;
+}
+```
+
+**Session Persistence:**
+- Checkpoints stored in Redis (hot) and PostgreSQL (cold)
+- Automatic checkpointing every N messages or on state change
+- Recovery from last checkpoint on session resume
+
+### ModelRouter
+
+**Purpose:** Intelligent routing across 15+ providers with cost, latency, and quality optimization.
+
+```typescript
+interface ModelRouter {
+  // Routing strategies
+  route(request: RoutingRequest): RoutingDecision;
+  
+  // Provider health
+  getProviderHealth(providerId: string): HealthStatus;
+  getAllProviderHealth(): Map<string, HealthStatus>;
+  
+  // Cost tracking
+  getCostEstimate(request: RoutingRequest): CostEstimate;
+  recordActualCost(usage: TokenUsage, provider: string): void;
+}
+
+interface RoutingRequest {
+  // Content
+  messages: Message[];
+  tools?: Tool[];
+  
+  // Requirements
+  requiredCapabilities?: string[];
+  preferredProvider?: string;
+  
+  // Constraints
+  maxCost?: number;
+  maxLatency?: number;
+  requireHighQuality?: boolean;
+  
+  // Routing hints
+  strategy?: 'cost_optimized' | 'latency_optimized' | 'quality_optimized' | 'fallback_chain';
+}
+
+interface RoutingDecision {
+  provider: string;
+  model: string;
+  estimatedCost: number;
+  estimatedLatency: number;
+  fallbackChain: string[];
+  reason: string;
+}
+
+// Routing Strategies Implementation
+const routingStrategies: Record<string, RoutingStrategy> = {
+  cost_optimized: (req, providers) => {
+    const eligible = providers.filter(p => 
+      hasCapabilities(p, req.requiredCapabilities) &&
+      (!req.maxCost || estimateCost(p, req) <= req.maxCost)
+    );
+    return eligible.sort((a, b) => estimateCost(a, req) - estimateCost(b, req))[0];
+  },
+  
+  latency_optimized: (req, providers) => {
+    const healthy = providers.filter(p => p.health.latency < 1000);
+    return healthy.sort((a, b) => a.health.latency - b.health.latency)[0];
+  },
+  
+  quality_optimized: (req, providers) => {
+    const capable = providers.filter(p => 
+      p.capabilities.includes('reasoning') ||
+      p.model.includes('opus') ||
+      p.model.includes('o1')
+    );
+    return capable.sort((a, b) => b.qualityScore - a.qualityScore)[0];
+  },
+  
+  fallback_chain: (req, providers) => {
+    const chain = req.preferredProvider 
+      ? [req.preferredProvider, 'anthropic', 'openai', 'google']
+      : ['anthropic', 'openai', 'google'];
+    for (const providerId of chain) {
+      const provider = providers.find(p => p.id === providerId && p.health.status === 'healthy');
+      if (provider) return provider;
+    }
+    throw new Error('No healthy providers in fallback chain');
+  }
+};
+```
+
+### SessionTreeManager
+
+**Purpose:** Tree-structured conversation management with branching and merging.
+
+```typescript
+interface SessionTreeManager {
+  // Tree operations
+  getTree(sessionId: string): ConversationTree;
+  createBranch(sessionId: string, fromNodeId: string, name: string): Branch;
+  switchBranch(sessionId: string, branchId: string): void;
+  mergeBranch(sessionId: string, branchId: string, targetNodeId: string): void;
+  
+  // Navigation
+  getPathToRoot(sessionId: string, nodeId: string): TreeNode[];
+  getChildren(sessionId: string, nodeId: string): TreeNode[];
+  
+  // Forking
+  forkSession(fromSessionId: string, fromNodeId: string, newConfig: SessionConfig): PiSession;
+  
+  // Compaction
+  compactHistory(sessionId: string, threshold: number): CompactionReport;
+}
+
+interface ConversationTree {
+  root: TreeNode;
+  nodes: Map<string, TreeNode>;
+  branches: Branch[];
+  currentBranchId: string;
+  metadata: TreeMetadata;
+}
+
+interface TreeNode {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  parentId?: string;
+  children: string[];
+  branchId: string;
+  
+  // Pi-specific
+  toolCalls?: ToolCall[];
+  toolResults?: ToolResult[];
+  piCheckpoint?: string;  // Reference to Pi session checkpoint
+  
+  // Metadata
+  timestamp: Date;
+  tokenCount: number;
+  cumulativeTokens: number;
+  isCompacted: boolean;
+  summary?: string;
+}
+
+interface Branch {
+  id: string;
+  name: string;
+  baseNodeId: string;    // Where this branch diverged
+  headNodeId: string;    // Current tip of branch
+  createdAt: Date;
+  status: 'active' | 'merged' | 'abandoned';
+}
+```
+
+### ToolInterceptor
+
+**Purpose:** Route tool calls between Pi, Dash tools, and remote executors with policy enforcement.
+
+```typescript
+interface ToolInterceptor {
+  // Tool registration
+  registerTool(tool: Tool): void;
+  registerRemoteExecutor(executor: RemoteExecutor): void;
+  
+  // Execution
+  intercept(toolCall: ToolCall, context: ToolContext): Promise<ToolResult>;
+  
+  // Policy
+  checkPolicy(toolName: string, context: ToolContext): PolicyDecision;
+}
+
+interface Tool {
+  name: string;
+  description: string;
+  parameters: JSONSchema;
+  execute: (args: any, context: ToolContext) => Promise<any>;
+}
+
+interface ToolContext {
+  sessionId: string;
+  agentId: string;
+  userId: string;
+  tenantId: string;
+  worktreePath?: string;
+  permissions: string[];
+}
+
+interface PolicyDecision {
+  allowed: boolean;
+  reason?: string;
+  sanitizedArgs?: any;
+}
+
+// Built-in Tools
+const builtInTools: Tool[] = [
+  {
+    name: 'read',
+    description: 'Read file contents',
+    parameters: { type: 'object', properties: { path: { type: 'string' } } },
+    execute: async ({ path }, context) => {
+      // Enforce worktree isolation
+      const fullPath = resolveInWorktree(path, context.worktreePath);
+      return fs.readFile(fullPath, 'utf-8');
+    }
+  },
+  {
+    name: 'write',
+    description: 'Write file contents',
+    parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } } },
+    execute: async ({ path, content }, context) => {
+      const fullPath = resolveInWorktree(path, context.worktreePath);
+      await fs.writeFile(fullPath, content);
+      return { success: true };
+    }
+  },
+  {
+    name: 'todo_write',
+    description: 'Create and manage todo lists',
+    parameters: { 
+      type: 'object', 
+      properties: { 
+        todos: { 
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              content: { type: 'string' },
+              status: { enum: ['pending', 'in_progress', 'completed'] },
+              priority: { enum: ['low', 'medium', 'high'] }
+            }
+          }
+        }
+      } 
+    },
+    execute: async ({ todos }, context) => {
+      await todoStore.update(context.sessionId, todos);
+      return { success: true, todos };
+    }
+  }
+];
+```
+
+### StateSynchronizer
+
+**Purpose:** Reliable state persistence with Redis/PostgreSQL and checkpoint/restore.
+
+```typescript
+interface StateSynchronizer {
+  // Checkpoint operations
+  saveCheckpoint(sessionId: string, state: SessionState): Promise<Checkpoint>;
+  loadCheckpoint(checkpointId: string): Promise<SessionState>;
+  listCheckpoints(sessionId: string): Checkpoint[];
+  deleteCheckpoint(checkpointId: string): void;
+  
+  // Session state
+  saveSessionState(sessionId: string, state: SessionState): Promise<void>;
+  loadSessionState(sessionId: string): Promise<SessionState>;
+  
+  // Tree state
+  saveTreeState(sessionId: string, tree: ConversationTree): Promise<void>;
+  loadTreeState(sessionId: string): Promise<ConversationTree>;
+}
+
+interface Checkpoint {
+  id: string;
+  sessionId: string;
+  createdAt: Date;
+  state: SessionState;
+  metadata: {
+    messageCount: number;
+    tokenCount: number;
+    trigger: 'manual' | 'auto' | 'pre_tool' | 'post_tool';
+  };
+}
+
+// Storage implementation
+class HybridStateSynchronizer implements StateSynchronizer {
+  constructor(
+    private redis: RedisClient,      // Hot storage
+    private postgres: PostgresClient  // Cold storage
+  ) {}
+  
+  async saveCheckpoint(sessionId: string, state: SessionState): Promise<Checkpoint> {
+    const checkpoint: Checkpoint = {
+      id: `cp_${Date.now()}_${randomId()}`,
+      sessionId,
+      createdAt: new Date(),
+      state,
+      metadata: this.extractMetadata(state)
+    };
+    
+    // Save to Redis (fast)
+    await this.redis.setex(
+      `checkpoint:${checkpoint.id}`,
+      86400, // 24h TTL
+      JSON.stringify(checkpoint)
+    );
+    
+    // Save to PostgreSQL (durable)
+    await this.postgres.query(
+      'INSERT INTO checkpoints (id, session_id, state, metadata) VALUES ($1, $2, $3, $4)',
+      [checkpoint.id, sessionId, state, checkpoint.metadata]
+    );
+    
+    return checkpoint;
+  }
+  
+  async loadSessionState(sessionId: string): Promise<SessionState> {
+    // Try Redis first
+    const cached = await this.redis.get(`session:${sessionId}`);
+    if (cached) return JSON.parse(cached);
+    
+    // Fall back to PostgreSQL
+    const result = await this.postgres.query(
+      'SELECT state FROM session_states WHERE session_id = $1 ORDER BY updated_at DESC LIMIT 1',
+      [sessionId]
+    );
+    
+    return result.rows[0]?.state;
+  }
+}
+```
+
+### Error Handling
+
+```typescript
+interface ErrorHandler {
+  // Error classification
+  classify(error: Error): ErrorCategory;
+  
+  // Retry logic
+  shouldRetry(error: Error, attemptCount: number): boolean;
+  getRetryDelay(error: Error, attemptCount: number): number;
+  
+  // Fallback
+  getFallbackProvider(error: Error, currentProvider: string): string | null;
+}
+
+type ErrorCategory = 
+  | 'transient'       // Retry with backoff
+  | 'rate_limit'      // Retry after delay
+  | 'auth'            // Fail immediately
+  | 'invalid_request' // Fail immediately  
+  | 'context_length'  // Try compacting or shorter model
+  | 'fatal';          // Fail and alert
+
+const errorClassifier: Record<string, ErrorCategory> = {
+  'ECONNRESET': 'transient',
+  'ETIMEDOUT': 'transient',
+  'rate_limit_exceeded': 'rate_limit',
+  'insufficient_quota': 'auth',
+  'invalid_api_key': 'auth',
+  'context_length_exceeded': 'context_length',
+  'max_tokens_exceeded': 'context_length'
+};
+
+class RetryHandler {
+  async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    options: {
+      maxAttempts: number;
+      baseDelay: number;
+      maxDelay: number;
+      onRetry?: (error: Error, attempt: number) => void;
+    }
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        const category = this.classify(error);
+        
+        if (category === 'fatal' || category === 'auth') throw error;
+        if (attempt === options.maxAttempts) throw error;
+        
+        const delay = Math.min(
+          options.baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000,
+          options.maxDelay
+        );
+        
+        options.onRetry?.(error, attempt);
+        await sleep(delay);
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+}
+```
+
+---
+
+## Specifications Summary
+
+### New Capabilities Added
+
+| Specification | Status | Priority | Source |
+|--------------|--------|----------|--------|
+| Pi Integration | Design | P0 | Pi SDK analysis |
+| Git Worktree Isolation | Design | P1 | Gas Town Hooks |
+| Multi-Model Orchestration | Design | P0 | Pi multi-provider |
+| Tree-Structured Sessions | Design | P1 | Pi tree navigation |
+| Agent Role System | Design | P1 | Gas Town roles |
+| Remote Execution | Design | P2 | Loom Weaver |
+| Server-Side Proxy | Design | P1 | Loom proxy |
+| Feature Flags | Design | P3 | Loom |
+| Todo Tracking | Design | P2 | Pi todo_write |
+| Merge Queue | Design | P2 | Gas Town Refinery |
+
+### Implementation Roadmap
+
+**Phase 1 (Current Sprint):**
+- Pi integration core (`src/integrations/pi/`)
+- Multi-model routing
+- Server-side proxy
+
+**Phase 2 (Next Sprint):**
+- Git worktree isolation
+- Tree-structured sessions
+- Agent role system
+
+**Phase 3 (Future):**
+- Remote execution (Weaver)
+- Merge queue integration
+- Advanced feature flags
+
+---
+
+*End of Extended Technical Specifications v2.0*
+
