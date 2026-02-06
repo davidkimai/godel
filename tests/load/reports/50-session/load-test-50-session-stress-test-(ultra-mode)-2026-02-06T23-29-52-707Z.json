@@ -1,0 +1,823 @@
+{
+  "test": {
+    "name": "50 Session Stress Test (Ultra Mode)",
+    "sessions": 50,
+    "duration": 0.5,
+    "rampUp": 10,
+    "agentsPerSession": 4,
+    "workload": "mixed",
+    "criteria": {
+      "maxLatencyMs": 500,
+      "maxErrorRate": 0.05,
+      "minThroughput": 150,
+      "maxCpuPercent": 85,
+      "maxMemoryGrowthMB": 500
+    }
+  },
+  "startTime": "2026-02-06T23:27:07.992Z",
+  "durationMs": 164709.977333,
+  "success": true,
+  "scenarios": [
+    {
+      "sessionIndex": 0,
+      "swarmId": "load-test-50-1770420427992-0",
+      "success": true,
+      "durationMs": 30818.023792,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 159.3890736999998,
+        "min": 12.531207999999992,
+        "max": 438.888167000001,
+        "p95": 420.483792,
+        "p99": 438.888167000001
+      }
+    },
+    {
+      "sessionIndex": 1,
+      "swarmId": "load-test-50-1770420427992-1",
+      "success": true,
+      "durationMs": 30682.468875,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 194.6415934137929,
+        "min": 29.264584000000013,
+        "max": 457.5177920000001,
+        "p95": 444.4140409999991,
+        "p99": 457.5177920000001
+      }
+    },
+    {
+      "sessionIndex": 2,
+      "swarmId": "load-test-50-1770420427992-2",
+      "success": true,
+      "durationMs": 31219.827875,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 212.62542382758642,
+        "min": 14.019457999999986,
+        "max": 453.31587500000023,
+        "p95": 443.41641700000037,
+        "p99": 453.31587500000023
+      }
+    },
+    {
+      "sessionIndex": 3,
+      "swarmId": "load-test-50-1770420427992-3",
+      "success": true,
+      "durationMs": 31075.831417,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 207.87148427586212,
+        "min": 10.449499999999944,
+        "max": 481.192583,
+        "p95": 472.0756249999977,
+        "p99": 481.192583
+      }
+    },
+    {
+      "sessionIndex": 4,
+      "swarmId": "load-test-50-1770420427992-4",
+      "success": true,
+      "durationMs": 31166.654208,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 170.2906486000002,
+        "min": 9.871958000000063,
+        "max": 401.5968750000029,
+        "p95": 363.7597080000014,
+        "p99": 401.5968750000029
+      }
+    },
+    {
+      "sessionIndex": 5,
+      "swarmId": "load-test-50-1770420427992-5",
+      "success": true,
+      "durationMs": 30463.646625,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 147.3959361333332,
+        "min": 13.220124999999939,
+        "max": 325.55045799999994,
+        "p95": 264.19945799999914,
+        "p99": 325.55045799999994
+      }
+    },
+    {
+      "sessionIndex": 6,
+      "swarmId": "load-test-50-1770420427992-6",
+      "success": true,
+      "durationMs": 30936.687041999998,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 162.87099429999992,
+        "min": 12.668541000000005,
+        "max": 344.8049169999995,
+        "p95": 297.466207999998,
+        "p99": 344.8049169999995
+      }
+    },
+    {
+      "sessionIndex": 7,
+      "swarmId": "load-test-50-1770420427992-7",
+      "success": true,
+      "durationMs": 30459.097875,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 187.12966510344845,
+        "min": 19.120374999999967,
+        "max": 488.2562079999989,
+        "p95": 393.1400420000027,
+        "p99": 488.2562079999989
+      }
+    },
+    {
+      "sessionIndex": 8,
+      "swarmId": "load-test-50-1770420427992-8",
+      "success": true,
+      "durationMs": 30159.120458,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 176.53948268965507,
+        "min": 24.316124999999943,
+        "max": 494.48675000000003,
+        "p95": 466.6001249999972,
+        "p99": 494.48675000000003
+      }
+    },
+    {
+      "sessionIndex": 9,
+      "swarmId": "load-test-50-1770420427992-9",
+      "success": true,
+      "durationMs": 30381.85825,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 184.1739811724138,
+        "min": 19.761167,
+        "max": 495.1835000000001,
+        "p95": 449.89966700000014,
+        "p99": 495.1835000000001
+      }
+    },
+    {
+      "sessionIndex": 10,
+      "swarmId": "load-test-50-1770420461216-10",
+      "success": true,
+      "durationMs": 30774.799208999997,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 158.02263620000062,
+        "min": 9.785834000002069,
+        "max": 471.68133300000045,
+        "p95": 427.2300000000032,
+        "p99": 471.68133300000045
+      }
+    },
+    {
+      "sessionIndex": 11,
+      "swarmId": "load-test-50-1770420461216-11",
+      "success": true,
+      "durationMs": 30714.341334000004,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 195.22554751724113,
+        "min": 9.841291999997338,
+        "max": 471.78862500000105,
+        "p95": 449.5062919999982,
+        "p99": 471.78862500000105
+      }
+    },
+    {
+      "sessionIndex": 12,
+      "swarmId": "load-test-50-1770420461216-12",
+      "success": true,
+      "durationMs": 30603.647292,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 191.9425575172409,
+        "min": 13.62891700000182,
+        "max": 491.82887499999924,
+        "p95": 432.4595419999969,
+        "p99": 491.82887499999924
+      }
+    },
+    {
+      "sessionIndex": 13,
+      "swarmId": "load-test-50-1770420461216-13",
+      "success": true,
+      "durationMs": 30819.764665999995,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 159.27194030000004,
+        "min": 16.953583000002254,
+        "max": 445.13637500000186,
+        "p95": 366.00329200000124,
+        "p99": 445.13637500000186
+      }
+    },
+    {
+      "sessionIndex": 14,
+      "swarmId": "load-test-50-1770420461216-14",
+      "success": true,
+      "durationMs": 30875.032332999996,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 200.91522710344776,
+        "min": 9.811374999997497,
+        "max": 473.7427499999976,
+        "p95": 471.6799580000006,
+        "p99": 473.7427499999976
+      }
+    },
+    {
+      "sessionIndex": 15,
+      "swarmId": "load-test-50-1770420461216-15",
+      "success": true,
+      "durationMs": 30635.869042,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 193.15911072413718,
+        "min": 12.07091699999728,
+        "max": 497.68091699999786,
+        "p95": 437.9427499999947,
+        "p99": 497.68091699999786
+      }
+    },
+    {
+      "sessionIndex": 16,
+      "swarmId": "load-test-50-1770420461216-16",
+      "success": true,
+      "durationMs": 30718.792625000002,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 196.0303851034485,
+        "min": 21.791666999997688,
+        "max": 497.3220829999991,
+        "p95": 489.16849999999977,
+        "p99": 497.3220829999991
+      }
+    },
+    {
+      "sessionIndex": 17,
+      "swarmId": "load-test-50-1770420461216-17",
+      "success": true,
+      "durationMs": 30288.971375,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 180.6418863793106,
+        "min": 16.927667000003566,
+        "max": 416.518333,
+        "p95": 402.6431250000023,
+        "p99": 416.518333
+      }
+    },
+    {
+      "sessionIndex": 18,
+      "swarmId": "load-test-50-1770420461216-18",
+      "success": true,
+      "durationMs": 31355.396332999997,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 177.21495130000014,
+        "min": 17.044499999996333,
+        "max": 476.88254099999904,
+        "p95": 450.75708300000406,
+        "p99": 476.88254099999904
+      }
+    },
+    {
+      "sessionIndex": 19,
+      "swarmId": "load-test-50-1770420461216-19",
+      "success": true,
+      "durationMs": 31218.824666,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 172.6360471333331,
+        "min": 16.686083000000508,
+        "max": 464.77179199999955,
+        "p95": 450.11699999999837,
+        "p99": 464.77179199999955
+      }
+    },
+    {
+      "sessionIndex": 20,
+      "swarmId": "load-test-50-1770420494575-20",
+      "success": true,
+      "durationMs": 30532.456999999995,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 189.666781620688,
+        "min": 9.778957999995328,
+        "max": 498.47770899999887,
+        "p95": 474.874834000002,
+        "p99": 498.47770899999887
+      }
+    },
+    {
+      "sessionIndex": 21,
+      "swarmId": "load-test-50-1770420494575-21",
+      "success": true,
+      "durationMs": 30526.60495800001,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 189.36348989655178,
+        "min": 10.737374999996973,
+        "max": 449.6369580000028,
+        "p95": 432.94458300000406,
+        "p99": 449.6369580000028
+      }
+    },
+    {
+      "sessionIndex": 22,
+      "swarmId": "load-test-50-1770420494575-22",
+      "success": true,
+      "durationMs": 30239.006916,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 179.37706896551816,
+        "min": 21.693499999993946,
+        "max": 469.19083399999363,
+        "p95": 449.8925420000014,
+        "p99": 469.19083399999363
+      }
+    },
+    {
+      "sessionIndex": 23,
+      "swarmId": "load-test-50-1770420494575-23",
+      "success": true,
+      "durationMs": 30293.535584000012,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 181.56888786207028,
+        "min": 13.145042000003741,
+        "max": 370.3862080000108,
+        "p95": 368.5876250000001,
+        "p99": 370.3862080000108
+      }
+    },
+    {
+      "sessionIndex": 24,
+      "swarmId": "load-test-50-1770420494575-24",
+      "success": true,
+      "durationMs": 30887.256875000006,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 201.79672713792914,
+        "min": 16.636707999990904,
+        "max": 503.8746669999964,
+        "p95": 437.32616700000654,
+        "p99": 503.8746669999964
+      }
+    },
+    {
+      "sessionIndex": 25,
+      "swarmId": "load-test-50-1770420494575-25",
+      "success": true,
+      "durationMs": 31345.366083999994,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 177.02237776666541,
+        "min": 10.9136659999931,
+        "max": 491.6181670000078,
+        "p95": 430.46524999999383,
+        "p99": 491.6181670000078
+      }
+    },
+    {
+      "sessionIndex": 26,
+      "swarmId": "load-test-50-1770420494575-26",
+      "success": true,
+      "durationMs": 30532.410208,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 189.18013655172473,
+        "min": 16.286708999992697,
+        "max": 499.2230419999978,
+        "p95": 494.3787500000035,
+        "p99": 499.2230419999978
+      }
+    },
+    {
+      "sessionIndex": 27,
+      "swarmId": "load-test-50-1770420494575-27",
+      "success": true,
+      "durationMs": 31467.40808400001,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 181.16348753333295,
+        "min": 19.251332999992883,
+        "max": 468.3427079999965,
+        "p95": 435.8652920000022,
+        "p99": 468.3427079999965
+      }
+    },
+    {
+      "sessionIndex": 28,
+      "swarmId": "load-test-50-1770420494575-28",
+      "success": true,
+      "durationMs": 30417.714708,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 185.20025134482722,
+        "min": 13.101832999993348,
+        "max": 449.7123330000031,
+        "p95": 426.2173749999929,
+        "p99": 449.7123330000031
+      }
+    },
+    {
+      "sessionIndex": 29,
+      "swarmId": "load-test-50-1770420494575-29",
+      "success": true,
+      "durationMs": 30898.68304199999,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 202.25752589655016,
+        "min": 21.08604199999536,
+        "max": 457.55095900000015,
+        "p95": 417.52941600000486,
+        "p99": 457.55095900000015
+      }
+    },
+    {
+      "sessionIndex": 30,
+      "swarmId": "load-test-50-1770420528049-30",
+      "success": true,
+      "durationMs": 30106.72875000001,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 174.39122548275867,
+        "min": 15.264666000002762,
+        "max": 483.5532919999969,
+        "p95": 416.74529099999927,
+        "p99": 483.5532919999969
+      }
+    },
+    {
+      "sessionIndex": 31,
+      "swarmId": "load-test-50-1770420528049-31",
+      "success": true,
+      "durationMs": 30994.219165999995,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 165.00960413333135,
+        "min": 12.325708000003942,
+        "max": 477.4215419999964,
+        "p95": 392.5804999999964,
+        "p99": 477.4215419999964
+      }
+    },
+    {
+      "sessionIndex": 32,
+      "swarmId": "load-test-50-1770420528049-32",
+      "success": true,
+      "durationMs": 30994.364499999996,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 205.2162830689651,
+        "min": 38.83308300000499,
+        "max": 475.7014579999959,
+        "p95": 475.1654169999965,
+        "p99": 475.7014579999959
+      }
+    },
+    {
+      "sessionIndex": 33,
+      "swarmId": "load-test-50-1770420528049-33",
+      "success": true,
+      "durationMs": 31376.728332999992,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 218.09045831034672,
+        "min": 11.66250000000582,
+        "max": 454.55825000000186,
+        "p95": 436.81716700000106,
+        "p99": 454.55825000000186
+      }
+    },
+    {
+      "sessionIndex": 34,
+      "swarmId": "load-test-50-1770420528049-34",
+      "success": true,
+      "durationMs": 30362.216040999992,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 183.3496480344831,
+        "min": 13.561791000000085,
+        "max": 436.3185419999936,
+        "p95": 425.10458300000755,
+        "p99": 436.3185419999936
+      }
+    },
+    {
+      "sessionIndex": 35,
+      "swarmId": "load-test-50-1770420528049-35",
+      "success": true,
+      "durationMs": 30468.307125000007,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 186.9838146551714,
+        "min": 15.571250000008149,
+        "max": 444.46958299999824,
+        "p95": 405.71137499999895,
+        "p99": 444.46958299999824
+      }
+    },
+    {
+      "sessionIndex": 36,
+      "swarmId": "load-test-50-1770420528049-36",
+      "success": true,
+      "durationMs": 30867.12445799999,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 200.94459917241605,
+        "min": 38.335625000006985,
+        "max": 498.609083000003,
+        "p95": 447.21420899999794,
+        "p99": 498.609083000003
+      }
+    },
+    {
+      "sessionIndex": 37,
+      "swarmId": "load-test-50-1770420528049-37",
+      "success": true,
+      "durationMs": 30528.554625000004,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 188.96555462068926,
+        "min": 15.404750000001513,
+        "max": 482.52983400000085,
+        "p95": 477.01900000000023,
+        "p99": 482.52983400000085
+      }
+    },
+    {
+      "sessionIndex": 38,
+      "swarmId": "load-test-50-1770420528049-38",
+      "success": true,
+      "durationMs": 30968.69729099999,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 204.42344537931282,
+        "min": 24.699540999994497,
+        "max": 477.10725000000093,
+        "p95": 476.965750000003,
+        "p99": 477.10725000000093
+      }
+    },
+    {
+      "sessionIndex": 39,
+      "swarmId": "load-test-50-1770420528049-39",
+      "success": true,
+      "durationMs": 30254.083000000013,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 179.22611910344858,
+        "min": 19.307207999998354,
+        "max": 433.62566700000025,
+        "p95": 382.93729200000234,
+        "p99": 433.62566700000025
+      }
+    },
+    {
+      "sessionIndex": 40,
+      "swarmId": "load-test-50-1770420561432-40",
+      "success": true,
+      "durationMs": 30339.079582999984,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 225.13125446428708,
+        "min": 14.453333000012208,
+        "max": 470.4678329999733,
+        "p95": 468.7053339999984,
+        "p99": 470.4678329999733
+      }
+    },
+    {
+      "sessionIndex": 41,
+      "swarmId": "load-test-50-1770420561432-41",
+      "success": true,
+      "durationMs": 30644.315249999985,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 192.89154020689955,
+        "min": 25.546082999993814,
+        "max": 418.0955420000246,
+        "p95": 391.46508399999584,
+        "p99": 418.0955420000246
+      }
+    },
+    {
+      "sessionIndex": 42,
+      "swarmId": "load-test-50-1770420561432-42",
+      "success": true,
+      "durationMs": 31272.020292,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 173.81906796666445,
+        "min": 24.441457999986596,
+        "max": 425.54570800001966,
+        "p95": 380.6857080000045,
+        "p99": 425.54570800001966
+      }
+    },
+    {
+      "sessionIndex": 43,
+      "swarmId": "load-test-50-1770420561432-43",
+      "success": true,
+      "durationMs": 30313.154125,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 224.19154167857155,
+        "min": 32.72162500000559,
+        "max": 480.9464999999909,
+        "p95": 477.64991599999485,
+        "p99": 480.9464999999909
+      }
+    },
+    {
+      "sessionIndex": 44,
+      "swarmId": "load-test-50-1770420561432-44",
+      "success": true,
+      "durationMs": 30818.213541999983,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 159.08223336666416,
+        "min": 10.551124999998137,
+        "max": 488.28945800001384,
+        "p95": 288.7030000000086,
+        "p99": 488.28945800001384
+      }
+    },
+    {
+      "sessionIndex": 45,
+      "swarmId": "load-test-50-1770420561432-45",
+      "success": true,
+      "durationMs": 30469.322667,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 187.0780761724143,
+        "min": 14.283583000011276,
+        "max": 463.5400410000002,
+        "p95": 411.718292000005,
+        "p99": 463.5400410000002
+      }
+    },
+    {
+      "sessionIndex": 46,
+      "swarmId": "load-test-50-1770420561432-46",
+      "success": true,
+      "durationMs": 30802.553833000013,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 158.53820563333284,
+        "min": 11.474709000001894,
+        "max": 348.20087499998044,
+        "p95": 318.95437500000116,
+        "p99": 348.20087499998044
+      }
+    },
+    {
+      "sessionIndex": 47,
+      "swarmId": "load-test-50-1770420561432-47",
+      "success": true,
+      "durationMs": 30399.32029100001,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 184.50620255172493,
+        "min": 23.930165999976452,
+        "max": 408.40499999999884,
+        "p95": 400.59754199997406,
+        "p99": 408.40499999999884
+      }
+    },
+    {
+      "sessionIndex": 48,
+      "swarmId": "load-test-50-1770420561432-48",
+      "success": true,
+      "durationMs": 30708.24345900002,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 195.47075427586518,
+        "min": 22.87408300000243,
+        "max": 467.6475839999912,
+        "p95": 450.534249999997,
+        "p99": 467.6475839999912
+      }
+    },
+    {
+      "sessionIndex": 49,
+      "swarmId": "load-test-50-1770420561432-49",
+      "success": true,
+      "durationMs": 30983.452250000002,
+      "agentsSpawned": 4,
+      "errors": [],
+      "latency": {
+        "avg": 204.47156044827665,
+        "min": 24.759209000010742,
+        "max": 496.6959999999963,
+        "p95": 494.070624999993,
+        "p99": 496.6959999999963
+      }
+    }
+  ],
+  "metrics": {
+    "totalSessions": 50,
+    "successfulSessions": 50,
+    "failedSessions": 0,
+    "avgLatencyMs": 186.32732991591473,
+    "p95LatencyMs": 218.09045831034672,
+    "p99LatencyMs": 225.13125446428708,
+    "errorRate": 0,
+    "eventsPerSecond": 7.661952362779881,
+    "cpuUsagePercent": 0,
+    "memoryGrowthMB": -14.465629577636719,
+    "peakMemoryMB": 97.02027130126953,
+    "avgQueueDepth": 0
+  },
+  "checks": [
+    {
+      "name": "Max Latency",
+      "passed": true,
+      "expected": "<= 500ms",
+      "actual": "186.33ms",
+      "severity": "critical"
+    },
+    {
+      "name": "Error Rate",
+      "passed": true,
+      "expected": "<= 5.0%",
+      "actual": "0.00%",
+      "severity": "critical"
+    },
+    {
+      "name": "Min Throughput",
+      "passed": false,
+      "expected": ">= 150/sec",
+      "actual": "7.66/sec",
+      "severity": "warning"
+    },
+    {
+      "name": "CPU Usage",
+      "passed": true,
+      "expected": "<= 85%",
+      "actual": "0.0%",
+      "severity": "warning"
+    },
+    {
+      "name": "Memory Growth",
+      "passed": true,
+      "expected": "<= 500MB",
+      "actual": "-14.47MB",
+      "severity": "warning"
+    }
+  ]
+}

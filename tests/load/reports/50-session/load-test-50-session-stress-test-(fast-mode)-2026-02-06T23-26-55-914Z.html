@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Godel Load Test Report - 50 Session Stress Test (Fast Mode)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    header {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      color: #1a202c;
+      font-size: 2rem;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 1rem;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      background: #4CAF5020;
+      color: #4CAF50;
+      border: 2px solid #4CAF50;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin: 0 0 1rem 0;
+      color: #4a5568;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1a202c;
+    }
+    .metric-unit {
+      font-size: 1rem;
+      color: #718096;
+      font-weight: 400;
+    }
+    .metric-delta {
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    .metric-delta.positive { color: #48bb78; }
+    .metric-delta.negative { color: #f56565; }
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .chart-wrapper {
+      height: 300px;
+      position: relative;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      font-weight: 600;
+      color: #4a5568;
+      background: #f7fafc;
+    }
+    tr:hover { background: #f7fafc; }
+    .check-passed { color: #48bb78; font-weight: 600; }
+    .check-failed { color: #f56565; font-weight: 600; }
+    .check-warning { color: #ed8936; font-weight: 600; }
+    .severity-critical { color: #f56565; }
+    .severity-warning { color: #ed8936; }
+    .severity-info { color: #4299e1; }
+    .two-column {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .two-column { grid-template-columns: 1fr; }
+      .metric-value { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Godel Load Test Report</h1>
+      <div class="subtitle">50 Session Stress Test (Fast Mode)</div>
+      <div class="subtitle">Started: 2/6/2026, 5:21:25 PM</div>
+      <div class="subtitle">Duration: 330.3s</div>
+      <span class="status-badge">PASSED</span>
+    </header>
+
+    <!-- Key Metrics Grid -->
+    <div class="grid">
+      <div class="card">
+        <h3>Total Sessions</h3>
+        <div class="metric-value">50<span class="metric-unit"> / 50</span></div>
+        <div class="metric-delta positive">
+          50 successful, 0 failed
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Average Latency</h3>
+        <div class="metric-value">203.6<span class="metric-unit">ms</span></div>
+        <div class="metric-delta">
+          P95: 233.8ms | P99: 241.4ms
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Error Rate</h3>
+        <div class="metric-value">0.00<span class="metric-unit">%</span></div>
+        <div class="metric-delta positive">
+          Target: 5.0%
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Throughput</h3>
+        <div class="metric-value">7.5<span class="metric-unit">/sec</span></div>
+        <div class="metric-delta negative">
+          Target: 150/sec
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Memory Growth</h3>
+        <div class="metric-value">-15.1<span class="metric-unit">MB</span></div>
+        <div class="metric-delta">
+          Peak: 97.3MB
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Success Rate</h3>
+        <div class="metric-value">100.0<span class="metric-unit">%</span></div>
+        <div class="metric-delta positive">
+          50/50 sessions
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="two-column">
+      <div class="chart-container">
+        <h3>Latency Distribution</h3>
+        <div class="chart-wrapper">
+          <canvas id="latencyChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <h3>Session Results</h3>
+        <div class="chart-wrapper">
+          <canvas id="sessionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pass/Fail Checks -->
+    <div class="card">
+      <h3>Pass/Fail Criteria</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Expected</th>
+            <th>Actual</th>
+            <th>Severity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>Max Latency</td>
+              <td><= 500ms</td>
+              <td>203.58ms</td>
+              <td class="severity-critical">CRITICAL</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Error Rate</td>
+              <td><= 5.0%</td>
+              <td>0.00%</td>
+              <td class="severity-critical">CRITICAL</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Min Throughput</td>
+              <td>>= 150/sec</td>
+              <td>7.53/sec</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-failed">
+                ✗ FAIL
+              </td>
+            </tr>
+          
+            <tr>
+              <td>CPU Usage</td>
+              <td><= 85%</td>
+              <td>0.0%</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Memory Growth</td>
+              <td><= 500MB</td>
+              <td>-15.07MB</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Scenario Details -->
+    <div class="card">
+      <h3>Scenario Details (First 20)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Session</th>
+            <th>Swarm ID</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Agents</th>
+            <th>Latency (avg)</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>#1</td>
+              <td><code>0420085637-0</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.1s</td>
+              <td>4</td>
+              <td>225.7ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#2</td>
+              <td><code>0420085637-1</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.9s</td>
+              <td>4</td>
+              <td>178.8ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#3</td>
+              <td><code>0420085637-2</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.1s</td>
+              <td>4</td>
+              <td>203.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#4</td>
+              <td><code>0420085637-3</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.4s</td>
+              <td>4</td>
+              <td>189.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#5</td>
+              <td><code>0420085637-4</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.0s</td>
+              <td>4</td>
+              <td>179.6ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#6</td>
+              <td><code>0420085637-5</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.9s</td>
+              <td>4</td>
+              <td>200.0ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#7</td>
+              <td><code>0420085637-6</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.8s</td>
+              <td>4</td>
+              <td>176.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#8</td>
+              <td><code>0420085637-7</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.5s</td>
+              <td>4</td>
+              <td>214.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#9</td>
+              <td><code>0420085637-8</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.1s</td>
+              <td>4</td>
+              <td>203.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#10</td>
+              <td><code>0420085637-9</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.3s</td>
+              <td>4</td>
+              <td>185.4ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#11</td>
+              <td><code>420152966-10</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.7s</td>
+              <td>4</td>
+              <td>219.2ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#12</td>
+              <td><code>420152966-11</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.0s</td>
+              <td>4</td>
+              <td>202.6ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#13</td>
+              <td><code>420152966-12</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.3s</td>
+              <td>4</td>
+              <td>210.9ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#14</td>
+              <td><code>420152966-13</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.7s</td>
+              <td>4</td>
+              <td>195.9ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#15</td>
+              <td><code>420152966-14</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.7s</td>
+              <td>4</td>
+              <td>195.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#16</td>
+              <td><code>420152966-15</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.5s</td>
+              <td>4</td>
+              <td>193.0ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#17</td>
+              <td><code>420152966-16</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.3s</td>
+              <td>4</td>
+              <td>231.1ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#18</td>
+              <td><code>420152966-17</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.2s</td>
+              <td>4</td>
+              <td>229.2ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#19</td>
+              <td><code>420152966-18</code></td>
+              <td class="check-passed">✓</td>
+              <td>60.5s</td>
+              <td>4</td>
+              <td>215.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#20</td>
+              <td><code>420152966-19</code></td>
+              <td class="check-passed">✓</td>
+              <td>61.0s</td>
+              <td>4</td>
+              <td>223.7ms</td>
+              <td>0</td>
+            </tr>
+          
+          
+            <tr>
+              <td colspan="7" style="text-align: center; color: #718096;">
+                ... and 30 more scenarios
+              </td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Configuration -->
+    <div class="card">
+      <h3>Test Configuration</h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Sessions</strong></td><td>50</td></tr>
+          <tr><td><strong>Duration</strong></td><td>1 minutes</td></tr>
+          <tr><td><strong>Ramp-up</strong></td><td>30 seconds</td></tr>
+          <tr><td><strong>Agents per Session</strong></td><td>4</td></tr>
+          <tr><td><strong>Workload Type</strong></td><td>mixed</td></tr>
+          <tr><td><strong>Max Latency</strong></td><td>500ms</td></tr>
+          <tr><td><strong>Max Error Rate</strong></td><td>5.0%</td></tr>
+          <tr><td><strong>Min Throughput</strong></td><td>150/sec</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Latency Distribution Chart
+    new Chart(document.getElementById('latencyChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Avg', 'P95', 'P99'],
+        datasets: [{
+          label: 'Latency (ms)',
+          data: [203.57808752808845, 233.84806080769283, 241.40497434615378],
+          backgroundColor: ['#4299e1', '#ed8936', '#f56565'],
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Milliseconds' }
+          }
+        }
+      }
+    });
+
+    // Session Results Chart
+    new Chart(document.getElementById('sessionChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Successful', 'Failed'],
+        datasets: [{
+          data: [50, 0],
+          backgroundColor: ['#48bb78', '#f56565'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
