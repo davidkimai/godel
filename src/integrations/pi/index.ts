@@ -40,10 +40,7 @@ export {
   TimeoutError,
   SessionError,
   PiClientEvents,
-  // Re-export with distinct names to avoid conflicts with types.ts
-  ToolCall as PiClientToolCall,
-  ToolResult as PiClientToolResult,
-  SessionStatus as PiClientSessionStatus,
+
 } from './client';
 
 // Export PiRegistry class and singleton functions
@@ -121,8 +118,8 @@ export type {
   SessionState,
   SessionConfig,
   ConversationNode,
-  ToolCall,
-  ToolResult,
+  ToolCall as PiSessionToolCall,
+  ToolResult as PiSessionToolResult,
   ToolCallState,
   Checkpoint,
   CheckpointTrigger,
@@ -230,6 +227,32 @@ export type {
   EditOperation,
   BuiltInToolName,
 } from './tools';
+
+// Export SessionTreeManager and tree types
+export {
+  SessionTreeManager,
+  calculateTokenCount,
+} from './tree';
+
+// Export tree types
+export type {
+  MessageRole,
+  BranchStatus,
+  MessageNode,
+  Branch,
+  TreeMetadata,
+  NodeOptions,
+  SessionConfig as TreeSessionConfig,
+  PiSession as TreePiSession,
+  CompactionReport,
+  MessageForLLM,
+  TreeVisualization,
+  VisualNode,
+  VisualConnection,
+  VisualBranch,
+  BranchVisualization,
+  StorageAdapter as TreeStorageAdapter,
+} from './tree';
 
 // Default export
 export { PiRegistry as default } from './registry';

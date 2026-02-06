@@ -233,11 +233,11 @@ export class HealthMonitor extends EventEmitter {
         status,
         latency,
         details: probeResult.data ? {
-          cpu: typeof probeResult.data.cpuPercent === 'number' ? probeResult.data.cpuPercent : undefined,
-          memory: typeof probeResult.data.memoryPercent === 'number' ? probeResult.data.memoryPercent : undefined,
-          activeSessions: typeof probeResult.data.currentSessions === 'number' ? probeResult.data.currentSessions : undefined,
-          version: typeof probeResult.data.version === 'string' ? probeResult.data.version : undefined,
-          uptime: typeof probeResult.data.uptime === 'number' ? probeResult.data.uptime : undefined,
+          cpu: typeof probeResult.data['cpuPercent'] === 'number' ? probeResult.data['cpuPercent'] : undefined,
+          memory: typeof probeResult.data['memoryPercent'] === 'number' ? probeResult.data['memoryPercent'] : undefined,
+          activeSessions: typeof probeResult.data['currentSessions'] === 'number' ? probeResult.data['currentSessions'] : undefined,
+          version: typeof probeResult.data['version'] === 'string' ? probeResult.data['version'] : undefined,
+          uptime: typeof probeResult.data['uptime'] === 'number' ? probeResult.data['uptime'] : undefined,
         } : undefined,
         timestamp,
       };
@@ -496,7 +496,7 @@ export class HealthMonitor extends EventEmitter {
 
     // Check response data for status indication
     if (result.data) {
-      const statusFromResponse = result.data.status as string | undefined;
+      const statusFromResponse = result.data['status'] as string | undefined;
       
       if (statusFromResponse === 'degraded') {
         return 'degraded';
@@ -507,8 +507,8 @@ export class HealthMonitor extends EventEmitter {
       }
 
       // Check resource metrics for implicit degradation
-      const cpuPercent = typeof result.data.cpuPercent === 'number' ? result.data.cpuPercent : undefined;
-      const memoryPercent = typeof result.data.memoryPercent === 'number' ? result.data.memoryPercent : undefined;
+      const cpuPercent = typeof result.data['cpuPercent'] === 'number' ? result.data['cpuPercent'] : undefined;
+      const memoryPercent = typeof result.data['memoryPercent'] === 'number' ? result.data['memoryPercent'] : undefined;
       
       if ((cpuPercent !== undefined && cpuPercent > 90) ||
           (memoryPercent !== undefined && memoryPercent > 90)) {

@@ -533,7 +533,7 @@ export class FederationRegistry extends EventEmitter {
         const data = await response.json() as Record<string, unknown>;
         
         // Parse health status from response
-        const statusFromResponse = data.status as string | undefined;
+        const statusFromResponse = data['status'] as string | undefined;
         if (statusFromResponse === 'degraded') {
           newStatus = 'degraded';
         } else {
@@ -547,17 +547,17 @@ export class FederationRegistry extends EventEmitter {
           healthStatus: newStatus,
         };
         
-        if (typeof data.cpuPercent === 'number') {
-          updates.cpuPercent = data.cpuPercent;
+        if (typeof data['cpuPercent'] === 'number') {
+          updates.cpuPercent = data['cpuPercent'];
         }
-        if (typeof data.memoryPercent === 'number') {
-          updates.memoryPercent = data.memoryPercent;
+        if (typeof data['memoryPercent'] === 'number') {
+          updates.memoryPercent = data['memoryPercent'];
         }
-        if (typeof data.currentSessions === 'number') {
-          updates.currentSessions = data.currentSessions;
+        if (typeof data['currentSessions'] === 'number') {
+          updates.currentSessions = data['currentSessions'];
         }
-        if (typeof data.version === 'string') {
-          updates.version = data.version;
+        if (typeof data['version'] === 'string') {
+          updates.version = data['version'];
         }
         
         await this.update(instanceId, updates);
