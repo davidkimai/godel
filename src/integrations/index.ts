@@ -92,7 +92,6 @@ export {
 
   // Client types
   PiClientConfig,
-  PiClientSessionStatus,
 } from './pi';
 
 // Export Pi types separately to avoid naming conflicts
@@ -319,7 +318,7 @@ export function validateIntegrationConfig(
 
   switch (integration) {
     case 'pi':
-      if (!config.discoveryStrategies || !Array.isArray(config.discoveryStrategies)) {
+      if (!config["discoveryStrategies"] || !Array.isArray(config["discoveryStrategies"])) {
         errors.push('discoveryStrategies must be an array');
       }
       break;
