@@ -88,7 +88,7 @@ export class LlmProxy extends EventEmitter {
         }
 
         const data = await response.json();
-        const result = adapter.transformResponse(data);
+        const result = adapter.transformResponse(data as any);
         
         // Record usage
         this.recordUsage(auth.userId, result.usage.total_tokens);

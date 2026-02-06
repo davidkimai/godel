@@ -1,7 +1,7 @@
 /**
  * Metrics Module for Dash
  * 
- * Exports Prometheus metrics and health check functionality.
+ * Exports Prometheus metrics, health checks, and performance tracking.
  */
 
 export {
@@ -18,6 +18,15 @@ export {
   resetGlobalHealthManager,
 } from './health';
 
+export {
+  PerformanceTracker,
+  getPerformanceTracker,
+  resetPerformanceTracker,
+  timeAsync,
+  timeSync,
+  performanceMiddleware,
+} from './performance';
+
 export type {
   HealthStatus,
   HealthCheckResult,
@@ -33,3 +42,13 @@ export type {
   ApiMetricLabels,
   ErrorMetricLabels,
 } from './prometheus';
+
+export type {
+  LatencyMetrics,
+  ThroughputMetrics,
+  ResourceMetrics,
+  DatabaseMetrics,
+  CacheMetrics,
+  PerformanceSnapshot,
+  PerformanceAlert,
+} from './performance';

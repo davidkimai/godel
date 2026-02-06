@@ -24,3 +24,17 @@ export {
   EventReplay, 
   createReplay 
 } from './replay';
+
+// Batcher
+export {
+  EventBatcher,
+  EventBatchProcessor,
+  getEventBatchProcessor,
+  resetEventBatchProcessor,
+} from './batcher';
+export type {
+  EventBatchConfig,
+  BatchedEvent,
+  EventBatch,
+  BatchMetrics,
+} from './batcher';

@@ -16,6 +16,21 @@ export type { CacheEntry, LRUCacheOptions } from './cache';
 export { ConnectionPool, createPool } from './pool';
 export type { PoolOptions, PooledResource } from './pool';
 
+// Memory Management
+export {
+  MemoryManager,
+  ObjectPool,
+  getMemoryManager,
+  resetMemoryManager,
+  createBufferPool,
+  monitorMemoryUsage,
+} from './memory-manager';
+export type {
+  MemoryManagerConfig,
+  MemorySnapshot,
+  ObjectPoolConfig,
+} from './memory-manager';
+
 // CLI State Persistence
 export {
   loadState,

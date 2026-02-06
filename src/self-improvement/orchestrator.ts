@@ -172,7 +172,7 @@ async function fetchOpenClawSessionHistory(sessionKey: string): Promise<SessionH
       throw new Error(`Failed to fetch session history: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     return data.history || [];
   } catch (error) {
     logger.error('self-improvement/orchestrator', 'Failed to fetch session history', { sessionKey, error: String(error) });
@@ -218,7 +218,8 @@ async function spawnOpenClawAgent(
       throw new Error(`Failed to spawn agent: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json() as { sessionKey: string; sessionId: string };
+    return data;
   } catch (error) {
     logger.error('self-improvement/orchestrator', 'Failed to spawn OpenClaw agent', { error: String(error) });
     throw error;

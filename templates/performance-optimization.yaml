@@ -1,0 +1,76 @@
+name: performance-optimization
+description: Template for performance optimization and profiling
+patterns:
+  - optimize {{description}}
+  - improve performance of {{description}}
+  - speed up {{description}}
+  - performance tuning {{description}}
+strategy: parallel
+defaultAgents: 4
+phases:
+  - name: profiling
+    description: Profile current performance characteristics
+    agentCount: 1
+    taskTemplate: >
+      Profile the current performance of {{target}}:
+      1. Identify hot paths and bottlenecks
+      2. Measure response times and throughput
+      3. Check memory usage patterns
+      4. Analyze CPU utilization
+      5. Review database query performance
+      6. Check for N+1 queries or excessive I/O
+      7. Analyze bundle sizes (for frontend)
+      Document baseline metrics for comparison.
+
+  - name: analysis
+    description: Analyze bottlenecks and optimization opportunities
+    agentCount: 1
+    taskTemplate: >
+      Analyze profiling data for {{description}} to identify:
+      1. Algorithmic inefficiencies (O(n²) patterns, etc.)
+      2. Unnecessary computations or re-renders
+      3. Caching opportunities
+      4. Database query optimizations
+      5. Async/await inefficiencies
+      6. Memory leaks or excessive allocations
+      7. Network request optimizations
+      Prioritize optimizations by impact vs effort.
+
+  - name: optimization
+    description: Implement performance improvements
+    agentCount: 3
+    taskTemplate: >
+      Implement performance optimizations for {{description}}:
+      1. Apply algorithmic improvements
+      2. Add appropriate caching layers
+      3. Optimize database queries and indexes
+      4. Implement lazy loading where applicable
+      5. Reduce bundle sizes (tree shaking, code splitting)
+      6. Optimize async operations and parallelization
+      7. Minimize memory allocations
+      Ensure all changes maintain correctness and readability.
+
+  - name: verification
+    description: Verify improvements and ensure no regressions
+    agentCount: 1
+    taskTemplate: >
+      Verify performance optimizations for {{target}}:
+      1. Re-run profiling to measure improvements
+      2. Compare metrics against baseline
+      3. Ensure all tests still pass
+      4. Check for functional regressions
+      5. Verify memory usage is improved
+      6. Document performance gains achieved
+      Report on before/after metrics with percentage improvements.
+
+  - name: monitoring
+    description: Add performance monitoring
+    agentCount: 1
+    taskTemplate: >
+      Add performance monitoring to {{description}}:
+      1. Add timing measurements for critical paths
+      2. Implement alerting for performance degradation
+      3. Add metrics collection (latency, throughput, errors)
+      4. Create performance dashboards if applicable
+      5. Document performance SLOs/SLAs
+      Ensure ongoing visibility into performance characteristics.

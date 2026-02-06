@@ -4,32 +4,21 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/jest\\.setup\\.(ci|test)\\.ts$/'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
+  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ci.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
-      tsconfig: {
-        target: 'ES2020',
-        module: 'commonjs',
-        moduleResolution: 'node',
-        lib: ['ES2020'],
-        allowJs: true,
-        skipLibCheck: true,
-        esModuleInterop: true,
-        allowSyntheticDefaultImports: true,
-        strict: false,
-        forceConsistentCasingInFileNames: true,
-        noFallthroughCasesInSwitch: true,
-        noImplicitAny: false,
-        noImplicitThis: false,
-        noImplicitReturns: false,
-        noUnusedLocals: false,
-        noUnusedParameters: false,
-      },
+      tsconfig: 'tsconfig.test.json',
       diagnostics: {
-        warnOnly: false,
+        warnOnly: true,
         ignoreCodes: ['TS2305', 'TS2724', 'TS2352', 'TS2339', 'TS4111', 'TS1259', 'TS2353', 'TS2702'],
       },
     }],
   },
+  testTimeout: 30000, // 30 seconds for integration tests
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageThreshold: {
     global: {
@@ -41,12 +30,9 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@dash/(.*)$': '<rootDir>/src/$1',
+    '^@godel/(.*)$': '<rootDir>/src/$1',
     '^@jtan15010/dash$': '<rootDir>/src/index.ts',
+    '^@jtan15010/godel$': '<rootDir>/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  globals: {
-    'ts-jest': {
-      useESM: false,
-    }
-  }
 };

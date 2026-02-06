@@ -1,0 +1,74 @@
+name: security-audit
+description: Template for comprehensive security auditing
+patterns:
+  - audit {{description}}
+  - security audit {{description}}
+  - scan {{description}} for vulnerabilities
+  - security review {{description}}
+strategy: parallel
+defaultAgents: 4
+phases:
+  - name: dependency-scan
+    description: Scan dependencies for known vulnerabilities
+    agentCount: 1
+    taskTemplate: >
+      Scan all dependencies in {{target}} for known security vulnerabilities:
+      1. Check npm packages against vulnerability databases
+      2. Identify outdated dependencies
+      3. Look for deprecated or unmaintained packages
+      4. Check for license compliance issues
+      5. Review supply chain security
+      Generate a detailed report with CVE references and severity levels.
+
+  - name: code-scan
+    description: Static analysis for security issues
+    agentCount: 2
+    taskTemplate: >
+      Perform static security analysis on {{description}}:
+      1. Check for injection vulnerabilities (SQL, XSS, command injection)
+      2. Identify insecure authentication/authorization patterns
+      3. Look for sensitive data exposure
+      4. Check for insecure deserialization
+      5. Review security misconfigurations
+      6. Identify vulnerable regex patterns
+      7. Check for hardcoded secrets or credentials
+      Use security best practices and OWASP guidelines.
+
+  - name: api-scan
+    description: Review API endpoints for security
+    agentCount: 1
+    taskTemplate: >
+      If {{target}} includes APIs, audit for:
+      1. Proper authentication and authorization
+      2. Input validation and sanitization
+      3. Rate limiting implementation
+      4. CORS configuration
+      5. Error handling that doesn't leak information
+      6. HTTPS enforcement
+      7. API versioning strategy
+
+  - name: secrets-scan
+    description: Scan for exposed secrets
+    agentCount: 1
+    taskTemplate: >
+      Scan {{target}} for exposed secrets:
+      1. API keys and tokens in code
+      2. Database credentials
+      3. Private keys and certificates
+      4. Passwords in configuration files
+      5. Environment variable leaks
+      6. Comments containing sensitive info
+      Ensure all findings are documented with locations.
+
+  - name: report
+    description: Compile comprehensive security report
+    agentCount: 1
+    taskTemplate: >
+      Compile a comprehensive security audit report for {{description}}:
+      1. Executive summary with overall risk rating
+      2. Detailed findings organized by severity
+      3. Specific remediation steps for each issue
+      4. Prioritized action plan
+      5. Best practices recommendations
+      6. Compliance considerations (if applicable)
+      Provide actionable recommendations with code examples where relevant.

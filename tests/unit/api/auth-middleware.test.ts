@@ -47,7 +47,8 @@ describe('auth middleware', () => {
   });
 
   it('accepts a valid API key on protected route', () => {
-    const key = 'godel_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    // API key format: dash_<prefix>_<64-hex-chars> per src/api/middleware/auth.ts
+    const key = 'dash_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
     addApiKey(key);
     trackedApiKeys.push(key);
 
@@ -63,7 +64,8 @@ describe('auth middleware', () => {
   });
 
   it('accepts a valid session cookie on protected route', () => {
-    const token = 'godel_session_token_test';
+    // Session tokens are arbitrary strings, not API keys
+    const token = 'session_token_test_valid_12345';
     registerSessionToken(token, Date.now() + 60_000);
     trackedSessions.push(token);
 

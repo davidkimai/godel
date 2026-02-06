@@ -63,7 +63,7 @@ async function checkApiHealth(): Promise<HealthCheckResult> {
       };
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     return {
       name: 'api_health',
       status: 'healthy',
@@ -71,7 +71,7 @@ async function checkApiHealth(): Promise<HealthCheckResult> {
       message: `API running (version: ${data.version || 'unknown'})`,
       timestamp: new Date(),
       duration: Date.now() - start,
-      details: data,
+      details: data as Record<string, unknown>,
     };
   } catch (error) {
     return {

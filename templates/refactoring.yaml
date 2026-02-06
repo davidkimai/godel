@@ -1,0 +1,56 @@
+name: refactoring
+description: Template for code refactoring with careful sequential execution
+patterns:
+  - refactor {{description}}
+  - restructure {{description}}
+  - clean up {{description}}
+  - simplify {{description}}
+  - modernize {{description}}
+strategy: sequential
+defaultAgents: 3
+phases:
+  - name: analysis
+    description: Analyze current code and identify refactoring targets
+    agentCount: 1
+    taskTemplate: >
+      Analyze the current implementation of {{target}} to identify:
+      1. Code smells and anti-patterns
+      2. Duplication and redundancy
+      3. Complexity hotspots
+      4. Dependencies and coupling
+      5. Test coverage gaps
+      Provide a detailed refactoring plan with specific files and changes.
+
+  - name: preparation
+    description: Prepare tests and backup strategy
+    agentCount: 1
+    taskTemplate: >
+      Before refactoring {{target}}, ensure:
+      1. Existing tests are comprehensive and passing
+      2. Create additional tests if coverage is insufficient
+      3. Document current behavior for comparison
+      4. Plan rollback strategy
+      This phase ensures safety during the refactoring process.
+
+  - name: refactoring
+    description: Execute the refactoring changes
+    agentCount: 2
+    taskTemplate: >
+      Execute the planned refactoring of {{description}}:
+      1. Apply one refactoring at a time
+      2. Run tests after each change
+      3. Keep commits small and focused
+      4. Maintain backward compatibility where possible
+      5. Update documentation as needed
+
+  - name: validation
+    description: Validate refactored code
+    agentCount: 1
+    taskTemplate: >
+      Validate the refactored {{target}}:
+      1. All tests must pass
+      2. No regression in functionality
+      3. Code quality metrics improved
+      4. Performance characteristics maintained or improved
+      5. Documentation updated
+      Provide a summary of changes made and improvements achieved.

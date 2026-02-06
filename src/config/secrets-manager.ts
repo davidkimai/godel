@@ -308,10 +308,11 @@ class VaultResolver {
 
       // KV v2 returns { data: { data: { ... } } }
       // KV v1 returns { data: { ... } }
+      const result = data as any;
       if (kvVersion === 'v2') {
-        return data.data?.data;
+        return result.data?.data;
       } else {
-        return data.data;
+        return result.data;
       }
     } catch (error) {
       clearTimeout(timeout);

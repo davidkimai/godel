@@ -1,0 +1,66 @@
+name: testing
+description: Template for comprehensive test implementation
+patterns:
+  - test {{description}}
+  - add tests for {{description}}
+  - write tests for {{description}}
+  - coverage for {{description}}
+strategy: parallel
+defaultAgents: 5
+phases:
+  - name: analysis
+    description: Analyze code to be tested
+    agentCount: 1
+    taskTemplate: >
+      Analyze {{target}} to understand:
+      1. Public APIs and interfaces
+      2. Internal implementation details
+      3. Edge cases and error conditions
+      4. Dependencies and mocks needed
+      5. Current test coverage (if any)
+      Provide a test plan covering all critical paths.
+
+  - name: unit-tests
+    description: Write unit tests
+    agentCount: 3
+    taskTemplate: >
+      Write comprehensive unit tests for {{description}}:
+      1. Test all public functions and methods
+      2. Cover happy paths and edge cases
+      3. Test error conditions and exceptions
+      4. Use appropriate mocks for dependencies
+      5. Follow existing testing patterns in the codebase
+      Aim for high coverage of critical logic.
+
+  - name: integration-tests
+    description: Write integration tests
+    agentCount: 2
+    taskTemplate: >
+      Write integration tests for {{description}}:
+      1. Test component interactions
+      2. Verify API contracts
+      3. Test with real or realistic test doubles
+      4. Cover end-to-end workflows
+      5. Test database interactions if applicable
+
+  - name: e2e-tests
+    description: Add end-to-end tests if applicable
+    agentCount: 1
+    taskTemplate: >
+      If {{target}} involves user-facing functionality, write E2E tests:
+      1. Test critical user journeys
+      2. Verify UI interactions
+      3. Test across different scenarios
+      4. Ensure tests are stable and not flaky
+
+  - name: verification
+    description: Run all tests and verify coverage
+    agentCount: 1
+    taskTemplate: >
+      Verify the test suite for {{description}}:
+      1. Run all new tests - must pass
+      2. Run existing tests - ensure no regressions
+      3. Check code coverage reports
+      4. Identify any gaps in coverage
+      5. Document test scenarios covered
+      Report on coverage metrics and any recommendations.

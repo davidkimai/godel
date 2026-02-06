@@ -2,9 +2,10 @@
  * Dashboard Command - Launch OpenTUI Dashboard
  * 
  * Commands:
- * - dash dashboard              Launch interactive TUI dashboard
- * - dash dashboard --headless   Start dashboard API server only
- * - dash dashboard --port 7373  Custom port for API
+ * - godel dashboard              Launch basic dashboard (logs)
+ * - godel dashboard --tui        Launch interactive TUI (Ink/React-based)
+ * - godel dashboard --headless   Start API server only (no TUI)
+ * - godel dashboard --port 7373  Custom port for API
  */
 
 import { logger } from '../../utils/logger';
@@ -17,12 +18,13 @@ import { memoryStore } from '../../storage/memory';
 export function registerDashboardCommand(program: Command): void {
   program
     .command('dashboard')
-    .description('Launch OpenTUI dashboard for real-time swarm monitoring')
+    .description('Launch Godel dashboard for real-time swarm monitoring')
     .option('-p, --port <port>', 'API server port', '7373')
     .option('-h, --host <host>', 'API server host', 'localhost')
+    .option('--tui', 'Launch interactive Terminal UI (Ink-based)')
     .option('--headless', 'Start API server only (no TUI)')
     .option('--refresh <ms>', 'Dashboard refresh rate in ms', '1000')
-    .option('--view <view>', 'Default view (grid|events|budget)', 'grid')
+    .option('--view <view>', 'Default view (swarms|sessions|tasks|logs)', 'swarms')
     .action(async (options) => {
       try {
         // Initialize core components
@@ -37,7 +39,19 @@ export function registerDashboardCommand(program: Command): void {
         const port = parseInt(options.port, 10);
         const refreshRate = parseInt(options.refresh, 10);
 
-        logger.info('🎯 Dash Dashboard\n');
+        logger.info('🎯 Godel Dashboard\n');
+
+        // Launch TUI mode (Ink-based React terminal UI)
+        if (options.tui) {
+          const { start } = await import('../../tui');
+          start({
+            port,
+            host: options.host,
+            refreshRate,
+            defaultView: options.view
+          });
+          return;
+        }
 
         if (options.headless) {
           // Headless mode - just start the API server

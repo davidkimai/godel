@@ -8,6 +8,7 @@
  *   swarmctl <command> [options]
  * 
  * Commands:
+ *   do          Execute intents using agent swarms
  *   swarm       Manage agent swarms
  *   agent       Manage AI agents
  *   task        Manage tasks
@@ -39,6 +40,7 @@ import {
 } from './commands/metrics';
 import { configCommand } from './commands/config';
 import { statusCommand } from './commands/status';
+import { registerDoCommand } from './intent';
 
 // Get version from package.json
 function getVersion(): string {
@@ -80,6 +82,7 @@ registerMetricsCommand(program);
 program.addCommand(statusCommand());
 program.addCommand(configCommand());
 registerHealthCommand(program);
+registerDoCommand(program);
 
 // Add completion command
 program
@@ -114,6 +117,7 @@ export function registerCommands(program: Command): void {
   program.addCommand(statusCommand());
   program.addCommand(configCommand());
   registerHealthCommand(program);
+  registerDoCommand(program);
 }
 
 // Run if executed directly
@@ -142,7 +146,7 @@ _swarmctl_completions() {
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   
   # Top-level commands
-  local commands="swarm agent task events bus metrics status health config completion"
+  local commands="do swarm agent task events bus metrics status health config completion"
   
   # Swarm subcommands
   local swarm_cmds="list create get scale destroy"
@@ -293,6 +297,7 @@ _swarmctl() {
 
   local -a commands
   commands=(
+    'do:Execute intents using agent swarms'
     'swarm:Manage agent swarms'
     'agent:Manage AI agents'
     'task:Manage tasks'
@@ -443,7 +448,15 @@ _swarmctl() {
           _arguments \\
             '--format[Output format]:format:(table json jsonl)'
           ;;
-        completion)
+        do)
+          _arguments \\
+            '--strategy[Execution strategy]:strategy:(parallel sequential careful)' \\
+            '--agents[Number of agents]:count:' \\
+            '--timeout[Timeout in minutes]:timeout:' \\
+            '--dry-run[Show plan without executing]' \\
+            '--yes[Skip confirmation prompts]'
+          ;;
+      completion)
           _arguments '1: :(bash zsh)'
           ;;
         status|health)

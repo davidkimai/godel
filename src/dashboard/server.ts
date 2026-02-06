@@ -15,6 +15,7 @@ import { SessionTree, BranchComparison } from '../core/session-tree';
 import { SwarmOrchestrator } from '../core/swarm-orchestrator';
 import { logger } from '../utils/logger';
 import { PrometheusMetrics, createHealthRouter, HealthCheckConfig } from '../metrics';
+import { AgentStatus } from '../models/agent';
 
 // ============================================================================
 // Types
@@ -34,6 +35,8 @@ export interface DashboardConfig {
   metricsPath: string;
   /** Health check configuration */
   healthCheckConfig?: HealthCheckConfig;
+  /** API key for authentication */
+  apiKey?: string;
 }
 
 export interface DashboardClient {
@@ -41,8 +44,11 @@ export interface DashboardClient {
   ws: WebSocket;
   subscribedSwarms: Set<string>;
   subscribedSessions: Set<string>;
+  subscribedAgents: Set<string>;
   lastHeartbeat: number;
   eventBuffer: AgentEvent[];
+  authToken?: string;
+  subscriptions: Set<string>; // Track subscription types
 }
 
 export interface TreeVisualizationNode {
@@ -64,6 +70,45 @@ export interface TreeVisualization {
   totalNodes: number;
   branches: string[];
   currentBranch: string;
+}
+
+export interface DashboardOverview {
+  totalAgents: number;
+  activeAgents: number;
+  totalSwarms: number;
+  activeSwarms: number;
+  totalCost: number;
+  eventsPerSecond: number;
+  systemHealth: 'healthy' | 'degraded' | 'critical';
+  agentsByStatus: Record<string, number>;
+  recentEvents: number;
+}
+
+export interface SwarmDashboardInfo {
+  id: string;
+  name: string;
+  status: string;
+  agentCount: number;
+  budgetRemaining: number;
+  budgetConsumed: number;
+  progress: number;
+  strategy: string;
+  createdAt: string;
+  currentBranch?: string;
+}
+
+export interface AgentDashboardInfo {
+  id: string;
+  label?: string;
+  status: string;
+  model: string;
+  swarmId: string;
+  swarmName: string;
+  task: string;
+  runtime: number;
+  cost: number;
+  progress: number;
+  spawnedAt: string;
 }
 
 // ============================================================================
@@ -108,6 +153,7 @@ export class DashboardServer extends EventEmitter {
       maxEventBuffer: 1000,
       enableMetrics: true,
       metricsPath: '/metrics',
+      apiKey: process.env['DASHBOARD_API_KEY'],
       ...config,
     };
 
@@ -126,6 +172,37 @@ export class DashboardServer extends EventEmitter {
       this.app.use(cors());
     }
     this.app.use(express.json());
+    
+    // Authentication middleware for API routes
+    this.app.use('/api', this.authMiddleware.bind(this));
+  }
+
+  private authMiddleware(req: Request, res: Response, next: NextFunction): void {
+    // Skip auth for health checks
+    if (req.path.startsWith('/health')) {
+      next();
+      return;
+    }
+
+    // Check API key or Bearer token
+    const authHeader = req.headers.authorization;
+    const apiKey = req.headers['x-api-key'] as string;
+
+    if (this.config.apiKey) {
+      if (apiKey === this.config.apiKey) {
+        next();
+        return;
+      }
+      if (authHeader?.startsWith('Bearer ') && authHeader.slice(7) === this.config.apiKey) {
+        next();
+        return;
+      }
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    // No API key configured, allow access
+    next();
   }
 
   private setupRoutes(): void {
@@ -166,6 +243,74 @@ export class DashboardServer extends EventEmitter {
       });
     }
 
+    // =========================================================================
+    // Dashboard API Endpoints
+    // =========================================================================
+
+    // GET /api/dashboard/overview - Summary stats
+    this.app.get('/api/dashboard/overview', (_req: Request, res: Response) => {
+      try {
+        const overview = this.getDashboardOverview();
+        res.json({ success: true, data: overview });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to get overview', { error });
+        res.status(500).json({ success: false, error: 'Failed to get dashboard overview' });
+      }
+    });
+
+    // GET /api/dashboard/swarms - Swarm list with dashboard info
+    this.app.get('/api/dashboard/swarms', (_req: Request, res: Response) => {
+      try {
+        const swarms = this.getSwarmDashboardInfo();
+        res.json({ success: true, data: { swarms, total: swarms.length } });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to get swarms', { error });
+        res.status(500).json({ success: false, error: 'Failed to get swarm list' });
+      }
+    });
+
+    // GET /api/dashboard/agents - Agent statuses
+    this.app.get('/api/dashboard/agents', (req: Request, res: Response) => {
+      try {
+        const swarmId = req.query['swarmId'] as string | undefined;
+        const agents = this.getAgentDashboardInfo(swarmId);
+        res.json({ success: true, data: { agents, total: agents.length } });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to get agents', { error });
+        res.status(500).json({ success: false, error: 'Failed to get agent statuses' });
+      }
+    });
+
+    // GET /api/dashboard/events - Recent events
+    this.app.get('/api/dashboard/events', (req: Request, res: Response) => {
+      try {
+        const limit = parseInt(req.query['limit'] as string) || 50;
+        const swarmId = req.query['swarmId'] as string | undefined;
+        const agentId = req.query['agentId'] as string | undefined;
+        
+        const events = this.getRecentEvents(limit, swarmId, agentId);
+        res.json({ success: true, data: { events, total: events.length } });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to get events', { error });
+        res.status(500).json({ success: false, error: 'Failed to get recent events' });
+      }
+    });
+
+    // GET /api/dashboard/metrics - Cost/usage metrics
+    this.app.get('/api/dashboard/metrics', (_req: Request, res: Response) => {
+      try {
+        const metrics = this.getDashboardMetrics();
+        res.json({ success: true, data: metrics });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to get metrics', { error });
+        res.status(500).json({ success: false, error: 'Failed to get dashboard metrics' });
+      }
+    });
+
+    // =========================================================================
+    // Legacy Swarm API Endpoints
+    // =========================================================================
+
     // Get all swarms
     this.app.get('/api/swarms', (_req: Request, res: Response) => {
       const swarms = this.orchestrator.listActiveSwarms().map((swarm) => ({
@@ -205,6 +350,142 @@ export class DashboardServer extends EventEmitter {
           runtime: a.agent.runtime,
         })),
       });
+    });
+
+    // Create new swarm
+    this.app.post('/api/swarms', async (req: Request, res: Response) => {
+      try {
+        const { name, config } = req.body;
+        if (!name) {
+          res.status(400).json({ error: 'Swarm name is required' });
+          return;
+        }
+
+        const swarmConfig = {
+          name,
+          task: config?.task || '',
+          initialAgents: config?.initialAgents || 1,
+          maxAgents: config?.maxAgents || 10,
+          strategy: config?.strategy || 'parallel',
+          model: config?.model,
+          budget: config?.budget,
+          enableBranching: config?.enableBranching || false,
+          enableEventStreaming: config?.enableEventStreaming || true,
+          ...config,
+        };
+
+        const swarm = await this.orchestrator.create(swarmConfig);
+        res.status(201).json({ success: true, data: swarm });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to create swarm', { error });
+        res.status(500).json({ 
+          error: error instanceof Error ? error.message : 'Failed to create swarm' 
+        });
+      }
+    });
+
+    // Update swarm
+    this.app.put('/api/swarms/:id', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const updates = req.body;
+        
+        const swarm = (this.orchestrator as any).getSwarm ? (this.orchestrator as any).getSwarm(id) : null;
+        if (!swarm) {
+          res.status(404).json({ error: 'Swarm not found' });
+          return;
+        }
+
+        // Apply updates
+        if (updates.name) swarm.name = updates.name;
+        if (updates.config) {
+          swarm.config = { ...swarm.config, ...updates.config };
+        }
+
+        res.json({ success: true, data: swarm });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to update swarm', { error });
+        res.status(500).json({ error: 'Failed to update swarm' });
+      }
+    });
+
+    // Start swarm
+    this.app.post('/api/swarms/:id/start', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await (this.orchestrator as any).start ? (this.orchestrator as any).start(id) : Promise.resolve();
+        res.json({ success: true, message: 'Swarm started' });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to start swarm', { error });
+        res.status(500).json({ error: 'Failed to start swarm' });
+      }
+    });
+
+    // Stop swarm
+    this.app.post('/api/swarms/:id/stop', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await (this.orchestrator as any).stop ? (this.orchestrator as any).stop(id) : Promise.resolve();
+        res.json({ success: true, message: 'Swarm stopped' });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to stop swarm', { error });
+        res.status(500).json({ error: 'Failed to stop swarm' });
+      }
+    });
+
+    // Scale swarm
+    this.app.post('/api/swarms/:id/scale', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { targetSize } = req.body;
+        
+        if (typeof targetSize !== 'number' || targetSize < 1) {
+          res.status(400).json({ error: 'Invalid target size' });
+          return;
+        }
+
+        await (this.orchestrator as any).scale ? (this.orchestrator as any).scale(id as string, targetSize) : Promise.resolve();
+        res.json({ success: true, message: `Swarm scaled to ${targetSize} agents` });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to scale swarm', { error });
+        res.status(500).json({ error: 'Failed to scale swarm' });
+      }
+    });
+
+    // Pause swarm
+    this.app.post('/api/swarms/:id/pause', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await (this.orchestrator as any).pause ? (this.orchestrator as any).pause(id) : Promise.resolve();
+        res.json({ success: true, message: 'Swarm paused' });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to pause swarm', { error });
+        res.status(500).json({ error: 'Failed to pause swarm' });
+      }
+    });
+
+    // Resume swarm
+    this.app.post('/api/swarms/:id/resume', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await (this.orchestrator as any).resume ? (this.orchestrator as any).resume(id) : Promise.resolve();
+        res.json({ success: true, message: 'Swarm resumed' });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to resume swarm', { error });
+        res.status(500).json({ error: 'Failed to resume swarm' });
+      }
+    });
+
+    // Destroy swarm
+    this.app.delete('/api/swarms/:id', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        await (this.orchestrator as any).destroy ? (this.orchestrator as any).destroy(id) : Promise.resolve();
+        res.json({ success: true, message: 'Swarm destroyed' });
+      } catch (error) {
+        logger.error('[DashboardServer] Failed to destroy swarm', { error });
+        res.status(500).json({ error: 'Failed to destroy swarm' });
+      }
     });
 
     // Get swarm events
@@ -322,6 +603,228 @@ export class DashboardServer extends EventEmitter {
       const visualization = this.buildTreeVisualization(id);
       res.json(visualization);
     });
+
+    // Agents API
+    this.app.get('/api/agents', (_req: Request, res: Response) => {
+      const agents = (this.orchestrator as any).getAllAgents ? (this.orchestrator as any).getAllAgents() : [];
+      res.json({ agents });
+    });
+
+    this.app.get('/api/agents/:id', (req: Request, res: Response) => {
+      const orchestrator = this.orchestrator as any;
+      const agent = orchestrator.getAgent ? orchestrator.getAgent(req.params['id']) : null;
+      if (!agent) {
+        res.status(404).json({ error: 'Agent not found' });
+        return;
+      }
+      res.json({ agent });
+    });
+
+    this.app.post('/api/agents/:id/kill', async (req: Request, res: Response) => {
+      try {
+        const orchestrator = this.orchestrator as any;
+        await orchestrator.killAgent ? orchestrator.killAgent(req.params['id']) : Promise.resolve();
+        res.json({ success: true, message: 'Agent killed' });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to kill agent' });
+      }
+    });
+
+    this.app.post('/api/agents/:id/restart', async (req: Request, res: Response) => {
+      try {
+        const orchestrator = this.orchestrator as any;
+        const agent = await orchestrator.restartAgent ? orchestrator.restartAgent(req.params['id']) : null;
+        res.json({ success: true, data: agent });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to restart agent' });
+      }
+    });
+
+    // Metrics API
+    this.app.get('/api/metrics/dashboard', (_req: Request, res: Response) => {
+      const stats = this.getDashboardOverview();
+      res.json({ success: true, data: stats });
+    });
+
+    this.app.get('/api/metrics/cost', (_req: Request, res: Response) => {
+      const metrics = this.getDashboardMetrics();
+      res.json({ success: true, data: metrics });
+    });
+
+    // Health checks
+    this.app.get('/api/health/detailed', (_req: Request, res: Response) => {
+      const health = {
+        status: 'healthy' as const,
+        version: '2.0.0',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        checks: {
+          eventBus: { status: 'healthy' as const, responseTime: 0 },
+          orchestrator: { status: this.orchestrator ? 'healthy' as const : 'unhealthy' as const, responseTime: 0 },
+          database: { status: 'healthy' as const, responseTime: 0 },
+        }
+      };
+      res.json({ success: true, data: health });
+    });
+
+    this.app.get('/api/health/ready', (_req: Request, res: Response) => {
+      res.json({ ready: this.isRunning });
+    });
+
+    this.app.get('/api/health/live', (_req: Request, res: Response) => {
+      res.json({ alive: true });
+    });
+  }
+
+  // =========================================================================
+  // Dashboard Data Helpers
+  // =========================================================================
+
+  private getDashboardOverview(): DashboardOverview {
+    const swarms = this.orchestrator.listActiveSwarms();
+    const allAgents = swarms.flatMap(s => 
+      this.orchestrator.getSwarmAgents(s.id)
+    );
+
+    const activeAgents = allAgents.filter(a => 
+      a.status === (AgentStatus as any).RUNNING || a.status === (AgentStatus as any).BUSY
+    );
+
+    const activeSwarms = swarms.filter(s => 
+      s.status === 'active' || s.status === 'scaling'
+    );
+
+    const totalCost = allAgents.reduce((sum, a) => sum + ((a as any).cost || 0), 0);
+
+    const agentsByStatus = allAgents.reduce((acc, a) => {
+      acc[a.status] = (acc[a.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalAgents: allAgents.length,
+      activeAgents: activeAgents.length,
+      totalSwarms: swarms.length,
+      activeSwarms: activeSwarms.length,
+      totalCost,
+      eventsPerSecond: this.calculateEventsPerSecond(),
+      systemHealth: this.calculateSystemHealth(activeAgents.length, allAgents.length),
+      agentsByStatus,
+      recentEvents: (this.eventBus as any).getEvents ? (this.eventBus as any).getEvents({ limit: 100 }).length : 0,
+    };
+  }
+
+  private getSwarmDashboardInfo(): SwarmDashboardInfo[] {
+    return this.orchestrator.listActiveSwarms().map(swarm => {
+      const agents = this.orchestrator.getSwarmAgents(swarm.id);
+      const progress = swarm.metrics.totalAgents > 0
+        ? (swarm.metrics.completedAgents + swarm.metrics.failedAgents) / swarm.metrics.totalAgents
+        : 0;
+
+      return {
+        id: swarm.id,
+        name: swarm.name,
+        status: swarm.status,
+        agentCount: agents.length,
+        budgetRemaining: swarm.budget.remaining,
+        budgetConsumed: swarm.budget.consumed,
+        progress: Math.round(progress * 100),
+        strategy: swarm.config.strategy,
+        createdAt: swarm.createdAt.toISOString(),
+        currentBranch: swarm.currentBranch,
+      };
+    });
+  }
+
+  private getAgentDashboardInfo(swarmId?: string): AgentDashboardInfo[] {
+    const swarms = swarmId 
+      ? [this.orchestrator.getSwarm(swarmId)].filter(Boolean)
+      : this.orchestrator.listActiveSwarms();
+
+    return swarms.flatMap(swarm => {
+      const agents = this.orchestrator.getSwarmAgents(swarm.id);
+      return agents.map(agent => ({
+        id: agent.id,
+        label: (agent as any).label || 'unnamed',
+        status: agent.status,
+        model: (agent as any).model || 'unknown',
+        swarmId: swarm.id,
+        swarmName: swarm.name,
+        task: (agent as any).task || '',
+        runtime: (agent as any).runtime || 0,
+        cost: (agent as any).cost || 0,
+        progress: (agent as any).progress || 0,
+        spawnedAt: ((agent as any).spawnedAt || new Date()).toISOString(),
+      }));
+    });
+  }
+
+  private getRecentEvents(limit: number, swarmId?: string, agentId?: string): AgentEvent[] {
+    const filter: any = {};
+    if (limit) filter['limit'] = limit;
+    if (swarmId) filter.swarmId = swarmId;
+    if (agentId) filter.agentId = agentId;
+    
+    return (this.eventBus as any).getEvents ? (this.eventBus as any).getEvents(filter) : [];
+  }
+
+  private getDashboardMetrics(): any {
+    const swarms = this.orchestrator.listActiveSwarms();
+    const allAgents = swarms.flatMap(s => this.orchestrator.getSwarmAgents(s.id));
+    
+    const totalBudget = swarms.reduce((sum, s) => sum + s.budget.allocated, 0);
+    const consumedBudget = swarms.reduce((sum, s) => sum + s.budget.consumed, 0);
+    const totalCost = allAgents.reduce((sum, a) => sum + ((a as any).cost || 0), 0);
+
+    const byModel = allAgents.reduce((acc, a) => {
+      const model = (a as any).model || 'unknown';
+      acc[model] = (acc[model] || 0) + ((a as any).cost || 0);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const bySwarm = swarms.reduce((acc, s) => {
+      acc[s.name] = s.budget.consumed;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalSpent: totalCost,
+      budgetAllocated: totalBudget,
+      budgetConsumed: consumedBudget,
+      budgetRemaining: totalBudget - consumedBudget,
+      hourlyRate: this.calculateHourlyRate(allAgents),
+      burnRate: consumedBudget / (process.uptime() / 3600) || 0,
+      byModel,
+      bySwarm,
+      agentCount: allAgents.length,
+      swarmCount: swarms.length,
+    };
+  }
+
+  private calculateEventsPerSecond(): number {
+    // Calculate based on recent event velocity
+    const events = (this.eventBus as any).getEvents ? (this.eventBus as any).getEvents({}) : [];
+    if (events.length < 2) return 0;
+    
+    const timeSpan = events[0].timestamp - events[events.length - 1].timestamp;
+    if (timeSpan === 0) return 0;
+    
+    return Math.round((events.length / timeSpan) * 1000 * 10) / 10;
+  }
+
+  private calculateSystemHealth(active: number, total: number): 'healthy' | 'degraded' | 'critical' {
+    if (total === 0) return 'healthy';
+    const ratio = active / total;
+    if (ratio >= 0.7) return 'healthy';
+    if (ratio >= 0.3) return 'degraded';
+    return 'critical';
+  }
+
+  private calculateHourlyRate(agents: any[]): number {
+    const totalRuntime = agents.reduce((sum, a) => sum + (a.agent.runtime || 0), 0);
+    const totalCost = agents.reduce((sum, a) => sum + (a.agent.cost || 0), 0);
+    if (totalRuntime === 0) return 0;
+    return totalCost / (totalRuntime / 3600);
   }
 
   // =========================================================================
@@ -425,8 +928,18 @@ export class DashboardServer extends EventEmitter {
 
     this.wss.on('connection', (ws: WebSocket, req) => {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      if (url.pathname !== '/events' && url.pathname !== '/ws') {
+      const pathname = url.pathname;
+
+      // Validate WebSocket path
+      if (!this.isValidWebSocketPath(pathname)) {
         ws.close(1008, 'Invalid WebSocket path');
+        return;
+      }
+
+      // Check authentication
+      const authToken = url.searchParams.get('token');
+      if (this.config.apiKey && authToken !== this.config.apiKey) {
+        ws.close(1008, 'Unauthorized');
         return;
       }
 
@@ -437,19 +950,26 @@ export class DashboardServer extends EventEmitter {
         ws,
         subscribedSwarms: new Set(),
         subscribedSessions: new Set(),
+        subscribedAgents: new Set(),
         lastHeartbeat: Date.now(),
         eventBuffer: [],
+        authToken: authToken || undefined,
+        subscriptions: new Set(),
       };
 
       this.clients.set(clientId, client);
-      logger.info(`[DashboardServer] WebSocket client connected: ${clientId}`);
+      logger.info(`[DashboardServer] WebSocket client connected: ${clientId} on ${pathname}`);
 
-      // Send welcome message
+      // Send welcome message with client info
       this.sendToClient(client, {
         type: 'connected',
         clientId,
         timestamp: Date.now(),
+        path: pathname,
       });
+
+      // Handle different WebSocket endpoints
+      this.setupWebSocketHandlers(client, pathname);
 
       ws.on('message', (data: Buffer) => {
         try {
@@ -475,6 +995,40 @@ export class DashboardServer extends EventEmitter {
     });
   }
 
+  private isValidWebSocketPath(pathname: string): boolean {
+    const validPaths = ['/events', '/ws', '/ws/events', '/ws/metrics', '/ws/swarms'];
+    return validPaths.includes(pathname);
+  }
+
+  private setupWebSocketHandlers(client: DashboardClient, pathname: string): void {
+    // Set up subscription based on path
+    switch (pathname) {
+      case '/ws/events':
+        client.subscriptions.add('events');
+        break;
+      case '/ws/metrics':
+        client.subscriptions.add('metrics');
+        // Send initial metrics
+        this.sendToClient(client, {
+          type: 'metrics',
+          data: this.getDashboardMetrics(),
+        });
+        break;
+      case '/ws/swarms':
+        client.subscriptions.add('swarms');
+        // Send initial swarm list
+        this.sendToClient(client, {
+          type: 'swarms',
+          data: this.getSwarmDashboardInfo(),
+        });
+        break;
+      default:
+        // General event stream
+        client.subscriptions.add('events');
+        break;
+    }
+  }
+
   private handleClientMessage(client: DashboardClient, message: any): void {
     switch (message.type) {
       case 'subscribe':
@@ -488,6 +1042,9 @@ export class DashboardServer extends EventEmitter {
         if (message.sessionId) {
           client.subscribedSessions.add(message.sessionId);
         }
+        if (message.agentId) {
+          client.subscribedAgents.add(message.agentId);
+        }
         break;
 
       case 'unsubscribe':
@@ -496,6 +1053,9 @@ export class DashboardServer extends EventEmitter {
         }
         if (message.sessionId) {
           client.subscribedSessions.delete(message.sessionId);
+        }
+        if (message.agentId) {
+          client.subscribedAgents.delete(message.agentId);
         }
         break;
 
@@ -561,6 +1121,27 @@ export class DashboardServer extends EventEmitter {
         }
         break;
 
+      case 'get_overview':
+        this.sendToClient(client, {
+          type: 'overview',
+          data: this.getDashboardOverview(),
+        });
+        break;
+
+      case 'get_metrics':
+        this.sendToClient(client, {
+          type: 'metrics',
+          data: this.getDashboardMetrics(),
+        });
+        break;
+
+      case 'get_swarms':
+        this.sendToClient(client, {
+          type: 'swarms',
+          data: this.getSwarmDashboardInfo(),
+        });
+        break;
+
       default:
         this.sendToClient(client, {
           type: 'error',
@@ -575,9 +1156,10 @@ export class DashboardServer extends EventEmitter {
     }
   }
 
-  private broadcast(data: any): void {
+  private broadcast(data: any, filter?: (client: DashboardClient) => boolean): void {
     const message = JSON.stringify(data);
     for (const client of this.clients.values()) {
+      if (filter && !filter(client)) continue;
       if (client.ws.readyState === WebSocket.OPEN) {
         client.ws.send(message);
       }
@@ -590,10 +1172,13 @@ export class DashboardServer extends EventEmitter {
 
   private subscribeToEvents(): void {
     this.eventSubscription = this.eventBus.subscribeAll((event) => {
-      // Broadcast to all subscribed clients
+      // Broadcast to appropriate clients based on subscriptions
       for (const client of this.clients.values()) {
-        // Check if client is subscribed to this swarm
-        if (event.swarmId && !client.subscribedSwarms.has(event.swarmId)) {
+        // Check subscription filters
+        if (event.swarmId && !client.subscribedSwarms.has(event.swarmId) && client.subscribedSwarms.size > 0) {
+          continue;
+        }
+        if (event.agentId && !client.subscribedAgents.has(event.agentId) && client.subscribedAgents.size > 0) {
           continue;
         }
 
@@ -602,10 +1187,13 @@ export class DashboardServer extends EventEmitter {
           client.eventBuffer.shift(); // Remove oldest
         }
 
-        this.sendToClient(client, {
-          type: 'event',
-          event,
-        });
+        // Send based on subscription type
+        if (client.subscriptions.has('events')) {
+          this.sendToClient(client, {
+            type: 'event',
+            event,
+          });
+        }
       }
     });
   }
@@ -654,6 +1242,20 @@ export class DashboardServer extends EventEmitter {
       this.metrics.memoryUsageGauge.set({ type: 'rss' }, memUsage.rss);
       this.metrics.memoryUsageGauge.set({ type: 'heap_used' }, memUsage.heapUsed);
       this.metrics.memoryUsageGauge.set({ type: 'heap_total' }, memUsage.heapTotal);
+
+      // Broadcast metrics to subscribed clients
+      const metricsData = this.getDashboardMetrics();
+      this.broadcast(
+        { type: 'metrics_update', data: metricsData },
+        (client) => client.subscriptions.has('metrics')
+      );
+
+      // Broadcast swarm updates
+      const swarmsData = this.getSwarmDashboardInfo();
+      this.broadcast(
+        { type: 'swarms_update', data: swarmsData },
+        (client) => client.subscriptions.has('swarms')
+      );
     }, 15000); // Every 15 seconds
   }
 

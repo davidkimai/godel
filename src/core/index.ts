@@ -47,8 +47,35 @@ export * from './openclaw';
 
 export * from './event-bus';
 export * from './event-bus-redis';
+export * from './event-bus-redis-optimized';
 export * from './session-tree';
 export * from './swarm-orchestrator';
+
+// =============================================================================
+// Performance Optimizations
+// =============================================================================
+
+export {
+  RedisConnectionPool,
+  getRedisPool,
+  resetRedisPool,
+  getPoolMetrics,
+} from './redis-pool';
+export type {
+  RedisPoolConfig,
+} from './redis-pool';
+
+// PoolMetrics type is not exported directly, use ReturnType<typeof getPoolMetrics>
+
+export {
+  OptimizedRedisEventBus,
+  getOptimizedRedisEventBus,
+  resetOptimizedRedisEventBus,
+} from './event-bus-redis-optimized';
+export type {
+  OptimizedRedisEventBusConfig,
+  EventMetrics,
+} from './event-bus-redis-optimized';
 
 // =============================================================================
 // Phase 1D: State Persistence

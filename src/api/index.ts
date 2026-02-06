@@ -37,6 +37,20 @@ export { createApp, startServer as startExpressServer } from './server';
 export type { ServerConfig } from './server';
 
 // ============================================================================
+// Optimized WebSocket Server
+// ============================================================================
+
+export {
+  OptimizedWebSocketServer,
+  getOptimizedWebSocketServer,
+  resetOptimizedWebSocketServer,
+} from './websocket-optimized';
+export type {
+  WebSocketConfig,
+  WebSocketMetrics,
+} from './websocket-optimized';
+
+// ============================================================================
 // Response Utilities
 // ============================================================================
 

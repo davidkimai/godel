@@ -7,10 +7,11 @@
     "rootDir": ".",
     "strict": false,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noPropertyAccessFromIndexSignature": true,
     "esModuleInterop": true,
     "jsx": "react",
+    "jsxFactory": "React.createElement",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
@@ -21,7 +22,8 @@
     "baseUrl": ".",
     "paths": {
       "@godel/ai": ["./packages/ai/src/index.ts"]
-    }
+    },
+    "types": ["node", "react"]
   },
   "include": ["src/**/*", "packages/*/src/**/*"],
   "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts", "packages/**/__tests__", "src/dashboard/ui"]

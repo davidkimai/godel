@@ -8,12 +8,16 @@ import { jest } from '@jest/globals';
 type AnyRecord = Record<string, unknown>;
 const asRecord = (data: unknown): AnyRecord => (data ?? {}) as AnyRecord;
 
+// Counter for unique IDs
+let agentIdCounter = 0;
+let taskIdCounter = 0;
+
 // Mock repository implementations
 const mockAgentRepository = {
   agents: new Map(),
   
   create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
-    const id = `repo-agent-${Date.now()}`;
+    const id = `repo-agent-${++agentIdCounter}-${Date.now()}`;
     const agent = { id, ...asRecord(data), createdAt: new Date(), updatedAt: new Date() };
     mockAgentRepository.agents.set(id, agent);
     return agent;
@@ -46,7 +50,7 @@ const mockTaskRepository = {
   tasks: new Map(),
   
   create: jest.fn().mockImplementation(async (data: Record<string, unknown>) => {
-    const id = `repo-task-${Date.now()}`;
+    const id = `repo-task-${++taskIdCounter}-${Date.now()}`;
     const task = { id, ...asRecord(data), createdAt: new Date(), updatedAt: new Date() };
     mockTaskRepository.tasks.set(id, task);
     return task;
@@ -56,13 +60,13 @@ const mockTaskRepository = {
     return mockTaskRepository.tasks.get(id) || null;
   }),
   
-  findAll: jest.fn().mockImplementation(async (filters = {}) => {
+  findAll: jest.fn().mockImplementation(async (filters: { status?: string; agentId?: string } = {}) => {
     let tasks = Array.from(mockTaskRepository.tasks.values());
     
     if (filters.status) {
       tasks = tasks.filter(t => t.status === filters.status);
     }
-    if (filters.agentId) {
+    if (filters.agentId !== undefined && filters.agentId !== null && filters.agentId !== '') {
       tasks = tasks.filter(t => t.agentId === filters.agentId);
     }
     
@@ -115,6 +119,17 @@ describe('Repository Integration Tests', () => {
     // Clear mock data before each test
     mockAgentRepository.agents.clear();
     mockTaskRepository.tasks.clear();
+    
+    // Reset ID counters
+    agentIdCounter = 0;
+    taskIdCounter = 0;
+    
+    // Reset config
+    mockSwarmRepository.config = {
+      maxAgents: 10,
+      taskTimeout: 30000,
+      heartbeatInterval: 5000,
+    };
     
     // Reset all mocks
     jest.clearAllMocks();

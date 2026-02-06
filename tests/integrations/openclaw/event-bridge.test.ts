@@ -36,7 +36,7 @@ describe('OpenClawEventBridge', () => {
 
   const mockConfig = {
     webhookUrl: 'http://localhost:8080/webhook',
-    filter: ['agent.spawned', 'agent.completed'],
+    filter: ['agent.spawned', 'agent.completed', 'swarm.created'],
     authToken: 'test-token-123',
     batchInterval: 0, // Immediate mode for tests
     maxBatchSize: 10,
@@ -152,6 +152,9 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete
+      await new Promise(resolve => setImmediate(resolve));
 
       expect(global.fetch).toHaveBeenCalledWith(
         mockConfig.webhookUrl,
@@ -205,6 +208,9 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for any async operations
+      await new Promise(resolve => setImmediate(resolve));
 
       // Should not forward filtered events
       expect(global.fetch).not.toHaveBeenCalled();
@@ -229,6 +235,10 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete and error to be emitted
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(errorHandler).toHaveBeenCalled();
     });
@@ -256,6 +266,10 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete and error to be emitted
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(errorHandler).toHaveBeenCalled();
     });
@@ -282,6 +296,9 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete
+      await new Promise(resolve => setImmediate(resolve));
 
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
@@ -315,7 +332,11 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete
+      await new Promise(resolve => setImmediate(resolve));
 
+      expect(global.fetch).toHaveBeenCalled();
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
 
@@ -366,6 +387,9 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete
+      await new Promise(resolve => setImmediate(resolve));
 
       expect(bridge.getStats().eventsForwarded).toBe(1);
     });
@@ -404,6 +428,10 @@ describe('OpenClawEventBridge', () => {
       )[1];
 
       await catchAllHandler(mockMessage);
+      
+      // Wait for async forwardImmediate to complete
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(bridge.getStats().eventsFailed).toBe(1);
     });

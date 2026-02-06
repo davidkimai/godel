@@ -1,0 +1,53 @@
+name: feature-implementation
+description: Template for implementing new features using parallel agent swarms
+patterns:
+  - implement {{description}}
+  - add {{description}} feature
+  - create {{description}}
+  - build {{description}}
+  - new {{description}}
+strategy: parallel
+defaultAgents: 5
+phases:
+  - name: analysis
+    description: Analyze codebase and understand requirements
+    agentCount: 1
+    taskTemplate: >
+      Analyze the current codebase to understand the structure and existing patterns.
+      Focus on: {{target}}. Identify where the new feature should be integrated,
+      what dependencies exist, and what patterns to follow. Provide a detailed
+      implementation plan with file locations and code structure recommendations.
+
+  - name: design
+    description: Design the feature architecture
+    agentCount: 1
+    taskTemplate: >
+      Based on the analysis, design the architecture for: {{description}}.
+      Define interfaces, data structures, and component relationships.
+      Consider error handling, edge cases, and testing strategy.
+
+  - name: implementation
+    description: Implement the feature across the codebase
+    agentCount: 3
+    taskTemplate: >
+      Implement {{description}} following the design specifications.
+      Write clean, well-documented code with proper error handling.
+      Follow existing code patterns and conventions in the codebase.
+      Ensure type safety and proper TypeScript usage.
+
+  - name: testing
+    description: Add comprehensive tests
+    agentCount: 2
+    taskTemplate: >
+      Write comprehensive tests for {{description}}.
+      Include unit tests, integration tests, and edge case coverage.
+      Ensure all tests pass and code coverage is acceptable.
+
+  - name: verification
+    description: Verify implementation and run final checks
+    agentCount: 1
+    taskTemplate: >
+      Verify the complete implementation of {{description}}.
+      Run the full test suite, check for type errors, lint issues,
+      and ensure the feature works as expected. Review code quality
+      and adherence to project standards.

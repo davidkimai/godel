@@ -2,6 +2,35 @@ import { AddressInfo } from 'net';
 import { Server } from 'http';
 import { createExpressApp, UnifiedServerConfig } from '../../../src/api/server-factory';
 
+// Mock storage repositories to avoid PostgreSQL dependency
+jest.mock('../../../src/storage/repositories/SwarmRepository', () => ({
+  SwarmRepository: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn().mockResolvedValue(undefined),
+    findById: jest.fn().mockResolvedValue({ id: 'test-swarm-id', name: 'Test Swarm', config: {}, status: 'active' }),
+    list: jest.fn().mockResolvedValue([{ id: 'test-swarm-id', name: 'Test Swarm', config: {}, status: 'active' }]),
+    create: jest.fn().mockResolvedValue({ id: 'test-swarm-id', name: 'Test Swarm', config: {}, status: 'active' }),
+    delete: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+jest.mock('../../../src/storage/repositories/AgentRepository', () => ({
+  AgentRepository: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn().mockResolvedValue(undefined),
+    findById: jest.fn().mockResolvedValue({ id: 'test-agent-id', name: 'Test Agent', status: 'active' }),
+    list: jest.fn().mockResolvedValue([{ id: 'test-agent-id', name: 'Test Agent', status: 'active' }]),
+    create: jest.fn().mockResolvedValue({ id: 'test-agent-id', name: 'Test Agent', status: 'active' }),
+    updateStatus: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+jest.mock('../../../src/storage/repositories/EventRepository', () => ({
+  EventRepository: jest.fn().mockImplementation(() => ({
+    initialize: jest.fn().mockResolvedValue(undefined),
+    list: jest.fn().mockResolvedValue([{ id: 'test-event-id', type: 'test', payload: {} }]),
+    create: jest.fn().mockResolvedValue({ id: 'test-event-id', type: 'test', payload: {} }),
+  })),
+}));
+
 jest.setTimeout(30000);
 
 describe('Express server-factory compatibility contract', () => {
@@ -9,12 +38,13 @@ describe('Express server-factory compatibility contract', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
-    process.env['PORT'] = '7373';
-    process.env['DATABASE_URL'] = 'postgresql://godel:godel@localhost:5432/godel';
-    process.env['POSTGRES_DB'] = 'godel';
+    process.env['PORT'] = '0'; // Use random available port
+    delete process.env['DATABASE_URL']; // Force SQLite usage
+    process.env['GODEL_SQLITE_PATH'] = ':memory:';
     process.env['GODEL_HEALTH_TIMEOUT_MS'] = '100';
     process.env['GODEL_HEALTH_REQUIRE_REDIS'] = 'false';
     process.env['GODEL_OPENCLAW_REQUIRED'] = 'false';
+    process.env['GODEL_ENABLE_AUTH'] = 'false'; // Disable auth for contract tests
 
     const config: UnifiedServerConfig = {
       framework: 'express',
@@ -51,9 +81,11 @@ describe('Express server-factory compatibility contract', () => {
     delete process.env['PORT'];
     delete process.env['DATABASE_URL'];
     delete process.env['POSTGRES_DB'];
+    delete process.env['GODEL_SQLITE_PATH'];
     delete process.env['GODEL_HEALTH_TIMEOUT_MS'];
     delete process.env['GODEL_HEALTH_REQUIRE_REDIS'];
     delete process.env['GODEL_OPENCLAW_REQUIRED'];
+    delete process.env['GODEL_ENABLE_AUTH'];
   });
 
   it('serves OpenAPI JSON on both /api/v1/openapi.json and /api/openapi.json', async () => {
