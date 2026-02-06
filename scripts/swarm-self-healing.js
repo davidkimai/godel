@@ -7,7 +7,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const PID_FILE = '.dash/self-healing.pid';
+const PID_FILE = '.godel/self-healing.pid';
 
 function log(message) {
   const timestamp = new Date().toISOString();

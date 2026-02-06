@@ -14,7 +14,7 @@ describe('GitOps', () => {
   describe('diffConfigs', () => {
     it('should return identical for same configs', () => {
       const config: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -32,7 +32,7 @@ describe('GitOps', () => {
 
     it('should detect added fields', () => {
       const oldConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -60,7 +60,7 @@ describe('GitOps', () => {
 
     it('should detect removed fields', () => {
       const oldConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -73,7 +73,7 @@ describe('GitOps', () => {
       };
       
       const newConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -92,7 +92,7 @@ describe('GitOps', () => {
 
     it('should detect modified fields', () => {
       const oldConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -119,7 +119,7 @@ describe('GitOps', () => {
 
     it('should detect nested changes', () => {
       const oldConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -210,7 +210,7 @@ describe('GitOps', () => {
 
     beforeEach(async () => {
       manager = new GitOpsManager();
-      tempDir = resolve(tmpdir(), `dash-gitops-test-${Date.now()}`);
+      tempDir = resolve(tmpdir(), `godel-gitops-test-${Date.now()}`);
       await mkdir(tempDir, { recursive: true });
     });
 

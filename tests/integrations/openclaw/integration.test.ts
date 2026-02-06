@@ -1,7 +1,7 @@
 /**
  * OpenClaw Integration Tests
  * 
- * Full end-to-end integration tests for the OpenClaw-Dash integration.
+ * Full end-to-end integration tests for the OpenClaw-Godel integration.
  * Tests the complete flow from spawning to event streaming.
  * 
  * @group integration
@@ -19,7 +19,7 @@ import {
   resetOpenClawEventBridge,
 } from '../../../src/integrations/openclaw/event-bridge';
 
-import { DashOrchestrationSkill } from '../../../skills/dash-orchestration/index';
+import { GodelOrchestrationSkill } from '../../../skills/godel-orchestration/index';
 import { getGlobalClient } from '../../../src/cli/lib/client';
 import { getGlobalBus, type MessageBus } from '../../../src/bus/index';
 
@@ -38,10 +38,10 @@ jest.mock('../../../src/utils/logger', () => ({
 // Mock fetch for webhook testing
 global.fetch = jest.fn();
 
-describe('OpenClaw-Dash Integration', () => {
+describe('OpenClaw-Godel Integration', () => {
   let adapter: OpenClawAdapter;
   let eventBridge: OpenClawEventBridge;
-  let skill: DashOrchestrationSkill;
+  let skill: GodelOrchestrationSkill;
   let mockClient: any; // Use any to bypass strict typing in tests
   let mockBus: {
     subscribe: jest.Mock;
@@ -50,8 +50,8 @@ describe('OpenClaw-Dash Integration', () => {
   };
 
   const testConfig = {
-    dashApiUrl: 'http://localhost:7373',
-    dashApiKey: 'dash_test_key_1234567890123456789012345678901234567890123456789012345678901234',
+    godelApiUrl: 'http://localhost:7373',
+    godelApiKey: 'godel_test_key_1234567890123456789012345678901234567890123456789012345678901234',
     openclawSessionKey: 'test-session-123',
     eventWebhookUrl: 'http://localhost:8080/webhook',
   };
@@ -88,9 +88,9 @@ describe('OpenClaw-Dash Integration', () => {
       webhookUrl: testConfig.eventWebhookUrl,
       messageBus: mockBus as unknown as MessageBus,
     });
-    skill = new DashOrchestrationSkill({
-      dashApiUrl: testConfig.dashApiUrl,
-      dashApiKey: testConfig.dashApiKey,
+    skill = new GodelOrchestrationSkill({
+      godelApiUrl: testConfig.godelApiUrl,
+      godelApiKey: testConfig.godelApiKey,
       eventWebhookUrl: testConfig.eventWebhookUrl,
     });
 
@@ -211,7 +211,7 @@ describe('OpenClaw-Dash Integration', () => {
         model: 'claude-3',
       });
 
-      expect(spawnResult.dashAgentId).toBe('agent-test-456');
+      expect(spawnResult.godelAgentId).toBe('agent-test-456');
       expect(spawnResult.status).toBe('running');
 
       // 2. Check status
@@ -340,7 +340,7 @@ describe('OpenClaw-Dash Integration', () => {
       await skill.spawn(context, ['code-review', '--agents', '3', '--model', 'claude-3']);
 
       expect(context.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Spawned Dash agent')
+        expect.stringContaining('Spawned Godel agent')
       );
     });
 
@@ -439,7 +439,7 @@ describe('OpenClaw-Dash Integration', () => {
       await skill.list(context);
 
       expect(context.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Active Dash Agent')
+        expect.stringContaining('Active Godel Agent')
       );
     });
 
@@ -540,18 +540,18 @@ describe('OpenClaw-Dash Integration', () => {
       ]);
 
       expect(results).toHaveLength(3);
-      expect(results[0].dashAgentId).toBe('agent-multi-1');
-      expect(results[1].dashAgentId).toBe('agent-multi-2');
-      expect(results[2].dashAgentId).toBe('agent-multi-3');
+      expect(results[0].godelAgentId).toBe('agent-multi-1');
+      expect(results[1].godelAgentId).toBe('agent-multi-2');
+      expect(results[2].godelAgentId).toBe('agent-multi-3');
 
       // Verify all are tracked
       const agents = await adapter.listAgents();
       expect(agents).toHaveLength(3);
 
       // Verify correct mappings
-      expect(adapter.getDashAgentId('session-1')).toBe('agent-multi-1');
-      expect(adapter.getDashAgentId('session-2')).toBe('agent-multi-2');
-      expect(adapter.getDashAgentId('session-3')).toBe('agent-multi-3');
+      expect(adapter.getGodelAgentId('session-1')).toBe('agent-multi-1');
+      expect(adapter.getGodelAgentId('session-2')).toBe('agent-multi-2');
+      expect(adapter.getGodelAgentId('session-3')).toBe('agent-multi-3');
     });
 
     it('should isolate agents by session', async () => {

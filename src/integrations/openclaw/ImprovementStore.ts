@@ -1,5 +1,5 @@
 /**
- * Improvement Store for Dash Self-Improvement
+ * Improvement Store for Godel Self-Improvement
  * 
  * Stores improvement history, tracks strategy effectiveness,
  * and provides query optimization for learning patterns.

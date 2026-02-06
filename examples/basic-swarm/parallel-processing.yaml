@@ -1,7 +1,7 @@
 # Parallel Processing Swarm
 # Demonstrates parallel execution pattern
 
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:

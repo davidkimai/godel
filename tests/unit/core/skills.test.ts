@@ -287,7 +287,7 @@ describe('Skill Loading Integration', () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dash-skills-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'godel-skills-test-'));
   });
 
   afterEach(() => {

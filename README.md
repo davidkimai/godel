@@ -1,4 +1,4 @@
-# Dash - OpenClaw Agent Orchestration Platform
+# Godel - OpenClaw Agent Orchestration Platform
 
 <div align="center">
 
@@ -7,15 +7,15 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT/)
-[![npm](https://img.shields.io/badge/npm-2.0.0-blue.svg)](https://www.npmjs.com/package/@jtan15010/dash)
+[![npm](https://img.shields.io/badge/npm-2.0.0-blue.svg)](https://www.npmjs.com/package/@jtan15010/godel)
 
 </div>
 
 ---
 
-## What is Dash?
+## What is Godel?
 
-Dash is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw/Pi agent sessions with enterprise reliability, observability, and operational efficiency. Dash operates as the central nervous system for AI agent swarms, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous agent instances.
+Godel is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw/Pi agent sessions with enterprise reliability, observability, and operational efficiency. Godel operates as the central nervous system for AI agent swarms, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous agent instances.
 
 ### The "Intent-Based" Interface
 
@@ -23,14 +23,14 @@ Instead of manually managing individual agents, you describe what you want:
 
 ```bash
 # Traditional approach - high cognitive load
-dash task create --agent agent-7 --priority high --worktree /path/to/repo \
+godel task create --agent agent-7 --priority high --worktree /path/to/repo \
   --prompt "Implement OAuth2 login with Google, ensure CSRF protection, add rate limiting..."
 
-# Dash approach - intent-based
-dash do "Add Google OAuth login with security best practices"
+# Godel approach - intent-based
+godel do "Add Google OAuth login with security best practices"
 ```
 
-Dash automatically:
+Godel automatically:
 - Selects the right agents for the task
 - Determines dependency order
 - Parallelizes where possible
@@ -166,8 +166,8 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/davidkimai/dash.git
-cd dash
+git clone https://github.com/davidkimai/godel.git
+cd godel
 
 # Install dependencies
 npm install
@@ -185,18 +185,18 @@ Create a `.env` file:
 
 ```bash
 # Server
-DASH_PORT=7373
-DASH_HOST=0.0.0.0
+GODEL_PORT=7373
+GODEL_HOST=0.0.0.0
 
 # Database
-DASH_DATABASE_URL=postgresql://user:pass@localhost:5432/dash
+GODEL_DATABASE_URL=postgresql://user:pass@localhost:5432/godel
 
 # Redis
-DASH_REDIS_URL=redis://localhost:6379
+GODEL_REDIS_URL=redis://localhost:6379
 
 # Pi / OpenClaw
-DASH_OPENCLAW_COMMAND=openclaw
-DASH_OPENCLAW_MAX_SESSIONS=50
+GODEL_OPENCLAW_COMMAND=openclaw
+GODEL_OPENCLAW_MAX_SESSIONS=50
 
 # LLM Providers (server-side only)
 ANTHROPIC_API_KEY=your_key_here
@@ -296,33 +296,33 @@ curl -X POST http://localhost:7373/api/v1/tasks \
 
 ```bash
 # Check status
-dash status
+godel status
 
 # View logs
-dash logs --follow
+godel logs --follow
 
 # Health check
-dash health
+godel health
 ```
 
 ### Agent Management
 
 ```bash
 # List agents
-dash agent list
+godel agent list
 
 # Create agent with specific role
-dash agent create --role worker --model claude-sonnet-4
+godel agent create --role worker --model claude-sonnet-4
 
 # Terminate agent
-dash agent terminate <agent-id>
+godel agent terminate <agent-id>
 ```
 
 ### Swarm Operations
 
 ```bash
 # Create a swarm with role composition
-dash swarm create \
+godel swarm create \
   --name "feature-auth" \
   --coordinator coordinator \
   --workers 3 \
@@ -330,39 +330,39 @@ dash swarm create \
   --task "Implement OAuth2 authentication"
 
 # List swarms
-dash swarm list
+godel swarm list
 
 # Monitor swarm
-dash swarm status <swarm-id>
+godel swarm status <swarm-id>
 ```
 
 ### Worktree Operations
 
 ```bash
 # List worktrees
-dash worktree list
+godel worktree list
 
 # Create worktree for feature
-dash worktree create --repo /path/to/repo --branch feature/new-auth
+godel worktree create --repo /path/to/repo --branch feature/new-auth
 
 # Clean up worktree
-dash worktree cleanup <worktree-id>
+godel worktree cleanup <worktree-id>
 ```
 
 ### Pi Operations
 
 ```bash
 # List Pi instances
-dash pi instances
+godel pi instances
 
 # Create Pi session
-dash pi session create --provider anthropic --model claude-sonnet-4
+godel pi session create --provider anthropic --model claude-sonnet-4
 
 # View conversation tree
-dash pi tree <session-id>
+godel pi tree <session-id>
 
 # Fork session at node
-dash pi fork <session-id> --node <node-id>
+godel pi fork <session-id> --node <node-id>
 ```
 
 ---
@@ -372,9 +372,9 @@ dash pi fork <session-id> --node <node-id>
 ### TypeScript SDK
 
 ```typescript
-import { DashClient } from '@jtan15010/dash';
+import { GodelClient } from '@jtan15010/godel';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:7373',
   apiKey: 'your-api-key'
 });
@@ -429,7 +429,7 @@ const swarm = await client.swarms.create({
 ## Project Structure
 
 ```
-dash/
+godel/
 ├-- src/
 │   ├-- api/                    # REST API endpoints
 │   │   ├-- routes/
@@ -498,13 +498,13 @@ npm run verify:release
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DASH_PORT` | API server port | `7373` |
-| `DASH_HOST` | API server host | `0.0.0.0` |
-| `DASH_DATABASE_URL` | PostgreSQL connection | - |
-| `DASH_REDIS_URL` | Redis connection | - |
-| `DASH_JWT_SECRET` | JWT signing secret | - |
-| `DASH_OPENCLAW_COMMAND` | OpenClaw CLI command | `openclaw` |
-| `DASH_OPENCLAW_MAX_SESSIONS` | Max concurrent sessions | `50` |
+| `GODEL_PORT` | API server port | `7373` |
+| `GODEL_HOST` | API server host | `0.0.0.0` |
+| `GODEL_DATABASE_URL` | PostgreSQL connection | - |
+| `GODEL_REDIS_URL` | Redis connection | - |
+| `GODEL_JWT_SECRET` | JWT signing secret | - |
+| `GODEL_OPENCLAW_COMMAND` | OpenClaw CLI command | `openclaw` |
+| `GODEL_OPENCLAW_MAX_SESSIONS` | Max concurrent sessions | `50` |
 | `ANTHROPIC_API_KEY` | Anthropic API key | - |
 | `OPENAI_API_KEY` | OpenAI API key | - |
 
@@ -549,11 +549,11 @@ Access the web dashboard at `http://localhost:7373` when the server is running.
 Prometheus metrics available at `/metrics`:
 
 ```
-dash_agents_connected{status="active"}
-dash_sessions_active{provider="anthropic"}
-dash_queue_depth{priority="high"}
-dash_proxy_requests_total{provider="anthropic",model="claude-sonnet-4"}
-dash_proxy_cost_total{provider="anthropic"}
+godel_agents_connected{status="active"}
+godel_sessions_active{provider="anthropic"}
+godel_queue_depth{priority="high"}
+godel_proxy_requests_total{provider="anthropic",model="claude-sonnet-4"}
+godel_proxy_cost_total{provider="anthropic"}
 ```
 
 ### Health Checks
@@ -581,7 +581,7 @@ dash_proxy_cost_total{provider="anthropic"}
 
 ```bash
 # Build image
-docker build -t dash:latest .
+docker build -t godel:latest .
 
 # Run with docker-compose
 docker-compose up -d
@@ -597,7 +597,7 @@ docker-compose up -d --scale openclaw=10
 kubectl apply -f k8s/
 
 # Or use Helm
-helm install dash ./helm/dash
+helm install godel ./helm/godel
 ```
 
 ---
@@ -617,6 +617,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**[Documentation](https://github.com/davidkimai/dash/tree/main/docs)** • **[Issues](https://github.com/davidkimai/dash/issues)** • **[Discussions](https://github.com/davidkimai/dash/discussions)**
+**[Documentation](https://github.com/davidkimai/godel/tree/main/docs)** • **[Issues](https://github.com/davidkimai/godel/issues)** • **[Discussions](https://github.com/davidkimai/godel/discussions)**
 
 </div>

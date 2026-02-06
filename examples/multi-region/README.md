@@ -1,10 +1,10 @@
 # Multi-Region Deployment Example
 
-Deploy Dash across multiple regions for high availability and geographic distribution.
+Deploy Godel across multiple regions for high availability and geographic distribution.
 
 ## Overview
 
-This example demonstrates deploying Dash in a multi-region configuration with:
+This example demonstrates deploying Godel in a multi-region configuration with:
 - Primary and secondary regions
 - Database replication
 - Cross-region failover
@@ -24,7 +24,7 @@ This example demonstrates deploying Dash in a multi-region configuration with:
 ┌─────────────────────────────┐         ┌─────────────────────────────┐
 │     US-East (Primary)       │         │    EU-West (Secondary)      │
 │  ┌─────────────────────┐    │         │  ┌─────────────────────┐    │
-│  │   Dash API Nodes    │    │         │  │   Dash API Nodes    │    │
+│  │   Godel API Nodes    │    │         │  │   Godel API Nodes    │    │
 │  │  ┌─────┐  ┌─────┐   │    │         │  │  ┌─────┐  ┌─────┐   │    │
 │  │  │Node1│  │Node2│   │    │         │  │  │Node1│  │Node2│   │    │
 │  │  └──┬──┘  └──┬──┘   │    │         │  │  └──┬──┘  └──┬──┘   │    │
@@ -116,8 +116,8 @@ provider "aws" {
   region = "us-east-1"
 }
 
-module "dash_primary" {
-  source = "../modules/dash-region"
+module "godel_primary" {
+  source = "../modules/godel-region"
   
   region = "us-east-1"
   
@@ -142,12 +142,12 @@ module "dash_primary" {
 }
 
 output "database_url" {
-  value = module.dash_primary.database_url
+  value = module.godel_primary.database_url
   sensitive = true
 }
 
 output "redis_url" {
-  value = module.dash_primary.redis_url
+  value = module.godel_primary.redis_url
   sensitive = true
 }
 ```
@@ -160,8 +160,8 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-module "dash_secondary" {
-  source = "../modules/dash-region"
+module "godel_secondary" {
+  source = "../modules/godel-region"
   
   region = "eu-west-1"
   
@@ -194,18 +194,18 @@ module "dash_secondary" {
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dash-config
-  namespace: dash
+  name: godel-config
+  namespace: godel
 data:
-  DASH_REGION: "us-east-1"
-  DASH_ROLE: "primary"
-  DASH_LOG_LEVEL: "info"
+  GODEL_REGION: "us-east-1"
+  GODEL_ROLE: "primary"
+  GODEL_LOG_LEVEL: "info"
   DATABASE_URL: "postgresql://..."
   REDIS_URL: "redis://..."
   
   # Replication settings
-  DASH_ENABLE_REPLICATION: "true"
-  DASH_REPLICA_REGIONS: "eu-west-1"
+  GODEL_ENABLE_REPLICATION: "true"
+  GODEL_REPLICA_REGIONS: "eu-west-1"
 ```
 
 ```yaml
@@ -213,20 +213,20 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dash-api
-  namespace: dash
+  name: godel-api
+  namespace: godel
 spec:
   replicas: 5
   template:
     spec:
       containers:
-        - name: dash
-          image: dashai/dash:latest
+        - name: godel
+          image: godelai/godel:latest
           envFrom:
             - configMapRef:
-                name: dash-config
+                name: godel-config
             - secretRef:
-                name: dash-secrets
+                name: godel-secrets
           resources:
             requests:
               memory: "1Gi"
@@ -244,7 +244,7 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - dash-api
+                        - godel-api
                 topologyKey: topology.kubernetes.io/zone
 ```
 
@@ -255,18 +255,18 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dash-config
-  namespace: dash
+  name: godel-config
+  namespace: godel
 data:
-  DASH_REGION: "eu-west-1"
-  DASH_ROLE: "secondary"
-  DASH_PRIMARY_REGION: "us-east-1"
+  GODEL_REGION: "eu-west-1"
+  GODEL_ROLE: "secondary"
+  GODEL_PRIMARY_REGION: "us-east-1"
   DATABASE_URL: "postgresql://..."  # Read replica
   REDIS_URL: "redis://..."
   
   # Failover settings
-  DASH_FAILOVER_ENABLED: "true"
-  DASH_FAILOVER_TIMEOUT: "30"
+  GODEL_FAILOVER_ENABLED: "true"
+  GODEL_FAILOVER_TIMEOUT: "30"
 ```
 
 ```yaml
@@ -274,20 +274,20 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dash-api
-  namespace: dash
+  name: godel-api
+  namespace: godel
 spec:
   replicas: 3  # Fewer replicas in secondary
   template:
     spec:
       containers:
-        - name: dash
-          image: dashai/dash:latest
+        - name: godel
+          image: godelai/godel:latest
           envFrom:
             - configMapRef:
-                name: dash-config
+                name: godel-config
             - secretRef:
-                name: dash-secrets
+                name: godel-secrets
 ```
 
 ## Failover Procedures
@@ -308,11 +308,11 @@ spec:
 
 ```bash
 # 1. Stop writes to primary
-kubectl exec -n dash deployment/dash-api -- dash admin maintenance on
+kubectl exec -n godel deployment/godel-api -- godel admin maintenance on
 
 # 2. Promote read replica to primary
 aws rds promote-read-replica \
-  --db-instance-identifier dash-eu-west-1
+  --db-instance-identifier godel-eu-west-1
 
 # 3. Update DNS/load balancer
 ./scripts/update-dns.sh --primary eu-west-1
@@ -332,19 +332,19 @@ aws rds promote-read-replica \
 
 ## Monitoring
 
-### Regional Health Dashboard
+### Regional Health Godelboard
 
 ```yaml
-# monitoring/dashboard-regions.json
+# monitoring/godelboard-regions.json
 {
-  "dashboard": {
+  "godelboard": {
     "title": "Multi-Region Health",
     "panels": [
       {
         "title": "Active Agents by Region",
         "targets": [
           {
-            "expr": "sum by (region) (dash_agents_active)",
+            "expr": "sum by (region) (godel_agents_active)",
             "legendFormat": "{{region}}"
           }
         ]
@@ -353,7 +353,7 @@ aws rds promote-read-replica \
         "title": "Replication Lag",
         "targets": [
           {
-            "expr": "dash_replication_lag_seconds",
+            "expr": "godel_replication_lag_seconds",
             "legendFormat": "{{source_region}} -> {{target_region}}"
           }
         ]
@@ -371,15 +371,15 @@ groups:
   - name: multi-region
     rules:
       - alert: RegionDown
-        expr: up{job="dash-api"} == 0
+        expr: up{job="godel-api"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Dash region {{ $labels.region }} is down"
+          summary: "Godel region {{ $labels.region }} is down"
           
       - alert: ReplicationLagHigh
-        expr: dash_replication_lag_seconds > 30
+        expr: godel_replication_lag_seconds > 30
         for: 5m
         labels:
           severity: warning
@@ -387,7 +387,7 @@ groups:
           summary: "High replication lag detected"
           
       - alert: FailoverRequired
-        expr: dash_primary_health < 0.5
+        expr: godel_primary_health < 0.5
         for: 1m
         labels:
           severity: critical
@@ -419,10 +419,10 @@ done
 echo "Setting up replication from $PRIMARY to $REPLICA"
 
 # Create publication on primary
-psql "$PRIMARY" -c "CREATE PUBLICATION dash_pub FOR ALL TABLES;"
+psql "$PRIMARY" -c "CREATE PUBLICATION godel_pub FOR ALL TABLES;"
 
 # Create subscription on replica
-psql "$REPLICA" -c "CREATE SUBSCRIPTION dash_sub CONNECTION '$PRIMARY' PUBLICATION dash_pub;"
+psql "$REPLICA" -c "CREATE SUBSCRIPTION godel_sub CONNECTION '$PRIMARY' PUBLICATION godel_pub;"
 
 echo "Replication configured successfully"
 ```
@@ -435,7 +435,7 @@ echo "Replication configured successfully"
 
 REGION=$1
 
-HEALTH=$(curl -sf "https://dash-$REGION.example.com/health" || echo "unhealthy")
+HEALTH=$(curl -sf "https://godel-$REGION.example.com/health" || echo "unhealthy")
 LAG=$(psql "$DATABASE_URL" -t -c "SELECT extract(epoch from now() - pg_last_xact_replay_timestamp());" 2>/dev/null || echo "null")
 
 echo "{
@@ -484,10 +484,10 @@ spec:
               command:
                 - kubectl
                 - scale
-                - deployment/dash-api
+                - deployment/godel-api
                 - --replicas=1
                 - -n
-                - dash
+                - godel
           restartPolicy: OnFailure
 ```
 

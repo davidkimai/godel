@@ -16,7 +16,7 @@ Redis-backed task queue with work distribution for Dash.
 ## Quick Start
 
 ```typescript
-import { TaskQueue } from '@jtan15010/dash/queue';
+import { TaskQueue } from '@jtan15010/godel/queue';
 
 const queue = new TaskQueue({
   redis: {
@@ -200,7 +200,7 @@ console.log(metrics);
 ## Integration with Event Bus
 
 ```typescript
-import { TaskQueueIntegration } from '@jtan15010/dash/queue';
+import { TaskQueueIntegration } from '@jtan15010/godel/queue';
 
 const integration = new TaskQueueIntegration({
   taskQueue: queue,

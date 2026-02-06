@@ -27,15 +27,15 @@ Dash extensions are TypeScript modules that can:
 - **Integrate External Services**: Connect to Slack, Jira, custom APIs
 
 Extensions are loaded from:
-1. `~/.dash/extensions/` (global extensions)
-2. `./.dash/extensions/` (project-local extensions)
+1. `~/.godel/extensions/` (global extensions)
+2. `./.godel/extensions/` (project-local extensions)
 3. Configured paths in your Dash config
 
 ## Getting Started
 
 ### 1. Create an Extension
 
-Create a file in `~/.dash/extensions/my-extension.ts`:
+Create a file in `~/.godel/extensions/my-extension.ts`:
 
 ```typescript
 import { Type } from '@sinclair/typebox';
@@ -74,7 +74,7 @@ export default function myExtension(api: ExtensionAPI, ctx: ExtensionContext) {
 
 ### 2. Extension is Auto-Loaded
 
-Dash automatically discovers and loads extensions from `~/.dash/extensions/` on startup.
+Dash automatically discovers and loads extensions from `~/.godel/extensions/` on startup.
 
 ### 3. Use Your Extension
 
@@ -529,7 +529,7 @@ loader.cleanup();
 - Check file extension is `.ts` or `.js`
 - Ensure default export is a function
 - Check Dash logs for compilation errors
-- Verify file is in `~/.dash/extensions/`
+- Verify file is in `~/.godel/extensions/`
 
 ### Permission Denied
 

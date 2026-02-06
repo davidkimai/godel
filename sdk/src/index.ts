@@ -1,15 +1,15 @@
 /**
- * @dash/client SDK - Main Entry Point
+ * @godel/client SDK - Main Entry Point
  * 
- * Official JavaScript/TypeScript SDK for interacting with the Dash platform.
+ * Official JavaScript/TypeScript SDK for interacting with the Godel platform.
  * Provides comprehensive APIs for managing swarms, agents, and events.
  * 
  * @example
  * ```typescript
- * import { DashClient } from '@dash/client';
+ * import { GodelClient } from '@godel/client';
  * 
- * const client = new DashClient({
- *   apiUrl: 'https://api.dash.io',
+ * const client = new GodelClient({
+ *   apiUrl: 'https://api.godel.io',
  *   apiKey: 'your-api-key'
  * });
  * 
@@ -19,12 +19,12 @@
  */
 
 // Core client
-export { DashClient } from './client';
-export type { DashClientConfig, RequestOptions } from './client';
+export { GodelClient } from './client';
+export type { GodelClientConfig, RequestOptions } from './client';
 
 // Error classes
 export {
-  DashError,
+  GodelError,
   AuthenticationError,
   NotFoundError,
   RateLimitError,

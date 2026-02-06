@@ -2,7 +2,7 @@
 name: testing
 description: Design and implement comprehensive test strategies including unit tests, integration tests, and end-to-end tests. Use when creating test suites, improving test coverage, debugging test failures, or establishing testing patterns.
 metadata:
-  author: dash-team
+  author: godel-team
   version: "1.0.0"
   category: quality
 ---

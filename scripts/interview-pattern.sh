@@ -2,7 +2,7 @@
 # Interview Pattern for Self-Assessment
 # This script simulates the /interview skill pattern for feedback loops
 
-WORKSPACE="/Users/jasontang/clawd/projects/dash"
+WORKSPACE="/Users/jasontang/clawd/projects/godel"
 INTERVIEW_LOG="$WORKSPACE/logs/interview-$(date +%Y-%m-%d).log"
 
 log() {
@@ -14,7 +14,7 @@ log() {
 # =============================================================================
 
 cat << 'EOF' > "$WORKSPACE/logs/interview-$(date +%Y%m%d-%H%M%S).md"
-# Self-Interview: Dash Production Readiness
+# Self-Interview: Godel Production Readiness
 
 ## Interviewer: Self-Orchestration System
 ## Interviewee: Main Session

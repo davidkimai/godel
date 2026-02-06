@@ -146,7 +146,7 @@ describe('UnifiedSkillRegistry', () => {
 
   beforeEach(() => {
     registry = new UnifiedSkillRegistry({
-      workdir: '/tmp/dash',
+      workdir: '/tmp/godel',
       skillsDir: 'skills',
       cacheTtl: 300000,
       clawhub: { enabled: true, registryUrl: 'https://clawhub.example.com' },
@@ -179,7 +179,7 @@ describe('UnifiedSkillRegistry', () => {
       const config = registry.getConfig();
       
       expect(config).toBeDefined();
-      expect(config.workdir).toBe('/tmp/dash');
+      expect(config.workdir).toBe('/tmp/godel');
       expect(config.skillsDir).toBe('skills');
     });
   });
@@ -221,7 +221,7 @@ describe('UnifiedSkillRegistry', () => {
       const dir = registry.getSkillsDirectory();
       
       expect(dir).toContain('skills');
-      expect(dir).toContain('/tmp/dash');
+      expect(dir).toContain('/tmp/godel');
     });
   });
 

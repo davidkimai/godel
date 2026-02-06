@@ -1,7 +1,7 @@
 /**
  * @fileoverview Integrations Module
  *
- * External service integrations for Dash, providing connectivity to
+ * External service integrations for Godel, providing connectivity to
  * third-party tools, services, and APIs.
  *
  * Integrations:
@@ -10,13 +10,13 @@
  * - Kimi: Moonshot AI Kimi CLI integration
  * - OpenClaw: Real-time session streaming and management
  *
- * @module @dash/integrations
+ * @module @godel/integrations
  * @version 1.0.0
  * @license MIT
  *
  * @example
  * ```typescript
- * import { PiRegistry, KimiClient, CodexClient } from '@dash/integrations';
+ * import { PiRegistry, KimiClient, CodexClient } from '@godel/integrations';
  *
  * // Use Pi integration
  * const piRegistry = getGlobalPiRegistry(config);

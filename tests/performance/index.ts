@@ -1,7 +1,7 @@
 /**
- * Performance Testing Suite for Dash
+ * Performance Testing Suite for Godel
  * 
- * This module provides load testing and benchmarking capabilities for Dash.
+ * This module provides load testing and benchmarking capabilities for Godel.
  * 
  * Usage:
  *   import { runLoadTest, BenchmarkRunner, TestScenarios } from './tests/performance';

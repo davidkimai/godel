@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Dash CLI Entry Point - v2 Implementation
+ * Godel CLI Entry Point - v2 Implementation
  * 
- * Main entry point for the Dash CLI tool.
+ * Main entry point for the Godel CLI tool.
  * Uses commander.js for command parsing and registration.
  * 
  * Per SPEC_v2.md, supports:
@@ -46,8 +46,8 @@ async function main(): Promise<void> {
     const program = new Command();
     
     program
-      .name('dash')
-      .description('Dash - AI-Powered Mission Control CLI v2')
+      .name('godel')
+      .description('Godel - AI-Powered Mission Control CLI v2')
       .version(getVersion(), '-v, --version', 'Display version number')
       .helpOption('-h, --help', 'Display help for command')
       .configureOutput({

@@ -1,5 +1,5 @@
 /**
- * ToolExecutor.ts - OpenClaw Tool Executor for Dash Agents
+ * ToolExecutor.ts - OpenClaw Tool Executor for Godel Agents
  * 
  * Provides direct access to OpenClaw tools:
  * - exec() - Shell command execution

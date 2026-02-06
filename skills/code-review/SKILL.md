@@ -2,7 +2,7 @@
 name: code-review
 description: Conduct thorough code reviews to ensure code quality, maintainability, and adherence to best practices. Use when reviewing pull requests, analyzing code changes, or providing feedback on implementation approaches.
 metadata:
-  author: dash-team
+  author: godel-team
   version: "1.0.0"
   category: quality
 ---

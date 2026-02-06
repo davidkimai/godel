@@ -1,5 +1,5 @@
 /**
- * Run live integration scenarios against a locally started Dash API server.
+ * Run live integration scenarios against a locally started Godel API server.
  *
  * This prevents false positives from describe.skip guards tied to
  * RUN_LIVE_INTEGRATION_TESTS and provides a reproducible local readiness check.
@@ -32,16 +32,16 @@ function runJest(args: string[], env: NodeJS.ProcessEnv): Promise<number> {
 async function main(): Promise<void> {
   const port = parsePort(process.env['PORT'], 7373);
   const host = process.env['HOST'] || '127.0.0.1';
-  const apiKey = process.env['DASH_API_KEY'] || 'test-key';
+  const apiKey = process.env['GODEL_API_KEY'] || 'test-key';
 
   const jestArgs = process.argv.slice(2);
   const args = jestArgs.length > 0
     ? jestArgs
     : ['tests/integration/scenarios', '--runInBand', '--testTimeout=120000'];
 
-  process.env['DASH_API_KEY'] = apiKey;
-  process.env['DASH_ENABLE_AUTH'] = process.env['DASH_ENABLE_AUTH'] || 'true';
-  process.env['DASH_ALLOW_DEV_AUTH'] = process.env['DASH_ALLOW_DEV_AUTH'] || 'true';
+  process.env['GODEL_API_KEY'] = apiKey;
+  process.env['GODEL_ENABLE_AUTH'] = process.env['GODEL_ENABLE_AUTH'] || 'true';
+  process.env['GODEL_ALLOW_DEV_AUTH'] = process.env['GODEL_ALLOW_DEV_AUTH'] || 'true';
   process.env['RUN_LIVE_INTEGRATION_TESTS'] = 'true';
 
   const server = await startServer({
@@ -62,9 +62,9 @@ async function main(): Promise<void> {
     exitCode = await runJest(args, {
       ...process.env,
       RUN_LIVE_INTEGRATION_TESTS: 'true',
-      DASH_API_URL: `http://${host}:${port}`,
+      GODEL_API_URL: `http://${host}:${port}`,
       TEST_WEBSOCKET_URL: `ws://${host}:${port}/events`,
-      DASH_API_KEY: apiKey,
+      GODEL_API_KEY: apiKey,
     });
   } finally {
     await Promise.race([

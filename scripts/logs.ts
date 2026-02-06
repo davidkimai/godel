@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 import { logger } from '../src/utils/logger';
 /**
- * Log Management Utility for Dash
+ * Log Management Utility for Godel
  * 
  * Provides commands for querying logs, managing log retention,
  * and analyzing log patterns.
@@ -28,7 +28,7 @@ function buildQuery(options: QueryOptions): string {
   if (options.job) {
     selectors.push(`job="${options.job}"`);
   } else {
-    selectors.push('job="dash"');
+    selectors.push('job="godel"');
   }
   
   if (options.agentId) selectors.push(`agent_id="${options.agentId}"`);
@@ -126,9 +126,9 @@ async function getAgentIds() {
 
 async function showStats() {
   const queries = [
-    { name: 'Total logs (last hour)', query: 'sum(rate({job="dash"}[1h]))' },
-    { name: 'Error count (last hour)', query: 'sum(rate({job="dash"} |= "ERROR" [1h]))' },
-    { name: 'Warn count (last hour)', query: 'sum(rate({job="dash"} |= "WARN" [1h]))' },
+    { name: 'Total logs (last hour)', query: 'sum(rate({job="godel"}[1h]))' },
+    { name: 'Error count (last hour)', query: 'sum(rate({job="godel"} |= "ERROR" [1h]))' },
+    { name: 'Warn count (last hour)', query: 'sum(rate({job="godel"} |= "WARN" [1h]))' },
   ];
   
   logger.info('Log Statistics\n==============\n');
@@ -153,7 +153,7 @@ async function showStats() {
 
 function showHelp() {
   logger.info(`
-Dash Log Management Utility
+Godel Log Management Utility
 
 Usage: ts-node scripts/logs.ts <command> [options]
 
@@ -166,7 +166,7 @@ Commands:
   help                Show this help message
 
 Query Options:
-  --job <job>         Job name (default: dash)
+  --job <job>         Job name (default: godel)
   --agent <id>        Filter by agent ID
   --trace <id>        Filter by trace ID
   --swarm <id>        Filter by swarm ID

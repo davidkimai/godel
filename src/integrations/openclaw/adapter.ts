@@ -1,8 +1,8 @@
 /**
  * OpenClaw Adapter
  * 
- * Translates OpenClaw protocol to Dash API, enabling OpenClaw to use
- * Dash as its native orchestration platform for agent swarms.
+ * Translates OpenClaw protocol to Godel API, enabling OpenClaw to use
+ * Godel as its native orchestration platform for agent swarms.
  * 
  * @module integrations/openclaw/adapter
  */
@@ -22,15 +22,18 @@ import {
 // ============================================================================
 
 export interface OpenClawAdapterConfig {
-  /** Dash API URL */
-  dashApiUrl: string;
-  /** Dash API Key */
-  dashApiKey: string;
+  /** Godel API URL */
+  godelApiUrl: string;
+  /** Godel API Key */
+  godelApiKey: string;
   /** OpenClaw session key for authentication */
   openclawSessionKey: string;
   /** Optional webhook URL for event forwarding */
   eventWebhookUrl?: string;
 }
+
+/** @deprecated Use OpenClawAdapterConfig with godelApiUrl/godelApiKey */
+export type DashOpenClawAdapterConfig = OpenClawAdapterConfig;
 
 export interface SpawnAgentOptions {
   /** Type of agent to spawn */
@@ -46,7 +49,9 @@ export interface SpawnAgentOptions {
 }
 
 export interface SpawnAgentResult {
-  /** Dash agent ID */
+  /** Godel agent ID */
+  godelAgentId: string;
+  /** @deprecated Use godelAgentId */
   dashAgentId: string;
   /** Initial status */
   status: string;
@@ -70,8 +75,10 @@ export interface AgentStatus {
 export interface ActiveAgent {
   /** OpenClaw session key */
   openclawSessionKey: string;
-  /** Dash agent ID */
-  dashAgentId: string;
+  /** Godel agent ID */
+  godelAgentId: string;
+  /** @deprecated Use godelAgentId */
+  dashAgentId?: string;
   /** Current status */
   status: string;
   /** Agent type */
@@ -87,17 +94,17 @@ export interface ActiveAgent {
 /**
  * OpenClaw Adapter - Protocol translation layer
  *
- * Maps OpenClaw sessions to Dash agents and swarms, enabling
- * bidirectional communication between OpenClaw and Dash.
+ * Maps OpenClaw sessions to Godel agents and swarms, enabling
+ * bidirectional communication between OpenClaw and Godel.
  */
 export class OpenClawAdapter extends EventEmitter {
   private config: OpenClawAdapterConfig;
   private client: DashApiClient;
   private messageBus: MessageBus;
 
-  /** Maps OpenClaw session keys to Dash agent IDs */
+  /** Maps OpenClaw session keys to Godel agent IDs */
   private agentIdMap: Map<string, string>;
-  /** Maps Dash agent IDs to OpenClaw session keys */
+  /** Maps Godel agent IDs to OpenClaw session keys */
   private sessionKeyMap: Map<string, string>;
   /** Maps OpenClaw session keys to swarm IDs */
   private swarmIdMap: Map<string, string>;
@@ -119,8 +126,8 @@ export class OpenClawAdapter extends EventEmitter {
     this.eventHandlers = new Map();
 
     logger.info('[OpenClawAdapter] Initialized with config:', {
-      dashApiUrl: config.dashApiUrl,
-      hasApiKey: !!config.dashApiKey,
+      godelApiUrl: config.godelApiUrl,
+      hasApiKey: !!config.godelApiKey,
     });
   }
 
@@ -129,10 +136,10 @@ export class OpenClawAdapter extends EventEmitter {
   // ============================================================================
 
   /**
-   * Spawn an agent in Dash from OpenClaw session
+   * Spawn an agent in Godel from OpenClaw session
    *
    * Creates a swarm and spawns an agent within it, mapping the OpenClaw
-   * session key to the Dash agent ID for future operations.
+   * session key to the Godel agent ID for future operations.
    */
   async spawnAgent(
     openclawSessionKey: string,
@@ -191,7 +198,7 @@ export class OpenClawAdapter extends EventEmitter {
 
       const dashAgentId = agentResult.data.id;
 
-      // Map OpenClaw session to Dash agent
+      // Map OpenClaw session to Godel agent
       this.agentIdMap.set(openclawSessionKey, dashAgentId);
       this.sessionKeyMap.set(dashAgentId, openclawSessionKey);
       this.agentMetadata.set(openclawSessionKey, {
@@ -205,7 +212,8 @@ export class OpenClawAdapter extends EventEmitter {
       logger.info(`[OpenClawAdapter] Agent spawned successfully: ${dashAgentId}`);
 
       return {
-        dashAgentId,
+        godelAgentId: dashAgentId,
+        dashAgentId, // backward compatibility
         status: agentResult.data.status,
         swarmId,
       };
@@ -216,17 +224,17 @@ export class OpenClawAdapter extends EventEmitter {
   }
 
   /**
-   * Send message to Dash agent from OpenClaw
+   * Send message to Godel agent from OpenClaw
    *
    * Routes messages from an OpenClaw session to the corresponding
-   * Dash agent.
+   * Godel agent.
    */
   async sendMessage(openclawSessionKey: string, message: string): Promise<void> {
     const dashAgentId = this.agentIdMap.get(openclawSessionKey);
 
     if (!dashAgentId) {
       throw new NotFoundError(
-        `No Dash agent mapped for session ${openclawSessionKey}`,
+        `No Godel agent mapped for session ${openclawSessionKey}`,
         'SESSION_NOT_FOUND'
       );
     }
@@ -246,7 +254,7 @@ export class OpenClawAdapter extends EventEmitter {
   }
 
   /**
-   * Kill Dash agent from OpenClaw
+   * Kill Godel agent from OpenClaw
    *
    * Terminates the agent and cleans up associated resources.
    */
@@ -293,7 +301,7 @@ export class OpenClawAdapter extends EventEmitter {
   }
 
   /**
-   * Get status of Dash agent
+   * Get status of Godel agent
    *
    * Returns current status, progress, and result (if completed).
    */
@@ -342,7 +350,8 @@ export class OpenClawAdapter extends EventEmitter {
 
       agents.push({
         openclawSessionKey: sessionKey,
-        dashAgentId: agentId,
+        godelAgentId: agentId,
+        dashAgentId: agentId, // backward compatibility
         status: status || 'unknown',
         agentType: metadata?.agentType || 'unknown',
         createdAt: metadata?.createdAt || new Date(),
@@ -359,7 +368,7 @@ export class OpenClawAdapter extends EventEmitter {
   /**
    * Set up event forwarding for an agent
    *
-   * Subscribes to Dash events for this agent and forwards them
+   * Subscribes to Godel events for this agent and forwards them
    * to the configured webhook or internal handlers.
    */
   private async setupEventForwarding(
@@ -400,7 +409,7 @@ export class OpenClawAdapter extends EventEmitter {
   /**
    * Forward an event to OpenClaw
    *
-   * Transforms Dash events to OpenClaw format and sends them
+   * Transforms Godel events to OpenClaw format and sends them
    * to the configured webhook URL.
    */
   private async forwardEvent(
@@ -420,7 +429,7 @@ export class OpenClawAdapter extends EventEmitter {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Dash-Event': 'true',
+            'X-Godel-Event': 'true',
             'X-OpenClaw-Session': openclawSessionKey,
           },
           body: JSON.stringify(event),
@@ -432,7 +441,7 @@ export class OpenClawAdapter extends EventEmitter {
   }
 
   /**
-   * Transform Dash event to OpenClaw format
+   * Transform Godel event to OpenClaw format
    */
   private transformEvent(
     openclawSessionKey: string,
@@ -465,14 +474,14 @@ export class OpenClawAdapter extends EventEmitter {
   // ============================================================================
 
   /**
-   * Get Dash agent ID for an OpenClaw session
+   * Get Godel agent ID for an OpenClaw session
    */
-  getDashAgentId(openclawSessionKey: string): string | undefined {
+  getGodelAgentId(openclawSessionKey: string): string | undefined {
     return this.agentIdMap.get(openclawSessionKey);
   }
 
   /**
-   * Get OpenClaw session key for a Dash agent
+   * Get OpenClaw session key for a Godel agent
    */
   getOpenClawSessionKey(dashAgentId: string): string | undefined {
     return this.sessionKeyMap.get(dashAgentId);

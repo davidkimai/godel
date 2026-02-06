@@ -206,7 +206,7 @@ interface SerializedEvent {
 // ============================================================================
 
 /**
- * Convert Dash config to Redis event bus config
+ * Convert Godel config to Redis event bus config
  */
 async function createEventBusConfig(): Promise<RedisEventBusConfig> {
   const config = await getConfig();

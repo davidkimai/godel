@@ -25,13 +25,13 @@ describe('Skill Auto-Loading', () => {
   let builtinSkillsDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dash-autoload-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'godel-autoload-test-'));
     builtinSkillsDir = path.join(tempDir, 'skills');
     fs.mkdirSync(builtinSkillsDir, { recursive: true });
 
     registry = new SkillRegistry({
-      userSkillsDir: path.join(tempDir, '.dash', 'skills'),
-      projectSkillsDir: path.join(tempDir, '.dash', 'skills'),
+      userSkillsDir: path.join(tempDir, '.godel', 'skills'),
+      projectSkillsDir: path.join(tempDir, '.godel', 'skills'),
       builtinSkillsDir,
       autoLoad: true,
       autoLoadThreshold: 0.2,

@@ -1,8 +1,8 @@
 #!/bin/bash
-# Auto-commit script for Dash project
+# Auto-commit script for Godel project
 # Commits all changes with timestamp
 
-PROJECT_DIR="/Users/jasontang/clawd/projects/dash"
+PROJECT_DIR="/Users/jasontang/clawd/projects/godel"
 COMMIT_MSG="${1:-auto: $(date +%Y-%m-%d %H:%M)}"
 
 cd "$PROJECT_DIR"
@@ -15,7 +15,7 @@ if git status --porcelain | grep -q .; then
   git add -A
   
   # Commit with message
-  git commit -m "$COMMIT_MSG" --author="Dash Automation <auto@dash.local>"
+  git commit -m "$COMMIT_MSG" --author="Godel Automation <auto@godel.local>"
   
   # Push to origin
   git push origin main

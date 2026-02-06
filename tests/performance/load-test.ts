@@ -1,6 +1,6 @@
 import { logger } from '../../src/utils/logger';
 /**
- * Load Testing Harness for Dash
+ * Load Testing Harness for Godel
  * 
  * Generates synthetic agent workloads to benchmark the system at scale.
  * Tests 10, 20, 50, and 100 agent scenarios.

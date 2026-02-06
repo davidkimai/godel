@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CLI_DIR = '/Users/jasontang/clawd/projects/dash/src/cli/commands';
+const CLI_DIR = '/Users/jasontang/clawd/projects/godel/src/cli/commands';
 
 // Files to process
 const files = [
@@ -14,7 +14,7 @@ const files = [
   'quality.ts',
   'swarm.ts',
   'init.ts',
-  'dashboard.ts',
+  'godelboard.ts',
   'events.ts',
   'context.ts',
   'tests.ts',

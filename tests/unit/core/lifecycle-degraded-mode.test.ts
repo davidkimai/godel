@@ -15,7 +15,7 @@ describe('AgentLifecycle degraded OpenClaw mode', () => {
   } as unknown as MessageBus;
 
   afterEach(() => {
-    delete process.env['DASH_OPENCLAW_REQUIRED'];
+    delete process.env['GODEL_OPENCLAW_REQUIRED'];
     delete process.env['OPENCLAW_REQUIRED'];
     jest.clearAllMocks();
   });
@@ -46,7 +46,7 @@ describe('AgentLifecycle degraded OpenClaw mode', () => {
   });
 
   it('fails startup when strict OpenClaw mode is enabled', async () => {
-    process.env['DASH_OPENCLAW_REQUIRED'] = 'true';
+    process.env['GODEL_OPENCLAW_REQUIRED'] = 'true';
     const openclaw = {
       initialize: jest.fn().mockRejectedValue(new Error('gateway unavailable')),
       connect: jest.fn(),

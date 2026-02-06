@@ -1,7 +1,7 @@
 /**
  * Tool Interceptor Module - Pi Integration
  *
- * Routes tool calls between Pi, Dash tools, and remote executors with policy enforcement.
+ * Routes tool calls between Pi, Godel tools, and remote executors with policy enforcement.
  * Provides a centralized mechanism for tool registration, policy-based access control,
  * audit logging, and execution routing.
  *
@@ -1125,7 +1125,7 @@ export const DEFAULT_POLICIES: ToolPolicy[] = [
 // ============================================================================
 
 /**
- * ToolInterceptor routes tool calls between Pi, Dash tools, and remote executors
+ * ToolInterceptor routes tool calls between Pi, Godel tools, and remote executors
  * with policy enforcement and audit logging.
  *
  * Key responsibilities:

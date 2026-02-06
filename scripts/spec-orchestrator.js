@@ -3,7 +3,7 @@
 /**
  * Spec Orchestrator - SDD System Controller
  * 
- * Manages specifications for Dash v2.0 autonomous operations.
+ * Manages specifications for Godel v2.0 autonomous operations.
  * Reads specs, generates prompts, validates outputs, tracks coverage.
  */
 

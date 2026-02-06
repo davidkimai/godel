@@ -1,7 +1,7 @@
 # Simple Swarm Configuration
-# Basic example of Dash swarm creation
+# Basic example of Godel swarm creation
 
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:

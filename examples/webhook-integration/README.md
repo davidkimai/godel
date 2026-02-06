@@ -1,10 +1,10 @@
 # Webhook Integration
 
-Receive real-time notifications and events via webhooks from Dash.
+Receive real-time notifications and events via webhooks from Godel.
 
 ## Overview
 
-This example demonstrates how to set up webhooks to receive real-time events from Dash, including configuration, security, and common use cases.
+This example demonstrates how to set up webhooks to receive real-time events from Godel, including configuration, security, and common use cases.
 
 ## Files
 
@@ -17,17 +17,17 @@ This example demonstrates how to set up webhooks to receive real-time events fro
 
 ## Quick Start
 
-### 1. Configure Webhook in Dash
+### 1. Configure Webhook in Godel
 
 ```bash
 # Set webhook URL
-dash config set WEBHOOK_URL https://your-server.com/webhooks/dash
+godel config set WEBHOOK_URL https://your-server.com/webhooks/godel
 
 # Set webhook secret (for signature verification)
-dash config set WEBHOOK_SECRET your-webhook-secret
+godel config set WEBHOOK_SECRET your-webhook-secret
 
 # Enable specific events
-dash config set WEBHOOK_EVENTS "agent:complete,swarm:complete,workflow:complete"
+godel config set WEBHOOK_EVENTS "agent:complete,swarm:complete,workflow:complete"
 ```
 
 ### 2. Start Webhook Server
@@ -75,7 +75,7 @@ interface WebhookEvent {
   /** Webhook that triggered this event */
   webhookId: string;
   
-  /** Dash instance ID */
+  /** Godel instance ID */
   instanceId: string;
 }
 ```
@@ -106,8 +106,8 @@ function verifySignature(payload: string, signature: string): boolean {
 }
 
 // Webhook endpoint
-app.post('/webhooks/dash', (req: Request, res: Response) => {
-  const signature = req.headers['x-dash-signature'] as string;
+app.post('/webhooks/godel', (req: Request, res: Response) => {
+  const signature = req.headers['x-godel-signature'] as string;
   
   if (!signature) {
     return res.status(401).json({ error: 'Missing signature' });
@@ -210,10 +210,10 @@ const webhookSchema = {
 };
 
 // Register webhook route
-fastify.post<{ Body: any }>('/webhooks/dash', {
+fastify.post<{ Body: any }>('/webhooks/godel', {
   schema: webhookSchema,
   preHandler: async (request, reply) => {
-    const signature = request.headers['x-dash-signature'] as string;
+    const signature = request.headers['x-godel-signature'] as string;
     
     if (!signature) {
       reply.status(401).send({ error: 'Missing signature' });
@@ -288,8 +288,8 @@ const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
 export const handler: APIGatewayProxyHandler = async (event): Promise<APIGatewayProxyResult> => {
   try {
     // Verify signature
-    const signature = event.headers['X-Dash-Signature'] || 
-                     event.headers['x-dash-signature'];
+    const signature = event.headers['X-Godel-Signature'] || 
+                     event.headers['x-godel-signature'];
     
     if (!signature) {
       return { statusCode: 401, body: 'Missing signature' };
@@ -578,8 +578,8 @@ npm run dev
 # Expose localhost to internet
 ngrok http 3000
 
-# Copy the ngrok URL and configure it in Dash
-# Dash config set WEBHOOK_URL https://your-ngrok-id.ngrok.io/webhooks/dash
+# Copy the ngrok URL and configure it in Godel
+# Godel config set WEBHOOK_URL https://your-ngrok-id.ngrok.io/webhooks/godel
 ```
 
 ### Send Test Events
@@ -614,7 +614,7 @@ const response = await fetch(WEBHOOK_URL, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'X-Dash-Signature': signature,
+    'X-Godel-Signature': signature,
   },
   body: payload,
 });
@@ -625,25 +625,25 @@ console.log('Response body:', await response.json());
 
 ## Configuration
 
-### Dash Webhook Configuration
+### Godel Webhook Configuration
 
 ```bash
 # Enable webhooks
-export DASH_WEBHOOKS_ENABLED=true
+export GODEL_WEBHOOKS_ENABLED=true
 
 # Set webhook URL
-export DASH_WEBHOOK_URL=https://your-server.com/webhooks/dash
+export GODEL_WEBHOOK_URL=https://your-server.com/webhooks/godel
 
 # Set webhook secret
-export DASH_WEBHOOK_SECRET=your-secret-key
+export GODEL_WEBHOOK_SECRET=your-secret-key
 
 # Enable specific events (comma-separated)
-export DASH_WEBHOOK_EVENTS=agent:complete,agent:error,swarm:complete,budget:warning
+export GODEL_WEBHOOK_EVENTS=agent:complete,agent:error,swarm:complete,budget:warning
 
 # Retry failed deliveries
-export DASH_WEBHOOK_RETRY_ENABLED=true
-export DASH_WEBHOOK_RETRY_MAX_ATTEMPTS=3
-export DASH_WEBHOOK_RETRY_DELAY=5000
+export GODEL_WEBHOOK_RETRY_ENABLED=true
+export GODEL_WEBHOOK_RETRY_MAX_ATTEMPTS=3
+export GODEL_WEBHOOK_RETRY_DELAY=5000
 ```
 
 ## Next Steps

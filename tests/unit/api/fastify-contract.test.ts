@@ -8,10 +8,10 @@ describeFastify('Fastify API compatibility contract', () => {
   let server: FastifyInstance;
 
   beforeAll(async () => {
-    process.env['DASH_HEALTH_TIMEOUT_MS'] = '100';
-    process.env['DASH_HEALTH_REQUIRE_REDIS'] = 'false';
-    process.env['DASH_OPENCLAW_REQUIRED'] = 'false';
-    process.env['DATABASE_URL'] = 'postgresql://dash:dash@localhost:5432/dash';
+    process.env['GODEL_HEALTH_TIMEOUT_MS'] = '100';
+    process.env['GODEL_HEALTH_REQUIRE_REDIS'] = 'false';
+    process.env['GODEL_OPENCLAW_REQUIRED'] = 'false';
+    process.env['DATABASE_URL'] = 'postgresql://godel:godel@localhost:5432/godel';
     server = await createFastifyServer({
       enableAuth: false,
       enableSwagger: true,
@@ -23,9 +23,9 @@ describeFastify('Fastify API compatibility contract', () => {
     if (server) {
       await server.close();
     }
-    delete process.env['DASH_HEALTH_TIMEOUT_MS'];
-    delete process.env['DASH_HEALTH_REQUIRE_REDIS'];
-    delete process.env['DASH_OPENCLAW_REQUIRED'];
+    delete process.env['GODEL_HEALTH_TIMEOUT_MS'];
+    delete process.env['GODEL_HEALTH_REQUIRE_REDIS'];
+    delete process.env['GODEL_OPENCLAW_REQUIRED'];
     delete process.env['DATABASE_URL'];
   });
 

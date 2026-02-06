@@ -1,7 +1,7 @@
 /**
- * Extension API types and interfaces for Dash
+ * Extension API types and interfaces for Godel
  * 
- * Based on pi-mono's extension architecture, adapted for Dash's swarm orchestration.
+ * Based on pi-mono's extension architecture, adapted for Godel's swarm orchestration.
  */
 
 import { Static, TSchema } from '@sinclair/typebox';
@@ -80,7 +80,7 @@ export interface CommandExecuteEvent extends ExtensionEvent {
 }
 
 /** Union of all extension events */
-export type DashExtensionEvent =
+export type GodelExtensionEvent =
   | AgentStartEvent
   | AgentCompleteEvent
   | AgentErrorEvent
@@ -185,7 +185,7 @@ export interface CommandDefinition {
 
 /** Context passed to extension factory function */
 export interface ExtensionContext {
-  /** Dash version */
+  /** Godel version */
   version: string;
   /** Extension directory path */
   extensionDir: string;

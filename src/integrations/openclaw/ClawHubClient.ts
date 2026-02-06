@@ -1026,7 +1026,7 @@ ${skillData.owner.displayName} (@${skillData.owner.handle})
   private getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'User-Agent': 'Dash-ClawHub-Client/1.0',
+      'User-Agent': 'Godel-ClawHub-Client/1.0',
     };
 
     if (this.config.token) {

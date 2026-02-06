@@ -2,7 +2,7 @@
  * OpenClaw Event Bridge Tests
  * 
  * Unit tests for the OpenClaw Event Bridge - real-time event
- * streaming from Dash to OpenClaw.
+ * streaming from Godel to OpenClaw.
  */
 
 import {
@@ -185,7 +185,7 @@ describe('OpenClawEventBridge', () => {
 
       expect(eventHandler).toHaveBeenCalled();
       const emittedEvent = eventHandler.mock.calls[0][0];
-      expect(emittedEvent.source).toBe('dash');
+      expect(emittedEvent.source).toBe('godel');
       expect(emittedEvent.type).toBe('agent.spawned');
     });
 
@@ -287,11 +287,11 @@ describe('OpenClawEventBridge', () => {
       const body = JSON.parse(fetchCall[1].body);
 
       expect(body.events[0]).toMatchObject({
-        source: 'dash',
+        source: 'godel',
         type: 'agent.spawned',
         data: { eventType: 'agent.spawned', agentData: 'test' },
         metadata: {
-          dashAgentId: 'agent-123',
+          godelAgentId: 'agent-123',
           topic: 'agent.agent-123.events',
           source: 'test-source',
           priority: 'high',
@@ -319,7 +319,7 @@ describe('OpenClawEventBridge', () => {
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
 
-      expect(body.events[0].metadata.dashSwarmId).toBe('swarm-456');
+      expect(body.events[0].metadata.godelSwarmId).toBe('swarm-456');
     });
   });
 
@@ -481,11 +481,11 @@ describe('OpenClawEventBridge', () => {
 
       // Emit an event for the agent
       bridge.emit('event', {
-        source: 'dash',
+        source: 'godel',
         type: 'agent.update',
         timestamp: new Date().toISOString(),
         data: {},
-        metadata: { dashAgentId: 'agent-123' },
+        metadata: { godelAgentId: 'agent-123' },
       });
 
       expect(handler).toHaveBeenCalled();
@@ -498,11 +498,11 @@ describe('OpenClawEventBridge', () => {
       bridge.subscribeToAgent('agent-123', handler);
 
       bridge.emit('event', {
-        source: 'dash',
+        source: 'godel',
         type: 'agent.update',
         timestamp: new Date().toISOString(),
         data: {},
-        metadata: { dashAgentId: 'agent-456' },
+        metadata: { godelAgentId: 'agent-456' },
       });
 
       expect(handler).not.toHaveBeenCalled();
@@ -513,11 +513,11 @@ describe('OpenClawEventBridge', () => {
       bridge.subscribeToSwarm('swarm-789', handler);
 
       bridge.emit('event', {
-        source: 'dash',
+        source: 'godel',
         type: 'swarm.update',
         timestamp: new Date().toISOString(),
         data: {},
-        metadata: { dashSwarmId: 'swarm-789' },
+        metadata: { godelSwarmId: 'swarm-789' },
       });
 
       expect(handler).toHaveBeenCalled();
@@ -528,7 +528,7 @@ describe('OpenClawEventBridge', () => {
       bridge.subscribeToEventTypes(['agent.spawned', 'agent.killed'], handler);
 
       bridge.emit('event', {
-        source: 'dash',
+        source: 'godel',
         type: 'agent.spawned',
         timestamp: new Date().toISOString(),
         data: {},
@@ -545,11 +545,11 @@ describe('OpenClawEventBridge', () => {
       unsubscribe();
 
       bridge.emit('event', {
-        source: 'dash',
+        source: 'godel',
         type: 'agent.update',
         timestamp: new Date().toISOString(),
         data: {},
-        metadata: { dashAgentId: 'agent-123' },
+        metadata: { godelAgentId: 'agent-123' },
       });
 
       expect(handler).not.toHaveBeenCalled();

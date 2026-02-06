@@ -20,7 +20,7 @@
     "downlevelIteration": true,
     "baseUrl": ".",
     "paths": {
-      "@dash/ai": ["./packages/ai/src/index.ts"]
+      "@godel/ai": ["./packages/ai/src/index.ts"]
     }
   },
   "include": ["src/**/*", "packages/*/src/**/*"],

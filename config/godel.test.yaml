@@ -1,4 +1,4 @@
-# Dash Configuration - Test Environment
+# Godel Configuration - Test Environment
 # Optimized for running tests with minimal external dependencies
 
 env: test
@@ -46,7 +46,7 @@ logging:
   level: error  # Minimal logging in tests
   format: compact
   destination: stderr
-  serviceName: dash-test
+  serviceName: godel-test
   includeTimestamp: false
   includeSourceLocation: false
 
@@ -56,7 +56,7 @@ metrics:
   host: localhost
   path: /metrics
   enableDefaultMetrics: false
-  prefix: dash_
+  prefix: godel_
   collectIntervalMs: 5000
 
 budget:

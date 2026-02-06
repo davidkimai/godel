@@ -1,5 +1,5 @@
 /**
- * Dash v2.0 Autonomous State Manager
+ * Godel v2.0 Autonomous State Manager
  * Crash recovery and state persistence for 24/7 autonomous operation
  */
 

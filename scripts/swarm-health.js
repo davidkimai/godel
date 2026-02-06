@@ -7,8 +7,8 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const LOG_DIR = '.dash/logs';
-const HEALTH_FILE = '.dash/swarm-health.json';
+const LOG_DIR = '.godel/logs';
+const HEALTH_FILE = '.godel/swarm-health.json';
 const SILENCE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes of silence = warning
 const STALE_THRESHOLD_MS = 20 * 60 * 1000; // 20 minutes = unhealthy
 
@@ -143,8 +143,8 @@ function checkHealth() {
   
   // Check each running swarm
   for (const swarm of runningSwarms) {
-    const logPath = `.dash/logs/swarm-${swarm.pid}.log`;
-    const altLogPath = `.dash/logs/swarm-*.log`;
+    const logPath = `.godel/logs/swarm-${swarm.pid}.log`;
+    const altLogPath = `.godel/logs/swarm-*.log`;
     
     // Find matching log file
     let actualLogPath = logPath;

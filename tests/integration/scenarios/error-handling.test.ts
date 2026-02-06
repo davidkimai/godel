@@ -101,7 +101,7 @@ describeLive('Scenario 9: Error Handling', () => {
   describe('Authentication Failures (401)', () => {
     it('should return 401 for missing API key', async () => {
       // Make request without API key header
-      const response = await fetch(`${testConfig.dashApiUrl}/api/swarms`, {
+      const response = await fetch(`${testConfig.godelApiUrl}/api/swarms`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ describeLive('Scenario 9: Error Handling', () => {
     }, testConfig.testTimeout);
 
     it('should return 401 for invalid API key', async () => {
-      const response = await fetch(`${testConfig.dashApiUrl}/api/swarms`, {
+      const response = await fetch(`${testConfig.godelApiUrl}/api/swarms`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ describeLive('Scenario 9: Error Handling', () => {
 
     it('should return 401 for expired token', async () => {
       // Try with a token that looks expired
-      const response = await fetch(`${testConfig.dashApiUrl}/api/swarms`, {
+      const response = await fetch(`${testConfig.godelApiUrl}/api/swarms`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -149,8 +149,8 @@ describeLive('Scenario 9: Error Handling', () => {
 
     it('should handle authentication in adapter', async () => {
       const badAdapter = new OpenClawAdapter({
-        dashApiUrl: testConfig.dashApiUrl,
-        dashApiKey: 'invalid-key',
+        godelApiUrl: testConfig.godelApiUrl,
+        godelApiKey: 'invalid-key',
         openclawSessionKey: 'test-session',
       });
 
@@ -201,11 +201,11 @@ describeLive('Scenario 9: Error Handling', () => {
 
   describe('Method Not Allowed (405)', () => {
     it('should return 405 for unsupported HTTP methods', async () => {
-      const response = await fetch(`${testConfig.dashApiUrl}/api/swarms`, {
+      const response = await fetch(`${testConfig.godelApiUrl}/api/swarms`, {
         method: 'PATCH', // PATCH might not be supported
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': testConfig.dashApiKey,
+          'X-API-Key': testConfig.godelApiKey,
         },
         body: JSON.stringify({ name: 'test' }),
       });
@@ -310,7 +310,7 @@ describeLive('Scenario 9: Error Handling', () => {
 
   describe('CORS Errors', () => {
     it('should handle CORS preflight requests', async () => {
-      const response = await fetch(`${testConfig.dashApiUrl}/api/swarms`, {
+      const response = await fetch(`${testConfig.godelApiUrl}/api/swarms`, {
         method: 'OPTIONS',
         headers: {
           'Origin': 'http://example.com',

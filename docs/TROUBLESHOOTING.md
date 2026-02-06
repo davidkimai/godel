@@ -28,7 +28,7 @@ npm config set prefix '~/.npm-global'
 export PATH=~/.npm-global/bin:$PATH
 
 # Option 2: Use npx instead
-npx @jtan15010/dash <command>
+npx @jtan15010/godel <command>
 
 # Option 3: Fix npm permissions (macOS/Linux)
 sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
@@ -94,13 +94,13 @@ git worktree prune
 **Solutions**:
 ```bash
 # Create .dash directory
-mkdir -p .dash/logs
+mkdir -p .godel/logs
 
 # Set proper permissions
 chmod 755 .dash
 
 # Initialize state
-mkdir -p .dash/logs
+mkdir -p .godel/logs
 ```
 
 #### "Database connection failed" or "ECONNREFUSED"
@@ -117,7 +117,7 @@ brew services start postgresql  # macOS
 sudo service postgresql start   # Ubuntu
 
 # Use SQLite instead (no external DB needed)
-# Add to .env: DATABASE_URL=sqlite://./dash.db
+# Add to .env: DATABASE_URL=sqlite://./godel.db
 
 # Or start with Docker
 docker-compose up -d postgres
@@ -213,7 +213,7 @@ dash budget set --amount 100.00
 
 # Adjust thresholds
 # In .env:
-DASH_BUDGET_TOTAL=2.0
+GODEL_BUDGET_TOTAL=2.0
 ```
 
 ### Swarm Issues
@@ -231,7 +231,7 @@ dash swarm list
 dash swarm destroy <swarm-id>
 
 # Increase limit in .env
-DASH_MAX_SWARMS=10
+GODEL_MAX_SWARMS=10
 ```
 
 #### "No agents spawned in swarm"
@@ -341,13 +341,13 @@ dash logs tail --agent <agent-id>
 
 ```bash
 # Method 1: Environment variable
-export DASH_LOG_LEVEL=debug
+export GODEL_LOG_LEVEL=debug
 
 # Method 2: CLI flag
 dash --log-level debug <command>
 
 # Method 3: Configuration file
-echo "DASH_LOG_LEVEL=debug" >> .env
+echo "GODEL_LOG_LEVEL=debug" >> .env
 ```
 
 ### Debug Levels
@@ -393,7 +393,7 @@ dash --verbose <command>
 ### Log File Locations
 
 ```
-.dash/logs/
+.godel/logs/
 ├── orchestrator.log      # Main orchestrator activity
 ├── monitor.log          # Build/test monitoring
 ├── watchdog.log         # Swarm health checks
@@ -469,7 +469,7 @@ dash logs query --format json | jq '.[] | select(.durationMs > 60000)'
 
 Logs are automatically rotated when they reach 10MB. Old logs are compressed:
 ```
-.dash/logs/
+.godel/logs/
 ├── orchestrator.log
 ├── orchestrator.log.1.gz
 ├── orchestrator.log.2.gz
@@ -489,12 +489,12 @@ Logs are automatically rotated when they reach 10MB. Old logs are compressed:
 
 ### Community Support
 
-- **GitHub Issues**: [github.com/davidkimai/dash/issues](https://github.com/davidkimai/dash/issues)
+- **GitHub Issues**: [github.com/davidkimai/godel/issues](https://github.com/davidkimai/godel/issues)
   - Search existing issues first
   - Include error messages and logs
   - Provide steps to reproduce
 
-- **GitHub Discussions**: [github.com/davidkimai/dash/discussions](https://github.com/davidkimai/dash/discussions)
+- **GitHub Discussions**: [github.com/davidkimai/godel/discussions](https://github.com/davidkimai/godel/discussions)
   - Q&A and general help
   - Feature requests
   - Show and tell
@@ -547,7 +547,7 @@ git worktree prune
 rm -rf .claude-worktrees/*
 
 # 4. Reset to clean state
-rm -rf .dash/logs/*
+rm -rf .godel/logs/*
 
 # 5. Restart
 npm run build
@@ -562,4 +562,4 @@ For enterprise support:
 
 ---
 
-**Still stuck?** Check the [GitHub Issues](https://github.com/davidkimai/dash/issues) or start a [Discussion](https://github.com/davidkimai/dash/discussions).
+**Still stuck?** Check the [GitHub Issues](https://github.com/davidkimai/godel/issues) or start a [Discussion](https://github.com/davidkimai/godel/discussions).

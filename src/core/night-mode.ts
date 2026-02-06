@@ -69,7 +69,7 @@ export class NightModeManager {
   async enableNightMode(): Promise<void> {
     if (this.enabled) return;
     this.enabled = true;
-    process.env['DASH_NIGHT_MODE'] = 'true';
+    process.env['GODEL_NIGHT_MODE'] = 'true';
     logger.info('night-mode', 'Night mode ENABLED', { 
       startHour: this.config.startHour,
       endHour: this.config.endHour,
@@ -81,7 +81,7 @@ export class NightModeManager {
   async disableNightMode(): Promise<void> {
     if (!this.enabled) return;
     this.enabled = false;
-    process.env['DASH_NIGHT_MODE'] = 'false';
+    process.env['GODEL_NIGHT_MODE'] = 'false';
     logger.info('night-mode', 'Night mode DISABLED', {});
   }
 

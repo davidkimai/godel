@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = '/Users/jasontang/clawd/projects/dash/src/self-improvement/orchestrator.ts';
+const filePath = '/Users/jasontang/clawd/projects/godel/src/self-improvement/orchestrator.ts';
 let content = fs.readFileSync(filePath, 'utf-8');
 
 // Replace console.log statements with logger calls
@@ -33,8 +33,8 @@ const replacements = [
   },
   // Starting session
   {
-    from: /console\.log\('🚀 Starting Dash Self-Improvement Session'\);/g,
-    to: "logger.info('self-improvement/orchestrator', 'Starting Dash Self-Improvement Session');"
+    from: /console\.log\('🚀 Starting Godel Self-Improvement Session'\);/g,
+    to: "logger.info('self-improvement/orchestrator', 'Starting Godel Self-Improvement Session');"
   },
   // Budget config
   {

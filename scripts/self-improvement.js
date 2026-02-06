@@ -7,9 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const TRACKER_FILE = '.dash/swarm-tracker.json';
-const HEALTH_FILE = '.dash/swarm-health.json';
-const IMPROVEMENTS_FILE = '.dash/swarm-improvements.json';
+const TRACKER_FILE = '.godel/swarm-tracker.json';
+const HEALTH_FILE = '.godel/swarm-health.json';
+const IMPROVEMENTS_FILE = '.godel/swarm-improvements.json';
 const LEARNINGS_FILE = 'SWARM_HEALTH_ANALYSIS.md';
 
 function log(message) {

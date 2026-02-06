@@ -1,5 +1,5 @@
 /**
- * Learning Engine for Dash Self-Improvement
+ * Learning Engine for Godel Self-Improvement
  * 
  * Tracks improvement effectiveness, identifies patterns in successful
  * improvements, prioritizes strategies, and manages A/B testing.
@@ -887,7 +887,7 @@ export class LearningEngine {
 
     let report = '\n';
     report += '╔══════════════════════════════════════════════════════════════╗\n';
-    report += '║           DASH LEARNING LOOP REPORT                          ║\n';
+    report += '║           GODEL LEARNING LOOP REPORT                          ║\n';
     report += '╠══════════════════════════════════════════════════════════════╣\n';
     report += `║ Total Improvements: ${metrics.totalImprovements.toString().padEnd(40)}║\n`;
     report += `║ Overall Success Rate: ${(metrics.overallSuccessRate * 100).toFixed(1)}%${''.padEnd(36)}║\n`;

@@ -4,7 +4,7 @@ import { logger } from '../../../src/utils/logger';
  * 
  * Tests for complete workflow scenarios.
  * - Complete code review workflow
- * - OpenClaw → Dash → OpenClaw flow
+ * - OpenClaw → Godel → OpenClaw flow
  * - Validate results and events
  */
 
@@ -32,8 +32,8 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
     client = getGlobalClient();
     
     adapter = new OpenClawAdapter({
-      dashApiUrl: testConfig.dashApiUrl,
-      dashApiKey: testConfig.dashApiKey,
+      godelApiUrl: testConfig.godelApiUrl,
+      godelApiKey: testConfig.godelApiKey,
       openclawSessionKey: testConfig.openclawSessionKey,
     });
 
@@ -75,7 +75,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
 
       // Set up event monitoring
       eventBridge.on('event', (event) => {
-        if (event.sessionKey === sessionKey || event.metadata?.dashAgentId) {
+        if (event.sessionKey === sessionKey || event.metadata?.godelAgentId) {
           workflowEvents.push(event);
         }
       });
@@ -93,14 +93,14 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       });
 
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
 
-      expect(spawnResult.dashAgentId).toBeDefined();
+      expect(spawnResult.godelAgentId).toBeDefined();
       expect(spawnResult.status).toBe('pending');
 
       // 2. Verify agent spawned and mapped
       expect(adapter.hasAgent(sessionKey)).toBe(true);
-      expect(adapter.getDashAgentId(sessionKey)).toBe(agentId);
+      expect(adapter.getGodelAgentId(sessionKey)).toBe(agentId);
 
       // 3. Wait for agent to start running
       await waitForStatus(
@@ -158,7 +158,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
         });
 
         createdSessionKeys.push(sessionKeys[i]);
-        agentIds.push(result.dashAgentId);
+        agentIds.push(result.godelAgentId);
       }
 
       // Wait for all agents to be running
@@ -192,8 +192,8 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
     }, testConfig.testTimeout);
   });
 
-  describe('OpenClaw ↔ Dash Integration Flow', () => {
-    it('should complete full OpenClaw → Dash → OpenClaw flow', async () => {
+  describe('OpenClaw ↔ Godel Integration Flow', () => {
+    it('should complete full OpenClaw → Godel → OpenClaw flow', async () => {
       const sessionKey = `openclaw-flow-${Date.now()}`;
       const events: any[] = [];
 
@@ -218,12 +218,12 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       const spawnDuration = Date.now() - spawnStart;
 
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
 
-      expect(spawnResult.dashAgentId).toBeDefined();
+      expect(spawnResult.godelAgentId).toBeDefined();
       logger.info(`Spawn completed in ${spawnDuration}ms`);
 
-      // Phase 2: Dash processes agent lifecycle
+      // Phase 2: Godel processes agent lifecycle
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
         'running',
@@ -233,7 +233,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       // Phase 3: OpenClaw sends message to agent
       await adapter.sendMessage(sessionKey, 'Process this data and return results');
 
-      // Phase 4: Dash executes and completes
+      // Phase 4: Godel executes and completes
       await lifecycle.complete(agentId, 'Task completed successfully with metrics');
 
       await waitForStatus(
@@ -250,7 +250,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       // Verify event flow
       expect(events.length).toBeGreaterThan(0);
 
-      logger.info('OpenClaw ↔ Dash flow completed successfully');
+      logger.info('OpenClaw ↔ Godel flow completed successfully');
       logger.info(`  Total events: ${events.length}`);
       logger.info(`  Result: ${JSON.stringify(finalStatus.result)}`);
     }, testConfig.testTimeout);
@@ -298,7 +298,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       expect(messages.length).toBeGreaterThanOrEqual(0);
 
       // Complete the agent
-      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
+      await lifecycle.complete(result.godelAgentId, "Task completed successfully");
     }, testConfig.testTimeout);
   });
 
@@ -313,7 +313,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       });
 
       createdSessionKeys.push(sessionKey);
-      const agentId = result.dashAgentId;
+      const agentId = result.godelAgentId;
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -361,7 +361,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
       });
 
       createdSessionKeys.push(parentKey);
-      const parentId = parentResult.dashAgentId;
+      const parentId = parentResult.godelAgentId;
 
       await waitForStatus(
         async () => adapter.getStatus(parentKey),
@@ -392,7 +392,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
 
       // Complete children
       for (const key of childKeys) {
-        const agentId = adapter.getDashAgentId(key);
+        const agentId = adapter.getGodelAgentId(key);
         if (agentId) {
           await lifecycle.complete(agentId, "Task completed successfully");
         }
@@ -437,7 +437,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
+      await lifecycle.complete(result.godelAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -475,7 +475,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
 
       // Validate event structure
       for (const event of receivedEvents) {
-        expect(event.source).toBe('dash');
+        expect(event.source).toBe('godel');
         expect(event.type).toBeDefined();
         expect(event.timestamp).toBeDefined();
         expect(event.sessionKey).toBe(sessionKey);
@@ -509,7 +509,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
         success: true,
       };
 
-      await lifecycle.complete(result.dashAgentId, "Task completed with result");
+      await lifecycle.complete(result.godelAgentId, "Task completed with result");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -546,7 +546,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
+      await lifecycle.complete(result.godelAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),
@@ -579,7 +579,7 @@ describeLive('Scenario 10: End-to-End Workflow', () => {
         15000
       );
 
-      await lifecycle.complete(result.dashAgentId, "Task completed successfully");
+      await lifecycle.complete(result.godelAgentId, "Task completed successfully");
 
       await waitForStatus(
         async () => adapter.getStatus(sessionKey),

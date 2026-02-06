@@ -1,11 +1,11 @@
 /**
- * Custom Deploy Extension for Dash
+ * Custom Deploy Extension for Godel
  * 
- * Adds deployment capabilities to Dash agents.
+ * Adds deployment capabilities to Godel agents.
  * Supports multiple deployment targets: Docker, Kubernetes, SSH, and custom scripts.
  * 
  * Usage:
- * 1. Copy to ~/.dash/extensions/custom-deploy.ts
+ * 1. Copy to ~/.godel/extensions/custom-deploy.ts
  * 2. Configure deployment targets
  * 3. Use /deploy command or deploy tool
  */

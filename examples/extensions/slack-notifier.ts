@@ -1,5 +1,5 @@
 /**
- * Slack Notifier Extension for Dash
+ * Slack Notifier Extension for Godel
  * 
  * Sends notifications to Slack when agents complete tasks or encounter errors.
  * 
@@ -7,9 +7,9 @@
  * - Set SLACK_WEBHOOK_URL environment variable or use setConfig
  * 
  * Usage:
- * 1. Copy to ~/.dash/extensions/slack-notifier.ts
+ * 1. Copy to ~/.godel/extensions/slack-notifier.ts
  * 2. Set your Slack webhook URL
- * 3. Restart Dash or wait for hot reload
+ * 3. Restart Godel or wait for hot reload
  */
 
 import { Type } from '@sinclair/typebox';
@@ -26,7 +26,7 @@ export default function slackNotifierExtension(api: ExtensionAPI, ctx: Extension
     parameters: Type.Object({
       message: Type.String({ description: 'Message to send' }),
       channel: Type.Optional(Type.String({ description: 'Channel override (optional)' })),
-      username: Type.Optional(Type.String({ description: 'Bot username', default: 'Dash' })),
+      username: Type.Optional(Type.String({ description: 'Bot username', default: 'Godel' })),
     }),
     permissions: ['net:write'],
     async execute(toolCallId, params, ctx) {
@@ -42,7 +42,7 @@ export default function slackNotifierExtension(api: ExtensionAPI, ctx: Extension
       try {
         const payload = {
           text: params.message,
-          username: params.username || 'Dash',
+          username: params.username || 'Godel',
           channel: params.channel,
         };
         
@@ -117,7 +117,7 @@ export default function slackNotifierExtension(api: ExtensionAPI, ctx: Extension
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: '🔔 Test notification from Dash!' }),
+          body: JSON.stringify({ text: '🔔 Test notification from Godel!' }),
         });
         
         if (response.ok) {
@@ -177,7 +177,7 @@ export default function slackNotifierExtension(api: ExtensionAPI, ctx: Extension
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           text: message,
-          username: 'Dash - Error Alert',
+          username: 'Godel - Error Alert',
         }),
       });
     } catch (err) {

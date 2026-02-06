@@ -5,16 +5,16 @@
  */
 
 export const testConfig = {
-  // Dash API Configuration
-  dashApiUrl: process.env['DASH_API_URL'] || 'http://localhost:7373',
-  dashApiKey: process.env['DASH_API_KEY'] || 'test-key',
+  // Godel API Configuration
+  godelApiUrl: process.env['GODEL_API_URL'] || 'http://localhost:7373',
+  godelApiKey: process.env['GODEL_API_KEY'] || 'test-key',
   
   // OpenClaw Adapter Configuration
   openclawAdapterUrl: process.env['OPENCLAW_ADAPTER_URL'] || 'http://localhost:7374',
   openclawSessionKey: process.env['OPENCLAW_SESSION_KEY'] || 'test-session',
   
   // Database Configuration
-  databaseUrl: process.env['TEST_DATABASE_URL'] || 'postgresql://dash:dash@localhost:5432/dash_test',
+  databaseUrl: process.env['TEST_DATABASE_URL'] || 'postgresql://godel:godel@localhost:5432/godel_test',
   
   // Redis Configuration
   redisUrl: process.env['TEST_REDIS_URL'] || 'redis://localhost:6379/1',
@@ -129,8 +129,8 @@ export function createMockWebhookServer(port: number = 9999): {
  * Create test API client
  */
 export function createTestApiClient() {
-  const baseUrl = testConfig.dashApiUrl;
-  const apiKey = testConfig.dashApiKey;
+  const baseUrl = testConfig.godelApiUrl;
+  const apiKey = testConfig.godelApiKey;
   
   async function request<T>(
     method: string,

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Dash Orchestrator Heartbeat - Runs every 15 minutes
+# Godel Orchestrator Heartbeat - Runs every 15 minutes
 # Pings K2.5 to check on swarms and orchestrate improvements
 
 set -e
 
-DASH_DIR="/Users/jasontang/clawd/projects/dash"
-LOG_DIR="$DASH_DIR/.dash/logs"
-HEARTBEAT_STATE="$DASH_DIR/.dash/heartbeat-state.json"
+GODEL_DIR="/Users/jasontang/clawd/projects/godel"
+LOG_DIR="$GODEL_DIR/.godel/logs"
+HEARTBEAT_STATE="$GODEL_DIR/.godel/heartbeat-state.json"
 
 mkdir -p "$LOG_DIR"
 
@@ -24,23 +24,23 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 SWARM_COUNT=$(ps aux | grep "kimi -p" | grep -v grep | wc -l | tr -d ' ')
 echo "📊 Active Swarms: $SWARM_COUNT"
 
-# Check Dash system status
-cd "$DASH_DIR"
-echo "🔍 Checking Dash Status..."
+# Check Godel system status
+cd "$GODEL_DIR"
+echo "🔍 Checking Godel Status..."
 
 # Use K2.5 as orchestrator to check and manage swarms
-kimi -p "You are the primary orchestrator for Dash v2.0 autonomous system.
+kimi -p "You are the primary orchestrator for Godel v2.0 autonomous system.
 
 CURRENT STATUS:
 - Active K2.5 swarms: $SWARM_COUNT
-- Location: /Users/jasontang/clawd/projects/dash
+- Location: /Users/jasontang/clawd/projects/godel
 
 YOUR ORCHESTRATION TASKS:
 
 1. CHECK SWARM HEALTH:
    - List running swarms: ps aux | grep kimi
    - Check if any swarms have completed
-   - Review logs: ls -lh .dash/logs/*.log
+   - Review logs: ls -lh .godel/logs/*.log
    - Identify any stuck or failed swarms
 
 2. REVIEW PROGRESS:

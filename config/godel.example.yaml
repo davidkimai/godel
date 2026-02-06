@@ -1,5 +1,5 @@
-# Dash Configuration Example
-# Copy this file to config/dash.yaml and customize for your environment
+# Godel Configuration Example
+# Copy this file to config/godel.yaml and customize for your environment
 
 # =============================================================================
 # Environment
@@ -121,13 +121,13 @@ logging:
   destination: stdout
   
   # File path (when destination is 'file')
-  filePath: ./logs/dash.log
+  filePath: ./logs/godel.log
   
   # Loki URL (when destination includes 'loki')
   lokiUrl: http://localhost:3100
   
   # Service name for log entries
-  serviceName: dash
+  serviceName: godel
   
   # Include timestamps in logs
   includeTimestamp: true
@@ -156,7 +156,7 @@ metrics:
   enableDefaultMetrics: true
   
   # Metrics prefix
-  prefix: dash_
+  prefix: godel_
   
   # Collection interval in milliseconds
   collectIntervalMs: 5000
@@ -320,8 +320,8 @@ features:
 # Server:
 #   PORT                    - Server port
 #   HOST                    - Server host
-#   DASH_CORS_ORIGINS       - CORS origins (comma-separated)
-#   DASH_RATE_LIMIT         - Rate limit
+#   GODEL_CORS_ORIGINS       - CORS origins (comma-separated)
+#   GODEL_RATE_LIMIT         - Rate limit
 #
 # Database:
 #   DATABASE_URL            - Full database connection URL
@@ -341,8 +341,8 @@ features:
 #   REDIS_DB                - Redis database number
 #
 # Auth:
-#   DASH_API_KEY            - API key(s) (comma-separated)
-#   DASH_JWT_SECRET         - JWT secret
+#   GODEL_API_KEY            - API key(s) (comma-separated)
+#   GODEL_JWT_SECRET         - JWT secret
 #
 # Logging:
 #   LOG_LEVEL               - Log level

@@ -1,5 +1,5 @@
 /**
- * Express REST API Server for Dash v3
+ * Express REST API Server for Godel v3
  *
  * Production-ready API with authentication, rate limiting, and CORS.
  * Uses the centralized configuration system.
@@ -43,7 +43,7 @@ export interface ServerConfig {
 function createServerConfig(config: DashConfig): ServerConfig {
   // Generate secure API key if default is weak
   let apiKey = config.auth.apiKeys[0];
-  if (!apiKey || apiKey === 'dash-api-key') {
+  if (!apiKey || apiKey === 'godel-api-key') {
     apiKey = generateApiKey('default');
     logger.warn('api/server', 'Generated secure API key - update your .env file', {
       key: apiKey.slice(0, 20) + '...'
@@ -163,7 +163,7 @@ function setupAuthRoutes(app: express.Application, config: ServerConfig): void {
     // Generate session token
     const sessionToken = generateApiKey('session');
     const csrfToken = generateApiKey('csrf').slice(0, 32);
-    const role = username === (process.env['DASH_ADMIN_USERNAME'] || 'admin') ? 'admin' : 'user';
+    const role = username === (process.env['GODEL_ADMIN_USERNAME'] || 'admin') ? 'admin' : 'user';
     const expiresAt = Date.now() + sessionTtlMs;
     sessionStore.set(sessionToken, { username, role, expiresAt });
     registerSessionToken(sessionToken, expiresAt);
@@ -287,14 +287,14 @@ function secureStringCompare(left: string, right: string): boolean {
 }
 
 async function validateCredentials(username: string, password: string): Promise<boolean> {
-  const configuredUsername = process.env['DASH_ADMIN_USERNAME'];
-  const configuredPassword = process.env['DASH_ADMIN_PASSWORD'];
+  const configuredUsername = process.env['GODEL_ADMIN_USERNAME'];
+  const configuredPassword = process.env['GODEL_ADMIN_PASSWORD'];
 
   if (configuredUsername && configuredPassword) {
     return secureStringCompare(username, configuredUsername) && secureStringCompare(password, configuredPassword);
   }
 
-  if (process.env['NODE_ENV'] !== 'production' && process.env['DASH_ALLOW_DEV_AUTH'] === 'true') {
+  if (process.env['NODE_ENV'] !== 'production' && process.env['GODEL_ALLOW_DEV_AUTH'] === 'true') {
     return username.length > 0 && password.length >= 8;
   }
 
@@ -481,7 +481,7 @@ export async function startServer(serverConfig?: Partial<ServerConfig>): Promise
 
   return new Promise((resolve) => {
     server.listen(cfg.port, cfg.host, () => {
-      logger.info('api/server', 'Dash API server started', {
+      logger.info('api/server', 'Godel API server started', {
         host: cfg.host,
         port: cfg.port,
         websocket: `ws://${cfg.host}:${cfg.port}/events`,

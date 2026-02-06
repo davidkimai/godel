@@ -1,7 +1,7 @@
 /**
  * WebSocket Integration Tests
  * 
- * Tests the Dash WebSocket API for real-time updates.
+ * Tests the Godel WebSocket API for real-time updates.
  * Requires PostgreSQL and Redis to be running.
  */
 
@@ -17,7 +17,7 @@ const describeIfWebsocket =
     ? describe
     : describe.skip;
 
-describeIfWebsocket('Dash WebSocket Integration', () => {
+describeIfWebsocket('Godel WebSocket Integration', () => {
   let ws: WebSocket | null = null;
 
   beforeAll(async () => {

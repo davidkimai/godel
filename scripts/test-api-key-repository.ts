@@ -16,9 +16,9 @@ async function testApiKeyRepository() {
   const pool = new Pool({
     host: 'localhost',
     port: 5433,
-    user: 'dash',
-    password: 'dash',
-    database: 'dash',
+    user: 'godel',
+    password: 'godel',
+    database: 'godel',
   });
 
   // Test database connection
@@ -36,9 +36,9 @@ async function testApiKeyRepository() {
   const config: PostgresPoolConfig = {
     host: 'localhost',
     port: 5433,
-    database: 'dash',
-    user: 'dash',
-    password: 'dash',
+    database: 'godel',
+    user: 'godel',
+    password: 'godel',
     poolSize: 5,
     minPoolSize: 1,
     maxPoolSize: 10,

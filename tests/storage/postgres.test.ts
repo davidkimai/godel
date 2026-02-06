@@ -12,9 +12,9 @@ import { resetGlobalPostgresStorage } from '../../src/storage/postgres-storage';
 const TEST_POSTGRES_CONFIG = {
   host: process.env['POSTGRES_HOST'] || 'localhost',
   port: parseInt(process.env['POSTGRES_PORT'] || '5432'),
-  database: process.env['POSTGRES_DB'] || 'dash',
-  user: process.env['POSTGRES_USER'] || 'dash',
-  password: process.env['POSTGRES_PASSWORD'] || 'dash_password',
+  database: process.env['POSTGRES_DB'] || 'godel',
+  user: process.env['POSTGRES_USER'] || 'godel',
+  password: process.env['POSTGRES_PASSWORD'] || 'godel_password',
   ssl: process.env['POSTGRES_SSL'] === 'true',
   maxConnections: 5,
 };

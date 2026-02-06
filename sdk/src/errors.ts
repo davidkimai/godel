@@ -1,15 +1,15 @@
 /**
- * @dash/client SDK - Error Classes
+ * @godel/client SDK - Error Classes
  * 
  * Comprehensive error handling with typed error classes for different failure modes.
  */
 
 /**
- * Base error class for all Dash SDK errors.
+ * Base error class for all Godel SDK errors.
  * Provides additional context about API errors including status codes,
  * error codes, and request details for debugging.
  */
-export class DashError extends Error {
+export class GodelError extends Error {
   /** HTTP status code (if applicable) */
   public readonly statusCode?: number;
   
@@ -36,11 +36,11 @@ export class DashError extends Error {
     }
   ) {
     super(message);
-    this.name = 'DashError';
+    this.name = 'GodelError';
     
     // Maintain proper stack trace in V8 environments
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, DashError);
+      Error.captureStackTrace(this, GodelError);
     }
     
     this.statusCode = options?.statusCode;
@@ -108,10 +108,10 @@ export class DashError extends Error {
  * }
  * ```
  */
-export class AuthenticationError extends DashError {
+export class AuthenticationError extends GodelError {
   constructor(
     message: string = 'Authentication failed. Please check your API key.',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'>
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'>
   ) {
     super(message, { ...options, statusCode: 401 });
     this.name = 'AuthenticationError';
@@ -133,13 +133,13 @@ export class AuthenticationError extends DashError {
  * }
  * ```
  */
-export class NotFoundError extends DashError {
+export class NotFoundError extends GodelError {
   public readonly resourceType?: string;
   public readonly resourceId?: string;
 
   constructor(
     message: string = 'Resource not found',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'> & {
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'> & {
       resourceType?: string;
       resourceId?: string;
     }
@@ -168,7 +168,7 @@ export class NotFoundError extends DashError {
  * }
  * ```
  */
-export class RateLimitError extends DashError {
+export class RateLimitError extends GodelError {
   /** Number of seconds to wait before retrying */
   public readonly retryAfter: number;
   
@@ -183,7 +183,7 @@ export class RateLimitError extends DashError {
 
   constructor(
     message: string = 'Rate limit exceeded',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'> & {
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'> & {
       retryAfter?: number;
       limit?: number;
       remaining?: number;
@@ -215,7 +215,7 @@ export class RateLimitError extends DashError {
  * }
  * ```
  */
-export class ValidationError extends DashError {
+export class ValidationError extends GodelError {
   /** Field-specific validation errors */
   public readonly validationErrors?: Array<{
     field: string;
@@ -225,7 +225,7 @@ export class ValidationError extends DashError {
 
   constructor(
     message: string = 'Validation failed',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'> & {
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'> & {
       validationErrors?: Array<{ field: string; message: string; code: string }>;
     }
   ) {
@@ -252,10 +252,10 @@ export class ValidationError extends DashError {
  * }
  * ```
  */
-export class ServerError extends DashError {
+export class ServerError extends GodelError {
   constructor(
     message: string = 'Internal server error',
-    options?: ConstructorParameters<typeof DashError>[1] & { statusCode?: number }
+    options?: ConstructorParameters<typeof GodelError>[1] & { statusCode?: number }
   ) {
     const statusCode = options?.statusCode ?? 500;
     super(message, { ...options, statusCode });
@@ -278,10 +278,10 @@ export class ServerError extends DashError {
  * }
  * ```
  */
-export class NetworkError extends DashError {
+export class NetworkError extends GodelError {
   constructor(
     message: string = 'Network error',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'>
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'>
   ) {
     super(message, { ...options });
     this.name = 'NetworkError';
@@ -302,13 +302,13 @@ export class NetworkError extends DashError {
  * }
  * ```
  */
-export class TimeoutError extends DashError {
+export class TimeoutError extends GodelError {
   /** Timeout duration in milliseconds */
   public readonly timeoutMs: number;
 
   constructor(
     message: string = 'Request timeout',
-    options?: ConstructorParameters<typeof DashError>[1] & {
+    options?: ConstructorParameters<typeof GodelError>[1] & {
       timeoutMs?: number;
     }
   ) {
@@ -335,10 +335,10 @@ export class TimeoutError extends DashError {
  * }
  * ```
  */
-export class ConflictError extends DashError {
+export class ConflictError extends GodelError {
   constructor(
     message: string = 'Conflict with current state',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'>
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'>
   ) {
     super(message, { ...options, statusCode: 409 });
     this.name = 'ConflictError';
@@ -360,13 +360,13 @@ export class ConflictError extends DashError {
  * }
  * ```
  */
-export class PermissionError extends DashError {
+export class PermissionError extends GodelError {
   /** Required permission that was missing */
   public readonly requiredPermission?: string;
 
   constructor(
     message: string = 'Permission denied',
-    options?: Omit<ConstructorParameters<typeof DashError>[1], 'statusCode'> & {
+    options?: Omit<ConstructorParameters<typeof GodelError>[1], 'statusCode'> & {
       requiredPermission?: string;
     }
   ) {
@@ -383,7 +383,7 @@ export function createErrorFromResponse(
   statusCode: number,
   responseBody: Record<string, unknown>,
   requestId?: string
-): DashError {
+): GodelError {
   const message = (responseBody.message as string) || (responseBody.error as string) || 'Unknown error';
   const code = (responseBody.code as string) || undefined;
   const details = responseBody.details as Record<string, unknown> | undefined;
@@ -430,6 +430,6 @@ export function createErrorFromResponse(
     case 504:
       return new ServerError(message, options);
     default:
-      return new DashError(message, options);
+      return new GodelError(message, options);
   }
 }

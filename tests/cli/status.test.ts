@@ -32,7 +32,7 @@ describe('status command', () => {
     await program.parseAsync(['status']);
     
     expect(console.log).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('=== Dash Status ==='));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('=== Godel Status ==='));
   });
   
   it('should support --simple flag', async () => {
@@ -45,7 +45,7 @@ describe('status command', () => {
     await program.parseAsync(['status', '--simple']);
     
     expect(console.log).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('=== Dash Status ==='));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('=== Godel Status ==='));
   });
   
   it('should support --json flag', async () => {

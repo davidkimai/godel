@@ -177,6 +177,13 @@ export function getBuiltinRole(id: string): AgentRole | undefined {
 }
 
 /**
+ * Map of built-in roles by ID for fast lookup
+ */
+export const BUILTIN_ROLES_MAP: Map<string, AgentRole> = new Map(
+  BUILTIN_ROLES.map(role => [role.id, role])
+);
+
+/**
  * Get all built-in role IDs
  */
 export function getBuiltinRoleIds(): string[] {

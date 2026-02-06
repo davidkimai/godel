@@ -38,7 +38,7 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 describe('Budget Module', () => {
-  const mockBudgetDir = path.join(os.homedir(), '.config', 'dash');
+  const mockBudgetDir = path.join(os.homedir(), '.config', 'godel');
   const mockBudgetsFile = path.join(mockBudgetDir, 'budgets.json');
 
   beforeEach(() => {

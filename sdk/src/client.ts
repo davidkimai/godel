@@ -1,7 +1,7 @@
 /**
- * @dash/client SDK - Core Client
+ * @godel/client SDK - Core Client
  * 
- * The main DashClient class provides HTTP methods with retry logic,
+ * The main GodelClient class provides HTTP methods with retry logic,
  * event emitter integration, and automatic error handling.
  */
 
@@ -13,7 +13,7 @@ import axios, {
   AxiosError,
 } from 'axios';
 import {
-  DashError,
+  GodelError,
   NetworkError,
   TimeoutError,
   RateLimitError,
@@ -24,10 +24,10 @@ import { AgentsResource } from './resources/agents';
 import { EventsResource } from './resources/events';
 
 /**
- * Configuration options for DashClient
+ * Configuration options for GodelClient
  */
-export interface DashClientConfig {
-  /** Base URL for the Dash API */
+export interface GodelClientConfig {
+  /** Base URL for the Godel API */
   apiUrl: string;
   /** API key for authentication */
   apiKey: string;
@@ -60,15 +60,15 @@ export interface RequestOptions {
 }
 
 /**
- * Main client for interacting with the Dash API.
+ * Main client for interacting with the Godel API.
  * Provides typed resources for swarms, agents, and events,
  * along with configurable retry logic and event emission.
  * 
  * @example
  * ```typescript
- * const client = new DashClient({
- *   apiUrl: 'https://api.dash.io',
- *   apiKey: process.env.DASH_API_KEY!,
+ * const client = new GodelClient({
+ *   apiUrl: 'https://api.godel.io',
+ *   apiKey: process.env.GODEL_API_KEY!,
  * });
  * 
  * // Access resources
@@ -81,9 +81,9 @@ export interface RequestOptions {
  * client.on('response', (res) => console.log('Response:', res.status));
  * ```
  */
-export class DashClient extends EventEmitter {
+export class GodelClient extends EventEmitter {
   private readonly httpClient: AxiosInstance;
-  private readonly config: Required<DashClientConfig>;
+  private readonly config: Required<GodelClientConfig>;
 
   /** Resource for managing swarms */
   public readonly swarms: SwarmsResource;
@@ -93,19 +93,19 @@ export class DashClient extends EventEmitter {
   public readonly events: EventsResource;
 
   /**
-   * Creates a new DashClient instance
+   * Creates a new GodelClient instance
    * 
    * @param config - Client configuration
    */
-  constructor(config: DashClientConfig) {
+  constructor(config: GodelClientConfig) {
     super();
 
     // Validate required config
     if (!config.apiUrl) {
-      throw new DashError('apiUrl is required');
+      throw new GodelError('apiUrl is required');
     }
     if (!config.apiKey) {
-      throw new DashError('apiKey is required');
+      throw new GodelError('apiKey is required');
     }
 
     // Set defaults
@@ -140,7 +140,7 @@ export class DashClient extends EventEmitter {
         'Authorization': `Bearer ${this.config.apiKey}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': `@dash/client/1.0.0`,
+        'User-Agent': `@godel/client/1.0.0`,
         ...this.config.headers,
       },
     });
@@ -221,7 +221,7 @@ export class DashClient extends EventEmitter {
     }
 
     // Should never reach here, but TypeScript needs it
-    throw lastError || new DashError('Request failed after retries');
+    throw lastError || new GodelError('Request failed after retries');
   }
 
   /**
@@ -255,7 +255,7 @@ export class DashClient extends EventEmitter {
     }
 
     // Check for specific error types
-    if (error instanceof DashError) {
+    if (error instanceof GodelError) {
       return error.isRetryable();
     }
 
@@ -310,11 +310,11 @@ export class DashClient extends EventEmitter {
   }
 
   /**
-   * Normalize various error types to DashError
+   * Normalize various error types to GodelError
    */
-  private normalizeError(error: unknown): DashError {
-    // Already a DashError
-    if (error instanceof DashError) {
+  private normalizeError(error: unknown): GodelError {
+    // Already a GodelError
+    if (error instanceof GodelError) {
       return error;
     }
 
@@ -343,10 +343,10 @@ export class DashClient extends EventEmitter {
 
     // Unknown error
     if (error instanceof Error) {
-      return new DashError(error.message, { cause: error });
+      return new GodelError(error.message, { cause: error });
     }
 
-    return new DashError('Unknown error occurred', { details: { error } });
+    return new GodelError('Unknown error occurred', { details: { error } });
   }
 
   /**
@@ -413,7 +413,7 @@ export class DashClient extends EventEmitter {
   /**
    * Get the current client configuration (for internal use)
    */
-  getConfig(): Required<DashClientConfig> {
+  getConfig(): Required<GodelClientConfig> {
     return { ...this.config };
   }
 

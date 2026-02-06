@@ -2,7 +2,7 @@
  * OpenClaw Integration Module
  * 
  * Provides permission management, sandboxing, and security enforcement
- * for Dash agents using OpenClaw.
+ * for Godel agents using OpenClaw.
  */
 
 // ============================================================================
@@ -510,6 +510,6 @@ export {
 
 export type {
   OpenClawEvent,
-  DashEvent,
+  GodelEvent,
   EventTransformer,
 } from './types';

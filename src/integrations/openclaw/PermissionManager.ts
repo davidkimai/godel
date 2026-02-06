@@ -2,7 +2,7 @@
  * OpenClaw Permission Manager
  * 
  * Manages tool whitelist/blacklist, sandbox configuration, permission inheritance,
- * and runtime permission checks for Dash agents using OpenClaw.
+ * and runtime permission checks for Godel agents using OpenClaw.
  */
 
 import { logger } from '../../utils/logger';

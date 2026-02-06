@@ -2,10 +2,10 @@
 # Production Readiness Check Script
 # Runs every 15 minutes to verify progress
 
-PROJECT_DIR="/Users/jasontang/clawd/projects/dash"
-REPORT_FILE="/tmp/dash-readiness-check-$(date +%Y%m%d-%H%M).log"
+PROJECT_DIR="/Users/jasontang/clawd/projects/godel"
+REPORT_FILE="/tmp/godel-readiness-check-$(date +%Y%m%d-%H%M).log"
 
-echo "=== DASH PRODUCTION READINESS CHECK ===" > "$REPORT_FILE"
+echo "=== GODEL PRODUCTION READINESS CHECK ===" > "$REPORT_FILE"
 echo "Timestamp: $(date)" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 

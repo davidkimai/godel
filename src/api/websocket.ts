@@ -1,5 +1,5 @@
 /**
- * WebSocket Server for Dash v3
+ * WebSocket Server for Godel v3
  * 
  * Real-time event streaming with authentication and topic subscriptions.
  */
@@ -55,7 +55,7 @@ export function startWebSocketServer(server: Server, apiKey: string): WebSocketS
     // Send welcome message
     ws.send(JSON.stringify({
       type: 'connected',
-      message: 'Connected to Dash event stream'
+      message: 'Connected to Godel event stream'
     }));
 
     ws.on('message', (data: Buffer) => {

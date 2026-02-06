@@ -10,11 +10,11 @@ import { Pool } from 'pg';
 import Redis from 'ioredis';
 
 const API_URL = process.env['TEST_API_URL'] || 'http://localhost:3001';
-const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://dash_user:dash_password@localhost:5432/dash_test';
+const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://godel_user:godel_password@localhost:5432/godel_test';
 const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
 const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 
-describeLive('Dash Workflow Integration', () => {
+describeLive('Godel Workflow Integration', () => {
   let db: Pool;
   let redis: Redis;
 

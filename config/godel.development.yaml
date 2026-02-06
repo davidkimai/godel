@@ -1,4 +1,4 @@
-# Dash Configuration - Development Environment
+# Godel Configuration - Development Environment
 # This file contains development-specific overrides
 
 env: development
@@ -47,7 +47,7 @@ logging:
   level: debug
   format: pretty
   destination: stdout
-  serviceName: dash-dev
+  serviceName: godel-dev
   includeTimestamp: true
   includeSourceLocation: true
 
@@ -57,7 +57,7 @@ metrics:
   host: localhost
   path: /metrics
   enableDefaultMetrics: true
-  prefix: dash_
+  prefix: godel_
   collectIntervalMs: 5000
 
 budget:

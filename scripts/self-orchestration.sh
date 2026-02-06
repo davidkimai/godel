@@ -1,11 +1,11 @@
 #!/bin/bash
 # Self-Orchestrating Assessment Script
-# Runs every 10 minutes to assess Dash project status
+# Runs every 10 minutes to assess Godel project status
 # Queries main session for current situation, launches critique subagents
 
 set -e
 
-WORKSPACE="/Users/jasontang/clawd/projects/dash"
+WORKSPACE="/Users/jasontang/clawd/projects/godel"
 LOG_FILE="$WORKSPACE/logs/self-orchestration-$(date +%Y-%m-%d).log"
 INTERVIEW_LOG="$WORKSPACE/logs/interview-feedback-$(date +%Y-%m-%d).log"
 
@@ -29,7 +29,7 @@ log "SELF-ORCHESTRATION CYCLE STARTED"
 log "========================================="
 
 # Interview 1: Current Situation
-interview "What is the current state of the Dash project?"
+interview "What is the current state of the Godel project?"
 interview "What subagents are currently running?"
 interview "What is the git status and recent commits?"
 interview "What phase of production readiness are we in?"
@@ -75,7 +75,7 @@ echo "$WORKTREES" | while read line; do
 done
 
 # Subagent Processes
-SUBAGENTS=$(ps aux | grep -E "codex.*dash-phase" | grep -v grep || echo "No subagents found")
+SUBAGENTS=$(ps aux | grep -E "codex.*godel-phase" | grep -v grep || echo "No subagents found")
 log "Active Subagents:"
 if [ -n "$SUBAGENTS" ]; then
     echo "$SUBAGENTS" | while read line; do
@@ -131,7 +131,7 @@ log ""
 log "=== LAUNCHING RECURSIVE CRITIQUE SUBAGENT ==="
 
 # Launch a critique subagent in isolated context
-CRITIQUE_PROMPT="Perform a recursive critique of Dash project status:
+CRITIQUE_PROMPT="Perform a recursive critique of Godel project status:
 
 1. VERIFY current progress:
    - Check git status and worktrees
@@ -183,7 +183,7 @@ if [ "$CONSOLE_COUNT" -gt 100 ]; then
     log "RECOMMENDATION: Console.log count high ($CONSOLE_COUNT) - prioritize cleanup"
 fi
 
-if echo "$SUBAGENTS" | grep -q "dash-phase4"; then
+if echo "$SUBAGENTS" | grep -q "godel-phase4"; then
     log "RECOMMENDATION: Phase 4 subagents running - monitor for completion"
 else
     log "RECOMMENDATION: No Phase 4 subagents detected - consider launching"

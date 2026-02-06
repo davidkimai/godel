@@ -13,7 +13,7 @@ const API_URL = process.env['TEST_API_URL'] || 'http://localhost:3001';
 const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
 const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 
-describeLive('Dash Authentication Integration', () => {
+describeLive('Godel Authentication Integration', () => {
   let apiKey: string;
   let jwtToken: string;
 

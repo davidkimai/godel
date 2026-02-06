@@ -212,7 +212,7 @@ function createJITI(_cwd: string) {
     // Allow requiring from node_modules
     tryNative: true,
     alias: {
-      '@dash/core': path.resolve(projectRoot, 'src/core'),
+      '@godel/core': path.resolve(projectRoot, 'src/core'),
       '@dash/api': path.resolve(projectRoot, 'src/api'),
     },
   });

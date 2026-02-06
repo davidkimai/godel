@@ -1,4 +1,4 @@
-# Dash Test Coverage Report
+# Godel Test Coverage Report
 
 **Generated:** 2026-02-04
 **Test Framework:** Custom Node.js test runner

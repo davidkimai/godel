@@ -1,10 +1,10 @@
 /**
- * @dash/client SDK - Agents Resource
+ * @godel/client SDK - Agents Resource
  * 
- * Resource class for managing Dash agents - individual worker instances.
+ * Resource class for managing Godel agents - individual worker instances.
  */
 
-import { DashClient } from '../client';
+import { GodelClient } from '../client';
 import {
   Agent,
   AgentListResponse,
@@ -17,17 +17,17 @@ import {
 import { NotFoundError, ValidationError } from '../errors';
 
 /**
- * Resource for managing Dash agents.
+ * Resource for managing Godel agents.
  * Provides methods to spawn, list, get, kill agents and manage their tasks.
  * 
  * @example
  * ```typescript
- * const client = new DashClient({ apiUrl, apiKey });
+ * const client = new GodelClient({ apiUrl, apiKey });
  * 
  * // Spawn a new agent
  * const agent = await client.agents.spawn({
  *   config: {
- *     image: 'dash/agent:latest',
+ *     image: 'godel/agent:latest',
  *     resources: { cpu: '1', memory: '2Gi' },
  *   },
  * });
@@ -45,10 +45,10 @@ import { NotFoundError, ValidationError } from '../errors';
  * ```
  */
 export class AgentsResource {
-  private readonly client: DashClient;
+  private readonly client: GodelClient;
   private readonly basePath = '/agents';
 
-  constructor(client: DashClient) {
+  constructor(client: GodelClient) {
     this.client = client;
   }
 
@@ -66,7 +66,7 @@ export class AgentsResource {
    * const agent = await client.agents.spawn({
    *   name: 'my-agent',
    *   config: {
-   *     image: 'dash/agent:v1.0.0',
+   *     image: 'godel/agent:v1.0.0',
    *     version: 'v1.0.0',
    *     resources: {
    *       cpu: '1',
@@ -82,7 +82,7 @@ export class AgentsResource {
    * const agent = await client.agents.spawn({
    *   swarmId: 'swarm-123',
    *   config: {
-   *     image: 'dash/agent:v1.0.0',
+   *     image: 'godel/agent:v1.0.0',
    *     capabilities: {
    *       canExecute: true,
    *       canAccessFilesystem: true,

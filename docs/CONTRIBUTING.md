@@ -27,7 +27,7 @@ git clone https://github.com/YOUR_USERNAME/dash.git
 cd dash
 
 # Add upstream remote
-git remote add upstream https://github.com/davidkimai/dash.git
+git remote add upstream https://github.com/davidkimai/godel.git
 ```
 
 ### Install Dependencies
@@ -78,11 +78,11 @@ git push origin feature/my-feature
 cp .env.example .env
 
 # Edit with your settings
-# At minimum, set DASH_PROJECT_PATH
+# At minimum, set GODEL_PROJECT_PATH
 
 # For development, you may want:
-DASH_LOG_LEVEL=debug
-DASH_DRY_RUN=false
+GODEL_LOG_LEVEL=debug
+GODEL_DRY_RUN=false
 ```
 
 ### Running Locally

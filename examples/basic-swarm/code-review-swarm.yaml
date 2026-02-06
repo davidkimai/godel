@@ -1,7 +1,7 @@
 # Code Review Swarm Configuration
 # Specialized swarm with multiple agent types
 
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:

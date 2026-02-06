@@ -162,7 +162,7 @@ export class AgentLifecycle extends EventEmitter {
       // Initialize OpenClaw core primitive
       logger.info('[AgentLifecycle] Starting lifecycle manager, initializing OpenClaw core...');
       const strictOpenClaw =
-        (process.env['DASH_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'] || 'false')
+        (process.env['GODEL_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'] || 'false')
           .toLowerCase() === 'true';
 
       try {

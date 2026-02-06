@@ -67,7 +67,7 @@ describe('StateAwareOrchestrator', () => {
   let mockStorage: ReturnType<typeof createMockStorage>;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `dash-orchestrator-test-${Date.now()}`);
+    testDir = join(tmpdir(), `godel-orchestrator-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     testDbPath = join(testDir, 'test.db');
 
@@ -264,7 +264,7 @@ describe('StateAwareOrchestrator', () => {
 
 describe('createStateAwareOrchestrator', () => {
   it('should create orchestrator with dependencies', async () => {
-    const testDir = join(tmpdir(), `dash-factory-test-${Date.now()}`);
+    const testDir = join(tmpdir(), `godel-factory-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     const testDbPath = join(testDir, 'test.db');
 

@@ -1,7 +1,7 @@
 /**
  * Agent Skills System - Core Types and Interfaces
  * 
- * Implements the Agent Skills standard (https://agentskills.io) for Dash.
+ * Implements the Agent Skills standard (https://agentskills.io) for Godel.
  * Skills are reusable capabilities defined in Markdown files with structured
  * frontmatter and body content.
  */

@@ -1,7 +1,7 @@
 /**
- * @dash/client SDK - Type Definitions
+ * @godel/client SDK - Type Definitions
  * 
- * Comprehensive TypeScript type definitions for the Dash API.
+ * Comprehensive TypeScript type definitions for the Godel API.
  */
 
 // ============================================================================

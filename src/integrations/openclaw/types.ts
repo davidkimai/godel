@@ -228,7 +228,7 @@ export interface SessionsSpawnParams {
  * Response from sessions_spawn method
  */
 export interface SessionsSpawnResponse {
-  /** Session key in legacy Dash/OpenClaw payloads */
+  /** Session key in legacy Godel/OpenClaw payloads */
   sessionKey?: string;
   /** Session id in legacy payloads */
   sessionId?: string;
@@ -587,7 +587,7 @@ export const DEFAULT_GATEWAY_OPTIONS: GatewayClientOptions = {
 // ============================================================================
 
 /**
- * OpenClaw Event - Events sent from Dash to OpenClaw
+ * OpenClaw Event - Events sent from Godel to OpenClaw
  */
 export interface OpenClawEvent {
   /** Event source */
@@ -605,9 +605,9 @@ export interface OpenClawEvent {
 }
 
 /**
- * Dash Event - Events originating from Dash system
+ * Godel Event - Events originating from Godel system
  */
-export interface DashEvent {
+export interface GodelEvent {
   /** Event ID */
   id: string;
   /** Event type */
@@ -629,37 +629,37 @@ export interface DashEvent {
 }
 
 /**
- * Event Transformer - Transforms events between Dash and OpenClaw formats
+ * Event Transformer - Transforms events between Godel and OpenClaw formats
  */
 export interface EventTransformer {
-  /** Transform Dash event to OpenClaw format */
-  toOpenClaw(dashEvent: DashEvent): OpenClawEvent;
-  /** Transform OpenClaw event to Dash format */
-  toDash(openclawEvent: OpenClawEvent): DashEvent;
+  /** Transform Godel event to OpenClaw format */
+  toOpenClaw(godelEvent: GodelEvent): OpenClawEvent;
+  /** Transform OpenClaw event to Godel format */
+  toDash(openclawEvent: OpenClawEvent): GodelEvent;
 }
 
 /**
  * Default Event Transformer implementation
  */
 export const DefaultEventTransformer: EventTransformer = {
-  toOpenClaw(dashEvent: DashEvent): OpenClawEvent {
+  toOpenClaw(godelEvent: GodelEvent): OpenClawEvent {
     return {
       source: 'dash',
-      type: dashEvent.type,
-      timestamp: dashEvent.timestamp,
-      sessionKey: dashEvent.metadata?.['sessionKey'] as string || 'unknown',
-      data: dashEvent.payload,
+      type: godelEvent.type,
+      timestamp: godelEvent.timestamp,
+      sessionKey: godelEvent.metadata?.['sessionKey'] as string || 'unknown',
+      data: godelEvent.payload,
       metadata: {
-        dashAgentId: dashEvent.metadata?.['agentId'],
-        dashSwarmId: dashEvent.metadata?.['swarmId'],
-        topic: dashEvent.topic,
-        messageId: dashEvent.id,
-        ...dashEvent.metadata,
+        godelAgentId: godelEvent.metadata?.['agentId'],
+        godelSwarmId: godelEvent.metadata?.['swarmId'],
+        topic: godelEvent.topic,
+        messageId: godelEvent.id,
+        ...godelEvent.metadata,
       },
     };
   },
 
-  toDash(openclawEvent: OpenClawEvent): DashEvent {
+  toDash(openclawEvent: OpenClawEvent): GodelEvent {
     return {
       id: openclawEvent.metadata?.['messageId'] as string || `evt-${Date.now()}`,
       type: openclawEvent.type,

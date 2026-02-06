@@ -37,9 +37,9 @@ function test(name: string, fn: () => Promise<void>) {
   })();
 }
 
-async function runDash(args: string[], env?: Record<string, string>): Promise<{ code: number; output: string }> {
+async function runGodel(args: string[], env?: Record<string, string>): Promise<{ code: number; output: string }> {
   const proc = exec('node', ['dist/src/index.js', ...args], {
-    cwd: '/Users/jasontang/clawd/projects/dash',
+    cwd: '/Users/jasontang/clawd/projects/godel',
     env: { ...process.env, ...env },
     timeout: 10000,
   });
@@ -64,7 +64,7 @@ console.log('\n=== CLI Test Suite ===\n');
 
 // Test Suite
 test('CLI should return version', async () => {
-  const { code, output } = await runDash(['--version']);
+  const { code, output } = await runGodel(['--version']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -76,7 +76,7 @@ test('CLI should return version', async () => {
 });
 
 test('CLI should show help with --help', async () => {
-  const { code, output } = await runDash(['--help']);
+  const { code, output } = await runGodel(['--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -88,7 +88,7 @@ test('CLI should show help with --help', async () => {
 });
 
 test('CLI should show help with -h', async () => {
-  const { code, output } = await runDash(['-h']);
+  const { code, output } = await runGodel(['-h']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -100,7 +100,7 @@ test('CLI should show help with -h', async () => {
 });
 
 test('CLI should list available commands', async () => {
-  const { output } = await runDash(['--help']);
+  const { output } = await runGodel(['--help']);
   
   const expectedCommands = ['agent', 'swarm', 'workflow', 'status', 'config', 'init'];
   
@@ -112,7 +112,7 @@ test('CLI should list available commands', async () => {
 });
 
 test('CLI should handle unknown command gracefully', async () => {
-  const { code, output } = await runDash(['unknown-command']);
+  const { code, output } = await runGodel(['unknown-command']);
   
   if (code !== 1) {
     throw new Error(`Should exit with 1 for unknown command, got ${code}`);
@@ -124,7 +124,7 @@ test('CLI should handle unknown command gracefully', async () => {
 });
 
 test('CLI should handle invalid option', async () => {
-  const { code, output } = await runDash(['--invalid-option']);
+  const { code, output } = await runGodel(['--invalid-option']);
   
   if (code !== 1) {
     throw new Error(`Should exit with 1 for invalid option, got ${code}`);
@@ -132,7 +132,7 @@ test('CLI should handle invalid option', async () => {
 });
 
 test('CLI agent command should show help', async () => {
-  const { code, output } = await runDash(['agent', '--help']);
+  const { code, output } = await runGodel(['agent', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -144,11 +144,11 @@ test('CLI agent command should show help', async () => {
 });
 
 test('CLI agent list should work without crash', async () => {
-  const { code } = await runDash(['agent', 'list']);
+  const { code } = await runGodel(['agent', 'list']);
   
   // May fail due to OpenClaw, but should not crash
   // Exit code may be 1 due to gateway, but output should exist
-  const { output } = await runDash(['agent', 'list']);
+  const { output } = await runGodel(['agent', 'list']);
   
   // Check it tried to execute, not crashed
   if (!output.includes('agent') && !output.includes('error')) {
@@ -157,7 +157,7 @@ test('CLI agent list should work without crash', async () => {
 });
 
 test('CLI swarm command should show help', async () => {
-  const { code, output } = await runDash(['swarm', '--help']);
+  const { code, output } = await runGodel(['swarm', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -169,7 +169,7 @@ test('CLI swarm command should show help', async () => {
 });
 
 test('CLI swarm list should work without crash', async () => {
-  const { output } = await runDash(['swarm', 'list']);
+  const { output } = await runGodel(['swarm', 'list']);
   
   if (!output.includes('swarm') && !output.includes('error')) {
     throw new Error('Swarm list should either list swarms or show error');
@@ -177,7 +177,7 @@ test('CLI swarm list should work without crash', async () => {
 });
 
 test('CLI workflow command should show help', async () => {
-  const { code, output } = await runDash(['workflow', '--help']);
+  const { code, output } = await runGodel(['workflow', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -189,7 +189,7 @@ test('CLI workflow command should show help', async () => {
 });
 
 test('CLI status command should show help', async () => {
-  const { code, output } = await runDash(['status', '--help']);
+  const { code, output } = await runGodel(['status', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -201,7 +201,7 @@ test('CLI status command should show help', async () => {
 });
 
 test('CLI config command should show help', async () => {
-  const { code, output } = await runDash(['config', '--help']);
+  const { code, output } = await runGodel(['config', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -213,7 +213,7 @@ test('CLI config command should show help', async () => {
 });
 
 test('CLI init command should show help', async () => {
-  const { code, output } = await runDash(['init', '--help']);
+  const { code, output } = await runGodel(['init', '--help']);
   
   if (code !== 0) {
     throw new Error(`Exit code: ${code}`);
@@ -225,7 +225,7 @@ test('CLI init command should show help', async () => {
 });
 
 test('CLI should output valid JSON with --json option', async () => {
-  const { output } = await runDash(['--version', '--json']);
+  const { output } = await runGodel(['--version', '--json']);
   
   try {
     JSON.parse(output);
@@ -235,7 +235,7 @@ test('CLI should output valid JSON with --json option', async () => {
 });
 
 test('CLI should handle empty task gracefully', async () => {
-  const { code } = await runDash(['agent', 'spawn', '']);
+  const { code } = await runGodel(['agent', 'spawn', '']);
   
   // Should not crash, may error due to validation
   if (code !== 0 && code !== 1) {
@@ -244,7 +244,7 @@ test('CLI should handle empty task gracefully', async () => {
 });
 
 test('CLI should show version in output', async () => {
-  const { output } = await runDash(['status']);
+  const { output } = await runGodel(['status']);
   
   if (!output.includes('2.0.0') && !output.includes('version')) {
     // Status may show different output, check for version reference
@@ -253,8 +253,8 @@ test('CLI should show version in output', async () => {
 });
 
 test('CLI environment variables should be respected', async () => {
-  const { output } = await runDash(['status'], {
-    DASH_DEBUG: 'true',
+  const { output } = await runGodel(['status'], {
+    GODEL_DEBUG: 'true',
   });
   
   // Debug mode may add additional output
@@ -264,9 +264,9 @@ test('CLI environment variables should be respected', async () => {
 test('CLI should handle concurrent requests', async () => {
   // Run multiple commands concurrently
   const promises = [
-    runDash(['--version']),
-    runDash(['--help']),
-    runDash(['status']),
+    runGodel(['--version']),
+    runGodel(['--help']),
+    runGodel(['status']),
   ];
   
   const results = await Promise.all(promises);
@@ -282,7 +282,7 @@ test('CLI should handle concurrent requests', async () => {
 
 test('CLI should have reasonable response time', async () => {
   const start = Date.now();
-  const { code } = await runDash(['--version']);
+  const { code } = await runGodel(['--version']);
   const elapsed = Date.now() - start;
   
   if (elapsed > 5000) {
@@ -299,7 +299,7 @@ test('CLI should handle keyboard interrupt gracefully', async () => {
 });
 
 test('CLI should output to stdout correctly', async () => {
-  const { output } = await runDash(['--version']);
+  const { output } = await runGodel(['--version']);
   
   if (output.length === 0) {
     throw new Error('Output should not be empty');
@@ -311,7 +311,7 @@ test('CLI should output to stdout correctly', async () => {
 });
 
 test('CLI should support short options', async () => {
-  const { code, output } = await runDash(['-h']);
+  const { code, output } = await runGodel(['-h']);
   
   if (code !== 0) {
     throw new Error(`Short option -h should work, exit code: ${code}`);
@@ -319,7 +319,7 @@ test('CLI should support short options', async () => {
 });
 
 test('CLI should support long options', async () => {
-  const { code, output } = await runDash(['--help']);
+  const { code, output } = await runGodel(['--help']);
   
   if (code !== 0) {
     throw new Error(`Long option --help should work, exit code: ${code}`);

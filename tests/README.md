@@ -1,6 +1,6 @@
-# Dash Test Suite
+# Godel Test Suite
 
-Comprehensive test coverage for all Dash components.
+Comprehensive test coverage for all Godel components.
 
 ## Quick Start
 

@@ -18,18 +18,18 @@ describe('ApiKeyRepository', () => {
     pool = new Pool({
       host: 'localhost',
       port: 5433,
-      user: 'dash',
-      password: 'dash',
-      database: 'dash',
+      user: 'godel',
+      password: 'godel',
+      database: 'godel',
     });
 
     // Create repository with direct pool injection
     repository = new ApiKeyRepository({
       host: 'localhost',
       port: 5433,
-      user: 'dash',
-      password: 'dash',
-      database: 'dash',
+      user: 'godel',
+      password: 'godel',
+      database: 'godel',
     } as any);
     
     // Initialize with the pool

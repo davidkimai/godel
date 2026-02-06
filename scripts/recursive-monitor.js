@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Recursive Dash Improvement & Monitoring Script
+ * Recursive Godel Improvement & Monitoring Script
  * 
  * Launches K2.5 swarms for continuous improvement and bug monitoring
  */

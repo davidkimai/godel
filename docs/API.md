@@ -1,4 +1,4 @@
-# Dash API Endpoint Reference
+# Godel API Endpoint Reference
 
 **Version:** v3.0  
 **Base URL:** `http://localhost:7373`  
@@ -15,7 +15,7 @@ All API endpoints require authentication via the `X-API-Key` header.
 curl -H "X-API-Key: your-api-key" http://localhost:7373/api/agents
 ```
 
-**Environment Variable:** `DASH_API_KEY` (defaults to `dash-api-key`)
+**Environment Variable:** `GODEL_API_KEY` (defaults to `godel-api-key`)
 
 ---
 
@@ -96,7 +96,7 @@ List all agents.
 
 **cURL Example:**
 ```bash
-curl -H "X-API-Key: dash-api-key" \
+curl -H "X-API-Key: godel-api-key" \
   "http://localhost:7373/api/agents?status=running&page=1"
 ```
 
@@ -149,7 +149,7 @@ Spawn a new agent.
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Analyze user feedback",
@@ -195,7 +195,7 @@ Get agent by ID.
 
 **cURL Example:**
 ```bash
-curl -H "X-API-Key: dash-api-key" \
+curl -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
 ```
 
@@ -246,7 +246,7 @@ Update agent.
 **cURL Example:**
 ```bash
 curl -X PATCH \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"status": "paused"}' \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
@@ -269,7 +269,7 @@ Kill an agent.
 **cURL Example:**
 ```bash
 curl -X DELETE \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
 ```
 
@@ -325,14 +325,14 @@ Kill agent (force):
 ```bash
 # Pause agent
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"action": "pause", "reason": "Maintenance"}' \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/action
 
 # Resume agent
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"action": "resume"}' \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/action
@@ -347,7 +347,7 @@ Pause agent (shortcut endpoint).
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/pause
 ```
 
@@ -360,7 +360,7 @@ Resume agent (shortcut endpoint).
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/resume
 ```
 
@@ -401,7 +401,7 @@ List all swarms.
 
 **cURL Example:**
 ```bash
-curl -H "X-API-Key: dash-api-key" \
+curl -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/swarm
 ```
 
@@ -455,7 +455,7 @@ Create a new swarm.
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "analysis-swarm",
@@ -498,7 +498,7 @@ Get swarm by ID.
 
 **cURL Example:**
 ```bash
-curl -H "X-API-Key: dash-api-key" \
+curl -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
 ```
 
@@ -536,7 +536,7 @@ Update swarm.
 **cURL Example:**
 ```bash
 curl -X PATCH \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"status": "paused"}' \
   http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
@@ -559,7 +559,7 @@ Destroy swarm and all its agents.
 **cURL Example:**
 ```bash
 curl -X DELETE \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
 ```
 
@@ -601,7 +601,7 @@ Scale swarm to target number of agents.
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"targetAgents": 10}' \
   http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001/scale
@@ -628,7 +628,7 @@ data: {"type": "agent.completed", "timestamp": "2026-02-02T10:05:00Z", ...}
 
 **cURL Example:**
 ```bash
-curl -H "X-API-Key: dash-api-key" \
+curl -H "X-API-Key: godel-api-key" \
   http://localhost:7373/api/events
 ```
 
@@ -675,7 +675,7 @@ Create a new event.
 **cURL Example:**
 ```bash
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "eventType": "custom.event",
@@ -697,10 +697,10 @@ Connect to WebSocket for real-time events.
 ### Connection
 
 ```javascript
-const ws = new WebSocket('ws://localhost:7373/events?apiKey=dash-api-key');
+const ws = new WebSocket('ws://localhost:7373/events?apiKey=godel-api-key');
 
 ws.onopen = () => {
-  console.log('Connected to Dash WebSocket');
+  console.log('Connected to Godel WebSocket');
 };
 
 ws.onmessage = (event) => {

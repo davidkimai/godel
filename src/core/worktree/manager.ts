@@ -13,7 +13,7 @@
  * - Git command execution with proper error handling
  * - Event-driven architecture for monitoring
  *
- * @module @dash/core/worktree/manager
+ * @module @godel/core/worktree/manager
  */
 
 import { EventEmitter } from 'events';
@@ -45,11 +45,11 @@ import type { StorageAdapter } from '../../integrations/pi/types';
 /** Prefix for worktree IDs */
 const WORKTREE_ID_PREFIX = 'wt';
 
-/** Prefix for dash branches */
-const BRANCH_PREFIX = 'dash/session';
+/** Prefix for godel branches */
+const BRANCH_PREFIX = 'godel/session';
 
 /** Default subdirectory for worktrees within a repository */
-const WORKTREE_SUBDIR = '.dash-worktrees';
+const WORKTREE_SUBDIR = '.godel-worktrees';
 
 /** Supported shared dependency paths by package manager */
 const SHARED_DEPENDENCY_PATHS: Record<PackageManager, string[]> = {
@@ -73,7 +73,7 @@ const ADDITIONAL_SHARED_PATHS = [
 ];
 
 /** Storage key prefix for worktree persistence */
-const STORAGE_KEY_PREFIX = 'dash:worktree:';
+const STORAGE_KEY_PREFIX = 'godel:worktree:';
 
 /** Table name for cold storage */
 const WORKTREE_TABLE = 'worktrees';
@@ -332,7 +332,7 @@ export class WorktreeManager extends EventEmitter implements IWorktreeManager {
 
       // Step 3: Determine worktree path
       const repoName = basename(config.repository);
-      const worktreePath = join(this.basePath, `${repoName}-dash`, worktreeId);
+      const worktreePath = join(this.basePath, `${repoName}-godel`, worktreeId);
 
       // Step 4: Create branch name
       const branchName = `${BRANCH_PREFIX}-${config.sessionId.slice(0, 8)}`;

@@ -1,6 +1,6 @@
 # Basic Swarm Example
 
-Simple examples demonstrating Dash swarm creation and management.
+Simple examples demonstrating Godel swarm creation and management.
 
 ## Overview
 
@@ -20,12 +20,12 @@ This example shows how to create and manage basic agent swarms for common tasks 
 Create a basic swarm with 5 agents:
 
 ```bash
-dash swarm create --file simple-swarm.yaml
+godel swarm create --file simple-swarm.yaml
 ```
 
 Or via CLI:
 ```bash
-dash swarm create \
+godel swarm create \
   --name "simple-swarm" \
   --task "Analyze codebase structure" \
   --initial-agents 5 \
@@ -37,7 +37,7 @@ dash swarm create \
 Create a specialized swarm for code review:
 
 ```bash
-dash swarm create --file code-review-swarm.yaml
+godel swarm create --file code-review-swarm.yaml
 ```
 
 This creates a swarm with 3 specialized agents:
@@ -49,20 +49,20 @@ This creates a swarm with 3 specialized agents:
 
 ```bash
 # List all swarms
-dash swarm list
+godel swarm list
 
 # Check status
-dash swarm status <swarm-id>
+godel swarm status <swarm-id>
 
-# Launch dashboard
-dash dashboard
+# Launch godelboard
+godel godelboard
 ```
 
 ### 4. Clean Up
 
 ```bash
 # Destroy swarm when done
-dash swarm destroy <swarm-id>
+godel swarm destroy <swarm-id>
 ```
 
 ## Configuration Options
@@ -104,9 +104,9 @@ spec:
 ### JavaScript/TypeScript API
 
 ```typescript
-import { DashClient } from '@dash/client';
+import { GodelClient } from '@godel/client';
 
-const client = new DashClient('http://localhost:3000');
+const client = new GodelClient('http://localhost:3000');
 
 // Create swarm
 const swarm = await client.swarm.create({
@@ -154,21 +154,21 @@ curl -X DELETE http://localhost:3000/api/v1/swarms/<swarm-id>
 
 Check the logs:
 ```bash
-dash logs tail --swarm <swarm-id>
+godel logs tail --swarm <swarm-id>
 ```
 
 ### Budget exceeded
 
 Monitor budget usage:
 ```bash
-dash budget status
+godel budget status
 ```
 
 ### Agents stuck
 
 Check agent status:
 ```bash
-dash agents list --swarm <swarm-id>
+godel agents list --swarm <swarm-id>
 ```
 
 ## Next Steps

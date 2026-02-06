@@ -23,7 +23,7 @@ describe('YAML Loader', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = resolve(tmpdir(), `dash-test-${Date.now()}`);
+    tempDir = resolve(tmpdir(), `godel-test-${Date.now()}`);
     await mkdir(tempDir, { recursive: true });
   });
 
@@ -98,7 +98,7 @@ describe('YAML Loader', () => {
   describe('YAML Parsing', () => {
     it('should parse basic YAML', async () => {
       const yaml = `
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 metadata:
   name: test-swarm
@@ -108,7 +108,7 @@ spec:
 `;
       const parsed = await parseYaml(yaml);
       
-      expect(parsed['apiVersion']).toBe('dash.io/v1');
+      expect(parsed['apiVersion']).toBe('godel.io/v1');
       expect(parsed['kind']).toBe('Swarm');
       expect(parsed['metadata']).toEqual({ name: 'test-swarm' });
       expect((parsed['spec'] as Record<string, unknown>)?.['task']).toBe('Test task');
@@ -132,7 +132,7 @@ spec:
   describe('Config Validation', () => {
     it('should validate a valid config', () => {
       const config: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -163,7 +163,7 @@ spec:
 
     it('should reject initialAgents > maxAgents', () => {
       const config: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -181,7 +181,7 @@ spec:
 
     it('should reject invalid strategy', () => {
       const config = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { name: 'test' },
         spec: {
@@ -198,7 +198,7 @@ spec:
   describe('toSwarmConfig', () => {
     it('should convert YAML config to SwarmConfig', () => {
       const yamlConfig: SwarmYamlConfig = {
-        apiVersion: 'dash.io/v1',
+        apiVersion: 'godel.io/v1',
         kind: 'Swarm',
         metadata: { 
           name: 'test-swarm',

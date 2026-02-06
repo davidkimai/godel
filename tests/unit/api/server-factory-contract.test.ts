@@ -10,11 +10,11 @@ describe('Express server-factory compatibility contract', () => {
 
   beforeAll(async () => {
     process.env['PORT'] = '7373';
-    process.env['DATABASE_URL'] = 'postgresql://dash:dash@localhost:5432/dash';
-    process.env['POSTGRES_DB'] = 'dash';
-    process.env['DASH_HEALTH_TIMEOUT_MS'] = '100';
-    process.env['DASH_HEALTH_REQUIRE_REDIS'] = 'false';
-    process.env['DASH_OPENCLAW_REQUIRED'] = 'false';
+    process.env['DATABASE_URL'] = 'postgresql://godel:godel@localhost:5432/godel';
+    process.env['POSTGRES_DB'] = 'godel';
+    process.env['GODEL_HEALTH_TIMEOUT_MS'] = '100';
+    process.env['GODEL_HEALTH_REQUIRE_REDIS'] = 'false';
+    process.env['GODEL_OPENCLAW_REQUIRED'] = 'false';
 
     const config: UnifiedServerConfig = {
       framework: 'express',
@@ -51,9 +51,9 @@ describe('Express server-factory compatibility contract', () => {
     delete process.env['PORT'];
     delete process.env['DATABASE_URL'];
     delete process.env['POSTGRES_DB'];
-    delete process.env['DASH_HEALTH_TIMEOUT_MS'];
-    delete process.env['DASH_HEALTH_REQUIRE_REDIS'];
-    delete process.env['DASH_OPENCLAW_REQUIRED'];
+    delete process.env['GODEL_HEALTH_TIMEOUT_MS'];
+    delete process.env['GODEL_HEALTH_REQUIRE_REDIS'];
+    delete process.env['GODEL_OPENCLAW_REQUIRED'];
   });
 
   it('serves OpenAPI JSON on both /api/v1/openapi.json and /api/openapi.json', async () => {

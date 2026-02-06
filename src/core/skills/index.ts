@@ -1,11 +1,11 @@
 /**
  * Core Skills Module - Agent Skills System
  * 
- * Implements the Agent Skills standard (https://agentskills.io) for Dash.
+ * Implements the Agent Skills standard (https://agentskills.io) for Godel.
  * 
  * @example
  * ```typescript
- * import { SkillRegistry, loadAllSkills } from '@dash/core/skills';
+ * import { SkillRegistry, loadAllSkills } from '@godel/core/skills';
  * 
  * const registry = new SkillRegistry();
  * await registry.loadAll();

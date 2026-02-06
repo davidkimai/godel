@@ -1,7 +1,7 @@
 /**
  * OpenClaw Core Primitive
  * 
- * OpenClaw is a core primitive of Dash, not an integration.
+ * OpenClaw is a core primitive of Godel, not an integration.
  * It provides:
  * - Direct tool execution for all agents
  * - Automatic session management
@@ -974,7 +974,7 @@ export class OpenClawCore extends EventEmitter {
   // ============================================================================
 
   /**
-   * Spawn an OpenClaw session for a Dash agent
+   * Spawn an OpenClaw session for a Godel agent
    * Transparent session management - automatically mapped
    */
   async spawnSession(options: SessionSpawnOptions): Promise<string> {

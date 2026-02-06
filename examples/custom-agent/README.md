@@ -1,10 +1,10 @@
 # Custom Agent Implementation
 
-Build custom agent types with specialized capabilities for Dash.
+Build custom agent types with specialized capabilities for Godel.
 
 ## Overview
 
-This example shows how to create custom agent implementations that can be used within Dash swarms and workflows.
+This example shows how to create custom agent implementations that can be used within Godel swarms and workflows.
 
 ## Files
 
@@ -22,8 +22,8 @@ This example shows how to create custom agent implementations that can be used w
 
 ```typescript
 // agents/code-analyzer.ts
-import { BaseAgent, AgentConfig, AgentContext } from '@dash/core/agents';
-import { EventBus } from '@dash/core/events';
+import { BaseAgent, AgentConfig, AgentContext } from '@godel/core/agents';
+import { EventBus } from '@godel/core/events';
 
 export interface CodeAnalyzerConfig extends AgentConfig {
   languages: string[];
@@ -220,7 +220,7 @@ ${r.issues
 
 ```typescript
 // register.ts
-import { AgentRegistry } from '@dash/core/agents';
+import { AgentRegistry } from '@godel/core/agents';
 import { CodeAnalyzerAgent } from './agents/code-analyzer';
 import { SecurityScannerAgent } from './agents/security-scanner';
 import { DocumentationWriterAgent } from './agents/documentation-writer';
@@ -304,7 +304,7 @@ Output: Performance analysis with optimization suggestions
 
 ```yaml
 # swarm-config.yaml
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:
@@ -370,7 +370,7 @@ steps:
 ```typescript
 // test/code-analyzer.test.ts
 import { CodeAnalyzerAgent } from '../agents/code-analyzer';
-import { MockAgentContext } from '@dash/core/testing';
+import { MockAgentContext } from '@godel/core/testing';
 
 describe('CodeAnalyzerAgent', () => {
   let agent: CodeAnalyzerAgent;
@@ -485,7 +485,7 @@ class MyCustomAgent extends BaseAgent {
 
 ```json
 {
-  "name": "@your-org/dash-custom-agents",
+  "name": "@your-org/godel-custom-agents",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -495,7 +495,7 @@ class MyCustomAgent extends BaseAgent {
     "prepare": "npm run build"
   },
   "peerDependencies": {
-    "@jtan15010/dash": "^2.0.0"
+    "@jtan15010/godel": "^2.0.0"
   }
 }
 ```
@@ -503,14 +503,14 @@ class MyCustomAgent extends BaseAgent {
 ### Installation
 
 ```bash
-npm install @your-org/dash-custom-agents
+npm install @your-org/godel-custom-agents
 ```
 
-### Registration in Dash
+### Registration in Godel
 
 ```typescript
-// In your Dash configuration
-import { registerCustomAgents } from '@your-org/dash-custom-agents';
+// In your Godel configuration
+import { registerCustomAgents } from '@your-org/godel-custom-agents';
 
 export default {
   agents: {

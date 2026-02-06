@@ -109,8 +109,8 @@ Output: Successfully deployed v2.3.1 to production
 
 Skills are loaded from multiple sources:
 
-1. **User skills** (`~/.dash/skills/`) - Personal skills
-2. **Project skills** (`./.dash/skills/`) - Project-specific skills
+1. **User skills** (`~/.godel/skills/`) - Personal skills
+2. **Project skills** (`./.godel/skills/`) - Project-specific skills
 3. **Built-in skills** (`./skills/`) - Bundled with Dash
 4. **Explicit paths** - Passed via configuration
 
@@ -207,8 +207,8 @@ Restructures code to improve internal quality.
 ### 1. Create Skill Directory
 
 ```bash
-mkdir -p ~/.dash/skills/my-skill
-cd ~/.dash/skills/my-skill
+mkdir -p ~/.godel/skills/my-skill
+cd ~/.godel/skills/my-skill
 ```
 
 ### 2. Write SKILL.md
@@ -254,7 +254,7 @@ Output: expected result
 import { loadSkillFromFile } from '@dash/core/skills';
 
 const result = loadSkillFromFile(
-  '~/.dash/skills/my-skill/SKILL.md',
+  '~/.godel/skills/my-skill/SKILL.md',
   'user'
 );
 

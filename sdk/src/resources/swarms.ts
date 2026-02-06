@@ -1,10 +1,10 @@
 /**
- * @dash/client SDK - Swarms Resource
+ * @godel/client SDK - Swarms Resource
  * 
- * Resource class for managing Dash swarms - groups of agents that work together.
+ * Resource class for managing Godel swarms - groups of agents that work together.
  */
 
-import { DashClient } from '../client';
+import { GodelClient } from '../client';
 import {
   Swarm,
   SwarmListResponse,
@@ -16,18 +16,18 @@ import {
 import { NotFoundError, ValidationError } from '../errors';
 
 /**
- * Resource for managing Dash swarms.
+ * Resource for managing Godel swarms.
  * Provides methods to create, list, update, delete, and scale swarms.
  * 
  * @example
  * ```typescript
- * const client = new DashClient({ apiUrl, apiKey });
+ * const client = new GodelClient({ apiUrl, apiKey });
  * 
  * // Create a new swarm
  * const swarm = await client.swarms.create({
  *   name: 'my-processing-swarm',
  *   config: {
- *     agentImage: 'dash/agent:latest',
+ *     agentImage: 'godel/agent:latest',
  *     scalingPolicy: {
  *       minAgents: 2,
  *       maxAgents: 10,
@@ -46,10 +46,10 @@ import { NotFoundError, ValidationError } from '../errors';
  * ```
  */
 export class SwarmsResource {
-  private readonly client: DashClient;
+  private readonly client: GodelClient;
   private readonly basePath = '/swarms';
 
-  constructor(client: DashClient) {
+  constructor(client: GodelClient) {
     this.client = client;
   }
 
@@ -68,7 +68,7 @@ export class SwarmsResource {
    *   name: 'processing-swarm',
    *   description: 'Handles data processing tasks',
    *   config: {
-   *     agentImage: 'dash/agent:v1.0.0',
+   *     agentImage: 'godel/agent:v1.0.0',
    *     agentVersion: 'v1.0.0',
    *     scalingPolicy: {
    *       minAgents: 2,

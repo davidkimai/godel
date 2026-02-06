@@ -28,8 +28,8 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
     lifecycle = getGlobalLifecycle();
     
     adapter = new OpenClawAdapter({
-      dashApiUrl: testConfig.dashApiUrl,
-      dashApiKey: testConfig.dashApiKey,
+      godelApiUrl: testConfig.godelApiUrl,
+      godelApiKey: testConfig.godelApiKey,
       openclawSessionKey: testConfig.openclawSessionKey,
     });
   });
@@ -60,7 +60,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       expect(spawnResult.status).toBe('pending');
       
@@ -111,7 +111,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       // Track state transitions
       const states: string[] = [];
@@ -164,7 +164,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       // Wait for agent to start
       await waitForStatus(
@@ -199,7 +199,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       // Wait for running
       await waitForStatus(
@@ -294,7 +294,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       const validTransitions = [
         { from: 'pending', to: 'running' },
@@ -347,7 +347,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       // Try to complete a pending agent (should fail or wait)
       // This should be handled gracefully
@@ -386,7 +386,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       });
       
       createdSessionKeys.push(sessionKey);
-      const agentId = spawnResult.dashAgentId;
+      const agentId = spawnResult.godelAgentId;
       
       // Wait for lifecycle to progress
       await waitForStatus(
@@ -474,7 +474,7 @@ describeLive('Scenario 3: Agent Lifecycle', () => {
       
       // Handle each according to its plan
       for (const session of sessions) {
-        const agentId = adapter.getDashAgentId(session.key);
+        const agentId = adapter.getGodelAgentId(session.key);
         if (!agentId) continue;
         
         if (session.shouldFail) {

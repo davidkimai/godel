@@ -19,7 +19,7 @@ const CLI_COMMAND_FILES = [
   'src/cli/commands/openclaw.ts',
   'src/cli/commands/swarm.ts',
   'src/cli/commands/init.ts',
-  'src/cli/commands/dashboard.ts',
+  'src/cli/commands/godelboard.ts',
   'src/cli/commands/events.ts',
   'src/cli/commands/context.ts',
   'src/cli/commands/tests.ts',

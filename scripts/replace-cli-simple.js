@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const CLI_DIR = '/Users/jasontang/clawd/projects/dash/src/cli/commands';
+const CLI_DIR = '/Users/jasontang/clawd/projects/godel/src/cli/commands';
 
 // All CLI files
 const files = fs.readdirSync(CLI_DIR).filter(f => f.endsWith('.ts'));
@@ -26,7 +26,7 @@ for (const file of files) {
         msg.startsWith('  ') || 
         /^[A-Z][A-Z\s]+:/.test(msg) ||
         msg.includes('No agents') ||
-        msg.includes('Use "dash') ||
+        msg.includes('Use "godel') ||
         msg.includes('Created') ||
         msg.includes('Spawned') ||
         msg.includes('Killed') ||
@@ -41,7 +41,7 @@ for (const file of files) {
         msg.includes('Usage') ||
         msg.includes('Report') ||
         msg.includes('Status') ||
-        msg.includes('Dashboard') ||
+        msg.includes('Godelboard') ||
         msg.includes('Skills') ||
         msg.includes('Events') ||
         msg.includes('Quality') ||
@@ -72,7 +72,7 @@ for (const file of files) {
         /^[A-Z][A-Z\s]+:/.test(msg) ||
         msg.includes('${') ||  // Skip templates with variables for safety
         msg.includes('No agents') ||
-        msg.includes('Use "dash')) {
+        msg.includes('Use "godel')) {
       return match;
     }
     count++;

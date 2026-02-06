@@ -2,7 +2,7 @@
  * OpenClaw Adapter Tests
  *
  * Unit tests for the OpenClaw Adapter - protocol translation layer
- * between OpenClaw and Dash.
+ * between OpenClaw and Godel.
  */
 
 import {
@@ -33,8 +33,8 @@ describe('OpenClawAdapter', () => {
   let mockBus: any;
 
   const mockConfig = {
-    dashApiUrl: 'http://localhost:7373',
-    dashApiKey: 'dash_test_key_1234567890123456789012345678901234567890123456789012345678901234',
+    godelApiUrl: 'http://localhost:7373',
+    godelApiKey: 'godel_test_key_1234567890123456789012345678901234567890123456789012345678901234',
     openclawSessionKey: 'test-session-123',
     eventWebhookUrl: 'http://localhost:8080/webhook',
   };
@@ -110,7 +110,7 @@ describe('OpenClawAdapter', () => {
 
       const result = await adapter.spawnAgent('session-1', spawnOptions);
 
-      expect(result.dashAgentId).toBe('agent-xyz789');
+      expect(result.godelAgentId).toBe('agent-xyz789');
       expect(result.status).toBe('spawning');
       expect(result.swarmId).toBe('swarm-abc123');
     });
@@ -152,7 +152,7 @@ describe('OpenClawAdapter', () => {
 
       await adapter.spawnAgent('session-1', spawnOptions);
 
-      expect(adapter.getDashAgentId('session-1')).toBe('agent-xyz789');
+      expect(adapter.getGodelAgentId('session-1')).toBe('agent-xyz789');
       expect(adapter.getOpenClawSessionKey('agent-xyz789')).toBe('session-1');
     });
 
@@ -231,7 +231,7 @@ describe('OpenClawAdapter', () => {
     it('should throw error if no agent mapped', async () => {
       await expect(
         adapter.sendMessage('unknown-session', 'Hello')
-      ).rejects.toThrow('No Dash agent mapped');
+      ).rejects.toThrow('No Godel agent mapped');
     });
   });
 
@@ -281,7 +281,7 @@ describe('OpenClawAdapter', () => {
       await adapter.killAgent('session-1');
 
       expect(adapter.hasAgent('session-1')).toBe(false);
-      expect(adapter.getDashAgentId('session-1')).toBeUndefined();
+      expect(adapter.getGodelAgentId('session-1')).toBeUndefined();
     });
 
     it('should not throw if no agent mapped', async () => {
@@ -380,9 +380,9 @@ describe('OpenClawAdapter', () => {
       const agents = await adapter.listAgents();
 
       expect(agents).toHaveLength(2);
-      expect(agents[0].dashAgentId).toBe('agent-1');
+      expect(agents[0].godelAgentId).toBe('agent-1');
       expect(agents[0].agentType).toBe('code-review');
-      expect(agents[1].dashAgentId).toBe('agent-2');
+      expect(agents[1].godelAgentId).toBe('agent-2');
       expect(agents[1].agentType).toBe('security-audit');
     });
   });
@@ -431,8 +431,8 @@ describe('OpenClawAdapter', () => {
 
 describe('Singleton Functions', () => {
   const mockConfig = {
-    dashApiUrl: 'http://localhost:7373',
-    dashApiKey: 'dash_test_key_1234567890123456789012345678901234567890123456789012345678901234',
+    godelApiUrl: 'http://localhost:7373',
+    godelApiKey: 'godel_test_key_1234567890123456789012345678901234567890123456789012345678901234',
     openclawSessionKey: 'test-session-123',
   };
 

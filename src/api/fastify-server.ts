@@ -1,5 +1,5 @@
 /**
- * Fastify REST API Server for Dash v2
+ * Fastify REST API Server for Godel v2
  * 
  * Production-ready API with:
  * - Authentication (X-API-Key, Bearer tokens)
@@ -55,12 +55,12 @@ export interface FastifyServerConfig {
 const DEFAULT_CONFIG: FastifyServerConfig = {
   port: 7373,
   host: '0.0.0.0',
-  apiKey: process.env['DASH_API_KEY'] || 'dash-api-key',
-  corsOrigins: parseCorsOrigins(process.env['DASH_CORS_ORIGINS']),
-  rateLimit: parseInt(process.env['DASH_RATE_LIMIT'] || '100', 10),
-  enableSwagger: process.env['DASH_ENABLE_SWAGGER'] !== 'false',
-  enableAuth: process.env['DASH_ENABLE_AUTH'] !== 'false',
-  jwtSecret: process.env['DASH_JWT_SECRET'],
+  apiKey: process.env['GODEL_API_KEY'] || 'godel-api-key',
+  corsOrigins: parseCorsOrigins(process.env['GODEL_CORS_ORIGINS']),
+  rateLimit: parseInt(process.env['GODEL_RATE_LIMIT'] || '100', 10),
+  enableSwagger: process.env['GODEL_ENABLE_SWAGGER'] !== 'false',
+  enableAuth: process.env['GODEL_ENABLE_AUTH'] !== 'false',
+  jwtSecret: process.env['GODEL_JWT_SECRET'],
 };
 
 function parseCorsOrigins(envValue: string | undefined): string[] {
@@ -77,7 +77,7 @@ export async function createFastifyServer(
   config: Partial<FastifyServerConfig> = {}
 ): Promise<FastifyInstance> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
-  const compatibilitySunset = process.env['DASH_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
+  const compatibilitySunset = process.env['GODEL_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
   
   // Create Fastify instance
   const fastify = Fastify({
@@ -145,11 +145,11 @@ export async function createFastifyServer(
     await fastify.register(swagger, {
       openapi: {
         info: {
-          title: 'Dash API',
-          description: 'Dash Agent Orchestration Platform API',
+          title: 'Godel API',
+          description: 'Godel Agent Orchestration Platform API',
           version: '2.0.0',
           contact: {
-            name: 'Dash Team',
+            name: 'Godel Team',
           },
         },
         servers: [
@@ -325,7 +325,7 @@ export async function startFastifyServer(
   try {
     await fastify.listen({ port: cfg.port, host: cfg.host });
     
-    logger.info('api/fastify', 'Dash Fastify API server started', {
+    logger.info('api/fastify', 'Godel Fastify API server started', {
       host: cfg.host,
       port: cfg.port,
       swagger: cfg.enableSwagger ? `http://${cfg.host}:${cfg.port}/api/v1/docs` : 'disabled',

@@ -1,4 +1,4 @@
-# Dash Architecture
+# Godel Architecture
 
 System overview, component diagrams, data flow, and scaling considerations.
 
@@ -14,7 +14,7 @@ System overview, component diagrams, data flow, and scaling considerations.
 
 ## System Overview
 
-Dash is a distributed agent orchestration platform built on a modular, event-driven architecture. It coordinates AI agents across multiple execution contexts while maintaining state, enforcing safety, and providing observability.
+Godel is a distributed agent orchestration platform built on a modular, event-driven architecture. It coordinates AI agents across multiple execution contexts while maintaining state, enforcing safety, and providing observability.
 
 ### High-Level Architecture
 
@@ -81,7 +81,7 @@ Dash is a distributed agent orchestration platform built on a modular, event-dri
 
 ### 1. CLI Layer
 
-The CLI provides the primary interface for interacting with Dash.
+The CLI provides the primary interface for interacting with Godel.
 
 **Components:**
 - **Command Parser** (Commander.js) - Parses and validates CLI arguments
@@ -193,8 +193,8 @@ Auto-loading agent capabilities based on context.
 - Format skills for LLM prompts
 
 **Skill Sources:**
-1. User skills (`~/.dash/skills/`)
-2. Project skills (`./.dash/skills/`)
+1. User skills (`~/.godel/skills/`)
+2. Project skills (`./.godel/skills/`)
 3. Built-in skills (`./skills/`)
 
 #### Extension Loader
@@ -427,7 +427,7 @@ eventBus.once('swarm:complete', (event) => {
 
 ### Horizontal Scaling
 
-Dash supports horizontal scaling through:
+Godel supports horizontal scaling through:
 
 #### 1. Stateless Services
 
@@ -442,16 +442,16 @@ PostgreSQL provides shared state for all nodes:
 ```yaml
 # docker-compose.scale.yml
 services:
-  dash-api-1:
+  godel-api-1:
     build: .
     environment:
-      - DATABASE_URL=postgresql://shared-db/dash
+      - DATABASE_URL=postgresql://shared-db/godel
       - REDIS_URL=redis://shared-redis
   
-  dash-api-2:
+  godel-api-2:
     build: .
     environment:
-      - DATABASE_URL=postgresql://shared-db/dash
+      - DATABASE_URL=postgresql://shared-db/godel
       - REDIS_URL=redis://shared-redis
 ```
 
@@ -459,16 +459,16 @@ services:
 
 ```nginx
 # nginx.conf
-upstream dash_api {
+upstream godel_api {
     least_conn;
-    server dash-api-1:3000;
-    server dash-api-2:3000;
-    server dash-api-3:3000;
+    server godel-api-1:3000;
+    server godel-api-2:3000;
+    server godel-api-3:3000;
 }
 
 server {
     location /api/ {
-        proxy_pass http://dash_api;
+        proxy_pass http://godel_api;
     }
 }
 ```
@@ -504,11 +504,11 @@ const agentManager = new AgentManager({
 
 ```env
 # Primary database for writes
-DATABASE_URL=postgresql://primary:5432/dash
+DATABASE_URL=postgresql://primary:5432/godel
 
 # Read replicas for queries
-DATABASE_READ_URL_1=postgresql://replica1:5432/dash
-DATABASE_READ_URL_2=postgresql://replica2:5432/dash
+DATABASE_READ_URL_1=postgresql://replica1:5432/godel
+DATABASE_READ_URL_2=postgresql://replica2:5432/godel
 ```
 
 #### Connection Pooling
@@ -553,16 +553,16 @@ services:
 ```yaml
 # prometheus.yml
 scrape_configs:
-  - job_name: 'dash-api'
+  - job_name: 'godel-api'
     static_configs:
-      - targets: ['dash-api-1:9090', 'dash-api-2:9090']
+      - targets: ['godel-api-1:9090', 'godel-api-2:9090']
 ```
 
 #### Distributed Tracing
 
 ```typescript
 // OpenTelemetry configuration
-const tracer = trace.getTracer('dash');
+const tracer = trace.getTracer('godel');
 
 const span = tracer.startSpan('workflow.execute');
 span.setAttribute('workflow.id', workflowId);

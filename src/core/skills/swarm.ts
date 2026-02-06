@@ -1,7 +1,7 @@
 /**
  * Swarm Skill Integration
  * 
- * Integrates the Agent Skills system with Dash swarms, enabling:
+ * Integrates the Agent Skills system with Godel swarms, enabling:
  * - Skills shared across swarm agents
  * - Skill-specific agent roles
  * - Dynamic skill loading during swarm execution

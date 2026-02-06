@@ -41,7 +41,7 @@ function createTestExtension(
  */
 function createSimpleTestExtension(name: string): string {
   return `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function testExtension(api: ExtensionAPI, ctx: ExtensionContext) {
   api.log('info', '${name} extension loaded');
@@ -77,7 +77,7 @@ export default function testExtension(api: ExtensionAPI, ctx: ExtensionContext) 
  */
 function createPermissionTestExtension(): string {
   return `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function permissionTestExtension(api: ExtensionAPI, ctx: ExtensionContext) {
   // Register tool that requires fs:write permission
@@ -142,7 +142,7 @@ describe('Extension System', () => {
   
   beforeEach(() => {
     // Create temp directory for test extensions
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dash-ext-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'godel-ext-test-'));
   });
   
   afterEach(() => {
@@ -224,7 +224,7 @@ describe('Extension System', () => {
     
     test('should register commands correctly', async () => {
       const extContent = `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function cmdExtension(api: ExtensionAPI, ctx: ExtensionContext) {
   api.registerCommand('test-cmd', {
@@ -345,7 +345,7 @@ export default function cmdExtension(api: ExtensionAPI, ctx: ExtensionContext) {
       
       // Create initial extension
       fs.writeFileSync(extPath, `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
   api.registerTool({
     name: 'v1_tool',
@@ -373,7 +373,7 @@ export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
       
       // Modify the file
       fs.writeFileSync(extPath, `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
   api.registerTool({
     name: 'v2_tool',
@@ -400,7 +400,7 @@ export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
       const extPath = path.join(tempDir, 'noreload-test.ts');
       
       fs.writeFileSync(extPath, `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
   api.log('info', 'loaded');
 }
@@ -420,7 +420,7 @@ export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
       
       // Modify file
       fs.writeFileSync(extPath, `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
   api.log('info', 'modified');
 }
@@ -440,7 +440,7 @@ export default function ext(api: ExtensionAPI, ctx: ExtensionContext) {
       const config = new Map<string, unknown>();
       
       const extContent = `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function configTest(api: ExtensionAPI, ctx: ExtensionContext) {
   // Set config
@@ -473,7 +473,7 @@ export default function configTest(api: ExtensionAPI, ctx: ExtensionContext) {
       let receivedAgentId = '';
       
       const extContent = `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function eventTest(api: ExtensionAPI, ctx: ExtensionContext) {
   api.on('agent_start', async (event) => {
@@ -507,13 +507,13 @@ export default function eventTest(api: ExtensionAPI, ctx: ExtensionContext) {
       
       // Create two extensions with handlers
       const ext1 = `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext1(api: ExtensionAPI, ctx: ExtensionContext) {
   api.on('agent_complete', async () => { (global as any).calls.push('ext1'); });
 }
 `;
       const ext2 = `
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 export default function ext2(api: ExtensionAPI, ctx: ExtensionContext) {
   api.on('agent_complete', async () => { (global as any).calls.push('ext2'); });
 }

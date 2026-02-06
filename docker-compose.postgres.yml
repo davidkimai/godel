@@ -3,40 +3,40 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: dash-postgres
+    container_name: godel-postgres
     environment:
-      POSTGRES_USER: dash
-      POSTGRES_PASSWORD: dash_password
-      POSTGRES_DB: dash
+      POSTGRES_USER: godel
+      POSTGRES_PASSWORD: godel_password
+      POSTGRES_DB: godel
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dash -d dash"]
+      test: ["CMD-SHELL", "pg_isready -U godel -d godel"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - dash-network
+      - godel-network
 
   # Optional: pgAdmin for database management
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: dash-pgadmin
+    container_name: godel-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@dash.local
+      PGADMIN_DEFAULT_EMAIL: admin@godel.local
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
     depends_on:
       - postgres
     networks:
-      - dash-network
+      - godel-network
 
 networks:
-  dash-network:
+  godel-network:
     driver: bridge
 
 volumes:

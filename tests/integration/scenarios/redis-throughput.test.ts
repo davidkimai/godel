@@ -17,7 +17,7 @@ const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 describeLive('Scenario 8: Redis Event Bus Throughput', () => {
   let redis: Redis | null = null;
   let subscriber: Redis | null = null;
-  const testChannel = 'dash:test:events';
+  const testChannel = 'godel:test:events';
 
   beforeAll(async () => {
     try {
@@ -400,7 +400,7 @@ describeLive('Scenario 8: Redis Event Bus Throughput', () => {
         return;
       }
 
-      const pattern = 'dash:test:*';
+      const pattern = 'godel:test:*';
       const receivedEvents: { channel: string; data: any }[] = [];
 
       // Set up pattern subscription
@@ -421,9 +421,9 @@ describeLive('Scenario 8: Redis Event Bus Throughput', () => {
 
       // Publish to multiple channels matching pattern
       const channels = [
-        'dash:test:events',
-        'dash:test:logs',
-        'dash:test:metrics',
+        'godel:test:events',
+        'godel:test:logs',
+        'godel:test:metrics',
       ];
 
       for (let i = 0; i < channels.length; i++) {

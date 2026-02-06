@@ -2,7 +2,7 @@
 name: deployment
 description: Automate deployment workflows for web applications, APIs, and services. Use when deploying to production, staging, or development environments. Handles version management, health checks, rollback procedures, and deployment verification.
 metadata:
-  author: dash-team
+  author: godel-team
   version: "1.0.0"
   category: devops
 ---

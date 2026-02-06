@@ -11,8 +11,8 @@ describeLive('Scenario: OpenClaw Session Concurrency Profiles', () => {
 
   beforeAll(async () => {
     adapter = new OpenClawAdapter({
-      dashApiUrl: testConfig.dashApiUrl,
-      dashApiKey: testConfig.dashApiKey,
+      godelApiUrl: testConfig.godelApiUrl,
+      godelApiKey: testConfig.godelApiKey,
       openclawSessionKey: testConfig.openclawSessionKey,
     });
   });
@@ -49,8 +49,8 @@ describeLive('Scenario: OpenClaw Session Concurrency Profiles', () => {
     const stats = calculateLatencyStats(latencies);
 
     expect(results).toHaveLength(concurrency);
-    expect(results.every((result) => Boolean(result.dashAgentId))).toBe(true);
-    expect(new Set(results.map((result) => result.dashAgentId)).size).toBe(concurrency);
+    expect(results.every((result) => Boolean(result.godelAgentId))).toBe(true);
+    expect(new Set(results.map((result) => result.godelAgentId)).size).toBe(concurrency);
 
     // Keep a conservative gate for profile readiness.
     expect(stats.p95).toBeLessThan(1000);

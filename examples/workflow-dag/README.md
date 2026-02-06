@@ -4,7 +4,7 @@ Directed Acyclic Graph (DAG) workflow examples for complex multi-step processes.
 
 ## Overview
 
-This example demonstrates how to create and execute DAG-based workflows with Dash. Workflows allow you to define complex processes with dependencies, parallel execution, and conditional branching.
+This example demonstrates how to create and execute DAG-based workflows with Godel. Workflows allow you to define complex processes with dependencies, parallel execution, and conditional branching.
 
 ## Files
 
@@ -20,27 +20,27 @@ This example demonstrates how to create and execute DAG-based workflows with Das
 
 ```bash
 # Run the ETL workflow
-dash workflow run data-pipeline.yaml
+godel workflow run data-pipeline.yaml
 
 # Check status
-dash workflow status <workflow-id>
+godel workflow status <workflow-id>
 
 # View execution graph
-dash workflow visualize <workflow-id>
+godel workflow visualize <workflow-id>
 ```
 
 ### 2. CI/CD Workflow
 
 ```bash
 # Run CI/CD pipeline
-dash workflow run ci-cd-workflow.yaml --var gitRef=main --var environment=staging
+godel workflow run ci-cd-workflow.yaml --var gitRef=main --var environment=staging
 ```
 
 ### 3. ML Training Pipeline
 
 ```bash
 # Run ML training with custom variables
-dash workflow run ml-training.yaml \
+godel workflow run ml-training.yaml \
   --var dataset=s3://bucket/dataset.csv \
   --var epochs=100 \
   --var modelType=transformer
@@ -244,7 +244,7 @@ steps:
 ## Programmatic Usage
 
 ```typescript
-import { WorkflowEngine } from '@dash/core/workflow';
+import { WorkflowEngine } from '@godel/core/workflow';
 
 // Load workflow
 const workflow = await WorkflowEngine.load('data-pipeline.yaml');
@@ -265,13 +265,13 @@ console.log(result.state);       // Full execution state
 
 ```bash
 # Watch workflow in real-time
-dash workflow watch <workflow-id>
+godel workflow watch <workflow-id>
 
 # Get execution graph
-dash workflow graph <workflow-id>
+godel workflow graph <workflow-id>
 
 # Export execution data
-dash workflow export <workflow-id> --format json > workflow-result.json
+godel workflow export <workflow-id> --format json > workflow-result.json
 ```
 
 ## Troubleshooting
@@ -280,15 +280,15 @@ dash workflow export <workflow-id> --format json > workflow-result.json
 
 ```bash
 # Check which steps are pending
-dash workflow status <workflow-id> --verbose
+godel workflow status <workflow-id> --verbose
 
 # Cancel stuck workflow
-dash workflow cancel <workflow-id>
+godel workflow cancel <workflow-id>
 ```
 
 ### Circular dependency error
 
-Dash will detect and report circular dependencies:
+Godel will detect and report circular dependencies:
 ```
 Error: Circular dependency detected: step1 -> step2 -> step3 -> step1
 ```

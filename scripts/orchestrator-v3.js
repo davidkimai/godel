@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dash Orchestrator v3.0 - OpenClaw Integration
+ * Godel Orchestrator v3.0 - OpenClaw Integration
  * 
  * This orchestrator uses OpenClaw's sessions_spawn to launch swarms
  * with the primary model from OpenClaw config (kimi-coding/k2p5)
@@ -22,9 +22,9 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 // Configuration
-const DASH_DIR = '/Users/jasontang/clawd/projects/dash';
-const STATE_FILE = path.join(DASH_DIR, '.dash/orchestrator-state.json');
-const LOG_DIR = path.join(DASH_DIR, '.dash/logs');
+const GODEL_DIR = '/Users/jasontang/clawd/projects/godel';
+const STATE_FILE = path.join(GODEL_DIR, '.godel/orchestrator-state.json');
+const LOG_DIR = path.join(GODEL_DIR, '.godel/logs');
 
 // OpenClaw Configuration
 const OPENCLAW = {
@@ -135,7 +135,7 @@ async function collectMetrics() {
   try {
     // Check build (must check exit code, not just error)
     try {
-      const { stdout, stderr, code } = await execAsync('npm run build', { cwd: DASH_DIR, maxBuffer: 1024 * 1024 });
+      const { stdout, stderr, code } = await execAsync('npm run build', { cwd: GODEL_DIR, maxBuffer: 1024 * 1024 });
       if (code === 0) {
         metrics.buildPassing = true;
       } else {
@@ -171,7 +171,7 @@ async function collectMetrics() {
     try {
       const { stdout: agentOut } = await execAsync(
         `node dist/index.js agents list | grep "agent_" | wc -l`,
-        { cwd: DASH_DIR }
+        { cwd: GODEL_DIR }
       );
       metrics.agentCount = parseInt(agentOut.trim()) || 0;
     } catch (e) {}
@@ -219,9 +219,9 @@ function makeDecision(state, metrics) {
 
 function generateTask(decision, metrics) {
   const tasks = {
-    spawn_coverage: `You are a test coverage improvement swarm for Dash v2.0.
+    spawn_coverage: `You are a test coverage improvement swarm for Godel v2.0.
 
-Location: ${DASH_DIR}
+Location: ${GODEL_DIR}
 Current Coverage: ${metrics.testCoverage}%
 Target: 50%
 
@@ -234,9 +234,9 @@ Your Tasks:
 
 Use OpenClaw tools when available. Report completion.`,
 
-    spawn_bugfix: `You are a build fix swarm for Dash v2.0.
+    spawn_bugfix: `You are a build fix swarm for Godel v2.0.
 
-Location: ${DASH_DIR}
+Location: ${GODEL_DIR}
 Status: BUILD BROKEN
 
 Your Tasks:
@@ -247,9 +247,9 @@ Your Tasks:
 
 URGENT: Build must pass. Report when complete.`,
 
-    spawn_improvement: `You are a general improvement swarm for Dash v2.0.
+    spawn_improvement: `You are a general improvement swarm for Godel v2.0.
 
-Location: ${DASH_DIR}
+Location: ${GODEL_DIR}
 Active Swarms: ${metrics.swarmCount}/3
 
 Your Tasks:
@@ -283,7 +283,7 @@ async function spawnViaOpenClaw(state, decision, metrics) {
     --cleanup keep`;
   
   try {
-    const { stdout, stderr } = await execAsync(spawnCmd, { cwd: DASH_DIR });
+    const { stdout, stderr } = await execAsync(spawnCmd, { cwd: GODEL_DIR });
     
     console.log('✅ Spawned via OpenClaw sessions_spawn');
     console.log(stdout);
@@ -320,7 +320,7 @@ async function spawnViaCLI(state, decision, metrics) {
   const cmd = `kimi -p "${task.replace(/"/g, '\\"')}" > "${logFile}" 2>&1 &`;
   
   try {
-    await execAsync(cmd, { cwd: DASH_DIR });
+    await execAsync(cmd, { cwd: GODEL_DIR });
     
     console.log('✅ Spawned via Kimi CLI');
     state.activeSwarms[`cli-${timestamp}`] = {
@@ -347,7 +347,7 @@ async function spawnViaCLI(state, decision, metrics) {
 async function orchestrate() {
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🔔 DASH ORCHESTRATOR V3.0 (OpenClaw Integration)`);
+  console.log(`🔔 GODEL ORCHESTRATOR V3.0 (OpenClaw Integration)`);
   console.log(`   ${new Date().toISOString()}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   

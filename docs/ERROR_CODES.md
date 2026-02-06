@@ -269,7 +269,7 @@ If you encounter persistent errors:
 
 1. Check the [Troubleshooting Guide](TROUBLESHOOTING.md)
 2. Review [API Documentation](API.md)
-3. Search existing [GitHub Issues](https://github.com/davidkimai/dash/issues)
+3. Search existing [GitHub Issues](https://github.com/davidkimai/godel/issues)
 4. Open a new issue with:
    - Request ID
    - Error code and message

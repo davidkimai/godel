@@ -19,9 +19,9 @@ describe('Database Integration Tests', () => {
   const testDbConfig = {
     host: process.env['POSTGRES_HOST'] || 'localhost',
     port: parseInt(process.env['POSTGRES_PORT'] || '5432', 10),
-    database: process.env['POSTGRES_DB'] || 'dash_test',
-    user: process.env['POSTGRES_USER'] || 'dash',
-    password: process.env['POSTGRES_PASSWORD'] || 'dash',
+    database: process.env['POSTGRES_DB'] || 'godel_test',
+    user: process.env['POSTGRES_USER'] || 'godel',
+    password: process.env['POSTGRES_PASSWORD'] || 'godel',
   };
 
   let swarmRepo: SwarmRepository;

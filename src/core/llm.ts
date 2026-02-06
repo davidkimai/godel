@@ -1,7 +1,7 @@
 /**
  * LLM Adapter (Simplified for Phase 1)
  * 
- * Basic bridge to @dash/ai package.
+ * Basic bridge to @godel/ai package.
  * Full unified client implementation deferred to Phase 2.
  */
 
@@ -15,7 +15,7 @@ import {
   failover,
   AVAILABLE_MODELS,
   CostTracker,
-} from '@dash/ai';
+} from '@godel/ai';
 
 import type {
   ProviderName,
@@ -24,10 +24,10 @@ import type {
   ProviderConfig,
   ModelInfo,
   Message,
-} from '@dash/ai';
+} from '@godel/ai';
 
-// Re-export everything from @dash/ai
-export * from '@dash/ai';
+// Re-export everything from @godel/ai
+export * from '@godel/ai';
 
 // Simple wrapper for quick tasks
 export async function quickComplete(

@@ -601,5 +601,5 @@ export function getQuickStatus(): string {
     unknown: '❓',
   };
 
-  return `${statusEmoji[report.overall]} Dash ${report.overall} (${report.checks.length} checks, ${report.duration}ms)`;
+  return `${statusEmoji[report.overall]} Godel ${report.overall} (${report.checks.length} checks, ${report.duration}ms)`;
 }

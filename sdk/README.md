@@ -1,15 +1,15 @@
-# @dash/client
+# @godel/client
 
-Official JavaScript/TypeScript SDK for the Dash platform - manage swarms, agents, and events with a simple, type-safe API.
+Official JavaScript/TypeScript SDK for the Godel platform - manage swarms, agents, and events with a simple, type-safe API.
 
 ## Installation
 
 ```bash
-npm install @dash/client
+npm install @godel/client
 # or
-yarn add @dash/client
+yarn add @godel/client
 # or
-pnpm add @dash/client
+pnpm add @godel/client
 ```
 
 ## Requirements
@@ -20,12 +20,12 @@ pnpm add @dash/client
 ## Quick Start
 
 ```typescript
-import { DashClient } from '@dash/client';
+import { GodelClient } from '@godel/client';
 
 // Initialize the client
-const client = new DashClient({
-  apiUrl: 'https://api.dash.io',
-  apiKey: process.env.DASH_API_KEY!,
+const client = new GodelClient({
+  apiUrl: 'https://api.godel.io',
+  apiKey: process.env.GODEL_API_KEY!,
 });
 
 // List all swarms
@@ -36,7 +36,7 @@ console.log(`You have ${swarms.total} swarms`);
 const swarm = await client.swarms.create({
   name: 'my-processing-swarm',
   config: {
-    agentImage: 'dash/agent:latest',
+    agentImage: 'godel/agent:latest',
     scalingPolicy: {
       minAgents: 2,
       maxAgents: 10,
@@ -56,8 +56,8 @@ await client.swarms.delete(swarm.id);
 ### Client Options
 
 ```typescript
-const client = new DashClient({
-  apiUrl: 'https://api.dash.io',     // Required: API base URL
+const client = new GodelClient({
+  apiUrl: 'https://api.godel.io',     // Required: API base URL
   apiKey: 'your-api-key',            // Required: Authentication key
   apiVersion: 'v1',                  // Optional: API version (default: v1)
   timeout: 30000,                    // Optional: Request timeout in ms (default: 30000)
@@ -73,14 +73,14 @@ const client = new DashClient({
 ### Environment Variables
 
 ```bash
-export DASH_API_URL=https://api.dash.io
-export DASH_API_KEY=your-api-key
+export GODEL_API_URL=https://api.godel.io
+export GODEL_API_KEY=your-api-key
 ```
 
 ```typescript
-const client = new DashClient({
-  apiUrl: process.env.DASH_API_URL!,
-  apiKey: process.env.DASH_API_KEY!,
+const client = new GodelClient({
+  apiUrl: process.env.GODEL_API_URL!,
+  apiKey: process.env.GODEL_API_KEY!,
 });
 ```
 
@@ -97,7 +97,7 @@ const swarm = await client.swarms.create({
   name: 'processing-swarm',
   description: 'Handles data processing tasks',
   config: {
-    agentImage: 'dash/agent:v1.0.0',
+    agentImage: 'godel/agent:v1.0.0',
     agentVersion: 'v1.0.0',
     env: {
       LOG_LEVEL: 'info',
@@ -195,7 +195,7 @@ Agents are individual worker instances that execute tasks.
 const agent = await client.agents.spawn({
   name: 'my-agent',
   config: {
-    image: 'dash/agent:v1.0.0',
+    image: 'godel/agent:v1.0.0',
     resources: {
       cpu: '1',
       memory: '2Gi',
@@ -211,7 +211,7 @@ const agent = await client.agents.spawn({
 const agent = await client.agents.spawn({
   swarmId: 'swarm-123',
   config: {
-    image: 'dash/agent:v1.0.0',
+    image: 'godel/agent:v1.0.0',
   },
   wait: true,
   timeout: 60,
@@ -347,7 +347,7 @@ await client.events.unsubscribe(sub.id);
 // Create webhook
 const webhook = await client.events.createWebhook(
   { types: ['task.completed', 'task.failed'] },
-  'https://my-app.com/webhooks/dash',
+  'https://my-app.com/webhooks/godel',
   { name: 'Task Webhook' }
 );
 
@@ -364,12 +364,12 @@ The SDK throws typed errors for different failure scenarios:
 
 ```typescript
 import {
-  DashClient,
+  GodelClient,
   NotFoundError,
   ValidationError,
   RateLimitError,
   AuthenticationError,
-} from '@dash/client';
+} from '@godel/client';
 
 try {
   const swarm = await client.swarms.get('non-existent');
@@ -393,7 +393,7 @@ try {
 
 | Error | Status Code | Description |
 |-------|-------------|-------------|
-| `DashError` | - | Base error class |
+| `GodelError` | - | Base error class |
 | `AuthenticationError` | 401 | Invalid or expired API key |
 | `PermissionError` | 403 | Insufficient permissions |
 | `NotFoundError` | 404 | Resource not found |

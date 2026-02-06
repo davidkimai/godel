@@ -1,16 +1,16 @@
 {
-  "name": "@jtan15010/dash",
+  "name": "@jtan15010/godel",
   "version": "2.0.0",
-  "description": "Dash - Agent Orchestration Platform",
+  "description": "Godel - Agent Orchestration Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/davidkimai/dash.git"
+    "url": "https://github.com/davidkimai/godel.git"
   },
-  "homepage": "https://github.com/davidkimai/dash",
+  "homepage": "https://github.com/davidkimai/godel",
   "bugs": {
-    "url": "https://github.com/davidkimai/dash/issues"
+    "url": "https://github.com/davidkimai/godel/issues"
   },
   "license": "MIT",
   "author": {
@@ -27,8 +27,8 @@
     "claude"
   ],
   "bin": {
-    "dash": "./dist/index.js",
-    "swarmctl": "./dist/cli/index.js"
+    "godel": "./dist/src/index.js",
+    "swarmctl": "./dist/src/cli/index.js"
   },
   "scripts": {
     "build": "tsc",

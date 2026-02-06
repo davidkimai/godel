@@ -1,5 +1,5 @@
 /**
- * Jira Integrator Extension for Dash
+ * Jira Integrator Extension for Godel
  * 
  * Integrates with Jira to create tickets, update issues, and track agent work.
  * 
@@ -9,7 +9,7 @@
  * - JIRA_EMAIL: Email associated with the API token
  * 
  * Usage:
- * 1. Copy to ~/.dash/extensions/jira-integrator.ts
+ * 1. Copy to ~/.godel/extensions/jira-integrator.ts
  * 2. Configure credentials
  * 3. Use /jira commands or tools
  */
@@ -269,7 +269,7 @@ export default function jiraIntegratorExtension(api: ExtensionAPI, ctx: Extensio
     args: '<summary> [description]',
     async handler(args, ctx) {
       const [summary, ...descParts] = args.split(' ');
-      const description = descParts.join(' ') || `Created from Dash agent task`;
+      const description = descParts.join(' ') || `Created from Godel agent task`;
       
       if (!summary) {
         ctx.logger.error('Usage: /jira-task <summary> [description]');

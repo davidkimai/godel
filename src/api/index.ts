@@ -1,7 +1,7 @@
 /**
- * Dash API - Unified Server Exports
+ * Godel API - Unified Server Exports
  * 
- * This module provides a unified interface to the Dash API server.
+ * This module provides a unified interface to the Godel API server.
  * Express is the primary framework, eliminating port conflicts.
  * 
  * @example

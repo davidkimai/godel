@@ -92,7 +92,7 @@ describe('Skills Integration', () => {
 
     // Create registry with required registryUrl
     registry = new UnifiedSkillRegistry({
-      workdir: '/tmp/dash',
+      workdir: '/tmp/godel',
       skillsDir: 'skills',
       clawhub: { enabled: true, registryUrl: 'https://clawhub.example.com' },
       vercel: { enabled: true, registryUrl: 'https://vercel.example.com' },

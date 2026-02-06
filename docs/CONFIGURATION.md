@@ -88,7 +88,7 @@ database:
   url: ${DATABASE_URL}
   
 auth:
-  jwtSecret: ${DASH_JWT_SECRET}
+  jwtSecret: ${GODEL_JWT_SECRET}
 ```
 
 Default values are supported:
@@ -108,8 +108,8 @@ All configuration values can be set via environment variables:
 |----------|-------------|---------|
 | `PORT` | Server port | `7373` |
 | `HOST` | Server host | `localhost` |
-| `DASH_CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `http://localhost:3000` |
-| `DASH_RATE_LIMIT` | Rate limit (requests/minute) | `100` |
+| `GODEL_CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `http://localhost:3000` |
+| `GODEL_RATE_LIMIT` | Rate limit (requests/minute) | `100` |
 
 ### Database
 | Variable | Description | Default |
@@ -135,8 +135,8 @@ All configuration values can be set via environment variables:
 ### Authentication
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DASH_API_KEY` | API keys (comma-separated) | `dash-api-key` |
-| `DASH_JWT_SECRET` | JWT secret for token signing | `change-me-in-production` |
+| `GODEL_API_KEY` | API keys (comma-separated) | `dash-api-key` |
+| `GODEL_JWT_SECRET` | JWT secret for token signing | `change-me-in-production` |
 
 ### Logging
 | Variable | Description | Default |
@@ -308,7 +308,7 @@ For simpler setups, use environment variables:
 
 ```yaml
 auth:
-  jwtSecret: ${ENV:DASH_JWT_SECRET}
+  jwtSecret: ${ENV:GODEL_JWT_SECRET}
 ```
 
 ### File-Based Secrets

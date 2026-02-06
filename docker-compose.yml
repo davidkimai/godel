@@ -1,28 +1,28 @@
 version: '3.8'
 
 services:
-  dash:
-    image: dash:latest
+  godel:
+    image: godel:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dash-dev
+    container_name: godel-dev
     restart: unless-stopped
     ports:
       - "7373:7373"
     environment:
       - NODE_ENV=development
       - PORT=7373
-      - DASH_API_KEY=dash-api-key
-      - DATABASE_PATH=/data/dash.db
+      - GODEL_API_KEY=godel-api-key
+      - DATABASE_PATH=/data/godel.db
       - LOG_LEVEL=debug
     volumes:
-      - ./dash.db:/data/dash.db
+      - ./godel.db:/data/godel.db
       - ./logs:/app/logs
     depends_on:
       - redis
     networks:
-      - dash-network
+      - godel-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7373/health"]
       interval: 30s
@@ -32,14 +32,14 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: dash-redis
+    container_name: godel-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
-      - dash-network
+      - godel-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -48,18 +48,18 @@ services:
 
   # Optional: Admin UI
   admin-ui:
-    image: dash-admin:latest
-    container_name: dash-admin
+    image: godel-admin:latest
+    container_name: godel-admin
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - DASH_API_URL=http://dash:7373
-      - DASH_API_KEY=dash-api-key
+      - GODEL_API_URL=http://godel:7373
+      - GODEL_API_KEY=godel-api-key
     depends_on:
-      - dash
+      - godel
     networks:
-      - dash-network
+      - godel-network
     profiles:
       - ui
 
@@ -68,12 +68,12 @@ volumes:
     driver: local
 
 networks:
-  dash-network:
+  godel-network:
     driver: bridge
 
 # Development shortcuts
 # Start: docker-compose up -d
 # Stop: docker-compose down
-# View logs: docker-compose logs -f dash
-# Restart: docker-compose restart dash
-# Scale: docker-compose up -d --scale dash=3
+# View logs: docker-compose logs -f godel
+# Restart: docker-compose restart godel
+# Scale: docker-compose up -d --scale godel=3

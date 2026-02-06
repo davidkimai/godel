@@ -1,10 +1,10 @@
 /**
- * Dash Orchestration Skill
+ * Godel Orchestration Skill
  * 
- * OpenClaw skill for spawning and managing agent swarms with Dash.
- * Provides native OpenClaw commands for Dash orchestration.
+ * OpenClaw skill for spawning and managing agent swarms with Godel.
+ * Provides native OpenClaw commands for Godel orchestration.
  * 
- * @module skills/dash-orchestration
+ * @module skills/godel-orchestration
  */
 
 import { 
@@ -32,10 +32,10 @@ export interface CommandContext {
 }
 
 export interface SkillConfig {
-  /** Dash API URL */
-  dashApiUrl: string;
-  /** Dash API Key */
-  dashApiKey: string;
+  /** Godel API URL */
+  godelApiUrl: string;
+  /** Godel API Key */
+  godelApiKey: string;
   /** Event webhook URL */
   eventWebhookUrl?: string;
   /** Default timeout */
@@ -83,17 +83,17 @@ export interface LogsArgs {
 }
 
 // ============================================================================
-// Dash Orchestration Skill
+// Godel Orchestration Skill
 // ============================================================================
 
 /**
- * Dash Orchestration Skill
+ * Godel Orchestration Skill
  * 
- * Provides OpenClaw-native commands for managing Dash agent swarms.
+ * Provides OpenClaw-native commands for managing Godel agent swarms.
  */
-export class DashOrchestrationSkill {
-  name = 'dash-orchestration';
-  description = 'Spawn and manage agent swarms with Dash';
+export class GodelOrchestrationSkill {
+  name = 'godel-orchestration';
+  description = 'Spawn and manage agent swarms with Godel';
   version = '1.0.0';
   
   private adapter: OpenClawAdapter;
@@ -102,23 +102,23 @@ export class DashOrchestrationSkill {
 
   constructor(config?: Partial<SkillConfig>) {
     this.config = {
-      dashApiUrl: process.env.DASH_API_URL || 'http://localhost:7373',
-      dashApiKey: process.env.DASH_API_KEY || '',
+      godelApiUrl: process.env.GODEL_API_URL || 'http://localhost:7373',
+      godelApiKey: process.env.GODEL_API_KEY || '',
       eventWebhookUrl: process.env.OPENCLAW_EVENT_WEBHOOK_URL,
       defaultTimeout: 300000,
       ...config,
     };
 
     this.adapter = getOpenClawAdapter({
-      dashApiUrl: this.config.dashApiUrl,
-      dashApiKey: this.config.dashApiKey,
+      godelApiUrl: this.config.godelApiUrl,
+      godelApiKey: this.config.godelApiKey,
       openclawSessionKey: '', // Set per-command
       eventWebhookUrl: this.config.eventWebhookUrl,
     });
 
     this.activeStreams = new Map();
 
-    console.log('[DashOrchestrationSkill] Initialized');
+    console.log('[GodelOrchestrationSkill] Initialized');
   }
 
   // ============================================================================
@@ -128,14 +128,14 @@ export class DashOrchestrationSkill {
   /**
    * Spawn a new agent or swarm
    * 
-   * Usage: /dash spawn <type> [--agents N] [--strategy S] [--model M]
+   * Usage: /godel spawn <type> [--agents N] [--strategy S] [--model M]
    */
   async spawn(context: CommandContext, args: string[]): Promise<void> {
     try {
       const parsed = this.parseSpawnArgs(args);
       
       if (!parsed.type) {
-        context.error('Usage: /dash spawn <type> [--agents N] [--strategy S] [--model M]');
+        context.error('Usage: /godel spawn <type> [--agents N] [--strategy S] [--model M]');
         return;
       }
 
@@ -157,7 +157,7 @@ export class DashOrchestrationSkill {
       // Spawn agent via adapter
       const result = await this.adapter.spawnAgent(context.sessionKey, options);
 
-      context.reply(`✅ Spawned Dash agent: **${result.dashAgentId}**`);
+      context.reply(`✅ Spawned Godel agent: **${result.godelAgentId}**`);
       context.reply(`📊 Status: ${result.status}`);
 
       if (result.swarmId) {
@@ -165,7 +165,7 @@ export class DashOrchestrationSkill {
       }
 
       // Stream progress if requested
-      await this.streamProgress(context, result.dashAgentId, context.sessionKey);
+      await this.streamProgress(context, result.godelAgentId, context.sessionKey);
 
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -176,7 +176,7 @@ export class DashOrchestrationSkill {
   /**
    * Check agent status
    * 
-   * Usage: /dash status [agent-id]
+   * Usage: /godel status [agent-id]
    */
   async status(context: CommandContext, args: string[]): Promise<void> {
     try {
@@ -231,7 +231,7 @@ export class DashOrchestrationSkill {
   /**
    * Kill an agent
    * 
-   * Usage: /dash kill [agent-id] [--force]
+   * Usage: /godel kill [agent-id] [--force]
    */
   async kill(context: CommandContext, args: string[]): Promise<void> {
     try {
@@ -264,39 +264,39 @@ export class DashOrchestrationSkill {
   /**
    * Stream agent logs
    * 
-   * Usage: /dash logs [agent-id] [--follow] [--lines N]
+   * Usage: /godel logs [agent-id] [--follow] [--lines N]
    */
   async logs(context: CommandContext, args: string[]): Promise<void> {
     try {
       const parsed = this.parseLogsArgs(args);
       const lines = parsed.lines || 50;
 
-      let dashAgentId: string;
+      let godelAgentId: string;
 
       if (parsed.agentId) {
-        dashAgentId = parsed.agentId;
+        godelAgentId = parsed.agentId;
       } else {
-        const mappedId = this.adapter.getDashAgentId(context.sessionKey);
+        const mappedId = this.adapter.getGodelAgentId(context.sessionKey);
         if (!mappedId) {
           context.error('No active agent for this session');
           return;
         }
-        dashAgentId = mappedId;
+        godelAgentId = mappedId;
       }
 
-      context.reply(`📜 Fetching logs for **${dashAgentId}**...`);
+      context.reply(`📜 Fetching logs for **${godelAgentId}**...`);
 
       // Get logs from API
-      const result = await this.adapter.getAgent(dashAgentId);
+      const result = await this.adapter.getAgent(godelAgentId);
       if (!result.success || !result.data) {
-        context.error(`Agent ${dashAgentId} not found`);
+        context.error(`Agent ${godelAgentId} not found`);
         return;
       }
 
       // For now, show placeholder - full log streaming would need API support
       context.reply(`📄 Last ${lines} lines of logs:`);
       context.reply('```');
-      context.reply(`[${new Date().toISOString()}] Agent ${dashAgentId} initialized`);
+      context.reply(`[${new Date().toISOString()}] Agent ${godelAgentId} initialized`);
       context.reply(`[${new Date().toISOString()}] Status: ${result.data.status}`);
       context.reply('```');
 
@@ -327,23 +327,23 @@ export class DashOrchestrationSkill {
   /**
    * List all active agents
    * 
-   * Usage: /dash list
+   * Usage: /godel list
    */
   async list(context: CommandContext): Promise<void> {
     try {
       const agents = await this.adapter.listAgents();
 
       if (agents.length === 0) {
-        context.reply('ℹ️ No active Dash agents');
+        context.reply('ℹ️ No active Godel agents');
         return;
       }
 
-      context.reply(`📋 **${agents.length} Active Dash Agent(s):**`);
+      context.reply(`📋 **${agents.length} Active Godel Agent(s):**`);
       context.reply('');
 
       for (const agent of agents) {
         const statusEmoji = this.getStatusEmoji(agent.status);
-        context.reply(`${statusEmoji} **${agent.dashAgentId}**`);
+        context.reply(`${statusEmoji} **${agent.godelAgentId}**`);
         context.reply(`   Type: ${agent.agentType}`);
         context.reply(`   Status: ${agent.status}`);
         context.reply(`   Session: ${agent.openclawSessionKey.slice(0, 8)}...`);
@@ -552,7 +552,7 @@ export class DashOrchestrationSkill {
    * Initialize the skill
    */
   async initialize(): Promise<void> {
-    console.log('[DashOrchestrationSkill] Initializing...');
+    console.log('[GodelOrchestrationSkill] Initializing...');
     // Any async initialization here
   }
 
@@ -560,7 +560,7 @@ export class DashOrchestrationSkill {
    * Dispose of the skill
    */
   async dispose(): Promise<void> {
-    console.log('[DashOrchestrationSkill] Disposing...');
+    console.log('[GodelOrchestrationSkill] Disposing...');
     
     // Stop all active streams
     for (const [key] of this.activeStreams) {
@@ -574,9 +574,9 @@ export class DashOrchestrationSkill {
 // Export
 // ============================================================================
 
-export default DashOrchestrationSkill;
+export default GodelOrchestrationSkill;
 
 // Factory function for OpenClaw skill loader
-export function createSkill(config?: Partial<SkillConfig>): DashOrchestrationSkill {
-  return new DashOrchestrationSkill(config);
+export function createSkill(config?: Partial<SkillConfig>): GodelOrchestrationSkill {
+  return new GodelOrchestrationSkill(config);
 }

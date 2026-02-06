@@ -1,7 +1,7 @@
-# Example Dash Swarm Configuration
+# Example Godel Swarm Configuration
 # This is a declarative configuration file for defining agent swarms
 
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:
@@ -10,7 +10,7 @@ metadata:
   labels:
     environment: production
     team: platform
-    project: dash
+    project: godel
   annotations:
     owner: platform-team@example.com
     cost-center: engineering

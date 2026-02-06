@@ -17,7 +17,7 @@ Production deployment options for Dash: Docker, Kubernetes, and cloud platforms.
 
 ```bash
 # Clone repository
-git clone https://github.com/davidkimai/dash.git
+git clone https://github.com/davidkimai/godel.git
 cd dash
 
 # Create environment file
@@ -59,7 +59,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dash
       - REDIS_URL=redis://redis:6379
-      - DASH_LOG_LEVEL=info
+      - GODEL_LOG_LEVEL=info
     volumes:
       - ./.dash:/app/.dash
       - ./.claude-worktrees:/app/.claude-worktrees
@@ -126,7 +126,7 @@ COPY . .
 RUN npm run build
 
 # Create directories
-RUN mkdir -p .dash/logs .claude-worktrees
+RUN mkdir -p .godel/logs .claude-worktrees
 
 # Expose port
 EXPOSE 3000
@@ -156,7 +156,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY --from=builder /app/dist ./dist
-RUN mkdir -p .dash/logs .claude-worktrees
+RUN mkdir -p .godel/logs .claude-worktrees
 EXPOSE 3000
 CMD ["node", "dist/index.js", "server"]
 ```
@@ -189,9 +189,9 @@ metadata:
   name: dash-config
   namespace: dash
 data:
-  DASH_LOG_LEVEL: "info"
-  DASH_MAX_SWARMS: "10"
-  DASH_MAX_CONCURRENT: "5"
+  GODEL_LOG_LEVEL: "info"
+  GODEL_MAX_SWARMS: "10"
+  GODEL_MAX_CONCURRENT: "5"
 ```
 
 ```yaml
@@ -426,17 +426,17 @@ kubectl get ingress -n dash
 
 ```bash
 # Add Dash Helm repository
-helm repo add dash https://charts.dash-ai.io
+helm repo add godel https://charts.dash-ai.io
 helm repo update
 
 # Install with default values
-helm install dash dash/dash
+helm install godel dash/dash
 
 # Install with custom values
-helm install dash dash/dash -f values.yaml
+helm install godel dash/dash -f values.yaml
 
 # Upgrade
-helm upgrade dash dash/dash
+helm upgrade godel dash/dash
 ```
 
 Example `values.yaml`:
@@ -551,15 +551,15 @@ redis:
 env:
   # Core
   NODE_ENV: production
-  DASH_LOG_LEVEL: warn
+  GODEL_LOG_LEVEL: warn
   
   # Performance
-  DASH_MAX_SWARMS: 20
-  DASH_MAX_CONCURRENT: 10
+  GODEL_MAX_SWARMS: 20
+  GODEL_MAX_CONCURRENT: 10
   
   # Security
-  DASH_SANDBOX_ENABLED: "true"
-  DASH_REQUIRE_APPROVAL: "true"
+  GODEL_SANDBOX_ENABLED: "true"
+  GODEL_REQUIRE_APPROVAL: "true"
   
   # Database
   DATABASE_POOL_SIZE: 20

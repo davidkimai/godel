@@ -2,8 +2,8 @@
 # Production Readiness Recursive Monitor
 # Runs every 15 minutes, checks critical items only
 
-PROJECT_DIR="/Users/jasontang/clawd/projects/dash"
-LOG_FILE="/tmp/dash-production-monitor-$(date +%Y%m%d).log"
+PROJECT_DIR="/Users/jasontang/clawd/projects/godel"
+LOG_FILE="/tmp/godel-production-monitor-$(date +%Y%m%d).log"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
@@ -14,7 +14,7 @@ log "=== PRODUCTION READINESS CHECK ==="
 cd "$PROJECT_DIR"
 
 # 1. Swarm Health (CRITICAL - affects uptime)
-SWARMS=$(node -e "const d=require('./.dash/orchestrator-state.json'); const r=Object.values(d.activeSwarms||{}).filter(s=>s.status==='running'); const stuck=Object.values(d.activeSwarms||{}).filter(s=>s.status==='running'&&(Date.now()-s.started)/60000>120).length; console.log(r.length+','+stuck+','+Math.round((Date.now()-d.lastHeartbeat)/60000))" 2>/dev/null)
+SWARMS=$(node -e "const d=require('./.godel/orchestrator-state.json'); const r=Object.values(d.activeSwarms||{}).filter(s=>s.status==='running'); const stuck=Object.values(d.activeSwarms||{}).filter(s=>s.status==='running'&&(Date.now()-s.started)/60000>120).length; console.log(r.length+','+stuck+','+Math.round((Date.now()-d.lastHeartbeat)/60000))" 2>/dev/null)
 ACTIVE=$(echo $SWARMS | cut -d, -f1)
 STUCK=$(echo $SWARMS | cut -d, -f2)
 HB=$(echo $SWARMS | cut -d, -f3)
@@ -29,14 +29,14 @@ fi
 
 # 2. Build Errors (count only - many are from incomplete modules)
 EXISTING_ERRORS=$(npx tsc --noEmit 2>&1 | grep -v "Cannot find module" | grep -v "has no exported member" | grep -c "error" || echo 0)
-PREVIOUS_ERRORS=$(cat /tmp/dash-error-count 2>/dev/null | tr -d '\n\r' || echo 0)
+PREVIOUS_ERRORS=$(cat /tmp/godel-error-count 2>/dev/null | tr -d '\n\r' || echo 0)
 ERROR_TREND="same"
 if [ "$EXISTING_ERRORS" -lt "$PREVIOUS_ERRORS" ]; then
     ERROR_TREND="↓ improving"
 elif [ "$EXISTING_ERRORS" -gt "$PREVIOUS_ERRORS" ]; then
     ERROR_TREND="↑ regressing"
 fi
-echo "$EXISTING_ERRORS" > /tmp/dash-error-count
+echo "$EXISTING_ERRORS" > /tmp/godel-error-count
 if [ "$EXISTING_ERRORS" -gt 0 ]; then
     log "⚠️  $EXISTING_ERRORS build errors ($ERROR_TREND)"
 else

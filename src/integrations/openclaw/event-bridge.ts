@@ -1,8 +1,8 @@
 /**
  * OpenClaw Event Bridge
  * 
- * Real-time event streaming from Dash to OpenClaw.
- * Subscribes to Dash events, transforms them to OpenClaw format,
+ * Real-time event streaming from Godel to OpenClaw.
+ * Subscribes to Godel events, transforms them to OpenClaw format,
  * and forwards them to the configured webhook endpoint.
  * 
  * @module integrations/openclaw/event-bridge
@@ -21,7 +21,7 @@ import {
 // ============================================================================
 
 export interface EventBridgeConfig {
-  /** Dash MessageBus instance */
+  /** Godel MessageBus instance */
   messageBus?: MessageBus;
   /** OpenClaw webhook URL for event forwarding */
   webhookUrl: string;
@@ -42,7 +42,7 @@ export interface EventBridgeConfig {
 
 export interface BridgedEvent {
   /** Event source */
-  source: 'dash';
+  source: 'godel';
   /** Event type */
   type: string;
   /** Event timestamp */
@@ -51,8 +51,8 @@ export interface BridgedEvent {
   data: Record<string, unknown>;
   /** Event metadata */
   metadata: {
-    dashAgentId?: string;
-    dashSwarmId?: string;
+    godelAgentId?: string;
+    godelSwarmId?: string;
     topic?: string;
     [key: string]: unknown;
   };
@@ -75,7 +75,7 @@ export interface EventBridgeStats {
 /**
  * OpenClaw Event Bridge
  * 
- * Bridges events between Dash and OpenClaw, enabling real-time
+ * Bridges events between Godel and OpenClaw, enabling real-time
  * streaming of agent events, logs, and status updates.
  */
 export class OpenClawEventBridge extends EventEmitter {
@@ -128,7 +128,7 @@ export class OpenClawEventBridge extends EventEmitter {
   /**
    * Start the event bridge
    * 
-   * Subscribes to all relevant Dash events and begins forwarding
+   * Subscribes to all relevant Godel events and begins forwarding
    * them to OpenClaw.
    */
   async start(): Promise<void> {
@@ -151,7 +151,7 @@ export class OpenClawEventBridge extends EventEmitter {
       
       // Subscribe to all events (catch-all)
       const allSubscription = this.messageBus.subscribe('*', (message) => {
-        this.handleDashEvent(message);
+        this.handleGodelEvent(message);
       });
       
       if (!Array.isArray(allSubscription)) {
@@ -233,7 +233,7 @@ export class OpenClawEventBridge extends EventEmitter {
    */
   subscribeToTopic(pattern: string): void {
     const subscription = this.messageBus.subscribe(pattern, (message) => {
-      this.handleDashEvent(message);
+      this.handleGodelEvent(message);
     });
 
     if (!Array.isArray(subscription)) {
@@ -259,9 +259,9 @@ export class OpenClawEventBridge extends EventEmitter {
   // ============================================================================
 
   /**
-   * Handle an incoming Dash event
+   * Handle an incoming Godel event
    */
-  private handleDashEvent(message: Message): void {
+  private handleGodelEvent(message: Message): void {
     this.stats.eventsReceived++;
     this.stats.lastEventTime = new Date();
 
@@ -297,24 +297,24 @@ export class OpenClawEventBridge extends EventEmitter {
   }
 
   /**
-   * Transform Dash event to OpenClaw format
+   * Transform Godel event to OpenClaw format
    */
   private transformEvent(message: Message): BridgedEvent {
     const payload = message.payload as Record<string, unknown> || {};
     
     // Extract agent/swarm IDs from topic
     const topicParts = message.topic.split('.');
-    const dashAgentId = topicParts[0] === 'agent' ? topicParts[1] : undefined;
-    const dashSwarmId = topicParts[0] === 'swarm' ? topicParts[1] : undefined;
+    const godelAgentId = topicParts[0] === 'agent' ? topicParts[1] : undefined;
+    const godelSwarmId = topicParts[0] === 'swarm' ? topicParts[1] : undefined;
 
     return {
-      source: 'dash',
+      source: 'godel',
       type: (payload['eventType'] as string) || message.topic,
       timestamp: message.timestamp.toISOString(),
       data: payload,
       metadata: {
-        dashAgentId,
-        dashSwarmId,
+        godelAgentId,
+        godelSwarmId,
         topic: message.topic,
         messageId: message.id,
         source: message.metadata?.source,
@@ -406,7 +406,7 @@ export class OpenClawEventBridge extends EventEmitter {
   private async sendToWebhook(events: BridgedEvent[]): Promise<void> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Dash-Event': 'true',
+      'X-Godel-Event': 'true',
       'X-Event-Count': String(events.length),
     };
 
@@ -420,7 +420,7 @@ export class OpenClawEventBridge extends EventEmitter {
       body: JSON.stringify({
         events,
         timestamp: new Date().toISOString(),
-        source: 'dash',
+        source: 'godel',
       }),
     });
 
@@ -440,7 +440,7 @@ export class OpenClawEventBridge extends EventEmitter {
    */
   subscribeToAgent(agentId: string, callback: (event: BridgedEvent) => void): () => void {
     const handler = (event: BridgedEvent) => {
-      if (event.metadata?.dashAgentId === agentId) {
+      if (event.metadata?.godelAgentId === agentId) {
         callback(event);
       }
     };
@@ -459,7 +459,7 @@ export class OpenClawEventBridge extends EventEmitter {
    */
   subscribeToSwarm(swarmId: string, callback: (event: BridgedEvent) => void): () => void {
     const handler = (event: BridgedEvent) => {
-      if (event.metadata?.dashSwarmId === swarmId) {
+      if (event.metadata?.godelSwarmId === swarmId) {
         callback(event);
       }
     };

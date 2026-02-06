@@ -1,7 +1,7 @@
 /**
  * @fileoverview Core Engine Module - SPEC_v2.md Implementation
  *
- * Central orchestration module for Dash multi-agent system. Provides swarm
+ * Central orchestration module for Godel multi-agent system. Provides swarm
  * management, agent lifecycle, state persistence, health monitoring, and
  * federation capabilities.
  *
@@ -28,7 +28,7 @@
  * OpenClaw is a core primitive, not an integration.
  * It is initialized at startup and available to all agents automatically.
  *
- * @module @dash/core
+ * @module @godel/core
  * @version 2.0.0
  * @license MIT
  */
@@ -237,7 +237,7 @@ export {
 } from './llm';
 
 // =============================================================================
-// Re-exports from @dash/ai
+// Re-exports from @godel/ai
 // =============================================================================
 
 export {
@@ -250,7 +250,7 @@ export {
   failover,
   AVAILABLE_MODELS,
   CostTracker,
-} from '@dash/ai';
+} from '@godel/ai';
 
 export type {
   ProviderName,
@@ -259,7 +259,7 @@ export type {
   ProviderConfig,
   ModelInfo,
   Message,
-} from '@dash/ai';
+} from '@godel/ai';
 
 // =============================================================================
 // NEW MODULES - Phase 2 Expansion
@@ -297,7 +297,7 @@ export * from './roles';
 export const CORE_VERSION = '2.0.0';
 
 /** Core module name */
-export const CORE_MODULE_NAME = '@dash/core';
+export const CORE_MODULE_NAME = '@godel/core';
 
 /** Default swarm configuration */
 export const DEFAULT_SWARM_CONFIG = {

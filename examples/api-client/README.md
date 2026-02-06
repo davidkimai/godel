@@ -1,10 +1,10 @@
 # API Client Examples
 
-Programmatic access to Dash using the JavaScript/TypeScript client library.
+Programmatic access to Godel using the JavaScript/TypeScript client library.
 
 ## Overview
 
-This example demonstrates how to use the `@dash/client` library to interact with Dash programmatically from your applications.
+This example demonstrates how to use the `@godel/client` library to interact with Godel programmatically from your applications.
 
 ## Files
 
@@ -22,24 +22,24 @@ This example demonstrates how to use the `@dash/client` library to interact with
 ### 1. Install Client
 
 ```bash
-npm install @dash/client
+npm install @godel/client
 # or
-yarn add @dash/client
+yarn add @godel/client
 ```
 
 ### 2. Basic Client Setup
 
 ```typescript
-import { DashClient } from '@dash/client';
+import { GodelClient } from '@godel/client';
 
-const client = new DashClient({
-  baseUrl: process.env.DASH_API_URL || 'http://localhost:3000',
-  apiKey: process.env.DASH_API_KEY,
+const client = new GodelClient({
+  baseUrl: process.env.GODEL_API_URL || 'http://localhost:3000',
+  apiKey: process.env.GODEL_API_KEY,
 });
 
 // Check health
 const health = await client.health.check();
-console.log('Dash is healthy:', health.status);
+console.log('Godel is healthy:', health.status);
 ```
 
 ## Examples
@@ -47,9 +47,9 @@ console.log('Dash is healthy:', health.status);
 ### Agent Management
 
 ```typescript
-import { DashClient } from '@dash/client';
+import { GodelClient } from '@godel/client';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:3000',
   apiKey: 'your-api-key',
 });
@@ -116,9 +116,9 @@ await client.swarms.destroy(swarm.id);
 ### Workflow Execution
 
 ```typescript
-import { DashClient, Workflow } from '@dash/client';
+import { GodelClient, Workflow } from '@godel/client';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:3000',
 });
 
@@ -150,9 +150,9 @@ await client.workflows.cancel(execution.id);
 ### Event Streaming
 
 ```typescript
-import { DashClient, EventType } from '@dash/client';
+import { GodelClient, EventType } from '@godel/client';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:3000',
 });
 
@@ -192,9 +192,9 @@ setTimeout(() => {
 ### Batch Operations
 
 ```typescript
-import { DashClient, BatchOperation } from '@dash/client';
+import { GodelClient, BatchOperation } from '@godel/client';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:3000',
 });
 
@@ -228,7 +228,7 @@ console.log('Failed:', results.failed.length);
 ### Complete Example: CI/CD Integration
 
 ```typescript
-import { DashClient } from '@dash/client';
+import { GodelClient } from '@godel/client';
 
 interface CICDConfig {
   apiUrl: string;
@@ -238,11 +238,11 @@ interface CICDConfig {
   prNumber?: number;
 }
 
-export class DashCICD {
-  private client: DashClient;
+export class GodelCICD {
+  private client: GodelClient;
 
   constructor(config: CICDConfig) {
-    this.client = new DashClient({
+    this.client = new GodelClient({
       baseUrl: config.apiUrl,
       apiKey: config.apiKey,
     });
@@ -310,9 +310,9 @@ export class DashCICD {
 ### Error Handling
 
 ```typescript
-import { DashClient, DashError, ApiError } from '@dash/client';
+import { GodelClient, GodelError, ApiError } from '@godel/client';
 
-const client = new DashClient({
+const client = new GodelClient({
   baseUrl: 'http://localhost:3000',
 });
 
@@ -324,8 +324,8 @@ try {
   if (error instanceof ApiError) {
     console.error('API Error:', error.status, error.message);
     console.error('Details:', error.body);
-  } else if (error instanceof DashError) {
-    console.error('Dash Error:', error.code, error.message);
+  } else if (error instanceof GodelError) {
+    console.error('Godel Error:', error.code, error.message);
   } else {
     console.error('Unknown error:', error);
   }
@@ -349,7 +349,7 @@ switch ((error as ApiError).status) {
 ### Configuration Reference
 
 ```typescript
-interface DashClientConfig {
+interface GodelClientConfig {
   /** API base URL */
   baseUrl: string;
   
@@ -408,17 +408,17 @@ interface ClientOptions {
 
 ```typescript
 // test/api-client.test.ts
-import { DashClient } from '../src';
+import { GodelClient } from '../src';
 import { MockServer } from './utils/mock-server';
 
-describe('DashClient', () => {
+describe('GodelClient', () => {
   let server: MockServer;
-  let client: DashClient;
+  let client: GodelClient;
 
   beforeAll(async () => {
     server = new MockServer(3001);
     server.start();
-    client = new DashClient({
+    client = new GodelClient({
       baseUrl: 'http://localhost:3001',
     });
   });

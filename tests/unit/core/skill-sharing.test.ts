@@ -30,7 +30,7 @@ describe('Multi-Agent Skill Sharing', () => {
   let builtinSkillsDir: string;
 
   beforeEach(async () => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dash-swarm-skills-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'godel-swarm-skills-test-'));
     builtinSkillsDir = path.join(tempDir, 'skills');
     fs.mkdirSync(builtinSkillsDir, { recursive: true });
 
@@ -41,8 +41,8 @@ describe('Multi-Agent Skill Sharing', () => {
     createSkill('monitoring', 'Monitor systems', ['When monitoring']);
 
     registry = new SkillRegistry({
-      userSkillsDir: path.join(tempDir, '.dash', 'skills'),
-      projectSkillsDir: path.join(tempDir, '.dash', 'skills'),
+      userSkillsDir: path.join(tempDir, '.godel', 'skills'),
+      projectSkillsDir: path.join(tempDir, '.godel', 'skills'),
       builtinSkillsDir,
       autoLoad: true,
       autoLoadThreshold: 0.2,

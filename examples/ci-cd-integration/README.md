@@ -1,14 +1,14 @@
 # CI/CD Integration Examples
 
-Integrate Dash into your CI/CD pipelines with GitHub Actions, GitLab CI, and other platforms.
+Integrate Godel into your CI/CD pipelines with GitHub Actions, GitLab CI, and other platforms.
 
 ## Overview
 
-This example shows how to integrate Dash agent orchestration into your continuous integration and deployment workflows.
+This example shows how to integrate Godel agent orchestration into your continuous integration and deployment workflows.
 
 ## Files
 
-- `.github/workflows/dash-ci.yml` - GitHub Actions workflow
+- `.github/workflows/godel-ci.yml` - GitHub Actions workflow
 - `.gitlab-ci.yml` - GitLab CI configuration
 - `jenkins/Jenkinsfile` - Jenkins pipeline
 - `azure-pipelines.yml` - Azure DevOps pipeline
@@ -19,10 +19,10 @@ This example shows how to integrate Dash agent orchestration into your continuou
 
 ### Basic Setup
 
-Create `.github/workflows/dash-ci.yml`:
+Create `.github/workflows/godel-ci.yml`:
 
 ```yaml
-name: Dash CI
+name: Godel CI
 
 on:
   push:
@@ -36,15 +36,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Dash
-        uses: dash-ai/setup-dash@v1
+      - name: Setup Godel
+        uses: godel-ai/setup-godel@v1
         with:
           version: '2.0.0'
-          api-key: ${{ secrets.DASH_API_KEY }}
+          api-key: ${{ secrets.GODEL_API_KEY }}
 
       - name: Create Review Swarm
         run: |
-          dash swarm create \
+          godel swarm create \
             --name "pr-review-${{ github.event.pull_request.number }}" \
             --task "Review PR changes for bugs, security issues, and best practices" \
             --initial-agents 3 \
@@ -53,11 +53,11 @@ jobs:
       - name: Wait for Completion
         run: |
           # Wait for swarm to complete (with timeout)
-          timeout 300 dash swarm wait "pr-review-${{ github.event.pull_request.number }}" || true
+          timeout 300 godel swarm wait "pr-review-${{ github.event.pull_request.number }}" || true
 
       - name: Generate Report
         run: |
-          dash swarm report "pr-review-${{ github.event.pull_request.number }}" --format markdown > review-report.md
+          godel swarm report "pr-review-${{ github.event.pull_request.number }}" --format markdown > review-report.md
 
       - name: Comment PR
         uses: actions/github-script@v7
@@ -76,7 +76,7 @@ jobs:
 ### Advanced Workflow with Workflow Engine
 
 ```yaml
-name: Dash Advanced CI
+name: Godel Advanced CI
 
 on:
   push:
@@ -88,15 +88,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Dash
-        uses: dash-ai/setup-dash@v1
+      - name: Setup Godel
+        uses: godel-ai/setup-godel@v1
         with:
           version: '2.0.0'
 
       - name: Run CI Workflow
-        run: dash workflow run .dash/workflows/ci-pipeline.yaml
+        run: godel workflow run .godel/workflows/ci-pipeline.yaml
         env:
-          DASH_API_KEY: ${{ secrets.DASH_API_KEY }}
+          GODEL_API_KEY: ${{ secrets.GODEL_API_KEY }}
           GIT_REF: ${{ github.sha }}
 
       - name: Upload Artifacts
@@ -122,12 +122,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Dash
-        uses: dash-ai/setup-dash@v1
+      - name: Setup Godel
+        uses: godel-ai/setup-godel@v1
 
       - name: Create Security Swarm
         run: |
-          dash swarm create \
+          godel swarm create \
             --name "security-scan-${{ github.run_id }}" \
             --task "Perform comprehensive security audit: check for vulnerabilities, secrets, and compliance issues" \
             --initial-agents 5 \
@@ -135,7 +135,7 @@ jobs:
 
       - name: Check Results
         run: |
-          if dash swarm has-issues "security-scan-${{ github.run_id }}"; then
+          if godel swarm has-issues "security-scan-${{ github.run_id }}"; then
             echo "::error::Security issues found!"
             exit 1
           fi
@@ -152,24 +152,24 @@ stages:
   - deploy
 
 variables:
-  DASH_API_KEY: $DASH_API_KEY
+  GODEL_API_KEY: $GODEL_API_KEY
 
-.dash_setup: &dash_setup
+.godel_setup: &godel_setup
   - apk add --no-cache curl
-  - curl -sSL https://get.dash-ai.io | sh
+  - curl -sSL https://get.godel-ai.io | sh
 
 code_review:
   stage: review
   image: alpine:latest
   before_script:
-    - *dash_setup
+    - *godel_setup
   script:
-    - dash swarm create
+    - godel swarm create
         --name "review-$CI_MERGE_REQUEST_IID"
         --task "Review merge request changes"
         --initial-agents 3
-    - dash swarm wait "review-$CI_MERGE_REQUEST_IID"
-    - dash swarm report "review-$CI_MERGE_REQUEST_IID" --format markdown > review.md
+    - godel swarm wait "review-$CI_MERGE_REQUEST_IID"
+    - godel swarm report "review-$CI_MERGE_REQUEST_IID" --format markdown > review.md
   artifacts:
     reports:
       dotenv: review.md
@@ -180,9 +180,9 @@ automated_tests:
   stage: test
   image: node:20
   before_script:
-    - *dash_setup
+    - *godel_setup
   script:
-    - dash workflow run .dash/workflows/test-pipeline.yaml
+    - godel workflow run .godel/workflows/test-pipeline.yaml
   artifacts:
     reports:
       junit: test-results.xml
@@ -197,7 +197,7 @@ pipeline {
     agent any
 
     environment {
-        DASH_API_KEY = credentials('dash-api-key')
+        GODEL_API_KEY = credentials('godel-api-key')
     }
 
     stages {
@@ -207,19 +207,19 @@ pipeline {
             }
             steps {
                 sh '''
-                    dash swarm create \
+                    godel swarm create \
                         --name "jenkins-review-${CHANGE_ID}" \
                         --task "Review pull request ${CHANGE_ID}" \
                         --initial-agents 3
                     
-                    dash swarm wait "jenkins-review-${CHANGE_ID}"
+                    godel swarm wait "jenkins-review-${CHANGE_ID}"
                 '''
             }
         }
 
         stage('Build & Test') {
             steps {
-                sh 'dash workflow run .dash/workflows/build-test.yaml'
+                sh 'godel workflow run .godel/workflows/build-test.yaml'
             }
         }
 
@@ -228,14 +228,14 @@ pipeline {
                 branch 'main'
             }
             steps {
-                sh 'dash workflow run .dash/workflows/deploy.yaml --var environment=production'
+                sh 'godel workflow run .godel/workflows/deploy.yaml --var environment=production'
             }
         }
     }
 
     post {
         always {
-            sh 'dash logs export --since 1h > build-logs.json'
+            sh 'godel logs export --since 1h > build-logs.json'
             archiveArtifacts artifacts: 'build-logs.json'
         }
     }
@@ -262,21 +262,21 @@ steps:
       versionSpec: '20.x'
 
   - script: |
-      npm install -g @jtan15010/dash
-    displayName: 'Install Dash'
+      npm install -g @jtan15010/godel
+    displayName: 'Install Godel'
 
   - script: |
-      dash swarm create \
+      godel swarm create \
         --name "azdo-review-$(Build.BuildId)" \
         --task "Review build $(Build.BuildId)" \
         --initial-agents 3
     displayName: 'Create Review Swarm'
     env:
-      DASH_API_KEY: $(DASH_API_KEY)
+      GODEL_API_KEY: $(GODEL_API_KEY)
 
   - script: |
-      dash swarm wait "azdo-review-$(Build.BuildId)"
-      dash swarm report "azdo-review-$(Build.BuildId)" > $(Build.ArtifactStagingDirectory)/review-report.md
+      godel swarm wait "azdo-review-$(Build.BuildId)"
+      godel swarm report "azdo-review-$(Build.BuildId)" > $(Build.ArtifactStagingDirectory)/review-report.md
     displayName: 'Wait and Generate Report'
 
   - task: PublishBuildArtifacts@1
@@ -292,7 +292,7 @@ steps:
 Define your CI/CD logic in reusable workflow files:
 
 ```yaml
-# .dash/workflows/ci-pipeline.yaml
+# .godel/workflows/ci-pipeline.yaml
 name: ci-pipeline
 variables:
   nodeVersion: '20'
@@ -335,8 +335,8 @@ steps:
 Set budgets to control costs:
 
 ```yaml
-- name: Setup Dash
-  uses: dash-ai/setup-dash@v1
+- name: Setup Godel
+  uses: godel-ai/setup-godel@v1
   with:
     budget-limit: 50.00
     budget-warning: 75
@@ -348,8 +348,8 @@ Set budgets to control costs:
 Always set timeouts to prevent runaway jobs:
 
 ```yaml
-- name: Run Dash Workflow
-  run: timeout 600 dash workflow run ci.yaml
+- name: Run Godel Workflow
+  run: timeout 600 godel workflow run ci.yaml
 ```
 
 ### 4. Artifact Collection
@@ -360,13 +360,13 @@ Collect logs and reports for debugging:
 - name: Collect Artifacts
   if: always()
   run: |
-    dash logs export --since 1h > logs.json
-    dash swarm report <swarm-id> > report.md
+    godel logs export --since 1h > logs.json
+    godel swarm report <swarm-id> > report.md
 
 - uses: actions/upload-artifact@v4
   if: always()
   with:
-    name: dash-artifacts
+    name: godel-artifacts
     path: |
       logs.json
       report.md
@@ -374,7 +374,7 @@ Collect logs and reports for debugging:
 
 ### 5. Conditional Execution
 
-Only run Dash for relevant changes:
+Only run Godel for relevant changes:
 
 ```yaml
 on:
@@ -398,7 +398,7 @@ TIMEOUT=${2:-300}
 start_time=$(date +%s)
 
 while true; do
-  status=$(dash swarm status "$SWARM_ID" --format json | jq -r '.status')
+  status=$(godel swarm status "$SWARM_ID" --format json | jq -r '.status')
   
   if [ "$status" = "completed" ]; then
     echo "Swarm completed successfully"
@@ -432,12 +432,12 @@ SWARM_ID=$1
 OUTPUT_FILE=${2:-comment.md}
 
 cat > "$OUTPUT_FILE" << EOF
-## 🤖 Dash Agent Review
+## 🤖 Godel Agent Review
 
-$(dash swarm report "$SWARM_ID" --format markdown)
+$(godel swarm report "$SWARM_ID" --format markdown)
 
 ---
-*Generated by Dash Agent Orchestration*
+*Generated by Godel Agent Orchestration*
 EOF
 ```
 
@@ -447,20 +447,20 @@ EOF
 
 ```bash
 # Verify API key is set
-echo $DASH_API_KEY
+echo $GODEL_API_KEY
 
 # Test connection
-dash status
+godel status
 ```
 
 ### Swarm Creation Failed
 
 ```bash
 # Check logs
-dash logs tail
+godel logs tail
 
 # Verify configuration
-dash config validate
+godel config validate
 ```
 
 ### Timeouts
@@ -469,7 +469,7 @@ Increase timeout for large repositories:
 
 ```yaml
 - name: Run Review
-  run: timeout 1800 dash swarm wait <swarm-id>
+  run: timeout 1800 godel swarm wait <swarm-id>
 ```
 
 ## Next Steps

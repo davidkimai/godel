@@ -21,7 +21,7 @@ describe('CLI Commands Integration', () => {
 
   beforeEach(() => {
     program = new Command();
-    program.name('dash');
+    program.name('godel');
     // Prevent exit on error
     program.exitOverride();
     // Prevent output to console
@@ -46,7 +46,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'status']);
+      program.parse(['node', 'godel', 'status']);
       
       expect(commandCalled).toBe(true);
     });
@@ -61,7 +61,7 @@ describe('CLI Commands Integration', () => {
           jsonFlag = options.json;
         });
       
-      program.parse(['node', 'dash', 'status', '--json']);
+      program.parse(['node', 'godel', 'status', '--json']);
       
       expect(jsonFlag).toBe(true);
     });
@@ -76,7 +76,7 @@ describe('CLI Commands Integration', () => {
           watchFlag = options.watch;
         });
       
-      program.parse(['node', 'dash', 'status', '--watch']);
+      program.parse(['node', 'godel', 'status', '--watch']);
       
       expect(watchFlag).toBe(true);
     });
@@ -97,7 +97,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'swarm', 'create', '--name', 'test', '--task', 'test']);
+      program.parse(['node', 'godel', 'swarm', 'create', '--name', 'test', '--task', 'test']);
       
       expect(commandCalled).toBe(true);
     });
@@ -113,7 +113,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'swarm', 'list']);
+      program.parse(['node', 'godel', 'swarm', 'list']);
       
       expect(commandCalled).toBe(true);
     });
@@ -131,7 +131,7 @@ describe('CLI Commands Integration', () => {
           swarmId = id;
         });
       
-      program.parse(['node', 'dash', 'swarm', 'destroy', 'swarm-123']);
+      program.parse(['node', 'godel', 'swarm', 'destroy', 'swarm-123']);
       
       expect(commandCalled).toBe(true);
       expect(swarmId).toBe('swarm-123');
@@ -149,7 +149,7 @@ describe('CLI Commands Integration', () => {
           agentCount = options.agents;
         });
       
-      program.parse(['node', 'dash', 'swarm', 'create', '--agents', '5']);
+      program.parse(['node', 'godel', 'swarm', 'create', '--agents', '5']);
       
       expect(agentCount).toBe(5);
     });
@@ -166,7 +166,7 @@ describe('CLI Commands Integration', () => {
           strategy = options.strategy;
         });
       
-      program.parse(['node', 'dash', 'swarm', 'create', '--strategy', 'parallel']);
+      program.parse(['node', 'godel', 'swarm', 'create', '--strategy', 'parallel']);
       
       expect(strategy).toBe('parallel');
     });
@@ -184,7 +184,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'agents', 'list']);
+      program.parse(['node', 'godel', 'agents', 'list']);
       
       expect(commandCalled).toBe(true);
     });
@@ -201,7 +201,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'agents', 'spawn', '--task', 'test task']);
+      program.parse(['node', 'godel', 'agents', 'spawn', '--task', 'test task']);
       
       expect(commandCalled).toBe(true);
     });
@@ -219,7 +219,7 @@ describe('CLI Commands Integration', () => {
           agentId = id;
         });
       
-      program.parse(['node', 'dash', 'agents', 'kill', 'agent-123']);
+      program.parse(['node', 'godel', 'agents', 'kill', 'agent-123']);
       
       expect(commandCalled).toBe(true);
       expect(agentId).toBe('agent-123');
@@ -238,7 +238,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'budget', 'show']);
+      program.parse(['node', 'godel', 'budget', 'show']);
       
       expect(commandCalled).toBe(true);
     });
@@ -255,7 +255,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'budget', 'set', '--amount', '10']);
+      program.parse(['node', 'godel', 'budget', 'set', '--amount', '10']);
       
       expect(commandCalled).toBe(true);
     });
@@ -272,7 +272,7 @@ describe('CLI Commands Integration', () => {
           period = options.period;
         });
       
-      program.parse(['node', 'dash', 'budget', 'set', '--period', 'daily']);
+      program.parse(['node', 'godel', 'budget', 'set', '--period', 'daily']);
       
       expect(period).toBe('daily');
     });
@@ -288,7 +288,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'budget', 'report']);
+      program.parse(['node', 'godel', 'budget', 'report']);
       
       expect(commandCalled).toBe(true);
     });
@@ -308,7 +308,7 @@ describe('CLI Commands Integration', () => {
           query = q;
         });
       
-      program.parse(['node', 'dash', 'skills', 'search', 'test']);
+      program.parse(['node', 'godel', 'skills', 'search', 'test']);
       
       expect(commandCalled).toBe(true);
       expect(query).toBe('test');
@@ -327,7 +327,7 @@ describe('CLI Commands Integration', () => {
           skillId = id;
         });
       
-      program.parse(['node', 'dash', 'skills', 'install', 'test-skill']);
+      program.parse(['node', 'godel', 'skills', 'install', 'test-skill']);
       
       expect(commandCalled).toBe(true);
       expect(skillId).toBe('test-skill');
@@ -344,7 +344,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'skills', 'uninstall', 'test-skill']);
+      program.parse(['node', 'godel', 'skills', 'uninstall', 'test-skill']);
       
       expect(commandCalled).toBe(true);
     });
@@ -360,7 +360,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'skills', 'list']);
+      program.parse(['node', 'godel', 'skills', 'list']);
       
       expect(commandCalled).toBe(true);
     });
@@ -377,7 +377,7 @@ describe('CLI Commands Integration', () => {
           source = options.source;
         });
       
-      program.parse(['node', 'dash', 'skills', 'search', 'test', '--source', 'clawhub']);
+      program.parse(['node', 'godel', 'skills', 'search', 'test', '--source', 'clawhub']);
       
       expect(source).toBe('clawhub');
     });
@@ -395,7 +395,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'openclaw', 'connect']);
+      program.parse(['node', 'godel', 'openclaw', 'connect']);
       
       expect(commandCalled).toBe(true);
     });
@@ -412,7 +412,7 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'dash', 'openclaw', 'spawn', '--task', 'test']);
+      program.parse(['node', 'godel', 'openclaw', 'spawn', '--task', 'test']);
       
       expect(commandCalled).toBe(true);
     });
@@ -429,7 +429,7 @@ describe('CLI Commands Integration', () => {
           mockFlag = options.mock;
         });
       
-      program.parse(['node', 'dash', 'openclaw', 'connect', '--mock']);
+      program.parse(['node', 'godel', 'openclaw', 'connect', '--mock']);
       
       expect(mockFlag).toBe(true);
     });
@@ -446,7 +446,7 @@ describe('CLI Commands Integration', () => {
           host = options.host;
         });
       
-      program.parse(['node', 'dash', 'openclaw', 'connect', '--host', 'localhost']);
+      program.parse(['node', 'godel', 'openclaw', 'connect', '--host', 'localhost']);
       
       expect(host).toBe('localhost');
     });

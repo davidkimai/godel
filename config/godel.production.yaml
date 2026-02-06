@@ -1,4 +1,4 @@
-# Dash Configuration - Production Environment
+# Godel Configuration - Production Environment
 # WARNING: This file contains production defaults. Override with env vars!
 
 env: production
@@ -47,7 +47,7 @@ logging:
   format: json
   destination: loki
   lokiUrl: ${LOKI_URL:-http://localhost:3100}
-  serviceName: dash
+  serviceName: godel
   includeTimestamp: true
   includeSourceLocation: false
 
@@ -57,7 +57,7 @@ metrics:
   host: 0.0.0.0
   path: /metrics
   enableDefaultMetrics: true
-  prefix: dash_
+  prefix: godel_
   collectIntervalMs: 15000
 
 budget:

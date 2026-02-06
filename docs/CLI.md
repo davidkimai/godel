@@ -1,16 +1,16 @@
-# Dash CLI Command Reference
+# Godel CLI Command Reference
 
 **Version:** v2.0  
 **Last Updated:** 2026-02-02
 
-Complete reference for all Dash CLI commands.
+Complete reference for all Godel CLI commands.
 
 ---
 
 ## Global Options
 
 ```bash
-dash [options] [command]
+godel [options] [command]
 ```
 
 | Option | Description |
@@ -49,7 +49,7 @@ dash [options] [command]
 Create a new swarm of agents.
 
 ```bash
-dash swarm create --name <name> --task <task> [options]
+godel swarm create --name <name> --task <task> [options]
 ```
 
 **Options:**
@@ -72,10 +72,10 @@ dash swarm create --name <name> --task <task> [options]
 
 ```bash
 # Create a basic swarm
-dash swarm create --name "analysis-swarm" --task "Analyze user feedback"
+godel swarm create --name "analysis-swarm" --task "Analyze user feedback"
 
 # Create with custom settings
-dash swarm create \
+godel swarm create \
   --name "code-review" \
   --task "Review all TypeScript files" \
   --initial-agents 10 \
@@ -84,7 +84,7 @@ dash swarm create \
   --budget 50.00
 
 # Preview configuration
-dash swarm create --name "test" --task "test task" --dry-run
+godel swarm create --name "test" --task "test task" --dry-run
 ```
 
 ---
@@ -93,7 +93,7 @@ dash swarm create --name "test" --task "test task" --dry-run
 Destroy a swarm and all its agents.
 
 ```bash
-dash swarm destroy <swarm-id> [options]
+godel swarm destroy <swarm-id> [options]
 ```
 
 **Arguments:**
@@ -113,10 +113,10 @@ dash swarm destroy <swarm-id> [options]
 
 ```bash
 # Destroy with confirmation prompt
-dash swarm destroy swarm-abc-123
+godel swarm destroy swarm-abc-123
 
 # Force destroy
-dash swarm destroy swarm-abc-123 --force --yes
+godel swarm destroy swarm-abc-123 --force --yes
 ```
 
 ---
@@ -125,7 +125,7 @@ dash swarm destroy swarm-abc-123 --force --yes
 Scale a swarm to a target number of agents.
 
 ```bash
-dash swarm scale <swarm-id> <target-size>
+godel swarm scale <swarm-id> <target-size>
 ```
 
 **Arguments:**
@@ -139,10 +139,10 @@ dash swarm scale <swarm-id> <target-size>
 
 ```bash
 # Scale up to 20 agents
-dash swarm scale swarm-abc-123 20
+godel swarm scale swarm-abc-123 20
 
 # Scale down to 3 agents
-dash swarm scale swarm-abc-123 3
+godel swarm scale swarm-abc-123 3
 ```
 
 ---
@@ -151,7 +151,7 @@ dash swarm scale swarm-abc-123 3
 Get swarm status.
 
 ```bash
-dash swarm status [swarm-id] [options]
+godel swarm status [swarm-id] [options]
 ```
 
 **Arguments:**
@@ -170,13 +170,13 @@ dash swarm status [swarm-id] [options]
 
 ```bash
 # Show all swarms
-dash swarm status
+godel swarm status
 
 # Show specific swarm
-dash swarm status swarm-abc-123
+godel swarm status swarm-abc-123
 
 # Output as JSON
-dash swarm status swarm-abc-123 --format json
+godel swarm status swarm-abc-123 --format json
 ```
 
 ---
@@ -185,7 +185,7 @@ dash swarm status swarm-abc-123 --format json
 List all swarms.
 
 ```bash
-dash swarm list [options]
+godel swarm list [options]
 ```
 
 **Options:**
@@ -199,10 +199,10 @@ dash swarm list [options]
 
 ```bash
 # List all swarms
-dash swarm list
+godel swarm list
 
 # List only active swarms as JSON
-dash swarm list --active --format json
+godel swarm list --active --format json
 ```
 
 ---
@@ -213,7 +213,7 @@ dash swarm list --active --format json
 List all agents.
 
 ```bash
-dash agents list [options]
+godel agents list [options]
 ```
 
 **Options:**
@@ -228,16 +228,16 @@ dash agents list [options]
 
 ```bash
 # List all agents
-dash agents list
+godel agents list
 
 # Filter by swarm
-dash agents list --swarm swarm-abc-123
+godel agents list --swarm swarm-abc-123
 
 # Filter by status
-dash agents list --status running
+godel agents list --status running
 
 # Output as JSON
-dash agents list --format json
+godel agents list --format json
 ```
 
 ---
@@ -246,7 +246,7 @@ dash agents list --format json
 Spawn a new agent.
 
 ```bash
-dash agents spawn <task> [options]
+godel agents spawn <task> [options]
 ```
 
 **Arguments:**
@@ -271,20 +271,20 @@ dash agents spawn <task> [options]
 
 ```bash
 # Spawn a simple agent
-dash agents spawn "Review PR #123"
+godel agents spawn "Review PR #123"
 
 # Spawn with options
-dash agents spawn "Analyze codebase" \
+godel agents spawn "Analyze codebase" \
   --model claude-sonnet-4-5 \
   --label "code-analyzer" \
   --retries 5 \
   --budget 10.00
 
 # Spawn into a swarm
-dash agents spawn "Sub-task" --swarm swarm-abc-123
+godel agents spawn "Sub-task" --swarm swarm-abc-123
 
 # Preview configuration
-dash agents spawn "test task" --dry-run
+godel agents spawn "test task" --dry-run
 ```
 
 ---
@@ -293,7 +293,7 @@ dash agents spawn "test task" --dry-run
 Pause a running agent.
 
 ```bash
-dash agents pause <agent-id>
+godel agents pause <agent-id>
 ```
 
 **Arguments:**
@@ -305,7 +305,7 @@ dash agents pause <agent-id>
 **Example:**
 
 ```bash
-dash agents pause agent-abc-123
+godel agents pause agent-abc-123
 ```
 
 ---
@@ -314,7 +314,7 @@ dash agents pause agent-abc-123
 Resume a paused agent.
 
 ```bash
-dash agents resume <agent-id>
+godel agents resume <agent-id>
 ```
 
 **Arguments:**
@@ -326,7 +326,7 @@ dash agents resume <agent-id>
 **Example:**
 
 ```bash
-dash agents resume agent-abc-123
+godel agents resume agent-abc-123
 ```
 
 ---
@@ -335,7 +335,7 @@ dash agents resume agent-abc-123
 Kill an agent.
 
 ```bash
-dash agents kill <agent-id> [options]
+godel agents kill <agent-id> [options]
 ```
 
 **Arguments:**
@@ -355,10 +355,10 @@ dash agents kill <agent-id> [options]
 
 ```bash
 # Kill with confirmation
-dash agents kill agent-abc-123
+godel agents kill agent-abc-123
 
 # Force kill
-dash agents kill agent-abc-123 --force --yes
+godel agents kill agent-abc-123 --force --yes
 ```
 
 ---
@@ -367,7 +367,7 @@ dash agents kill agent-abc-123 --force --yes
 Get detailed agent status.
 
 ```bash
-dash agents status <agent-id> [options]
+godel agents status <agent-id> [options]
 ```
 
 **Arguments:**
@@ -387,10 +387,10 @@ dash agents status <agent-id> [options]
 
 ```bash
 # Get agent status
-dash agents status agent-abc-123
+godel agents status agent-abc-123
 
 # Get status with logs as JSON
-dash agents status agent-abc-123 --logs --format json
+godel agents status agent-abc-123 --logs --format json
 ```
 
 ---
@@ -399,7 +399,7 @@ dash agents status agent-abc-123 --logs --format json
 Manually retry a failed agent.
 
 ```bash
-dash agents retry <agent-id> [options]
+godel agents retry <agent-id> [options]
 ```
 
 **Arguments:**
@@ -419,13 +419,13 @@ dash agents retry <agent-id> [options]
 
 ```bash
 # Retry with same model
-dash agents retry agent-abc-123
+godel agents retry agent-abc-123
 
 # Retry with different model
-dash agents retry agent-abc-123 --model gpt-4
+godel agents retry agent-abc-123 --model gpt-4
 
 # Reset retry count and retry
-dash agents retry agent-abc-123 --reset
+godel agents retry agent-abc-123 --reset
 ```
 
 ---
@@ -434,7 +434,7 @@ dash agents retry agent-abc-123 --reset
 Show agent lifecycle metrics.
 
 ```bash
-dash agents metrics [options]
+godel agents metrics [options]
 ```
 
 **Options:**
@@ -446,8 +446,8 @@ dash agents metrics [options]
 **Example:**
 
 ```bash
-dash agents metrics
-dash agents metrics --format json
+godel agents metrics
+godel agents metrics --format json
 ```
 
 ---
@@ -458,7 +458,7 @@ dash agents metrics --format json
 Connect to OpenClaw Gateway.
 
 ```bash
-dash openclaw connect [options]
+godel openclaw connect [options]
 ```
 
 **Options:**
@@ -474,16 +474,16 @@ dash openclaw connect [options]
 
 ```bash
 # Connect to local gateway
-dash openclaw connect
+godel openclaw connect
 
 # Connect to remote gateway
-dash openclaw connect --host 192.168.1.100 --port 18789
+godel openclaw connect --host 192.168.1.100 --port 18789
 
 # Connect with token
-dash openclaw connect --token your-token-here
+godel openclaw connect --token your-token-here
 
 # Connect in mock mode (testing)
-dash openclaw connect --mock
+godel openclaw connect --mock
 ```
 
 ---
@@ -492,7 +492,7 @@ dash openclaw connect --mock
 Check OpenClaw Gateway status.
 
 ```bash
-dash openclaw status [options]
+godel openclaw status [options]
 ```
 
 **Options:**
@@ -504,7 +504,7 @@ dash openclaw status [options]
 **Example:**
 
 ```bash
-dash openclaw status
+godel openclaw status
 ```
 
 ---
@@ -513,7 +513,7 @@ dash openclaw status
 List OpenClaw sessions.
 
 ```bash
-dash openclaw sessions list [options]
+godel openclaw sessions list [options]
 ```
 
 **Options:**
@@ -528,13 +528,13 @@ dash openclaw sessions list [options]
 
 ```bash
 # List all sessions
-dash openclaw sessions list
+godel openclaw sessions list
 
 # List only active sessions
-dash openclaw sessions list --active
+godel openclaw sessions list --active
 
 # Filter by kind
-dash openclaw sessions list --kind main
+godel openclaw sessions list --kind main
 ```
 
 ---
@@ -543,7 +543,7 @@ dash openclaw sessions list --kind main
 View session history/transcript.
 
 ```bash
-dash openclaw sessions history <session-key> [options]
+godel openclaw sessions history <session-key> [options]
 ```
 
 **Arguments:**
@@ -562,7 +562,7 @@ dash openclaw sessions history <session-key> [options]
 **Example:**
 
 ```bash
-dash openclaw sessions history session-abc-123 --limit 20
+godel openclaw sessions history session-abc-123 --limit 20
 ```
 
 ---
@@ -571,7 +571,7 @@ dash openclaw sessions history session-abc-123 --limit 20
 Spawn an agent via OpenClaw.
 
 ```bash
-dash openclaw spawn [options]
+godel openclaw spawn [options]
 ```
 
 **Options:**
@@ -590,16 +590,16 @@ dash openclaw spawn [options]
 
 ```bash
 # Spawn a simple agent
-dash openclaw spawn --task "Analyze this data"
+godel openclaw spawn --task "Analyze this data"
 
 # Spawn with skills
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Build a React component" \
   --skills "typescript,react" \
   --budget 5.00
 
 # Spawn in mock mode
-dash openclaw spawn --task "Test task" --mock
+godel openclaw spawn --task "Test task" --mock
 ```
 
 ---
@@ -608,7 +608,7 @@ dash openclaw spawn --task "Test task" --mock
 Send a message to an OpenClaw agent.
 
 ```bash
-dash openclaw send [options] <message>
+godel openclaw send [options] <message>
 ```
 
 **Arguments:**
@@ -629,10 +629,10 @@ dash openclaw send [options] <message>
 
 ```bash
 # Send a message
-dash openclaw send --session session-abc-123 "Process this file"
+godel openclaw send --session session-abc-123 "Process this file"
 
 # Send with attachment
-dash openclaw send --session session-abc-123 --attach ./data.csv "Analyze this data"
+godel openclaw send --session session-abc-123 --attach ./data.csv "Analyze this data"
 ```
 
 ---
@@ -641,7 +641,7 @@ dash openclaw send --session session-abc-123 --attach ./data.csv "Analyze this d
 Kill an OpenClaw session.
 
 ```bash
-dash openclaw kill <session-key> [options]
+godel openclaw kill <session-key> [options]
 ```
 
 **Arguments:**
@@ -661,10 +661,10 @@ dash openclaw kill <session-key> [options]
 
 ```bash
 # Kill a session
-dash openclaw kill session-abc-123
+godel openclaw kill session-abc-123
 
 # Force kill
-dash openclaw kill session-abc-123 --force
+godel openclaw kill session-abc-123 --force
 ```
 
 ---
@@ -675,7 +675,7 @@ dash openclaw kill session-abc-123 --force
 Search for skills in ClawHub.
 
 ```bash
-dash clawhub search [query] [options]
+godel clawhub search [query] [options]
 ```
 
 **Options:**
@@ -691,13 +691,13 @@ dash clawhub search [query] [options]
 
 ```bash
 # Search for skills
-dash clawhub search "typescript"
+godel clawhub search "typescript"
 
 # Search with filters
-dash clawhub search "web scraping" --tag cli --tag automation --sort downloads
+godel clawhub search "web scraping" --tag cli --tag automation --sort downloads
 
 # List top skills
-dash clawhub search --limit 50 --sort stars
+godel clawhub search --limit 50 --sort stars
 ```
 
 ---
@@ -706,7 +706,7 @@ dash clawhub search --limit 50 --sort stars
 Install a skill from ClawHub.
 
 ```bash
-dash clawhub install <skill> [options]
+godel clawhub install <skill> [options]
 ```
 
 **Arguments:**
@@ -728,13 +728,13 @@ dash clawhub install <skill> [options]
 
 ```bash
 # Install a skill
-dash clawhub install typescript-linter
+godel clawhub install typescript-linter
 
 # Install specific version
-dash clawhub install typescript-linter --version 1.2.3
+godel clawhub install typescript-linter --version 1.2.3
 
 # Force reinstall
-dash clawhub install typescript-linter --force
+godel clawhub install typescript-linter --force
 ```
 
 ---
@@ -743,7 +743,7 @@ dash clawhub install typescript-linter --force
 List installed skills.
 
 ```bash
-dash clawhub list [options]
+godel clawhub list [options]
 ```
 
 **Options:**
@@ -757,13 +757,13 @@ dash clawhub list [options]
 
 ```bash
 # List active skills
-dash clawhub list
+godel clawhub list
 
 # List all skills
-dash clawhub list --all
+godel clawhub list --all
 
 # Output as JSON
-dash clawhub list --json
+godel clawhub list --json
 ```
 
 ---
@@ -772,7 +772,7 @@ dash clawhub list --json
 Uninstall a skill.
 
 ```bash
-dash clawhub uninstall <skill> [options]
+godel clawhub uninstall <skill> [options]
 ```
 
 **Arguments:**
@@ -791,10 +791,10 @@ dash clawhub uninstall <skill> [options]
 
 ```bash
 # Uninstall with confirmation
-dash clawhub uninstall typescript-linter
+godel clawhub uninstall typescript-linter
 
 # Uninstall without confirmation
-dash clawhub uninstall typescript-linter --yes
+godel clawhub uninstall typescript-linter --yes
 ```
 
 ---
@@ -803,7 +803,7 @@ dash clawhub uninstall typescript-linter --yes
 Show detailed information about a skill.
 
 ```bash
-dash clawhub info <skill> [options]
+godel clawhub info <skill> [options]
 ```
 
 **Arguments:**
@@ -822,10 +822,10 @@ dash clawhub info <skill> [options]
 
 ```bash
 # Show skill info
-dash clawhub info typescript-linter
+godel clawhub info typescript-linter
 
 # Show with README
-dash clawhub info typescript-linter --readme
+godel clawhub info typescript-linter --readme
 ```
 
 ---
@@ -834,7 +834,7 @@ dash clawhub info typescript-linter --readme
 Update installed skills.
 
 ```bash
-dash clawhub update [skill] [options]
+godel clawhub update [skill] [options]
 ```
 
 **Options:**
@@ -847,10 +847,10 @@ dash clawhub update [skill] [options]
 
 ```bash
 # Update specific skill
-dash clawhub update typescript-linter
+godel clawhub update typescript-linter
 
 # Update all skills
-dash clawhub update --all
+godel clawhub update --all
 ```
 
 ---
@@ -861,7 +861,7 @@ dash clawhub update --all
 Set budget limits.
 
 ```bash
-dash budget set [options]
+godel budget set [options]
 ```
 
 **Options:**
@@ -879,10 +879,10 @@ dash budget set [options]
 
 ```bash
 # Set project daily budget
-dash budget set --project "my-project" --daily 100000 --cost 50.00
+godel budget set --project "my-project" --daily 100000 --cost 50.00
 
 # Set task budget
-dash budget set --task 10000 --cost 5.00 --agent agent-abc-123
+godel budget set --task 10000 --cost 5.00 --agent agent-abc-123
 ```
 
 ---
@@ -891,7 +891,7 @@ dash budget set --task 10000 --cost 5.00 --agent agent-abc-123
 View current budget status.
 
 ```bash
-dash budget status [options]
+godel budget status [options]
 ```
 
 **Options:**
@@ -906,13 +906,13 @@ dash budget status [options]
 
 ```bash
 # Show all budgets
-dash budget status
+godel budget status
 
 # Show agent budgets
-dash budget status --agent agent-abc-123
+godel budget status --agent agent-abc-123
 
 # Show project budgets
-dash budget status --project "my-project" --format json
+godel budget status --project "my-project" --format json
 ```
 
 ---
@@ -921,7 +921,7 @@ dash budget status --project "my-project" --format json
 View budget usage reports.
 
 ```bash
-dash budget usage [options]
+godel budget usage [options]
 ```
 
 **Options:**
@@ -937,10 +937,10 @@ dash budget usage [options]
 
 ```bash
 # View monthly usage
-dash budget usage --project "my-project"
+godel budget usage --project "my-project"
 
 # View weekly usage with duration
-dash budget usage --project "my-project" --period week --since 7d
+godel budget usage --project "my-project" --period week --since 7d
 ```
 
 ---
@@ -952,7 +952,7 @@ Manage budget alerts.
 Add a budget alert.
 
 ```bash
-dash budget alert add [options]
+godel budget alert add [options]
 ```
 
 **Options:**
@@ -969,17 +969,17 @@ dash budget alert add [options]
 
 ```bash
 # Add webhook alert
-dash budget alert add --project "my-project" --threshold 80 --webhook https://hooks.slack.com/...
+godel budget alert add --project "my-project" --threshold 80 --webhook https://hooks.slack.com/...
 
 # Add email alert
-dash budget alert add --project "my-project" --threshold 90 --email admin@example.com
+godel budget alert add --project "my-project" --threshold 90 --email admin@example.com
 ```
 
 #### `budget alert list`
 List configured alerts.
 
 ```bash
-dash budget alert list [options]
+godel budget alert list [options]
 ```
 
 **Options:**
@@ -992,14 +992,14 @@ dash budget alert list [options]
 **Example:**
 
 ```bash
-dash budget alert list --project "my-project"
+godel budget alert list --project "my-project"
 ```
 
 #### `budget alert remove`
 Remove a budget alert.
 
 ```bash
-dash budget alert remove <id> [options]
+godel budget alert remove <id> [options]
 ```
 
 **Arguments:**
@@ -1017,7 +1017,7 @@ dash budget alert remove <id> [options]
 **Example:**
 
 ```bash
-dash budget alert remove alert-abc-123 --project "my-project"
+godel budget alert remove alert-abc-123 --project "my-project"
 ```
 
 ---
@@ -1026,7 +1026,7 @@ dash budget alert remove alert-abc-123 --project "my-project"
 View budget history.
 
 ```bash
-dash budget history [options]
+godel budget history [options]
 ```
 
 **Options:**
@@ -1040,7 +1040,7 @@ dash budget history [options]
 **Example:**
 
 ```bash
-dash budget history --project "my-project" --since 30d
+godel budget history --project "my-project" --since 30d
 ```
 
 ---
@@ -1049,7 +1049,7 @@ dash budget history --project "my-project" --since 30d
 Generate budget reports.
 
 ```bash
-dash budget report [options]
+godel budget report [options]
 ```
 
 **Options:**
@@ -1063,7 +1063,7 @@ dash budget report [options]
 **Example:**
 
 ```bash
-dash budget report --project "my-project" --period month
+godel budget report --project "my-project" --period month
 ```
 
 ---
@@ -1075,7 +1075,7 @@ Manage blocked agents.
 List blocked agents.
 
 ```bash
-dash budget blocked list [options]
+godel budget blocked list [options]
 ```
 
 **Options:**
@@ -1087,20 +1087,20 @@ dash budget blocked list [options]
 **Example:**
 
 ```bash
-dash budget blocked list
+godel budget blocked list
 ```
 
 #### `budget blocked unblock`
 Unblock an agent.
 
 ```bash
-dash budget blocked unblock <agent-id>
+godel budget blocked unblock <agent-id>
 ```
 
 **Example:**
 
 ```bash
-dash budget blocked unblock agent-abc-123
+godel budget blocked unblock agent-abc-123
 ```
 
 ---
@@ -1109,7 +1109,7 @@ dash budget blocked unblock agent-abc-123
 Show budget dashboard.
 
 ```bash
-dash budget dashboard [options]
+godel budget dashboard [options]
 ```
 
 **Options:**
@@ -1121,7 +1121,7 @@ dash budget dashboard [options]
 **Example:**
 
 ```bash
-dash budget dashboard --project "my-project"
+godel budget dashboard --project "my-project"
 ```
 
 ---
@@ -1132,7 +1132,7 @@ dash budget dashboard --project "my-project"
 Run linter.
 
 ```bash
-dash quality lint [options]
+godel quality lint [options]
 ```
 
 **Options:**
@@ -1145,9 +1145,9 @@ dash quality lint [options]
 **Examples:**
 
 ```bash
-dash quality lint
-dash quality lint --fix
-dash quality lint --strict
+godel quality lint
+godel quality lint --fix
+godel quality lint --strict
 ```
 
 ---
@@ -1156,7 +1156,7 @@ dash quality lint --strict
 Run TypeScript type checking.
 
 ```bash
-dash quality types [options]
+godel quality types [options]
 ```
 
 **Options:**
@@ -1168,7 +1168,7 @@ dash quality types [options]
 **Example:**
 
 ```bash
-dash quality types --strict
+godel quality types --strict
 ```
 
 ---
@@ -1177,7 +1177,7 @@ dash quality types --strict
 Run security audit.
 
 ```bash
-dash quality security
+godel quality security
 ```
 
 ---
@@ -1186,7 +1186,7 @@ dash quality security
 Run all quality checks (lint + types + security).
 
 ```bash
-dash quality gate [options]
+godel quality gate [options]
 ```
 
 **Options:**
@@ -1198,7 +1198,7 @@ dash quality gate [options]
 **Example:**
 
 ```bash
-dash quality gate --strict
+godel quality gate --strict
 ```
 
 ---
@@ -1207,7 +1207,7 @@ dash quality gate --strict
 Show quality status summary.
 
 ```bash
-dash quality status
+godel quality status
 ```
 
 ---
@@ -1218,7 +1218,7 @@ dash quality status
 Show reasoning traces.
 
 ```bash
-dash reasoning trace <agent-id> [options]
+godel reasoning trace <agent-id> [options]
 ```
 
 **Arguments:**
@@ -1237,7 +1237,7 @@ dash reasoning trace <agent-id> [options]
 **Example:**
 
 ```bash
-dash reasoning trace agent-abc-123 --limit 20
+godel reasoning trace agent-abc-123 --limit 20
 ```
 
 ---
@@ -1246,7 +1246,7 @@ dash reasoning trace agent-abc-123 --limit 20
 Show decision log.
 
 ```bash
-dash reasoning decisions <agent-id> [options]
+godel reasoning decisions <agent-id> [options]
 ```
 
 **Arguments:**
@@ -1264,7 +1264,7 @@ dash reasoning decisions <agent-id> [options]
 **Example:**
 
 ```bash
-dash reasoning decisions agent-abc-123
+godel reasoning decisions agent-abc-123
 ```
 
 ---
@@ -1273,7 +1273,7 @@ dash reasoning decisions agent-abc-123
 Analyze reasoning patterns.
 
 ```bash
-dash reasoning analyze <agent-id> [options]
+godel reasoning analyze <agent-id> [options]
 ```
 
 **Arguments:**
@@ -1291,7 +1291,7 @@ dash reasoning analyze <agent-id> [options]
 **Example:**
 
 ```bash
-dash reasoning analyze agent-abc-123 --confidence
+godel reasoning analyze agent-abc-123 --confidence
 ```
 
 ---
@@ -1300,13 +1300,13 @@ dash reasoning analyze agent-abc-123 --confidence
 Summarize reasoning for a task.
 
 ```bash
-dash reasoning summarize <task-id>
+godel reasoning summarize <task-id>
 ```
 
 **Example:**
 
 ```bash
-dash reasoning summarize task-abc-123
+godel reasoning summarize task-abc-123
 ```
 
 ---
@@ -1317,7 +1317,7 @@ dash reasoning summarize task-abc-123
 Run self-improvement cycle.
 
 ```bash
-dash self-improve run [options]
+godel self-improve run [options]
 ```
 
 **Options:**
@@ -1331,13 +1331,13 @@ dash self-improve run [options]
 
 ```bash
 # Run all improvements
-dash self-improve run
+godel self-improve run
 
 # Focus on documentation
-dash self-improve run --area documentation
+godel self-improve run --area documentation
 
 # Multiple iterations
-dash self-improve run --iterations 3
+godel self-improve run --iterations 3
 ```
 
 ---
@@ -1346,7 +1346,7 @@ dash self-improve run --iterations 3
 Check self-improvement status.
 
 ```bash
-dash self-improve status
+godel self-improve status
 ```
 
 ---
@@ -1355,7 +1355,7 @@ dash self-improve status
 Generate self-improvement report.
 
 ```bash
-dash self-improve report
+godel self-improve report
 ```
 
 ---
@@ -1365,7 +1365,7 @@ dash self-improve report
 Show Dash system status and overview.
 
 ```bash
-dash status [options]
+godel status [options]
 ```
 
 **Options:**
@@ -1377,8 +1377,8 @@ dash status [options]
 **Example:**
 
 ```bash
-dash status
-dash status --format json
+godel status
+godel status --format json
 ```
 
 ---
@@ -1388,7 +1388,7 @@ dash status --format json
 | Variable | Description |
 |----------|-------------|
 | `OPENCLAW_GATEWAY_TOKEN` | Authentication token for OpenClaw Gateway |
-| `DASH_API_KEY` | API key for Dash API server |
+| `GODEL_API_KEY` | API key for Dash API server |
 
 ---
 

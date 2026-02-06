@@ -1,6 +1,6 @@
-# Getting Started with Dash
+# Getting Started with Godel
 
-Complete guide to setting up and using Dash for agent orchestration.
+Complete guide to setting up and using Godel for agent orchestration.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Complete guide to setting up and using Dash for agent orchestration.
 
 ## Prerequisites
 
-Before installing Dash, ensure you have the following:
+Before installing Godel, ensure you have the following:
 
 ### Required
 
@@ -59,29 +59,29 @@ git worktree --help  # Should show help, not error
 
 ```bash
 # Install globally
-npm install -g @jtan15010/dash
+npm install -g @jtan15010/godel
 
 # Verify installation
-dash --version  # Should show version number
-dash --help     # Show available commands
+godel --version  # Should show version number
+godel --help     # Show available commands
 ```
 
 ### Method 2: Using npx (No Install)
 
 ```bash
 # Run without installing
-npx @jtan15010/dash --help
+npx @jtan15010/godel --help
 
 # Example: Create a swarm
-npx @jtan15010/dash swarm create --name test --task "hello world"
+npx @jtan15010/godel swarm create --name test --task "hello world"
 ```
 
 ### Method 3: From Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/davidkimai/dash.git
-cd dash
+git clone https://github.com/davidkimai/godel.git
+cd godel
 
 # Install dependencies
 npm install
@@ -100,30 +100,30 @@ npm run dev -- --help
 
 ```bash
 # Pull the image
-docker pull dashai/dash:latest
+docker pull godelai/godel:latest
 
 # Run with environment variables
 docker run -it --rm \
-  -e DASH_PROJECT_PATH=/workspace \
+  -e GODEL_PROJECT_PATH=/workspace \
   -v $(pwd):/workspace \
-  dashai/dash --help
+  godelai/godel --help
 ```
 
 ### Method 5: Docker Compose (Full Stack)
 
 ```bash
 # Clone repository
-git clone https://github.com/davidkimai/dash.git
-cd dash
+git clone https://github.com/davidkimai/godel.git
+cd godel
 
-# Start all services (Dash + PostgreSQL + Redis + Monitoring)
+# Start all services (Godel + PostgreSQL + Redis + Monitoring)
 docker-compose up -d
 
 # View logs
 docker-compose logs -f
 
 # Run commands in the container
-docker-compose exec dash dash --help
+docker-compose exec godel godel --help
 ```
 
 ---
@@ -143,30 +143,30 @@ cp .env.example .env
 
 ```env
 # Project path (required)
-DASH_PROJECT_PATH=/path/to/your/project
+GODEL_PROJECT_PATH=/path/to/your/project
 
 # Log level (optional, default: info)
-DASH_LOG_LEVEL=info
+GODEL_LOG_LEVEL=info
 ```
 
 ### Full Configuration Options
 
 ```env
 # Core Settings
-DASH_PROJECT_PATH=/Users/jasontang/clawd/projects/dash
-DASH_MAX_SWARMS=5
-DASH_MAX_CONCURRENT=3
+GODEL_PROJECT_PATH=/Users/jasontang/clawd/projects/godel
+GODEL_MAX_SWARMS=5
+GODEL_MAX_CONCURRENT=3
 
 # Build Settings
-DASH_BUILD_TIMEOUT=120000
-DASH_TEST_TIMEOUT=60000
+GODEL_BUILD_TIMEOUT=120000
+GODEL_TEST_TIMEOUT=60000
 
 # Budget Settings
-DASH_BUDGET_TOTAL=1.0
-DASH_BUDGET_PER_SPRINT=0.25
+GODEL_BUDGET_TOTAL=1.0
+GODEL_BUDGET_PER_SPRINT=0.25
 
 # Database (optional)
-DATABASE_URL=postgresql://user:password@localhost:5432/dash
+DATABASE_URL=postgresql://user:password@localhost:5432/godel
 REDIS_URL=redis://localhost:6379
 
 # Notifications (optional)
@@ -176,19 +176,19 @@ NOTIFICATION_CHANNEL=telegram
 NOTIFICATION_USER_ID=your_user_id
 
 # Cron Settings
-DASH_CRON_ENABLED=true
-DASH_BUILD_MONITOR_INTERVAL=30
-DASH_SWARM_WATCHDOG_INTERVAL=120
+GODEL_CRON_ENABLED=true
+GODEL_BUILD_MONITOR_INTERVAL=30
+GODEL_SWARM_WATCHDOG_INTERVAL=120
 
 # Debug
-DASH_DRY_RUN=false
+GODEL_DRY_RUN=false
 ```
 
 ### Verify Configuration
 
 ```bash
 # Check configuration
-dash status
+godel status
 
 # Should output current settings and health status
 ```
@@ -203,14 +203,14 @@ A **swarm** is a group of agents working together on a common task.
 
 ```bash
 # Basic swarm creation
-dash swarm create --name "my-first-swarm" --task "Review codebase for bugs"
+godel swarm create --name "my-first-swarm" --task "Review codebase for bugs"
 ```
 
 ### Step 2: Create with Options
 
 ```bash
 # Advanced swarm creation
-dash swarm create \
+godel swarm create \
   --name "code-review-swarm" \
   --task "Review all TypeScript files for security issues" \
   --initial-agents 5 \
@@ -224,13 +224,13 @@ dash swarm create \
 
 ```bash
 # List all swarms
-dash swarm list
+godel swarm list
 
 # Check swarm status
-dash swarm status <swarm-id>
+godel swarm status <swarm-id>
 
 # Launch the TUI dashboard
-dash dashboard
+godel dashboard
 ```
 
 ### Using a YAML Configuration File
@@ -238,7 +238,7 @@ dash dashboard
 Create `swarm.yaml`:
 
 ```yaml
-apiVersion: dash.io/v1
+apiVersion: godel.io/v1
 kind: Swarm
 
 metadata:
@@ -269,7 +269,7 @@ spec:
 
 Apply it:
 ```bash
-dash swarm create --file swarm.yaml
+godel swarm create --file swarm.yaml
 ```
 
 ---
@@ -282,14 +282,14 @@ An **agent** is a single AI worker that executes tasks.
 
 ```bash
 # Basic agent spawn
-dash agents spawn "Implement a REST API endpoint"
+godel agents spawn "Implement a REST API endpoint"
 ```
 
 ### Step 2: Spawn with Options
 
 ```bash
 # Advanced agent spawn
-dash agents spawn \
+godel agents spawn \
   "Implement user authentication" \
   --model kimi-k2.5 \
   --timeout 600000 \
@@ -300,19 +300,19 @@ dash agents spawn \
 
 ```bash
 # List all agents
-dash agents list
+godel agents list
 
 # Check agent status
-dash agents status <agent-id>
+godel agents status <agent-id>
 
 # Pause the agent
-dash agents pause <agent-id>
+godel agents pause <agent-id>
 
 # Resume the agent
-dash agents resume <agent-id>
+godel agents resume <agent-id>
 
 # Kill the agent
-dash agents kill <agent-id>
+godel agents kill <agent-id>
 ```
 
 ### Agent Output
@@ -323,7 +323,7 @@ Agents work in isolated Git worktrees. Their output is available in:
 ├── src/           # Modified source files
 ├── tests/         # Test files
 ├── README.md      # Agent's documentation
-└── .dash/         # Agent metadata
+└── .godel/         # Agent metadata
 ```
 
 ---
@@ -334,36 +334,36 @@ Agents work in isolated Git worktrees. Their output is available in:
 
 ```bash
 # View all logs
-dash logs tail
+godel logs tail
 
 # View logs for specific agent
-dash logs tail --agent <agent-id>
+godel logs tail --agent <agent-id>
 
 # View logs for specific swarm
-dash logs tail --swarm <swarm-id>
+godel logs tail --swarm <swarm-id>
 
 # Follow logs (like tail -f)
-dash logs tail --follow
+godel logs tail --follow
 ```
 
 ### Query Logs
 
 ```bash
 # Query with filters
-dash logs query \
+godel logs query \
   --level error \
   --since 1h \
   --agent <agent-id>
 
 # Query with JSON output
-dash logs query --format json --limit 100
+godel logs query --format json --limit 100
 ```
 
 ### Log Files Location
 
 Logs are stored in:
 ```
-.dash/logs/
+.godel/logs/
 ├── orchestrator.log      # Main orchestrator logs
 ├── monitor.log          # Build monitor logs
 ├── watchdog.log         # Swarm watchdog logs
@@ -385,25 +385,25 @@ Logs are stored in:
 Set log level:
 ```bash
 # In .env file
-DASH_LOG_LEVEL=debug
+GODEL_LOG_LEVEL=debug
 
 # Or via CLI
-dash --log-level debug <command>
+godel --log-level debug <command>
 ```
 
 ---
 
 ## Monitoring
 
-### TUI Dashboard
+### TUI Godelboard
 
 Launch the interactive dashboard:
 
 ```bash
 # Start dashboard
-dash dashboard
+godel dashboard
 
-# Dashboard shows:
+# Godelboard shows:
 # - Active swarms
 # - Running agents
 # - Recent events
@@ -429,10 +429,10 @@ open http://localhost:3000
 
 | Metric | Description | Location |
 |--------|-------------|----------|
-| Active Swarms | Number of running swarms | Dashboard |
-| Active Agents | Number of running agents | Dashboard |
-| Budget Usage | Current budget consumption | Dashboard |
-| Task Queue | Pending tasks | Dashboard |
+| Active Swarms | Number of running swarms | Godelboard |
+| Active Agents | Number of running agents | Godelboard |
+| Budget Usage | Current budget consumption | Godelboard |
+| Task Queue | Pending tasks | Godelboard |
 | Events/sec | Event processing rate | Grafana |
 | Latency | Response times | Grafana |
 
@@ -440,12 +440,12 @@ open http://localhost:3000
 
 ```bash
 # Check system health
-dash status
+godel status
 
 # Check specific components
-dash status --component database
-dash status --component cache
-dash status --component gateway
+godel status --component database
+godel status --component cache
+godel status --component gateway
 ```
 
 ### Notifications
@@ -454,13 +454,13 @@ Configure notifications for important events:
 
 ```bash
 # Set up notification channel
-dash openclaw config \
+godel openclaw config \
   --gateway-url http://localhost:8080/api \
   --token your_token \
   --channel telegram
 
 # Test notification
-dash openclaw test-notification
+godel openclaw test-notification
 ```
 
 ---
@@ -469,14 +469,14 @@ dash openclaw test-notification
 
 ### Common Issues
 
-#### 1. "Command not found: dash"
+#### 1. "Command not found: godel"
 
 ```bash
 # If installed globally but not found
 export PATH="$PATH:$(npm config get prefix)/bin"
 
 # Or use npx
-npx @jtan15010/dash <command>
+npx @jtan15010/godel <command>
 ```
 
 #### 2. "Git worktree not supported"
@@ -506,7 +506,7 @@ npm run build
 pg_isready -h localhost -p 5432
 
 # Or use SQLite instead (no external DB needed)
-# Set in .env: DATABASE_URL=sqlite://./dash.db
+# Set in .env: DATABASE_URL=sqlite://./godel.db
 ```
 
 #### 5. "Permission denied"
@@ -523,30 +523,30 @@ Enable debug logging:
 
 ```bash
 # Set environment variable
-export DASH_LOG_LEVEL=debug
+export GODEL_LOG_LEVEL=debug
 
 # Run command
-dash <command>
+godel <command>
 
 # Or use flag
-dash --log-level debug <command>
+godel --log-level debug <command>
 ```
 
 ### Getting Help
 
 ```bash
 # Show help for any command
-dash --help
-dash swarm --help
-dash agents spawn --help
+godel --help
+godel swarm --help
+godel agents spawn --help
 
 # Check version
-dash --version
+godel --version
 ```
 
 ### Community Support
 
-- **GitHub Issues**: [github.com/davidkimai/dash/issues](https://github.com/davidkimai/dash/issues)
+- **GitHub Issues**: [github.com/davidkimai/godel/issues](https://github.com/davidkimai/godel/issues)
 - **Documentation**: [docs/](docs/)
 - **Examples**: [examples/](examples/)
 
@@ -554,12 +554,12 @@ dash --version
 
 ## Next Steps
 
-Now that you have Dash running:
+Now that you have Godel running:
 
 1. **Explore Examples**: Check out [examples/](examples/) for real-world use cases
 2. **Read Documentation**: Deep dive into [docs/](docs/) for advanced topics
 3. **Create Workflows**: Learn about [DAG workflows](docs/WORKFLOW_ENGINE.md)
-4. **Build Extensions**: Extend Dash with [custom extensions](docs/extensions.md)
+4. **Build Extensions**: Extend Godel with [custom extensions](docs/extensions.md)
 5. **Deploy to Production**: Follow the [deployment guide](docs/DEPLOYMENT.md)
 
 ---

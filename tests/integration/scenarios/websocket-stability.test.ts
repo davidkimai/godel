@@ -16,7 +16,7 @@ const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 
 describeLive('Scenario 6: WebSocket Stability', () => {
   const wsUrl = testConfig.websocketUrl;
-  const apiKey = testConfig.dashApiKey;
+  const apiKey = testConfig.godelApiKey;
   
   // Helper to create WebSocket connection
   function createWebSocket(token: string = apiKey): WebSocket {

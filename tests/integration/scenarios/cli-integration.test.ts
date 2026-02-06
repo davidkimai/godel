@@ -1,7 +1,7 @@
 /**
  * Scenario 5: CLI Integration Tests
  * 
- * Tests for CLI commands working with real Dash instance.
+ * Tests for CLI commands working with real Godel instance.
  * - swarmctl spawn command
  * - swarmctl status command
  * - swarmctl kill command
@@ -32,8 +32,8 @@ describeLive('Scenario 5: CLI Integration', () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          DASH_API_URL: testConfig.dashApiUrl,
-          DASH_API_KEY: testConfig.dashApiKey,
+          GODEL_API_URL: testConfig.godelApiUrl,
+          GODEL_API_KEY: testConfig.godelApiKey,
         },
       });
       return { 
@@ -366,7 +366,7 @@ describeLive('Scenario 5: CLI Integration', () => {
           timeout: 5000,
           env: {
             ...process.env,
-            DASH_API_URL: 'http://invalid-host:99999',
+            GODEL_API_URL: 'http://invalid-host:99999',
           },
         });
       } catch (error: any) {
@@ -400,7 +400,7 @@ describeLive('Scenario 5: CLI Integration', () => {
 
   describe('Configuration', () => {
     it('should respect environment variables', () => {
-      // Test that CLI uses DASH_API_URL from environment
+      // Test that CLI uses GODEL_API_URL from environment
       const result = execCli('status');
       
       // Should connect successfully using test config

@@ -2,7 +2,7 @@
 # Recursive Critique Subagent Launcher
 # Launches isolated subagent for verification and feedback
 
-WORKSPACE="/Users/jasontang/clawd/projects/dash"
+WORKSPACE="/Users/jasontang/clawd/projects/godel"
 CRITIQUE_LOG="$WORKSPACE/logs/critique-$(date +%Y-%m-%d).log"
 WORKTREE_DIR="$WORKSPACE/.claude-worktrees"
 
@@ -39,7 +39,7 @@ for task in "${CRITIQUE_TASKS[@]}"; do
     case $task in
         verify_subagents)
             # Check if subagents are actually running or stubbed
-            SUBAGENT_COUNT=$(ps aux | grep -E "codex.*dash-phase" | grep -v grep | wc -l)
+            SUBAGENT_COUNT=$(ps aux | grep -E "codex.*godel-phase" | grep -v grep | wc -l)
             log "Active subagents: $SUBAGENT_COUNT"
             if [ "$SUBAGENT_COUNT" -eq 0 ]; then
                 log "WARNING: No active subagents detected"

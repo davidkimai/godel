@@ -2,7 +2,7 @@ import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 2: Event Streaming Integration Tests
  * 
- * Tests for real-time event streaming from Dash to OpenClaw.
+ * Tests for real-time event streaming from Godel to OpenClaw.
  * - Event latency < 500ms
  * - 1000 events/second throughput
  */
@@ -26,7 +26,7 @@ describeLive('Scenario 2: Event Streaming', () => {
     eventBridge = new OpenClawEventBridge({
       messageBus,
       webhookUrl: 'http://localhost:9999/webhook',
-      authToken: testConfig.dashApiKey,
+      authToken: testConfig.godelApiKey,
       batchInterval: 0, // Immediate forwarding for latency tests
     });
 
@@ -367,7 +367,7 @@ describeLive('Scenario 2: Event Streaming', () => {
 
       // Only target agent events should be received
       expect(agentEvents.length).toBe(1);
-      expect(agentEvents[0].metadata.dashAgentId).toBe(targetAgentId);
+      expect(agentEvents[0].metadata.godelAgentId).toBe(targetAgentId);
 
       unsubscribe();
     }, testConfig.testTimeout);

@@ -7,7 +7,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const QUEUE_FILE = '.dash/swarm-queue.json';
+const QUEUE_FILE = '.godel/swarm-queue.json';
 const MAX_CONCURRENT = 6;
 const WARN_THRESHOLD = 5;
 

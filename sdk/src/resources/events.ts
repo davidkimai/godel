@@ -1,19 +1,19 @@
 /**
- * @dash/client SDK - Events Resource
+ * @godel/client SDK - Events Resource
  * 
- * Resource class for managing Dash events - system events, logs, and real-time subscriptions.
+ * Resource class for managing Godel events - system events, logs, and real-time subscriptions.
  */
 
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
-import { DashClient } from '../client';
+import { GodelClient } from '../client';
 import {
   Event,
   EventFilter,
   EventSubscription,
   EventListResponse,
 } from '../types';
-import { NotFoundError, ValidationError, DashError } from '../errors';
+import { NotFoundError, ValidationError, GodelError } from '../errors';
 
 /**
  * Callback function type for event subscriptions
@@ -21,12 +21,12 @@ import { NotFoundError, ValidationError, DashError } from '../errors';
 export type EventCallback = (event: Event) => void;
 
 /**
- * Resource for managing Dash events.
+ * Resource for managing Godel events.
  * Provides methods to list, filter events and subscribe to real-time event streams.
  * 
  * @example
  * ```typescript
- * const client = new DashClient({ apiUrl, apiKey });
+ * const client = new GodelClient({ apiUrl, apiKey });
  * 
  * // List recent events
  * const events = await client.events.list({
@@ -46,11 +46,11 @@ export type EventCallback = (event: Event) => void;
  * ```
  */
 export class EventsResource extends EventEmitter {
-  private readonly client: DashClient;
+  private readonly client: GodelClient;
   private readonly basePath = '/events';
   private readonly subscriptions: Map<string, WebSocket> = new Map();
 
-  constructor(client: DashClient) {
+  constructor(client: GodelClient) {
     super();
     this.client = client;
   }
@@ -182,7 +182,7 @@ export class EventsResource extends EventEmitter {
    * @param filter - Event filter criteria
    * @param callback - Function to call when events are received
    * @returns EventSubscription object with subscription details
-   * @throws {DashError} If WebSocket connection fails
+   * @throws {GodelError} If WebSocket connection fails
    * 
    * @example
    * ```typescript
@@ -264,14 +264,14 @@ export class EventsResource extends EventEmitter {
           callback(event);
           this.emit('event', event);
         } catch (error) {
-          this.emit('error', new DashError('Failed to parse event data', { cause: error as Error }));
+          this.emit('error', new GodelError('Failed to parse event data', { cause: error as Error }));
         }
       });
 
       ws.on('error', (error) => {
         this.subscriptions.delete(subscriptionId);
         this.emit('error', error);
-        reject(new DashError('WebSocket connection failed', { cause: error }));
+        reject(new GodelError('WebSocket connection failed', { cause: error }));
       });
 
       ws.on('close', () => {
@@ -358,7 +358,7 @@ export class EventsResource extends EventEmitter {
    * const sub = await client.events.createWebhook({
    *   types: ['task.completed', 'task.failed'],
    *   severities: ['info', 'warn', 'error'],
-   * }, 'https://my-app.com/webhooks/dash-events');
+   * }, 'https://my-app.com/webhooks/godel-events');
    * 
    * console.log(`Webhook created: ${sub.id}`);
    * ```

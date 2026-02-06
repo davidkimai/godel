@@ -24,7 +24,7 @@ describe('StatePersistence', () => {
 
   beforeEach(async () => {
     // Create temp test directory
-    testDir = join(tmpdir(), `dash-state-test-${Date.now()}`);
+    testDir = join(tmpdir(), `godel-state-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     testDbPath = join(testDir, 'test.db');
 
@@ -469,7 +469,7 @@ describe('OptimisticLocking', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `dash-lock-test-${Date.now()}`);
+    testDir = join(tmpdir(), `godel-lock-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     testDbPath = join(testDir, 'test.db');
 

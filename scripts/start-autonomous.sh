@@ -1,12 +1,12 @@
 #!/bin/bash
-# Dash v2.0 Autonomous System Startup Script
+# Godel v2.0 Autonomous System Startup Script
 # Launch all monitors and ensure continuous operation
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="${SCRIPT_DIR}/.dash/logs"
-PID_DIR="${SCRIPT_DIR}/.dash/pids"
+LOG_DIR="${SCRIPT_DIR}/.godel/logs"
+PID_DIR="${SCRIPT_DIR}/.godel/pids"
 
 # Setup directories
 mkdir -p "$LOG_DIR"
@@ -16,7 +16,7 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/startup.log"
 }
 
-log "=== Starting Dash v2.0 Autonomous System ==="
+log "=== Starting Godel v2.0 Autonomous System ==="
 
 # Function to start a monitor in background
 start_monitor() {
@@ -67,4 +67,4 @@ echo ""
 echo "=== Quick Commands ==="
 echo "  View logs:     tail -f $LOG_DIR/*.log"
 echo "  Check status:  node $SCRIPT_DIR/scripts/health-check.js"
-echo "  Stop all:      pkill -f 'dash.*monitor' || pkill -f 'autonomous-system'"
+echo "  Stop all:      pkill -f 'godel.*monitor' || pkill -f 'autonomous-system'"

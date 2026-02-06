@@ -6,7 +6,7 @@
  * Worktrees allow multiple agents to work simultaneously on different branches
  * without interfering with each other.
  *
- * @module @dash/core/worktree/types
+ * @module @godel/core/worktree/types
  */
 
 /**
@@ -50,7 +50,7 @@ export interface Worktree {
   /** Current git branch checked out in this worktree */
   branch: string;
 
-  /** Associated Dash session ID using this worktree */
+  /** Associated Godel session ID using this worktree */
   sessionId: string;
 
   /** Absolute path to the original repository (parent of all worktrees) */
@@ -107,7 +107,7 @@ export interface WorktreeConfig {
   /** Branch to create the worktree from (will be checked out) */
   baseBranch: string;
 
-  /** Dash session ID that will own this worktree */
+  /** Godel session ID that will own this worktree */
   sessionId: string;
 
   /** Dependency isolation configuration */

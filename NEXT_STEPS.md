@@ -1,6 +1,6 @@
-# Dash - Next Steps for Production Deployment
+# Godel - Next Steps for Production Deployment
 
-**Repository:** https://github.com/davidkimai/dash  
+**Repository:** https://github.com/davidkimai/godel  
 **Current Commit:** `0466f22`  
 **Status:** Core Implementation Complete, Tests Stabilized
 
@@ -67,43 +67,43 @@ Create `.env.production`:
 
 ```bash
 # Server
-DASH_PORT=7373
-DASH_HOST=0.0.0.0
-DASH_NODE_ENV=production
+GODEL_PORT=7373
+GODEL_HOST=0.0.0.0
+GODEL_NODE_ENV=production
 
 # Database
-DASH_DATABASE_URL=postgresql://user:pass@postgres:5432/dash
-DASH_DATABASE_POOL_SIZE=20
+GODEL_DATABASE_URL=postgresql://user:pass@postgres:5432/godel
+GODEL_DATABASE_POOL_SIZE=20
 
 # Redis
-DASH_REDIS_URL=redis://redis:6379
-DASH_REDIS_CLUSTER=false
+GODEL_REDIS_URL=redis://redis:6379
+GODEL_REDIS_CLUSTER=false
 
 # Auth
-DASH_JWT_SECRET=<256-bit-secret>
-DASH_JWT_ISSUER=dash
-DASH_JWT_AUDIENCE=dash-api
+GODEL_JWT_SECRET=<256-bit-secret>
+GODEL_JWT_ISSUER=godel
+GODEL_JWT_AUDIENCE=godel-api
 
 # OpenClaw
-DASH_OPENCLAW_COMMAND=openclaw
-DASH_OPENCLAW_MAX_SESSIONS=50
-DASH_OPENCLAW_DAEMON_ENABLED=true
+GODEL_OPENCLAW_COMMAND=openclaw
+GODEL_OPENCLAW_MAX_SESSIONS=50
+GODEL_OPENCLAW_DAEMON_ENABLED=true
 
 # LLM Providers (server-side only)
 ANTHROPIC_API_KEY=<your-key>
 OPENAI_API_KEY=<your-key>
 
 # Observability
-DASH_LOG_LEVEL=info
-DASH_METRICS_ENABLED=true
-DASH_TRACING_ENABLED=true
+GODEL_LOG_LEVEL=info
+GODEL_METRICS_ENABLED=true
+GODEL_TRACING_ENABLED=true
 ```
 
 ### Docker Deployment
 
 ```bash
 # Build production image
-docker build -t dash:latest -f Dockerfile.production .
+docker build -t godel:latest -f Dockerfile.production .
 
 # Run with docker-compose
 docker-compose up -d
@@ -119,7 +119,7 @@ docker-compose up -d --scale openclaw=10
 kubectl apply -f k8s/
 
 # Or use Helm
-helm install dash ./helm/dash
+helm install godel ./helm/godel
 ```
 
 ---
@@ -200,11 +200,11 @@ CREATE INDEX CONCURRENTLY idx_sessions_status ON sessions(status);
 Available at `http://localhost:7373/metrics`:
 
 ```
-dash_agents_connected{status="active"}
-dash_sessions_active{provider="anthropic"}
-dash_queue_depth{priority="high"}
-dash_proxy_requests_total{provider="anthropic"}
-dash_proxy_cost_total{provider="anthropic"}
+godel_agents_connected{status="active"}
+godel_sessions_active{provider="anthropic"}
+godel_queue_depth{priority="high"}
+godel_proxy_requests_total{provider="anthropic"}
+godel_proxy_cost_total{provider="anthropic"}
 ```
 
 ### Grafana Dashboard
@@ -216,17 +216,17 @@ Import dashboard from `monitoring/grafana/dashboards/dash-overview.json`
 ```yaml
 # High error rate
 - alert: HighErrorRate
-  expr: rate(dash_errors_total[5m]) > 10
+  expr: rate(godel_errors_total[5m]) > 10
   for: 2m
 
 # Queue backlog
 - alert: QueueBacklog
-  expr: dash_queue_depth > 1000
+  expr: godel_queue_depth > 1000
   for: 5m
 
 # Agent disconnections
 - alert: AgentMassDisconnect
-  expr: rate(dash_agents_connected[1m]) < -5
+  expr: rate(godel_agents_connected[1m]) < -5
   for: 1m
 ```
 
@@ -265,10 +265,10 @@ Import dashboard from `monitoring/grafana/dashboards/dash-overview.json`
 **Fix:** Run `npm rebuild better-sqlite3`
 
 **Issue:** PostgreSQL connection failures  
-**Fix:** Check `DASH_DATABASE_URL` and verify PostgreSQL is running
+**Fix:** Check `GODEL_DATABASE_URL` and verify PostgreSQL is running
 
 **Issue:** Redis connection failures  
-**Fix:** Check `DASH_REDIS_URL` and verify Redis is running
+**Fix:** Check `GODEL_REDIS_URL` and verify Redis is running
 
 **Issue:** OpenClaw gateway unavailable  
 **Fix:** Ensure OpenClaw is installed and `openclaw gateway status` shows running
@@ -277,7 +277,7 @@ Import dashboard from `monitoring/grafana/dashboards/dash-overview.json`
 
 ```bash
 # View logs
-docker-compose logs -f dash
+docker-compose logs -f godel
 
 # Or with CLI
 npm run logs

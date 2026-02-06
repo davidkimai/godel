@@ -1,12 +1,12 @@
 /**
- * Dash Extension System
+ * Godel Extension System
  * 
- * Provides a TypeScript-based plugin architecture for extending Dash functionality.
+ * Provides a TypeScript-based plugin architecture for extending Godel functionality.
  * Extensions can register tools, commands, and event handlers.
  * 
  * @example
  * ```typescript
- * import { ExtensionLoader, Type } from '@dash/core/extension-loader';
+ * import { ExtensionLoader, Type } from '@godel/core/extension-loader';
  * 
  * const loader = new ExtensionLoader({
  *   paths: ['./extensions'],

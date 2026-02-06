@@ -1,4 +1,4 @@
-# Multi-stage production Docker build for dash application
+# Multi-stage production Docker build for godel application
 
 # Stage 1: Build stage
 FROM node:20-alpine AS builder

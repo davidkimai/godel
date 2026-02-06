@@ -5,31 +5,31 @@
 
 set -e
 
-DASH_DIR="/Users/jasontang/clawd/projects/dash"
+GODEL_DIR="/Users/jasontang/clawd/projects/godel"
 REPLENISH_THRESHOLD=5
 TARGET_COUNT=10
-LOG_FILE="$DASH_DIR/logs/agent-monitor.log"
+LOG_FILE="$GODEL_DIR/logs/agent-monitor.log"
 
 # Ensure log directory exists
-mkdir -p "$DASH_DIR/logs"
+mkdir -p "$GODEL_DIR/logs"
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
 count_active_agents() {
-    cd "$DASH_DIR"
+    cd "$GODEL_DIR"
     node dist/index.js agents list 2>/dev/null | grep -E "(idle|running|spawning)" | wc -l | tr -d ' '
 }
 
 get_agent_status() {
-    cd "$DASH_DIR"
+    cd "$GODEL_DIR"
     node dist/index.js agents list 2>/dev/null
 }
 
 spawn_agent() {
     local label="${1:-replenishment-agent}"
-    cd "$DASH_DIR"
+    cd "$GODEL_DIR"
     node dist/index.js agents spawn "Capacity maintenance agent" --label "$label-$(date +%s)"
 }
 

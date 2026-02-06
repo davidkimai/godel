@@ -7,8 +7,8 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const TRACKER_FILE = '.dash/swarm-tracker.json';
-const LOG_DIR = '.dash/logs';
+const TRACKER_FILE = '.godel/swarm-tracker.json';
+const LOG_DIR = '.godel/logs';
 const MAX_SWARM_AGE_MS = 30 * 60 * 1000; // 30 minutes
 const CHECKPOINT_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 const KILL_GRACE_PERIOD_MS = 5000; // 5 seconds

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dash v2.0 Health Check Script
+ * Godel v2.0 Health Check Script
  * Run manually or via cron to verify autonomous system health
  */
 
@@ -8,8 +8,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = '.dash/logs/health-check.log';
-const STATE_FILE = '.dash/orchestrator-state.json';
+const LOG_FILE = '.godel/logs/health-check.log';
+const STATE_FILE = '.godel/orchestrator-state.json';
 
 function log(message) {
   const timestamp = new Date().toISOString();

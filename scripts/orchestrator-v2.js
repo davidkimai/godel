@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Dash Orchestrator v2.0
+ * Godel Orchestrator v2.0
  * Uses OpenClaw primary model (kimi-coding/k2p5) via sessions_spawn
  * Runs every 15 minutes to orchestrate swarm improvements
  */
@@ -13,9 +13,9 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 // Configuration
-const DASH_DIR = '/Users/jasontang/clawd/projects/dash';
-const STATE_FILE = path.join(DASH_DIR, '.dash/orchestrator-state.json');
-const LOG_DIR = path.join(DASH_DIR, '.dash/logs');
+const GODEL_DIR = '/Users/jasontang/clawd/projects/godel';
+const STATE_FILE = path.join(GODEL_DIR, '.godel/orchestrator-state.json');
+const LOG_DIR = path.join(GODEL_DIR, '.godel/logs');
 
 // Limits
 const LIMITS = {
@@ -71,7 +71,7 @@ async function collectMetrics() {
   try {
     // Check build status
     try {
-      await execAsync('npm run build', { cwd: DASH_DIR });
+      await execAsync('npm run build', { cwd: GODEL_DIR });
       metrics.buildPassing = true;
     } catch (e) {
       metrics.buildPassing = false;
@@ -86,7 +86,7 @@ async function collectMetrics() {
     try {
       const { stdout: agentOut } = await execAsync(
         `node dist/index.js agents list | grep "agent_" | wc -l`,
-        { cwd: DASH_DIR }
+        { cwd: GODEL_DIR }
       );
       metrics.agentCount = parseInt(agentOut.trim()) || 0;
     } catch (e) {
@@ -159,19 +159,19 @@ async function spawnSwarm(state, decision) {
   
   switch (decision.action) {
     case 'spawn_coverage':
-      task = `Improve test coverage in ${DASH_DIR}. Currently at ${state.metrics.current.testCoverage}%. Write comprehensive tests for highest-impact untested modules. Focus on: decision-engine, swarm-executor, bug-monitor. Run 'npm test' after each file to verify 0 errors.`;
+      task = `Improve test coverage in ${GODEL_DIR}. Currently at ${state.metrics.current.testCoverage}%. Write comprehensive tests for highest-impact untested modules. Focus on: decision-engine, swarm-executor, bug-monitor. Run 'npm test' after each file to verify 0 errors.`;
       break;
       
     case 'spawn_bugfix':
-      task = `Fix build errors in ${DASH_DIR}. Run 'npm run build' to identify errors. Fix all TypeScript errors found. Verify build passes after each fix.`;
+      task = `Fix build errors in ${GODEL_DIR}. Run 'npm run build' to identify errors. Fix all TypeScript errors found. Verify build passes after each fix.`;
       break;
       
     case 'spawn_improvement':
-      task = `General improvements for ${DASH_DIR}. Focus on: code quality, documentation, performance. Identify and fix 3 highest-impact issues.`;
+      task = `General improvements for ${GODEL_DIR}. Focus on: code quality, documentation, performance. Identify and fix 3 highest-impact issues.`;
       break;
       
     default:
-      task = `Monitor ${DASH_DIR} for issues. Check build status, test coverage, and agent health.`;
+      task = `Monitor ${GODEL_DIR} for issues. Check build status, test coverage, and agent health.`;
   }
   
   // Spawn using Kimi CLI
@@ -179,7 +179,7 @@ async function spawnSwarm(state, decision) {
   const cmd = `kimi -p "${task}" > "${logFile}" 2>&1 &`;
   
   try {
-    await execAsync(cmd, { cwd: DASH_DIR });
+    await execAsync(cmd, { cwd: GODEL_DIR });
     console.log(`✅ Swarm spawned: ${decision.action}`);
     
     // Set cooldown
@@ -207,7 +207,7 @@ async function spawnSwarm(state, decision) {
 async function orchestrate() {
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🔔 DASH ORCHESTRATOR HEARTBEAT`);
+  console.log(`🔔 GODEL ORCHESTRATOR HEARTBEAT`);
   console.log(`   ${new Date().toISOString()}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   

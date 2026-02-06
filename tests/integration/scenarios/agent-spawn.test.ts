@@ -2,7 +2,7 @@ import { logger } from '../../../src/utils/logger';
 /**
  * Scenario 1: OpenClaw Agent Spawn Integration Tests
  * 
- * Tests for spawning agents from OpenClaw into Dash.
+ * Tests for spawning agents from OpenClaw into Godel.
  * - Single agent spawn
  * - 100 concurrent agent spawns
  */
@@ -27,8 +27,8 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
   beforeAll(async () => {
     // Initialize the adapter with test configuration
     adapter = new OpenClawAdapter({
-      dashApiUrl: testConfig.dashApiUrl,
-      dashApiKey: testConfig.dashApiKey,
+      godelApiUrl: testConfig.godelApiUrl,
+      godelApiKey: testConfig.godelApiKey,
       openclawSessionKey: testConfig.openclawSessionKey,
     });
   });
@@ -63,8 +63,8 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
       const result = await adapter.spawnAgent(sessionKey, spawnRequest);
 
       // 2. Verify agent was created
-      expect(result.dashAgentId).toBeDefined();
-      expect(result.dashAgentId).toMatch(/^agent-[a-z0-9-]+$/);
+      expect(result.godelAgentId).toBeDefined();
+      expect(result.godelAgentId).toMatch(/^agent-[a-z0-9-]+$/);
       expect(result.status).toBe('pending');
       expect(result.swarmId).toBeDefined();
 
@@ -74,19 +74,19 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
         createdSwarmIds.push(result.swarmId);
       }
 
-      // 3. Verify agent exists in Dash via client
+      // 3. Verify agent exists in Godel via client
       const client = getGlobalClient();
-      const agentResult = await client.getAgent(result.dashAgentId);
+      const agentResult = await client.getAgent(result.godelAgentId);
       
       expect(agentResult.success).toBe(true);
       expect(agentResult.data).toBeDefined();
-      expect(agentResult.data?.id).toBe(result.dashAgentId);
+      expect(agentResult.data?.id).toBe(result.godelAgentId);
       expect(agentResult.data?.status).toBe('pending');
       expect(agentResult.data?.swarmId).toBe(result.swarmId);
 
       // 4. Verify session mapping works
       expect(adapter.hasAgent(sessionKey)).toBe(true);
-      expect(adapter.getDashAgentId(sessionKey)).toBe(result.dashAgentId);
+      expect(adapter.getGodelAgentId(sessionKey)).toBe(result.godelAgentId);
     }, testConfig.testTimeout);
 
     it('should spawn agent with custom configuration', async () => {
@@ -104,7 +104,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
 
       const result = await adapter.spawnAgent(sessionKey, spawnRequest);
 
-      expect(result.dashAgentId).toBeDefined();
+      expect(result.godelAgentId).toBeDefined();
       expect(result.status).toBe('pending');
 
       createdAgentIds.push(sessionKey);
@@ -119,13 +119,13 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
 
       // First spawn should succeed
       const result1 = await adapter.spawnAgent(sessionKey, spawnRequest);
-      expect(result1.dashAgentId).toBeDefined();
+      expect(result1.godelAgentId).toBeDefined();
       createdAgentIds.push(sessionKey);
 
       // Second spawn with same session key should create new agent
       // (or could throw error depending on implementation)
       const result2 = await adapter.spawnAgent(sessionKey, spawnRequest);
-      expect(result2.dashAgentId).toBeDefined();
+      expect(result2.godelAgentId).toBeDefined();
     }, testConfig.testTimeout);
   });
 
@@ -162,14 +162,14 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
       
       // Verify each result has valid data
       for (const result of results) {
-        expect(result.dashAgentId).toBeDefined();
-        expect(result.dashAgentId).toMatch(/^agent-[a-z0-9-]+$/);
+        expect(result.godelAgentId).toBeDefined();
+        expect(result.godelAgentId).toMatch(/^agent-[a-z0-9-]+$/);
         expect(result.status).toBe('pending');
         expect(result.swarmId).toBeDefined();
       }
 
-      // Verify all dashAgentIds are unique
-      const agentIds = results.map(r => r.dashAgentId);
+      // Verify all godelAgentIds are unique
+      const agentIds = results.map(r => r.godelAgentId);
       const uniqueAgentIds = new Set(agentIds);
       expect(uniqueAgentIds.size).toBe(concurrentCount);
 
@@ -208,7 +208,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
 
       // Verify all succeeded
       expect(results).toHaveLength(concurrentCount);
-      expect(results.every(r => r.dashAgentId)).toBe(true);
+      expect(results.every(r => r.godelAgentId)).toBe(true);
 
       // Verify agent list contains all our agents
       const activeAgents = await adapter.listAgents();
@@ -229,7 +229,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
 
       // Should still spawn (empty task is allowed)
       const result = await adapter.spawnAgent(sessionKey, spawnRequest);
-      expect(result.dashAgentId).toBeDefined();
+      expect(result.godelAgentId).toBeDefined();
       createdAgentIds.push(sessionKey);
     }, testConfig.testTimeout);
 
@@ -242,7 +242,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
 
       // Should still spawn (agent type validation may be loose)
       const result = await adapter.spawnAgent(sessionKey, spawnRequest);
-      expect(result.dashAgentId).toBeDefined();
+      expect(result.godelAgentId).toBeDefined();
       createdAgentIds.push(sessionKey);
     }, testConfig.testTimeout);
   });

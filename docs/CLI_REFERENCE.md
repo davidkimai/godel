@@ -6,10 +6,10 @@
 
 ```bash
 # Global installation
-npm install -g @jtan15010/dash
+npm install -g @jtan15010/godel
 
 # Local usage with npx
-npx @jtan15010/dash swarmctl --help
+npx @jtan15010/godel swarmctl --help
 ```
 
 ## Quick Start
@@ -708,9 +708,9 @@ swarmctl swarm list --format jsonl
 
 | Variable | Description |
 |----------|-------------|
-| `DASH_DB_PATH` | Path to SQLite database (default: ./.dash/dash.db) |
-| `DASH_LOG_LEVEL` | Log level: debug, info, warn, error (default: info) |
-| `DASH_API_URL` | API URL for HTTP mode (optional) |
+| `GODEL_DB_PATH` | Path to SQLite database (default: ./.godel/godel.db) |
+| `GODEL_LOG_LEVEL` | Log level: debug, info, warn, error (default: info) |
+| `GODEL_API_URL` | API URL for HTTP mode (optional) |
 
 ---
 
@@ -772,7 +772,7 @@ fi
 Ensure `swarmctl` is in your PATH:
 
 ```bash
-npm install -g @jtan15010/dash
+npm install -g @jtan15010/godel
 which swarmctl
 ```
 
@@ -782,7 +782,7 @@ If you get permission errors, try:
 
 ```bash
 # Use npx
-npx @jtan15010/dash swarmctl --help
+npx @jtan15010/godel swarmctl --help
 
 # Or fix permissions
 chmod +x $(which swarmctl)

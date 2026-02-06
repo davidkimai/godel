@@ -1,8 +1,8 @@
 #!/bin/bash
-# Backup script for Dash project
+# Backup script for Godel project
 
-PROJECT_DIR="/Users/jasontang/clawd/projects/dash"
-BACKUP_DIR="/tmp/dash-backups"
+PROJECT_DIR="/Users/jasontang/clawd/projects/godel"
+BACKUP_DIR="/tmp/godel-backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M)
 
 cd "$PROJECT_DIR"
@@ -11,7 +11,7 @@ cd "$PROJECT_DIR"
 mkdir -p "$BACKUP_DIR"
 
 # Create tar backup
-tar -czf "$BACKUP_DIR/dash-backup-$TIMESTAMP.tar.gz" \
+tar -czf "$BACKUP_DIR/godel-backup-$TIMESTAMP.tar.gz" \
   --exclude='node_modules' \
   --exclude='.git' \
   --exclude='dist' \
@@ -19,6 +19,6 @@ tar -czf "$BACKUP_DIR/dash-backup-$TIMESTAMP.tar.gz" \
   .
 
 # Keep only last 10 backups
-ls -t "$BACKUP_DIR"/dash-backup-*.tar.gz | tail -n +11 | xargs -r rm
+ls -t "$BACKUP_DIR"/godel-backup-*.tar.gz | tail -n +11 | xargs -r rm
 
-echo "✅ Backup created: $BACKUP_DIR/dash-backup-$TIMESTAMP.tar.gz"
+echo "✅ Backup created: $BACKUP_DIR/godel-backup-$TIMESTAMP.tar.gz"

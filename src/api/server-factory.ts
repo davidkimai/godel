@@ -1,5 +1,5 @@
 /**
- * Unified Server Factory for Dash API
+ * Unified Server Factory for Godel API
  * 
  * Provides a single entry point for creating the API server.
  * Supports Express as the primary framework with Fastify compatibility layer.
@@ -67,12 +67,12 @@ export interface UnifiedServerConfig {
 // ============================================================================
 
 /**
- * Create server configuration from Dash config
+ * Create server configuration from Godel config
  */
 function createServerConfig(config: DashConfig): UnifiedServerConfig {
   // Generate secure API key if default is weak
   let apiKey = config.auth.apiKeys[0];
-  if (!apiKey || apiKey === 'dash-api-key') {
+  if (!apiKey || apiKey === 'godel-api-key') {
     apiKey = generateApiKey('default');
     logger.warn('server-factory', 'Generated secure API key - update your .env file', {
       key: apiKey.slice(0, 20) + '...'
@@ -87,8 +87,8 @@ function createServerConfig(config: DashConfig): UnifiedServerConfig {
     corsOrigins: config.server.cors.origins,
     rateLimit: config.server.rateLimit,
     sessionSecret: process.env['SESSION_SECRET'] || generateApiKey('session'),
-    enableSwagger: process.env['DASH_ENABLE_SWAGGER'] !== 'false',
-    enableAuth: process.env['DASH_ENABLE_AUTH'] !== 'false',
+    enableSwagger: process.env['GODEL_ENABLE_SWAGGER'] !== 'false',
+    enableAuth: process.env['GODEL_ENABLE_AUTH'] !== 'false',
   };
 }
 
@@ -106,7 +106,7 @@ function getIdParam(req: Request): string {
  */
 export async function createExpressApp(config: UnifiedServerConfig): Promise<express.Application> {
   const app = express();
-  const compatibilitySunset = process.env['DASH_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
+  const compatibilitySunset = process.env['GODEL_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
 
   // SECURITY: Apply security headers with Helmet
   applySecurityHeaders(app);
@@ -141,7 +141,7 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
     app.use(authMiddleware(config.apiKey));
   }
 
-  const healthCacheTtlMs = Number(process.env['DASH_HEALTH_CACHE_TTL_MS'] || 5000);
+  const healthCacheTtlMs = Number(process.env['GODEL_HEALTH_CACHE_TTL_MS'] || 5000);
   let cachedHealth: { value: CombinedDependencyHealth; expiresAt: number } | null = null;
   let healthInFlight: Promise<CombinedDependencyHealth> | null = null;
 
@@ -342,9 +342,9 @@ function resolveDatabaseUrl(): string | undefined {
 
   const host = process.env['POSTGRES_HOST'];
   const port = process.env['POSTGRES_PORT'] || '5432';
-  const db = process.env['POSTGRES_DB'] || 'dash';
-  const user = process.env['POSTGRES_USER'] || 'dash';
-  const password = process.env['POSTGRES_PASSWORD'] || 'dash';
+  const db = process.env['POSTGRES_DB'] || 'godel';
+  const user = process.env['POSTGRES_USER'] || 'godel';
+  const password = process.env['POSTGRES_PASSWORD'] || 'godel';
 
   if (host && host.trim().length > 0) {
     return `postgresql://${user}:${password}@${host}:${port}/${db}`;
@@ -358,7 +358,7 @@ function resolveDatabaseUrl(): string | undefined {
  */
 async function checkDatabase(): Promise<DependencyCheckResult> {
   const start = Date.now();
-  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+  const timeoutMs = Number(process.env['GODEL_HEALTH_TIMEOUT_MS'] || 2000);
   const databaseUrl = resolveDatabaseUrl();
 
   if (databaseUrl && databaseUrl.startsWith('postgres')) {
@@ -390,7 +390,7 @@ async function checkDatabase(): Promise<DependencyCheckResult> {
 
   try {
     const { getDb } = await import('../storage/sqlite');
-    const dbPath = process.env['DASH_SQLITE_PATH'] || './dash.db';
+    const dbPath = process.env['GODEL_SQLITE_PATH'] || './godel.db';
     const db = await withTimeout(getDb({ dbPath }), timeoutMs, 'sqlite init timeout');
     const result = await withTimeout(db.get('SELECT 1 as ok'), timeoutMs, 'sqlite query timeout');
 
@@ -421,8 +421,8 @@ async function checkDatabase(): Promise<DependencyCheckResult> {
 
 async function checkRedis(): Promise<DependencyCheckResult> {
   const start = Date.now();
-  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
-  const required = parseBooleanEnv(process.env['DASH_HEALTH_REQUIRE_REDIS'], false);
+  const timeoutMs = Number(process.env['GODEL_HEALTH_TIMEOUT_MS'] || 2000);
+  const required = parseBooleanEnv(process.env['GODEL_HEALTH_REQUIRE_REDIS'], false);
   const redisUrl = process.env['REDIS_URL']
     || process.env['TEST_REDIS_URL']
     || `redis://${process.env['REDIS_HOST'] || '127.0.0.1'}:${process.env['REDIS_PORT'] || '6379'}/${process.env['REDIS_DB'] || '0'}`;
@@ -465,9 +465,9 @@ async function checkRedis(): Promise<DependencyCheckResult> {
 
 async function checkOpenClaw(): Promise<DependencyCheckResult> {
   const start = Date.now();
-  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+  const timeoutMs = Number(process.env['GODEL_HEALTH_TIMEOUT_MS'] || 2000);
   const required = parseBooleanEnv(
-    process.env['DASH_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'],
+    process.env['GODEL_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'],
     false
   );
   const openclawUrlFromList = process.env['OPENCLAW_GATEWAY_URLS']
@@ -532,9 +532,9 @@ function buildOpenApiDocument(config: UnifiedServerConfig): Record<string, unkno
   return {
     openapi: '3.1.0',
     info: {
-      title: 'Dash API',
+      title: 'Godel API',
       version: '2.0.0',
-      description: 'Dash orchestration API compatibility contract',
+      description: 'Godel orchestration API compatibility contract',
     },
     servers: [
       { url: `http://${config.host}:${config.port}/api/v1`, description: 'Versioned API' },
@@ -590,7 +590,7 @@ function setupAuthRoutes(app: express.Application, config: UnifiedServerConfig):
     // Generate session token
     const sessionToken = generateApiKey('session');
     const csrfToken = generateApiKey('csrf').slice(0, 32);
-    const role = username === (process.env['DASH_ADMIN_USERNAME'] || 'admin') ? 'admin' : 'user';
+    const role = username === (process.env['GODEL_ADMIN_USERNAME'] || 'admin') ? 'admin' : 'user';
     const expiresAt = Date.now() + sessionTtlMs;
     sessionStore.set(sessionToken, { username, role, expiresAt });
     registerSessionToken(sessionToken, expiresAt);
@@ -714,15 +714,15 @@ function secureStringCompare(left: string, right: string): boolean {
 }
 
 async function validateCredentials(username: string, password: string): Promise<boolean> {
-  const configuredUsername = process.env['DASH_ADMIN_USERNAME'];
-  const configuredPassword = process.env['DASH_ADMIN_PASSWORD'];
+  const configuredUsername = process.env['GODEL_ADMIN_USERNAME'];
+  const configuredPassword = process.env['GODEL_ADMIN_PASSWORD'];
 
   if (configuredUsername && configuredPassword) {
     return secureStringCompare(username, configuredUsername) && secureStringCompare(password, configuredPassword);
   }
 
   // Explicit opt-in for development-only credential fallback.
-  if (process.env['NODE_ENV'] !== 'production' && process.env['DASH_ALLOW_DEV_AUTH'] === 'true') {
+  if (process.env['NODE_ENV'] !== 'production' && process.env['GODEL_ALLOW_DEV_AUTH'] === 'true') {
     return username.length > 0 && password.length >= 8;
   }
 
@@ -1035,7 +1035,7 @@ export async function startServer(
 
   return new Promise((resolve, reject) => {
     server.listen(cfg.port, cfg.host, () => {
-      logger.info('server-factory', 'Dash API server started', {
+      logger.info('server-factory', 'Godel API server started', {
         host: cfg.host,
         port: cfg.port,
         framework: cfg.framework,

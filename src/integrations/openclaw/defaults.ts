@@ -2,7 +2,7 @@
  * OpenClaw Permission Manager - Default Configurations
  * 
  * Defines default permission sets, sandbox configurations, and security profiles
- * for Dash agent execution via OpenClaw.
+ * for Godel agent execution via OpenClaw.
  */
 
 // ============================================================================

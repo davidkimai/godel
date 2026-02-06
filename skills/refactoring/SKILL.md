@@ -2,7 +2,7 @@
 name: refactoring
 description: Restructure existing code to improve internal quality without changing external behavior. Use when code has technical debt, poor readability, duplication, or needs modernization. Includes code cleanup, pattern migration, and architecture improvements.
 metadata:
-  author: dash-team
+  author: godel-team
   version: "1.0.0"
   category: maintenance
 ---

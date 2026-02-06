@@ -1,7 +1,7 @@
 /**
  * API Integration Tests
  * 
- * Tests the Dash API endpoints with real database connections.
+ * Tests the Godel API endpoints with real database connections.
  * Requires PostgreSQL and Redis to be running.
  */
 
@@ -11,13 +11,13 @@ import { Pool } from 'pg';
 import Redis from 'ioredis';
 
 // Test configuration
-const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://dash:dash@localhost:5432/dash_test';
+const TEST_DB_URL = process.env['TEST_DATABASE_URL'] || 'postgresql://godel:godel@localhost:5432/godel_test';
 const TEST_REDIS_URL = process.env['TEST_REDIS_URL'] || 'redis://localhost:6379/1';
 const RUN_LIVE_INTEGRATION_TESTS = process.env['RUN_LIVE_INTEGRATION_TESTS'] === 'true';
 
 const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 
-describeLive('Dash API Integration', () => {
+describeLive('Godel API Integration', () => {
   let db: Pool;
   let redis: Redis;
   let apiUrl: string;
