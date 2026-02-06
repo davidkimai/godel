@@ -29,7 +29,6 @@ import metricsApiRoutes from './routes/metrics';
 import { healthRoutes } from './health';
 import { metricsRoutes as collectorMetricsRoutes, setupMetricsPlugin } from '../metrics/collector';
 import { setupCorrelationMiddleware, tracingRoutes } from '../tracing/correlation';
-import { setupErrorHandler } from '../errors/format';
 
 // Middleware
 import authPlugin, { AuthConfig } from './middleware/auth-fastify';
@@ -78,6 +77,7 @@ export async function createFastifyServer(
   config: Partial<FastifyServerConfig> = {}
 ): Promise<FastifyInstance> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
+  const compatibilitySunset = process.env['DASH_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
   
   // Create Fastify instance
   const fastify = Fastify({
@@ -85,6 +85,21 @@ export async function createFastifyServer(
       level: 'info',
     },
     genReqId: () => `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  });
+
+  // Mark legacy compatibility surface as deprecated while preserving runtime behavior.
+  fastify.addHook('onSend', async (request, reply, payload) => {
+    const rawUrl = request.raw.url || request.url || '';
+    const path = rawUrl.split('?')[0] || '';
+    const isCompatPath = (path === '/api' || path.startsWith('/api/')) && !path.startsWith('/api/v1/');
+
+    if (isCompatPath) {
+      reply.header('Deprecation', 'true');
+      reply.header('Sunset', compatibilitySunset);
+      reply.header('Link', '</api/v1>; rel="successor-version"');
+    }
+
+    return payload;
   });
   
   // Register plugins
@@ -254,7 +269,6 @@ export async function createFastifyServer(
   // Setup observability middleware
   setupCorrelationMiddleware(fastify);
   setupMetricsPlugin(fastify);
-  setupErrorHandler(fastify);
 
   // Register routes
   

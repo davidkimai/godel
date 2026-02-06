@@ -12,6 +12,9 @@ import express, { Request, Response, NextFunction, Router } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { timingSafeEqual } from 'crypto';
+import { Client as PgClient } from 'pg';
+import Redis from 'ioredis';
+import WebSocket from 'ws';
 import { getConfig, type DashConfig } from '../config';
 import { startWebSocketServer } from './websocket';
 
@@ -103,6 +106,7 @@ function getIdParam(req: Request): string {
  */
 export async function createExpressApp(config: UnifiedServerConfig): Promise<express.Application> {
   const app = express();
+  const compatibilitySunset = process.env['DASH_API_COMPAT_SUNSET'] || 'Wed, 31 Dec 2026 23:59:59 GMT';
 
   // SECURITY: Apply security headers with Helmet
   applySecurityHeaders(app);
@@ -117,6 +121,16 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // Mark compatibility API namespace as deprecated, preserving runtime support.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if ((req.path === '/api' || req.path.startsWith('/api/')) && !req.path.startsWith('/api/v1/')) {
+      res.setHeader('Deprecation', 'true');
+      res.setHeader('Sunset', compatibilitySunset);
+      res.setHeader('Link', '</api/v1>; rel="successor-version"');
+    }
+    next();
+  });
+
   // SECURITY: Smart rate limiting (stricter for auth endpoints)
   app.use(smartRateLimitMiddleware({
     defaultLimit: config.rateLimit || 1000,
@@ -127,81 +141,77 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
     app.use(authMiddleware(config.apiKey));
   }
 
-  // Health check (no auth required)
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ 
-      status: 'healthy', 
+  const healthHandler = asyncHandler(async (_req: Request, res: Response) => {
+    const health = await collectDependencyHealth();
+    const statusCode = health.status === 'unhealthy' ? 503 : 200;
+    res.status(statusCode).json({
+      status: health.status,
       version: '2.0.0',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
+      checks: health.checks,
     });
   });
 
-  // Detailed health check
-  app.get('/health/detailed', asyncHandler(async (_req: Request, res: Response) => {
-    const startTime = Date.now();
-    
-    // Check database
-    const dbCheck = await checkDatabase();
-    
-    // Check memory
-    const memUsage = process.memoryUsage();
-    const memoryHealthy = memUsage.heapUsed / memUsage.heapTotal < 0.9;
-    
-    // Determine overall status
-    const statuses = [dbCheck.status, memoryHealthy ? 'healthy' : 'degraded'];
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    
-    if (statuses.includes('unhealthy')) {
-      overallStatus = 'unhealthy';
-    } else if (statuses.includes('degraded')) {
-      overallStatus = 'degraded';
-    }
-    
-    res.json({
-      status: overallStatus,
-      version: '2.0.0',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      checks: {
-        database: {
-          status: dbCheck.status,
-          responseTime: dbCheck.responseTime,
-          message: dbCheck.message,
-        },
-        memory: {
-          status: memoryHealthy ? 'healthy' : 'degraded',
-          responseTime: Date.now() - startTime,
-          message: `Heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
-        },
-        eventBus: {
-          status: 'healthy' as const,
-          responseTime: 1,
-          message: 'Event bus operational',
-        },
-      },
-    });
-  }));
-
-  // Readiness check
+  // Root health routes.
+  app.get('/health', healthHandler);
+  app.get('/health/detailed', healthHandler);
   app.get('/health/ready', asyncHandler(async (_req: Request, res: Response) => {
-    const dbCheck = await checkDatabase();
-    const ready = dbCheck.status === 'healthy';
-    
-    res.json({
-      ready,
-      checks: {
-        database: {
-          ready: dbCheck.status === 'healthy',
-          message: dbCheck.message,
-        },
-      },
+    const health = await collectDependencyHealth();
+    const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
+
+    if (!blocking) {
+      res.json({ status: 'ready' });
+      return;
+    }
+
+    res.status(503).json({
+      status: 'not ready',
+      reason: `${blocking[0]} unavailable`,
+      checks: health.checks,
     });
   }));
-
-  // Liveness check
   app.get('/health/live', (_req: Request, res: Response) => {
-    res.json({ alive: true });
+    res.json({ status: 'alive', timestamp: new Date().toISOString() });
+  });
+
+  // API-prefixed compatibility aliases.
+  app.get('/api/v1/health', healthHandler);
+  app.get('/api/v1/health/detailed', healthHandler);
+  app.get('/api/v1/health/ready', asyncHandler(async (_req: Request, res: Response) => {
+    const health = await collectDependencyHealth();
+    const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
+    if (!blocking) {
+      res.json({ status: 'ready' });
+      return;
+    }
+    res.status(503).json({ status: 'not ready', reason: `${blocking[0]} unavailable`, checks: health.checks });
+  }));
+  app.get('/api/v1/health/live', (_req: Request, res: Response) => {
+    res.json({ status: 'alive', timestamp: new Date().toISOString() });
+  });
+
+  app.get('/api/health', healthHandler);
+  app.get('/api/health/detailed', healthHandler);
+  app.get('/api/health/ready', asyncHandler(async (_req: Request, res: Response) => {
+    const health = await collectDependencyHealth();
+    const blocking = Object.entries(health.checks).find(([, value]) => value.required && value.status !== 'healthy');
+    if (!blocking) {
+      res.json({ status: 'ready' });
+      return;
+    }
+    res.status(503).json({ status: 'not ready', reason: `${blocking[0]} unavailable`, checks: health.checks });
+  }));
+  app.get('/api/health/live', (_req: Request, res: Response) => {
+    res.json({ status: 'alive', timestamp: new Date().toISOString() });
+  });
+
+  const openApiSpec = buildOpenApiDocument(config);
+  app.get('/api/v1/openapi.json', (_req: Request, res: Response) => {
+    res.json(openApiSpec);
+  });
+  app.get('/api/openapi.json', (_req: Request, res: Response) => {
+    res.json(openApiSpec);
   });
 
   // SECURITY: Auth endpoints with stricter rate limiting
@@ -266,44 +276,254 @@ export async function createExpressApp(config: UnifiedServerConfig): Promise<exp
   return app;
 }
 
-/**
- * Check database health
- */
-async function checkDatabase(): Promise<{
+interface DependencyCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   responseTime: number;
   message?: string;
-}> {
+  required: boolean;
+}
+
+interface CombinedDependencyHealth {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  checks: {
+    database: DependencyCheckResult;
+    redis: DependencyCheckResult;
+    openclaw: DependencyCheckResult;
+  };
+}
+
+function parseBooleanEnv(value: string | undefined, defaultValue = false): boolean {
+  if (value == null) return defaultValue;
+  const normalized = value.trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  let timer: NodeJS.Timeout | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+function resolveDatabaseUrl(): string | undefined {
+  const explicit = process.env['DATABASE_URL'] || process.env['TEST_DATABASE_URL'];
+  if (explicit && explicit.trim().length > 0) return explicit;
+
+  const host = process.env['POSTGRES_HOST'];
+  const port = process.env['POSTGRES_PORT'] || '5432';
+  const db = process.env['POSTGRES_DB'] || 'dash';
+  const user = process.env['POSTGRES_USER'] || 'dash';
+  const password = process.env['POSTGRES_PASSWORD'] || 'dash';
+
+  if (host && host.trim().length > 0) {
+    return `postgresql://${user}:${password}@${host}:${port}/${db}`;
+  }
+
+  return undefined;
+}
+
+/**
+ * Check database health
+ */
+async function checkDatabase(): Promise<DependencyCheckResult> {
   const start = Date.now();
-  
-  try {
-    // Simple check - try to load the sqlite module
-    const { getDb } = require('../storage/sqlite');
-    const db = await getDb({ dbPath: './dash.db' });
-    
-    // Try a simple query
-    const result = db.prepare('SELECT 1 as test').get();
-    
-    if (result && result.test === 1) {
+  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+  const databaseUrl = resolveDatabaseUrl();
+
+  if (databaseUrl && databaseUrl.startsWith('postgres')) {
+    const client = new PgClient({
+      connectionString: databaseUrl,
+      connectionTimeoutMillis: timeoutMs,
+    });
+
+    try {
+      await withTimeout(client.connect(), timeoutMs, 'postgres connect timeout');
+      await withTimeout(client.query('SELECT 1 AS ok'), timeoutMs, 'postgres query timeout');
       return {
         status: 'healthy',
         responseTime: Date.now() - start,
-        message: 'Database connection OK',
+        message: 'PostgreSQL connection OK',
+        required: true,
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        responseTime: Date.now() - start,
+        message: error instanceof Error ? error.message : 'PostgreSQL connection failed',
+        required: true,
+      };
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  try {
+    const { getDb } = await import('../storage/sqlite');
+    const dbPath = process.env['DASH_SQLITE_PATH'] || './dash.db';
+    const db = await withTimeout(getDb({ dbPath }), timeoutMs, 'sqlite init timeout');
+    const result = await withTimeout(db.get('SELECT 1 as ok'), timeoutMs, 'sqlite query timeout');
+
+    if (result?.ok === 1) {
+      return {
+        status: 'healthy',
+        responseTime: Date.now() - start,
+        message: 'SQLite connection OK',
+        required: true,
       };
     }
-    
+
     return {
       status: 'degraded',
       responseTime: Date.now() - start,
-      message: 'Database query returned unexpected result',
+      message: 'SQLite health query returned unexpected response',
+      required: true,
     };
   } catch (error) {
     return {
       status: 'unhealthy',
       responseTime: Date.now() - start,
-      message: error instanceof Error ? error.message : 'Database connection failed',
+      message: error instanceof Error ? error.message : 'SQLite connection failed',
+      required: true,
     };
   }
+}
+
+async function checkRedis(): Promise<DependencyCheckResult> {
+  const start = Date.now();
+  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+  const required = parseBooleanEnv(process.env['DASH_HEALTH_REQUIRE_REDIS'], false);
+  const redisUrl = process.env['REDIS_URL']
+    || process.env['TEST_REDIS_URL']
+    || `redis://${process.env['REDIS_HOST'] || '127.0.0.1'}:${process.env['REDIS_PORT'] || '6379'}/${process.env['REDIS_DB'] || '0'}`;
+  const redis = new Redis(redisUrl, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    connectTimeout: timeoutMs,
+  });
+
+  try {
+    await withTimeout(redis.connect(), timeoutMs, 'redis connect timeout');
+    const pong = await withTimeout(redis.ping(), timeoutMs, 'redis ping timeout');
+    if (pong === 'PONG') {
+      return {
+        status: 'healthy',
+        responseTime: Date.now() - start,
+        message: 'Redis ping OK',
+        required,
+      };
+    }
+
+    return {
+      status: required ? 'unhealthy' : 'degraded',
+      responseTime: Date.now() - start,
+      message: `Unexpected Redis ping response: ${pong}`,
+      required,
+    };
+  } catch (error) {
+    return {
+      status: required ? 'unhealthy' : 'degraded',
+      responseTime: Date.now() - start,
+      message: error instanceof Error ? error.message : 'Redis unavailable',
+      required,
+    };
+  } finally {
+    redis.disconnect();
+  }
+}
+
+async function checkOpenClaw(): Promise<DependencyCheckResult> {
+  const start = Date.now();
+  const timeoutMs = Number(process.env['DASH_HEALTH_TIMEOUT_MS'] || 2000);
+  const required = parseBooleanEnv(
+    process.env['DASH_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'],
+    false
+  );
+  const openclawUrlFromList = process.env['OPENCLAW_GATEWAY_URLS']
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)[0];
+  const gatewayUrl = process.env['OPENCLAW_GATEWAY_URL'] || openclawUrlFromList || 'ws://127.0.0.1:18789';
+
+  return new Promise<DependencyCheckResult>((resolve) => {
+    const ws = new WebSocket(gatewayUrl);
+    const timeout = setTimeout(() => {
+      ws.terminate();
+      resolve({
+        status: required ? 'unhealthy' : 'degraded',
+        responseTime: Date.now() - start,
+        message: `Gateway probe timeout (${gatewayUrl})`,
+        required,
+      });
+    }, timeoutMs);
+
+    ws.once('open', () => {
+      clearTimeout(timeout);
+      ws.close();
+      resolve({
+        status: 'healthy',
+        responseTime: Date.now() - start,
+        message: `Gateway reachable (${gatewayUrl})`,
+        required,
+      });
+    });
+
+    ws.once('error', (error) => {
+      clearTimeout(timeout);
+      resolve({
+        status: required ? 'unhealthy' : 'degraded',
+        responseTime: Date.now() - start,
+        message: error.message,
+        required,
+      });
+    });
+  });
+}
+
+async function collectDependencyHealth(): Promise<CombinedDependencyHealth> {
+  const [database, redis, openclaw] = await Promise.all([
+    checkDatabase(),
+    checkRedis(),
+    checkOpenClaw(),
+  ]);
+
+  const checks = { database, redis, openclaw };
+  const requiredFailures = Object.values(checks).some((check) => check.required && check.status === 'unhealthy');
+  const hasDegradation = Object.values(checks).some((check) => check.status !== 'healthy');
+
+  return {
+    status: requiredFailures ? 'unhealthy' : hasDegradation ? 'degraded' : 'healthy',
+    checks,
+  };
+}
+
+function buildOpenApiDocument(config: UnifiedServerConfig): Record<string, unknown> {
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: 'Dash API',
+      version: '2.0.0',
+      description: 'Dash orchestration API compatibility contract',
+    },
+    servers: [
+      { url: `http://${config.host}:${config.port}/api/v1`, description: 'Versioned API' },
+      { url: `http://${config.host}:${config.port}/api`, description: 'Deprecated compatibility API' },
+    ],
+    paths: {
+      '/health': { get: { summary: 'Health check' } },
+      '/health/live': { get: { summary: 'Liveness check' } },
+      '/health/ready': { get: { summary: 'Readiness check' } },
+      '/agents': { get: { summary: 'List agents' }, post: { summary: 'Create agent' } },
+      '/swarms': { get: { summary: 'List swarms' }, post: { summary: 'Create swarm' } },
+      '/tasks': { get: { summary: 'List tasks' }, post: { summary: 'Create task' } },
+      '/metrics': { get: { summary: 'Metrics endpoint' } },
+      '/logs': { get: { summary: 'Logs endpoint' } },
+    },
+  };
 }
 
 /**

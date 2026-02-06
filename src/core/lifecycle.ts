@@ -104,6 +104,8 @@ export class AgentLifecycle extends EventEmitter {
   private readonly DEFAULT_MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 1000; // 1 second
   private startPromise: Promise<void> | null = null;
+  private openClawAvailable = false;
+  private degradedModeLogged = false;
 
   // RACE CONDITION FIX: One mutex per agent for exclusive state transitions
   private mutexes: Map<string, Mutex> = new Map();
@@ -159,8 +161,25 @@ export class AgentLifecycle extends EventEmitter {
     this.startPromise = (async () => {
       // Initialize OpenClaw core primitive
       logger.info('[AgentLifecycle] Starting lifecycle manager, initializing OpenClaw core...');
-      await this.openclaw.initialize();
-      await this.openclaw.connect();
+      const strictOpenClaw =
+        (process.env['DASH_OPENCLAW_REQUIRED'] || process.env['OPENCLAW_REQUIRED'] || 'false')
+          .toLowerCase() === 'true';
+
+      try {
+        await this.openclaw.initialize();
+        await this.openclaw.connect();
+        this.openClawAvailable = true;
+        this.degradedModeLogged = false;
+      } catch (error) {
+        if (strictOpenClaw) {
+          throw error;
+        }
+
+        this.openClawAvailable = false;
+        logger.warn('[AgentLifecycle] OpenClaw gateway unavailable; continuing in degraded mode', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
       this.active = true;
       this.emit('lifecycle.started');
@@ -219,30 +238,36 @@ export class AgentLifecycle extends EventEmitter {
       this.getMutex(agent.id);
 
       // Spawn OpenClaw session - core primitive, always available
-      const sessionResult = await safeExecute(
-        async () => {
-          const spawnOptions: SessionSpawnOptions = {
-            agentId: agent.id,
-            model: agent.model,
-            task: agent.task,
-            context: {
-              label: agent.label,
-              swarmId: agent.swarmId,
-              parentId: agent.parentId,
-              ...agent.metadata,
-            },
-            maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
-          };
+      let sessionResult: string | undefined;
+      if (this.openClawAvailable) {
+        sessionResult = await safeExecute(
+          async () => {
+            const spawnOptions: SessionSpawnOptions = {
+              agentId: agent.id,
+              model: agent.model,
+              task: agent.task,
+              context: {
+                label: agent.label,
+                swarmId: agent.swarmId,
+                parentId: agent.parentId,
+                ...agent.metadata,
+              },
+              maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
+            };
 
-          const sessionId = await this.openclaw.spawnSession(spawnOptions);
-          return sessionId;
-        },
-        undefined,
-        { 
-          logError: true, 
-          context: 'AgentLifecycle.spawnSession' 
-        }
-      );
+            const sessionId = await this.openclaw.spawnSession(spawnOptions);
+            return sessionId;
+          },
+          undefined,
+          {
+            logError: true,
+            context: 'AgentLifecycle.spawnSession',
+          }
+        );
+      } else if (!this.degradedModeLogged) {
+        this.degradedModeLogged = true;
+        logger.warn('[AgentLifecycle] Skipping OpenClaw session spawn while gateway is unavailable');
+      }
 
       if (sessionResult) {
         state.sessionId = sessionResult;

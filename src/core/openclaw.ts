@@ -182,6 +182,7 @@ export class OpenClawGatewayClient extends EventEmitter {
   private stats: GatewayStats;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private authenticationPromise: Promise<void> | null = null;
   private eventSeq = 0;
   private requestIdCounter = 0;
   private clientId: string;
@@ -245,15 +246,10 @@ export class OpenClawGatewayClient extends EventEmitter {
       try {
         this.ws = new WebSocket(wsUrl);
 
-        this.ws.once('open', async () => {
+        this.ws.once('open', () => {
           clearTimeout(timeout);
-          try {
-            await this.handleOpen();
-            resolve();
-          } catch (error) {
-            this.handleError(error as Error);
-            reject(error);
-          }
+          this.handleOpen();
+          resolve();
         });
 
         this.ws.once('error', (error) => {
@@ -328,6 +324,23 @@ export class OpenClawGatewayClient extends EventEmitter {
    * Authenticate with the Gateway using token
    */
   async authenticate(): Promise<void> {
+    if (this.state === 'authenticated') {
+      return;
+    }
+    if (this.authenticationPromise) {
+      await this.authenticationPromise;
+      return;
+    }
+
+    this.authenticationPromise = this.performAuthentication();
+    try {
+      await this.authenticationPromise;
+    } finally {
+      this.authenticationPromise = null;
+    }
+  }
+
+  private async performAuthentication(): Promise<void> {
     this.setState('authenticating');
     const connectParams: Record<string, unknown> = {
       client: {
@@ -355,10 +368,10 @@ export class OpenClawGatewayClient extends EventEmitter {
       if (this.options.subscriptions) {
         for (const event of this.options.subscriptions) {
           this.subscribeToEvent(event).catch((error) => {
-            this.emit(
-              'error',
-              new GatewayError('REQUEST_ERROR', `Failed to subscribe to event: ${event}`, error)
-            );
+            logger.warn('[OpenClawGatewayClient] Failed to subscribe to event', {
+              event,
+              error: error instanceof Error ? error.message : String(error),
+            });
           });
         }
       }
@@ -392,6 +405,10 @@ export class OpenClawGatewayClient extends EventEmitter {
       } else {
         throw new ConnectionError('Not connected to Gateway');
       }
+    }
+
+    if (method !== 'connect' && this.state !== 'authenticated') {
+      await this.authenticate();
     }
 
     const id = this.generateRequestId();
@@ -626,11 +643,11 @@ export class OpenClawGatewayClient extends EventEmitter {
     await this.request('subscribe', { event });
   }
 
-  private async handleOpen(): Promise<void> {
+  private handleOpen(): void {
     this.stats.connectedAt = new Date();
     this.reconnectionState = null;
     this.emit('connected');
-    await this.authenticate();
+    this.setState('connected');
 
     this.startHeartbeat();
   }
@@ -1401,10 +1418,12 @@ export class OpenClawCore extends EventEmitter {
     const results = await Promise.allSettled(
       this.gatewayPool.map(async (gatewayEntry) => {
         const state = gatewayEntry.client.connectionState;
-        if (state === 'connected' || state === 'authenticated') {
-          return true;
+        if (state !== 'connected' && state !== 'authenticated') {
+          await gatewayEntry.client.connect();
         }
-        await gatewayEntry.client.connect();
+        if (gatewayEntry.client.connectionState !== 'authenticated') {
+          await gatewayEntry.client.authenticate();
+        }
         return true;
       })
     );

@@ -22,14 +22,16 @@ const clients = new Map<WebSocket, Client>();
 let wss: WebSocketServer | null = null;
 
 export function startWebSocketServer(server: Server, apiKey: string): WebSocketServer {
-  wss = new WebSocketServer({ 
-    server,
-    path: '/events'
-  });
+  wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws: WebSocket, req) => {
-    // Extract token from query string
     const url = new URL(req.url || '', `http://${req.headers.host}`);
+    if (url.pathname !== '/events' && url.pathname !== '/ws') {
+      ws.close(1008, 'Invalid WebSocket path');
+      return;
+    }
+
+    // Extract token from query string
     const token = url.searchParams.get('token');
 
     const client: Client = {

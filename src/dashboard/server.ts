@@ -421,9 +421,15 @@ export class DashboardServer extends EventEmitter {
   private setupWebSocketServer(): void {
     if (!this.server) return;
 
-    this.wss = new WebSocketServer({ server: this.server, path: '/events' });
+    this.wss = new WebSocketServer({ server: this.server });
 
-    this.wss.on('connection', (ws: WebSocket) => {
+    this.wss.on('connection', (ws: WebSocket, req) => {
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      if (url.pathname !== '/events' && url.pathname !== '/ws') {
+        ws.close(1008, 'Invalid WebSocket path');
+        return;
+      }
+
       const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const client: DashboardClient = {
