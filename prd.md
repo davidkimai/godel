@@ -83,6 +83,41 @@ Dash is a **production-grade meta-orchestration control plane** designed to mana
 
 ---
 
+## 1.5 Principles and Trade-offs
+
+### Non-Negotiables
+
+These principles are foundational to Dash's design. Violating them would compromise the product's core value.
+
+| Principle | Description | Why Non-Negotiable |
+|-----------|-------------|-------------------|
+| **Task Durability** | No task shall be lost silently. Every submitted task must reach terminal state (completed/failed/dead-letter) with audit trail. | Infrastructure that loses work is useless. Trust is permanent. |
+| **Session Isolation** | Agent sessions must not interfere with each other. File system, network, and memory isolation are mandatory. | Security and predictability. One misbehaving agent cannot corrupt others. |
+| **Observability** | Every operation must be observable: logs, metrics, traces. "Black box" execution is unacceptable. | Debugging distributed systems requires full visibility. No excuses. |
+| **Graceful Degradation** | System must degrade gracefully under load, never crash or lose data. Backpressure > overload. | Production systems face chaos. Resilience is not optional. |
+
+### Trade-off Matrix
+
+Explicit decisions about what we optimize for and what we sacrifice:
+
+| Priority | Optimize For | Sacrifice | Mitigation |
+|----------|--------------|-----------|------------|
+| 1 | Reliability (99.9% uptime) | Latency (tasks may queue) | Priority lanes, fast-path for critical tasks |
+| 2 | Cost Efficiency | Implementation Complexity | Clear documentation, battle-tested patterns |
+| 3 | Developer Experience | Flexibility | Opinionated defaults with escape hatches |
+| 4 | Observability | Performance Overhead | Sampling, async exporters, efficient encoding |
+| 5 | Multi-Tenancy | Max Resource Utilization | Over-provisioning headroom, auto-scaling |
+
+### Decision Framework
+
+When faced with architectural decisions, use this priority order:
+1. Does it compromise task durability? **REJECT**
+2. Does it improve reliability without breaking durability? **ACCEPT**
+3. Does it improve cost/UX/observability within reliability constraints? **ACCEPT**
+4. Does it reduce cost at expense of reliability? **REJECT**
+
+---
+
 ## 2. Market Context & Competitive Positioning
 
 ### 2.1 Competitive Landscape Analysis
@@ -304,6 +339,38 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 **Goal 8: Self-Healing Operations**
 - Automatic recovery from common failure modes without human intervention
 - Success Criteria: >95% of failures self-resolved within 5 minutes
+
+---
+
+## 4.5 Developer Journey Map
+
+### Emotional Journey Through Dash Adoption
+
+| Phase | Emotional State | Touchpoints | Success Metrics |
+|-------|-----------------|-------------|-----------------|
+| **Discovery** | Curiosity | GitHub README, docs landing, Hacker News | Time to first read < 5 min |
+| **Installation** | Anxiety → Relief | `npm install -g dash`, `dash onboard` | Install success rate > 95% |
+| **First Task** | Apprehension → Surprise | CLI submission, dashboard loading | First task completes < 30s |
+| **Multi-Agent** | Confidence → Delight | 10+ agents running, all succeed | Zero manual intervention |
+| **Production** | Trust | 24/7 operation, alerts, runbooks | MTTR < 5 min, MTBF > 7 days |
+| **Advocacy** | Enthusiasm | Sharing on Twitter, contributing | NPS > 50 |
+
+### Key "Aha" Moments
+
+1. **The Swarm:** "I submitted 20 tasks, went to get coffee, came back to all completed"
+2. **The Recovery:** "Agent crashed but task resumed from checkpoint automatically"
+3. **The Visibility:** "I can see exactly what every agent is doing in real-time"
+4. **The Savings:** "My LLM costs dropped 40% with smart routing"
+
+### Pain Points to Address
+
+| Pain Point | Current State (Without Dash) | Future State (With Dash) |
+|------------|------------------------------|--------------------------|
+| Context Switching | 5+ terminal windows, lost track | Single dashboard, unified view |
+| Task Orphans | "Did that agent finish?" | Clear status, automatic retry |
+| Merge Conflicts | Manual resolution, 30 min each | Automated merge queue, conflict detection |
+| Cost Surprises | Monthly bill shock | Real-time cost tracking, alerts |
+| Debug Black Box | "It just failed, no idea why" | Full traces, logs, replay capability |
 
 ---
 

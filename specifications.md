@@ -1625,6 +1625,96 @@ interface ProxySecurity {
 
 ---
 
+## Failure Mode and Effects Analysis (FMEA)
+
+### Critical Failure Modes
+
+| ID | Failure Mode | Severity (1-10) | Probability (1-10) | Detection (1-10) | RPN | Detection Method | Mitigation | Recovery |
+|----|--------------|-----------------|-------------------|------------------|-----|------------------|------------|----------|
+| F001 | Queue state drift (Redis) | 10 | 4 | 3 | 120 | Queue depth inconsistency alerts | Lua atomic operations, PostgreSQL audit log | Rebuild queue from audit log |
+| F002 | Session checkpoint corruption | 9 | 3 | 4 | 108 | Checksum validation on restore | Multi-layer storage (Redis + PostgreSQL + S3) | Restore from previous checkpoint |
+| F003 | Cascading retry storm | 8 | 5 | 5 | 200 | Rate of retry attempts metric | Exponential backoff, circuit breaker, max retry limits | Manual circuit reset after fix |
+| F004 | Split-brain (scheduler) | 9 | 2 | 2 | 36 | Leader election heartbeat timeout | etcd/ZooKeeper distributed consensus | Automatic failover to standby |
+| F005 | Provider rate limit exhaustion | 7 | 6 | 8 | 336 | Provider error rate alerts | Multi-provider fallback, quota tracking | Automatic fallback chain activation |
+| F006 | Resource leak (session pool) | 8 | 4 | 6 | 192 | Session count vs. active tasks metric | Session TTL, automatic cleanup, max pool size | Restart session pool, audit leaked sessions |
+| F007 | Priority inversion | 7 | 5 | 7 | 245 | Critical task wait time alerts | Strict priority ordering, starvation prevention | Manual queue reorder (emergency) |
+| F008 | Thundering herd (agent wake) | 6 | 5 | 8 | 240 | Simultaneous agent start metric | Jittered start times, rate limiting, pool pre-warming | Pause agent creation, gradual resume |
+| F009 | Clock skew (distributed nodes) | 5 | 3 | 4 | 60 | NTP drift monitoring | NTP synchronization, logical clocks (Lamport) | Clock correction, event reordering |
+| F010 | Silent task loss (dispatch) | 10 | 3 | 2 | 60 | Task timeout without completion | Distributed transaction log, idempotent dispatch | Replay from transaction log |
+
+*RPN = Risk Priority Number = Severity × Probability × Detection*
+
+### Failure Response Playbook
+
+**F001: Queue State Drift**
+```yaml
+Detection: queue_depth_inconsistent alert fires
+Immediate_Action: Pause new dispatches
+Investigation: Compare Redis queue with PostgreSQL audit log
+Recovery: 
+  - Identify drift point from audit log
+  - Rebuild Redis queue from authoritative PostgreSQL log
+  - Resume dispatches
+Prevention: 
+  - Implement Lua atomic operations for all queue mutations
+  - Add real-time consistency checker (background job)
+```
+
+**F003: Cascading Retry Storm**
+```yaml
+Detection: retry_rate > 100/minute
+Immediate_Action: 
+  - Activate circuit breaker for affected agent/provider
+  - Pause non-critical task dispatches
+Investigation:
+  - Identify root cause (bad code, dependency failure, etc.)
+  - Check if transient or persistent
+Recovery:
+  - If transient: Wait for cooldown, gradual retry
+  - If persistent: Fix root cause, manual circuit reset
+Prevention:
+  - Exponential backoff with jitter
+  - Max retry limits per task type
+  - Circuit breaker on error rate
+```
+
+---
+
+## Resource Limits and Degradation Policies
+
+### System-Wide Limits
+
+| Resource | Soft Limit | Hard Limit | Action at Soft Limit | Action at Hard Limit |
+|----------|------------|------------|---------------------|---------------------|
+| Concurrent Tasks | 400 | 500 | Alert, queue tasks | Reject new tasks |
+| Active Sessions | 45 | 50 | Alert, start session cleanup | Reject session creation |
+| Queue Depth | 5,000 | 10,000 | Alert, enable backpressure | Reject task submission |
+| Redis Memory | 70% | 85% | Alert, compact old data | Stop accepting tasks |
+| DB Connections | 80% | 95% | Alert, enable connection pooling | Queue requests |
+| API Rate (per tenant) | 80% of quota | 100% of quota | Alert | 429 Too Many Requests |
+
+### Degradation Cascade
+
+When system approaches limits, degrade gracefully in this order:
+
+1. **Level 1 (Healthy):** Full functionality, all features enabled
+2. **Level 2 (Stressed):** 
+   - Disable non-critical features (detailed metrics, audit logging for debug)
+   - Reduce checkpoint frequency
+   - Alert operators
+3. **Level 3 (Degraded):**
+   - Pause background jobs (cleanup, compaction)
+   - Route new tasks to overflow queue
+   - Reduce WebSocket update frequency
+   - Page on-call
+4. **Level 4 (Critical):**
+   - Reject non-critical task submissions
+   - Force session checkpoint and suspend idle sessions
+   - Emergency circuit breaker on all external calls
+   - All-hands incident response
+
+---
+
 ## Pi Integration Core Components (Detailed)
 
 Based on the complete Pi-Dash integration design, the following core components provide detailed implementation specifications:
