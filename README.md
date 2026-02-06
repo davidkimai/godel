@@ -41,25 +41,25 @@ Dash automatically:
 
 ## Key Features
 
-### 🎯 Multi-Provider Orchestration
+### Multi-Provider Orchestration
 - **Pi Integration First-Class**: Native support for Pi multi-provider CLI (15+ providers)
 - **Model Routing**: Cost-optimized, capability-matched, and latency-optimized routing
 - **Fallback Chains**: Automatic failover between providers (Anthropic → OpenAI → Google)
 - **Unified API**: Single interface for Claude, GPT-4, Gemini, and more
 
-### 🌳 Tree-Structured Sessions
+### Tree-Structured Sessions
 - **Branching**: Explore multiple approaches from any point in conversation
 - **Forking**: Create new sessions from any conversation node
 - **Navigation**: `/tree`, `/branch`, `/fork`, `/switch`, `/compact` commands
 - **Context Management**: Automatic compaction when context windows fill
 
-### 🔒 Git Worktree Isolation
+### Git Worktree Isolation
 - **Per-Session Worktrees**: Each agent operates in isolated git worktrees
 - **Dependency Sharing**: node_modules, .venv shared via symlinks
 - **Automatic Cleanup**: Policies for immediate, on-success, delayed, or manual cleanup
 - **Conflict Prevention**: Concurrent work on different branches without conflicts
 
-### 🏢 Agent Role System
+### Agent Role System
 Gas Town-inspired specialized roles for coordinated workflows:
 
 | Role | Purpose | Tools |
@@ -70,13 +70,13 @@ Gas Town-inspired specialized roles for coordinated workflows:
 | **Refinery** | Merge conflicts and integration | git_merge, git_rebase, resolve_conflict |
 | **Monitor (Deacon)** | System health and alerting | query_metrics, check_health, alert |
 
-### 🌐 Federation Architecture
+### Federation Architecture
 - **Multi-Instance Management**: Route across 10-50+ OpenClaw instances
 - **Health-Aware Routing**: Automatic failover to healthy instances
 - **Session Affinity**: Keep related sessions on the same instance
 - **Capacity Management**: Backpressure and load balancing
 
-### 🛡️ Server-Side LLM Proxy
+### Server-Side LLM Proxy
 - **Security**: API keys stay server-side, never exposed to clients
 - **Rate Limiting**: Token bucket algorithm with per-user quotas
 - **Content Filtering**: PII detection and input/output sanitization
@@ -430,38 +430,38 @@ const swarm = await client.swarms.create({
 
 ```
 dash/
-├── src/
-│   ├── api/                    # REST API endpoints
-│   │   ├── routes/
-│   │   │   ├── pi.ts          # Pi integration routes
-│   │   │   ├── worktrees.ts   # Worktree management
-│   │   │   ├── proxy.ts       # LLM proxy routes
-│   │   │   ├── federation.ts  # Instance federation
-│   │   │   └── roles.ts       # Agent roles
-│   │   └── fastify-server.ts  # Main server
-│   ├── core/
-│   │   ├── worktree/          # Git worktree isolation
-│   │   ├── federation/        # Multi-instance federation
-│   │   └── roles/             # Agent role system
-│   ├── integrations/
-│   │   └── pi/                # Pi SDK integration
-│   │       ├── registry.ts    # Provider registry
-│   │       ├── router.ts      # Model routing
-│   │       ├── session.ts     # Session management
-│   │       ├── tree.ts        # Tree-structured sessions
-│   │       ├── tools.ts       # Tool interceptor
-│   │       └── client.ts      # Pi RPC client
-│   ├── proxy/                 # Server-side LLM proxy
-│   │   ├── proxy.ts           # Main proxy
-│   │   ├── adapters.ts        # Provider adapters
-│   │   ├── security.ts        # Auth & rate limiting
-│   │   └── cache.ts           # Response caching
-│   ├── cli/                   # CLI commands
-│   ├── dashboard/             # Web UI
-│   └── storage/               # Database layer
-├── migrations/                # Database migrations
-├── tests/                     # Test suites
-└── docs/                      # Documentation
+├-- src/
+│   ├-- api/                    # REST API endpoints
+│   │   ├-- routes/
+│   │   │   ├-- pi.ts          # Pi integration routes
+│   │   │   ├-- worktrees.ts   # Worktree management
+│   │   │   ├-- proxy.ts       # LLM proxy routes
+│   │   │   ├-- federation.ts  # Instance federation
+│   │   │   └-- roles.ts       # Agent roles
+│   │   └-- fastify-server.ts  # Main server
+│   ├-- core/
+│   │   ├-- worktree/          # Git worktree isolation
+│   │   ├-- federation/        # Multi-instance federation
+│   │   └-- roles/             # Agent role system
+│   ├-- integrations/
+│   │   └-- pi/                # Pi SDK integration
+│   │       ├-- registry.ts    # Provider registry
+│   │       ├-- router.ts      # Model routing
+│   │       ├-- session.ts     # Session management
+│   │       ├-- tree.ts        # Tree-structured sessions
+│   │       ├-- tools.ts       # Tool interceptor
+│   │       └-- client.ts      # Pi RPC client
+│   ├-- proxy/                 # Server-side LLM proxy
+│   │   ├-- proxy.ts           # Main proxy
+│   │   ├-- adapters.ts        # Provider adapters
+│   │   ├-- security.ts        # Auth & rate limiting
+│   │   └-- cache.ts           # Response caching
+│   ├-- cli/                   # CLI commands
+│   ├-- dashboard/             # Web UI
+│   └-- storage/               # Database layer
+├-- migrations/                # Database migrations
+├-- tests/                     # Test suites
+└-- docs/                      # Documentation
 ```
 
 ---
