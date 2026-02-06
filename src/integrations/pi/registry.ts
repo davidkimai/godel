@@ -39,7 +39,6 @@ import {
   KubernetesDiscoveryConfig,
   AutoSpawnDiscoveryConfig,
   SpawnConfig,
-  DiscoveryResult,
 
   // Configuration
   PiRegistryConfig,
@@ -49,32 +48,17 @@ import {
   CapacityReport,
   ProviderCapacity,
   RegionCapacity,
-  SelectionResult,
-
-  // Health types
-  HealthCheckResult,
-
-  // Events
-  PiRegistryEvents,
-  PiRegistryEventEmitter,
 
   // Errors
   PiRegistryError,
   InstanceNotFoundError,
   DiscoveryError,
-  SelectionError,
 
   // Defaults
   DEFAULT_INSTANCE_CAPACITY,
   DEFAULT_HEALTH_MONITORING,
   DEFAULT_CIRCUIT_BREAKER,
 } from './types';
-
-// ============================================================================
-// Type Augmentation for EventEmitter
-// ============================================================================
-
-declare interface PiRegistry extends PiRegistryEventEmitter {}
 
 // ============================================================================
 // Circuit Breaker for Health Checks
@@ -103,13 +87,14 @@ interface CircuitBreakerState {
  * - Intelligent instance selection with multiple routing strategies
  * - Event-driven architecture for instance lifecycle changes
  *
- * @emits instance.registered - When a new instance is registered
- * @emits instance.unregistered - When an instance is unregistered
- * @emits instance.health_changed - When instance health status changes
- * @emits instance.failed - When an instance fails health check
- * @emits capacity.changed - When overall capacity changes significantly
- * @emits discovery.completed - When discovery completes
- * @emits discovery.failed - When discovery fails
+ * Events emitted:
+ * - 'instance.registered' - When a new instance is registered (payload: PiInstance)
+ * - 'instance.unregistered' - When an instance is unregistered (payload: instanceId, reason)
+ * - 'instance.health_changed' - When instance health status changes (payload: instanceId, previousHealth, newHealth)
+ * - 'instance.failed' - When an instance fails health check (payload: instanceId, error)
+ * - 'capacity.changed' - When overall capacity changes significantly (payload: CapacityReport)
+ * - 'discovery.completed' - When discovery completes (payload: strategy, instancesFound)
+ * - 'discovery.failed' - When discovery fails (payload: strategy, error)
  */
 export class PiRegistry extends EventEmitter {
   /** Map of registered instances by ID */
@@ -233,7 +218,7 @@ export class PiRegistry extends EventEmitter {
     }
 
     if (allDiscovered.length === 0 && errors.length > 0) {
-      throw new DiscoveryError(strategies[0]?.type || 'unknown', 'All discovery strategies failed', errors[0]);
+      throw new DiscoveryError(strategies[0]?.type || 'static', 'All discovery strategies failed', errors[0]);
     }
 
     return allDiscovered;
@@ -255,8 +240,11 @@ export class PiRegistry extends EventEmitter {
         return this.discoverFromKubernetes(strategy);
       case 'auto-spawn':
         return this.autoSpawnInstances(strategy);
-      default:
-        throw new DiscoveryError(strategy.type, `Unknown discovery strategy type: ${(strategy as DiscoveryStrategy).type}`);
+      default: {
+        // Exhaustiveness check
+        const _exhaustiveCheck: never = strategy;
+        throw new DiscoveryError('static', `Unknown discovery strategy type`);
+      }
     }
   }
 
