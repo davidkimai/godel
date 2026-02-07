@@ -59,6 +59,7 @@ import {
   DEFAULT_HEALTH_MONITORING,
   DEFAULT_CIRCUIT_BREAKER,
 } from './types';
+import { PiRuntime, PiRuntimeConfig } from './runtime';
 
 // ============================================================================
 // Circuit Breaker for Health Checks
@@ -118,6 +119,9 @@ export class PiRegistry extends EventEmitter {
   /** Last capacity report for change detection */
   private lastCapacityReport: CapacityReport | null = null;
 
+  /** PiRuntime for spawning local instances */
+  private runtime: PiRuntime | null = null;
+
   /**
    * Creates a new PiRegistry instance.
    *
@@ -127,6 +131,61 @@ export class PiRegistry extends EventEmitter {
     super();
     this.config = this.normalizeConfig(config);
     logger.info('[PiRegistry] Initialized with %d discovery strategies', config.discoveryStrategies.length);
+  }
+
+  /**
+   * Initialize PiRuntime for auto-spawning instances.
+   *
+   * @param runtimeConfig - Configuration for PiRuntime
+   */
+  initializeRuntime(runtimeConfig?: PiRuntimeConfig): void {
+    if (this.runtime) {
+      logger.warn('[PiRegistry] PiRuntime already initialized');
+      return;
+    }
+
+    this.runtime = new PiRuntime(runtimeConfig);
+
+    // Listen to runtime events
+    this.runtime.on('session.spawned', (session) => {
+      logger.debug('[PiRegistry] Runtime session spawned', { sessionId: session.id });
+    });
+
+    this.runtime.on('session.started', (session) => {
+      // Auto-register spawned instances
+      const instance: PiInstance = {
+        id: session.id,
+        name: `${session.provider}-${session.model}-${session.id.slice(-6)}`,
+        provider: session.provider,
+        model: session.model,
+        mode: 'local',
+        endpoint: session.endpoint,
+        health: session.health,
+        capabilities: session.capabilities,
+        capacity: { ...DEFAULT_INSTANCE_CAPACITY },
+        lastHeartbeat: new Date(),
+        metadata: {
+          runtimeSession: true,
+          pid: session.pid,
+          workdir: session.workdir,
+        },
+        registeredAt: new Date(),
+        tags: session.tags,
+      };
+      this.register(instance);
+    });
+
+    this.runtime.on('session.killed', (sessionId) => {
+      // Auto-unregister killed instances
+      this.unregister(sessionId, 'runtime_killed');
+    });
+
+    this.runtime.on('session.exited', (sessionId) => {
+      // Auto-unregister exited instances
+      this.unregister(sessionId, 'runtime_exited');
+    });
+
+    logger.info('[PiRegistry] PiRuntime initialized');
   }
 
   // ============================================================================
@@ -449,39 +508,45 @@ export class PiRegistry extends EventEmitter {
   /**
    * Spawns a single Pi instance.
    *
+   * Uses PiRuntime to spawn a local Pi CLI process.
+   *
    * @param spawnConfig - Spawn configuration
    * @returns Spawned Pi instance
+   * @throws {DiscoveryError} If spawning fails
    */
   private async spawnInstance(spawnConfig: SpawnConfig): Promise<PiInstance> {
-    const now = new Date();
-    const id = `pi-${spawnConfig.provider}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Initialize runtime if not already done
+    if (!this.runtime) {
+      this.initializeRuntime();
+    }
 
-    // Note: In production, this would:
-    // 1. Create Docker container / K8s pod / process
-    // 2. Wait for instance to be ready
-    // 3. Extract endpoint and other details
-
-    logger.info('[PiRegistry] Spawning new Pi instance: %s', id);
-
-    return {
-      id,
-      name: `${spawnConfig.provider}-${spawnConfig.model}-${id.slice(-6)}`,
+    logger.info('[PiRegistry] Spawning new Pi instance via runtime', {
       provider: spawnConfig.provider,
       model: spawnConfig.model,
-      mode: spawnConfig.mode,
-      endpoint: `http://localhost:8080/${id}`, // Placeholder
-      health: 'unknown',
-      capabilities: spawnConfig.capabilities || this.config.defaults?.capabilities || [],
-      region: spawnConfig.region || this.config.defaults?.region,
-      capacity: { ...DEFAULT_INSTANCE_CAPACITY },
-      lastHeartbeat: now,
-      metadata: {
-        spawned: true,
-        spawnConfig,
-      },
-      registeredAt: now,
-      tags: spawnConfig.tags,
-    };
+    });
+
+    try {
+      const session = await this.runtime!.spawn(spawnConfig, {
+        server: true,
+      });
+
+      // The instance will be auto-registered by the runtime event handler
+      // Return the instance from our registry
+      const instance = this.instances.get(session.id);
+      if (!instance) {
+        throw new Error('Instance not found after spawn');
+      }
+
+      return instance;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('[PiRegistry] Failed to spawn instance via runtime: %s', err.message);
+      throw new DiscoveryError(
+        'auto-spawn',
+        `Failed to spawn Pi instance: ${err.message}`,
+        err
+      );
+    }
   }
 
   // ============================================================================
@@ -1225,7 +1290,7 @@ export class PiRegistry extends EventEmitter {
    *
    * @param clearInstances - Whether to unregister all instances
    */
-  dispose(clearInstances: boolean = false): void {
+  async dispose(clearInstances: boolean = false): Promise<void> {
     this.stopHealthMonitoring();
 
     // Clear pending removals
@@ -1233,6 +1298,12 @@ export class PiRegistry extends EventEmitter {
       clearTimeout(timeout);
     }
     this.pendingRemovals.clear();
+
+    // Dispose runtime
+    if (this.runtime) {
+      await this.runtime.dispose(clearInstances);
+      this.runtime = null;
+    }
 
     if (clearInstances) {
       this.clear('registry_disposed');

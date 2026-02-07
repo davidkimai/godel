@@ -218,6 +218,59 @@ npm run dev
 
 ---
 
+## Pi Runtime
+
+Godel now supports Pi (pi-mono) as a first-class runtime for agent execution.
+
+### Quick Start
+
+```bash
+# Spawn a Pi agent
+godel agent spawn --runtime pi --model claude-sonnet-4-5
+
+# Execute a task
+godel agent exec pi-abc123 "Implement OAuth"
+
+# List Pi agents
+godel agent list
+```
+
+### Configuration
+
+Create `.godel/config.yaml`:
+
+```yaml
+runtime:
+  default: pi
+  pi:
+    defaultModel: claude-sonnet-4-5
+    providers:
+      - anthropic
+      - openai
+```
+
+### Features
+
+- **Multi-Provider**: Use 15+ LLM providers through a unified interface
+- **Tree-Structured Sessions**: Branch and fork conversations
+- **Model Cycling**: Switch models mid-session with Ctrl+P
+- **Session Persistence**: Conversations survive restarts
+
+### Model Selection
+
+```bash
+# Use Anthropic Claude
+godel agent spawn --runtime pi --provider anthropic --model claude-sonnet-4-5
+
+# Use OpenAI GPT-4
+godel agent spawn --runtime pi --provider openai --model gpt-4o
+
+# Use Google Gemini
+godel agent spawn --runtime pi --provider google --model gemini-1.5-pro
+```
+
+---
+
 ## API Usage
 
 ### Create a Pi Session

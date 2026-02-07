@@ -130,10 +130,11 @@ export interface AgentOutput {
   label?: string;
   status: string;
   model: string;
+  runtime: string;
   task: string;
   swarmId?: string;
   parentId?: string;
-  runtime: number;
+  runtimeMs: number;
   retryCount: number;
   maxRetries: number;
   spawnedAt: string;
@@ -142,15 +143,23 @@ export interface AgentOutput {
 }
 
 export function agentToOutput(agent: Agent): AgentOutput {
+  // Get runtime from metadata (set by runtime implementations) or default to 'unknown'
+  const metadata = agent.metadata as Record<string, unknown> | undefined;
+  const agentData = metadata?.['agent'] as Record<string, unknown> | undefined;
+  const runtimeId = (metadata?.['runtime'] as string) ||
+                   (agentData?.['runtime'] as string) ||
+                   'unknown';
+
   return {
     id: agent.id,
     label: agent.label,
     status: agent.status,
     model: agent.model,
+    runtime: runtimeId,
     task: agent.task.slice(0, 50) + (agent.task.length > 50 ? '...' : ''),
     swarmId: agent.swarmId,
     parentId: agent.parentId,
-    runtime: agent.runtime,
+    runtimeMs: agent.runtime,
     retryCount: agent.retryCount,
     maxRetries: agent.maxRetries,
     spawnedAt: agent.spawnedAt.toISOString(),
@@ -161,12 +170,12 @@ export function agentToOutput(agent: Agent): AgentOutput {
 
 export function formatAgents(agents: Agent[], options: FormatOptions): string {
   const outputs = agents.map(agentToOutput);
-  
+
   if (options.format === 'table') {
-    const fields = ['id', 'status', 'model', 'task', 'runtime', 'retryCount'];
+    const fields = ['id', 'status', 'runtime', 'model', 'task', 'runtimeMs', 'retryCount'];
     return formatOutput(outputs, { ...options, fields });
   }
-  
+
   return formatOutput(outputs, options);
 }
 

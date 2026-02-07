@@ -13,6 +13,8 @@ import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
 import { formatAgents, type OutputFormat } from '../lib/output';
+import { getRuntimeRegistry, RuntimeRegistry } from '../../runtime/registry';
+import type { Agent } from '../../models/agent';
 
 export function registerAgentCommand(program: Command): void {
   const agent = program
@@ -28,6 +30,7 @@ export function registerAgentCommand(program: Command): void {
     .option('-f, --format <format>', 'Output format (table|json|jsonl)', 'table')
     .option('-s, --swarm <swarmId>', 'Filter by swarm ID')
     .option('--status <status>', 'Filter by status (pending|running|paused|completed|failed|killed)')
+    .option('--runtime <runtime>', 'Filter by runtime (pi|native)')
     .option('--page <page>', 'Page number', '1')
     .option('--page-size <size>', 'Items per page', '50')
     .action(async (options) => {
@@ -45,11 +48,20 @@ export function registerAgentCommand(program: Command): void {
           process.exit(1);
         }
 
-        const agents = response.data.items;
+        let agents = response.data.items;
+
+        // Filter by runtime if specified
+        if (options.runtime) {
+          agents = agents.filter((a: Agent) => {
+            const metadata = a.metadata as Record<string, unknown> | undefined;
+            const agentData = metadata?.['agent'] as Record<string, unknown> | undefined;
+            return metadata?.['runtime'] === options.runtime || agentData?.['runtime'] === options.runtime;
+          });
+        }
 
         if (agents.length === 0) {
           logger.info('📭 No agents found');
-          logger.info('💡 Use "swarmctl agent spawn" or "swarmctl swarm create" to create agents');
+          logger.info('💡 Use "godel agent spawn" or "godel swarm create" to create agents');
           return;
         }
 
@@ -78,6 +90,8 @@ export function registerAgentCommand(program: Command): void {
     .option('-p, --parent <parentId>', 'Parent agent ID (for hierarchical spawning)')
     .option('-r, --retries <count>', 'Max retry attempts', '3')
     .option('-b, --budget <limit>', 'Budget limit (USD)')
+    .option('--runtime <runtime>', 'Runtime to use (pi|native)', 'pi')
+    .option('-w, --workdir <path>', 'Working directory for the agent')
     .option('--dry-run', 'Show configuration without spawning')
     .action(async (task, options) => {
       try {
@@ -87,50 +101,44 @@ export function registerAgentCommand(program: Command): void {
           logger.info('📋 Configuration (dry run):');
           logger.info(`   Task: ${task}`);
           logger.info(`   Model: ${options.model}`);
+          logger.info(`   Runtime: ${options.runtime}`);
           logger.info(`   Label: ${options.label || '(auto)'}`);
           logger.info(`   Swarm: ${options.swarm || '(none)'}`);
           logger.info(`   Parent: ${options.parent || '(none)'}`);
+          logger.info(`   Workdir: ${options.workdir || process.cwd()}`);
           logger.info(`   Max Retries: ${options.retries}`);
           if (options.budget) logger.info(`   Budget: $${options.budget} USD`);
           return;
         }
 
-        const client = getGlobalClient();
-
-        // Validate swarm if specified
-        if (options.swarm) {
-          const swarmResponse = await client.getSwarm(options.swarm);
-          if (!swarmResponse.success) {
-            logger.error(`❌ Swarm ${options.swarm} not found`);
-            process.exit(1);
-          }
-        }
-
-        const response = await client.spawnAgent({
-          task,
-          model: options.model,
-          label: options.label,
-          swarmId: options.swarm,
-          parentId: options.parent,
-          maxRetries: parseInt(options.retries, 10),
-          budgetLimit: options.budget ? parseFloat(options.budget) : undefined,
-        });
-
-        if (!response.success || !response.data) {
-          logger.error('❌ Failed to spawn agent:', response.error?.message);
+        // Get runtime registry and selected runtime
+        const registry = getRuntimeRegistry();
+        let runtime;
+        try {
+          runtime = registry.get(options.runtime);
+        } catch (error) {
+          logger.error(`❌ Runtime '${options.runtime}' not found`);
+          logger.info(`   Available runtimes: ${registry.listIds().join(', ')}`);
           process.exit(1);
         }
 
-        const newAgent = response.data;
+        // Spawn agent using the selected runtime
+        const agent = await runtime.spawn({
+          name: options.label,
+          model: options.model,
+          workdir: options.workdir,
+        });
 
         logger.info('✅ Agent spawned successfully!\n');
-        logger.info(`   ID: ${newAgent.id}`);
-        logger.info(`   Status: ${newAgent.status}`);
-        logger.info(`   Model: ${newAgent.model}`);
+        logger.info(`   ID: ${agent.id}`);
+        logger.info(`   Name: ${agent.name}`);
+        logger.info(`   Status: ${agent.status}`);
+        logger.info(`   Runtime: ${agent.runtime}`);
+        logger.info(`   Model: ${agent.model}`);
         if (options.swarm) {
           logger.info(`   Swarm: ${options.swarm}`);
         }
-        logger.info(`\n💡 Use 'swarmctl agent get ${newAgent.id}' to check progress`);
+        logger.info(`\n💡 Use 'godel agent get ${agent.id}' to check progress`);
 
       } catch (error) {
         logger.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));

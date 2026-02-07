@@ -43,6 +43,32 @@ export {
 
 } from './client';
 
+// Export PiRuntime class and singleton functions
+export {
+  PiRuntime,
+  getGlobalPiRuntime,
+  resetGlobalPiRuntime,
+  hasGlobalPiRuntime,
+} from './runtime';
+
+// Export PiRuntime types
+export type {
+  PiRuntimeConfig,
+  PiRuntimeSession,
+  PiSpawnOptions,
+  ExecResult,
+  PiRuntimeEvents,
+} from './runtime';
+
+// Export PiRuntime errors
+export {
+  PiRuntimeError,
+  SpawnError,
+  SessionNotFoundError as RuntimeSessionNotFoundError,
+  PortAllocationError,
+  MaxInstancesError,
+} from './runtime';
+
 // Export PiRegistry class and singleton functions
 export {
   PiRegistry,
