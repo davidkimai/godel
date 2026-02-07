@@ -56,6 +56,8 @@ export interface BudgetConfig {
   period?: BudgetPeriod;
   resetHour?: number; // UTC hour for daily reset (0-23)
   resetDay?: number; // 0-6 for weekly (Sunday=0), 1-28 for monthly
+  warningThreshold?: number; // 0-1 percentage
+  criticalThreshold?: number; // 0-1 percentage
 }
 
 export interface BudgetUsage {

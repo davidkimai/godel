@@ -1,9 +1,12 @@
 import { logger } from '../integrations/utils/logger';
-import CircuitBreaker from 'opossum';
 import { EventEmitter } from 'events';
 
+// opossum doesn't have TypeScript types, use require
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const CircuitBreaker = require('opossum');
+
 export interface CircuitBreakerOptions {
-  failureThreshold?: number;
+  errorThresholdPercentage?: number;
   resetTimeout?: number;
   timeout?: number;
   errorFilter?: (error: Error) => boolean;
@@ -14,29 +17,31 @@ export interface CircuitBreakerState {
   state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
   failures: number;
   successes: number;
-  lastFailureTime?: Date;
-  nextRetryTime?: Date;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CircuitBreakerInstance = any;
+
 export class CircuitBreakerManager extends EventEmitter {
-  private breakers: Map<string, CircuitBreaker> = new Map();
+  private breakers: Map<string, CircuitBreakerInstance> = new Map();
   private options: CircuitBreakerOptions;
 
   constructor(options: CircuitBreakerOptions = {}) {
     super();
     this.options = {
-      failureThreshold: 5,
+      errorThresholdPercentage: 50,
       resetTimeout: 30000,
       timeout: 10000,
       ...options
     };
   }
 
-  createBreaker(name: string, asyncFunction: (...args: any[]) => Promise<any>, options?: CircuitBreakerOptions): CircuitBreaker {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createBreaker(name: string, asyncFunction: (...args: any[]) => Promise<any>, options?: CircuitBreakerOptions): CircuitBreakerInstance {
     const opts = { ...this.options, ...options };
     
     const breaker = new CircuitBreaker(asyncFunction, {
-      failureThreshold: opts.failureThreshold,
+      errorThresholdPercentage: opts.errorThresholdPercentage,
       resetTimeout: opts.resetTimeout,
       timeout: opts.timeout,
       errorFilter: opts.errorFilter,
@@ -58,7 +63,7 @@ export class CircuitBreakerManager extends EventEmitter {
       this.emit('close', { name });
     });
 
-    breaker.on('fallback', (result) => {
+    breaker.on('fallback', (result: unknown) => {
       logger.warn(`Circuit breaker '${name}' fallback executed`, { result });
       this.emit('fallback', { name, result });
     });
@@ -67,7 +72,7 @@ export class CircuitBreakerManager extends EventEmitter {
     return breaker;
   }
 
-  getBreaker(name: string): CircuitBreaker | undefined {
+  getBreaker(name: string): CircuitBreakerInstance | undefined {
     return this.breakers.get(name);
   }
 
@@ -78,10 +83,8 @@ export class CircuitBreakerManager extends EventEmitter {
     return {
       name,
       state: breaker.opened ? 'OPEN' : breaker.halfOpen ? 'HALF_OPEN' : 'CLOSED',
-      failures: breaker.stats.failures || 0,
-      successes: breaker.stats.successes || 0,
-      lastFailureTime: breaker.lastFailureTime,
-      nextRetryTime: breaker.nextRetryTime
+      failures: breaker.stats?.failures || 0,
+      successes: breaker.stats?.successes || 0
     };
   }
 
@@ -95,22 +98,5 @@ export class CircuitBreakerManager extends EventEmitter {
       logger.info(`Circuit breaker '${name}' shutdown`);
     }
     this.breakers.clear();
-  }
-}
-
-// Singleton instance
-let manager: CircuitBreakerManager | null = null;
-
-export function getCircuitBreakerManager(options?: CircuitBreakerOptions): CircuitBreakerManager {
-  if (!manager) {
-    manager = new CircuitBreakerManager(options);
-  }
-  return manager;
-}
-
-export function resetCircuitBreakerManager(): void {
-  if (manager) {
-    manager.shutdown();
-    manager = null;
   }
 }
