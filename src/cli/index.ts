@@ -45,6 +45,9 @@ import { registerDoCommand } from './intent';
 import { registerDashboardCommand } from './commands/dashboard';
 import { registerWorktreeCommand } from './commands/worktree';
 import { registerPiCommand } from './commands/pi';
+import { registerFederationCommand } from './commands/federation';
+import { registerStateCommands } from './commands/state';
+import { registerWorkflowCommand } from './commands/workflow';
 
 // Get version from package.json
 function getVersion(): string {
@@ -91,6 +94,9 @@ registerDoCommand(program);
 registerDashboardCommand(program);
 registerWorktreeCommand(program);
 registerPiCommand(program);
+registerFederationCommand(program);
+registerStateCommands(program);
+registerWorkflowCommand(program);
 
 // Add completion command
 program
@@ -130,6 +136,9 @@ export function registerCommands(program: Command): void {
   registerDashboardCommand(program);
   registerWorktreeCommand(program);
   registerPiCommand(program);
+  registerFederationCommand(program);
+  registerStateCommands(program);
+  registerWorkflowCommand(program);
 }
 
 // Run if executed directly
