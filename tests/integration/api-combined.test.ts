@@ -36,15 +36,15 @@ jest.unstable_mockModule('../../src/services/task.service', () => ({
   })),
 }));
 
-jest.unstable_mockModule('../../src/services/swarm.service', () => ({
-  SwarmService: jest.fn().mockImplementation(() => ({
-    getSwarmInfo: mockAsync({
+jest.unstable_mockModule('../../src/services/team.service', () => ({
+  TeamService: jest.fn().mockImplementation(() => ({
+    getTeamInfo: mockAsync({
       version: '1.0.0',
       agents: 5,
       tasks: 10,
       status: 'healthy',
     }),
-    getSwarmStats: mockAsync({
+    getTeamStats: mockAsync({
       totalTasks: 100,
       completedTasks: 85,
       activeAgents: 5,
@@ -56,16 +56,16 @@ jest.unstable_mockModule('../../src/services/swarm.service', () => ({
 describeLegacy('API Integration Tests', () => {
   let agentService: any;
   let taskService: any;
-  let swarmService: any;
+  let teamService: any;
 
   beforeAll(async () => {
     const agentModule = await import('../../src/services/agent.service');
     const taskModule = await import('../../src/services/task.service');
-    const swarmModule = await import('../../src/services/swarm.service');
+    const teamModule = await import('../../src/services/team.service');
     
     agentService = new agentModule.AgentService();
     taskService = new taskModule.TaskService();
-    swarmService = new swarmModule.SwarmService();
+    teamService = new teamModule.TeamService();
   });
 
   describe('Agent API Endpoints', () => {
@@ -166,10 +166,10 @@ describeLegacy('API Integration Tests', () => {
     });
   });
 
-  describe('Swarm API Endpoints', () => {
-    describe('GET /api/swarm/info', () => {
-      it('should get swarm information', async () => {
-        const info = await swarmService.getSwarmInfo();
+  describe('Team API Endpoints', () => {
+    describe('GET /api/team/info', () => {
+      it('should get team information', async () => {
+        const info = await teamService.getTeamInfo();
         
         expect(info).toBeDefined();
         expect(info.version).toBe('1.0.0');
@@ -179,9 +179,9 @@ describeLegacy('API Integration Tests', () => {
       });
     });
 
-    describe('GET /api/swarm/stats', () => {
-      it('should get swarm statistics', async () => {
-        const stats = await swarmService.getSwarmStats();
+    describe('GET /api/team/stats', () => {
+      it('should get team statistics', async () => {
+        const stats = await teamService.getTeamStats();
         
         expect(stats).toBeDefined();
         expect(stats.totalTasks).toBe(100);
@@ -213,7 +213,7 @@ describeLegacy('API Integration Tests', () => {
       
       await agentService.listAgents();
       await taskService.listTasks();
-      await swarmService.getSwarmInfo();
+      await teamService.getTeamInfo();
       
       const elapsed = Date.now() - start;
       

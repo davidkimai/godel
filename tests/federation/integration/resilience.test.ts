@@ -15,10 +15,10 @@ import { DependencyResolver } from '../../../src/federation/dependency-resolver'
 import { ExecutionEngine } from '../../../src/federation/execution-engine';
 import {
   AgentRegistry,
-  AgentSelector,
   resetAgentRegistry,
   getAgentRegistry,
 } from '../../../src/federation/agent-registry';
+import { AgentSelector } from '../../../src/federation/agent-selector';
 import { LoadBalancer } from '../../../src/federation/load-balancer';
 import type { Subtask as FederationSubtask } from '../../../src/federation/types';
 

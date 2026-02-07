@@ -175,7 +175,7 @@ export const ChatCompletionChunkSchema = z.object({
         }).optional(),
       })).optional(),
     }),
-    finish_reason: z.enum(['stop', 'length', 'tool_calls', 'content_filter', null]).optional(),
+    finish_reason: z.enum(['stop', 'length', 'tool_calls', 'content_filter', 'null']).optional(),
   })).describe('Choice deltas'),
   usage: ChatCompletionUsageSchema.optional().describe('Token usage (final chunk)'),
 });

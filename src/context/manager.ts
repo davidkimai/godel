@@ -87,7 +87,7 @@ export class ContextManager {
           lastModified: stats.mtime ?? new Date(),
         };
       },
-      { exists: false, size: 0, lastModified: undefined },
+      { exists: false, size: 0, lastModified: new Date(0) },
       { logError: false, context: 'ContextManager.addFile.stat' }
     );
 

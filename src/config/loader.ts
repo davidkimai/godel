@@ -158,10 +158,10 @@ function applyEnvVarOverrides(config: Record<string, unknown>): void {
   const overrides: Record<string, string | undefined> = {
     'server.port': process.env['PORT'],
     'server.host': process.env['HOST'],
-    'server.rateLimit': process.env['DASH_RATE_LIMIT'],
+    'server.rateLimit': process.env['GODEL_RATE_LIMIT'],
     'database.url': process.env['DATABASE_URL'],
     'redis.url': process.env['REDIS_URL'],
-    'auth.jwtSecret': process.env['DASH_JWT_SECRET'],
+    'auth.jwtSecret': process.env['GODEL_JWT_SECRET'],
     'logging.level': process.env['LOG_LEVEL'],
     'metrics.enabled': process.env['METRICS_ENABLED'],
     'openclaw.gatewayUrl': process.env['OPENCLAW_GATEWAY_URL'],

@@ -572,10 +572,10 @@ export function toTeamConfig(yamlConfig: TeamYamlConfig): TeamConfig {
     model: specAny['model'] as string | undefined,
     budget: specAny['budget'] as TeamConfig['budget'],
     safety: specAny['safety'] ? {
-      fileSandbox: specAny['safety']?.['fileSandbox'] as boolean | undefined,
-      networkAllowlist: specAny['safety']?.['networkAllowlist'] as string[] | undefined,
-      commandBlacklist: specAny['safety']?.['commandBlacklist'] as string[] | undefined,
-      maxExecutionTime: specAny['safety']?.['maxExecutionTime'] as number | undefined,
+      fileSandbox: ((specAny['safety'] as Record<string, unknown>)['fileSandbox'] as boolean | undefined) ?? false,
+      networkAllowlist: (specAny['safety'] as Record<string, unknown>)['networkAllowlist'] as string[] | undefined,
+      commandBlacklist: (specAny['safety'] as Record<string, unknown>)['commandBlacklist'] as string[] | undefined,
+      maxExecutionTime: (specAny['safety'] as Record<string, unknown>)['maxExecutionTime'] as number | undefined,
     } : undefined,
     metadata: {
       ...((metadataAny['labels'] as Record<string, string>) || {}),

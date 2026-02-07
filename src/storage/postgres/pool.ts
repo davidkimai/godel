@@ -97,7 +97,7 @@ function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
     port: 5432,
     database: 'godel',
     user: 'godel',
-    password: 'godel',
+    password: process.env['POSTGRES_PASSWORD'] || 'godel',
     poolSize: config.poolSize,
     minPoolSize: config.minPoolSize,
     maxPoolSize: config.maxPoolSize,

@@ -49,11 +49,13 @@ export class LRUCache<T = unknown> {
   set(key: string, value: T): void {
     // Evict oldest if at capacity
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
-      const oldestKey = this.cache.keys().next().value;
-      const evicted = this.cache.get(oldestKey);
-      this.cache.delete(oldestKey);
-      if (evicted && this.onEvict) {
-        this.onEvict(oldestKey, evicted.value);
+      const oldestKey = this.cache.keys().next().value as string | undefined;
+      if (oldestKey) {
+        const evicted = this.cache.get(oldestKey);
+        this.cache.delete(oldestKey);
+        if (evicted && this.onEvict) {
+          this.onEvict(oldestKey, evicted.value);
+        }
       }
     }
 

@@ -72,15 +72,15 @@ export class RecoveryObservability extends EventEmitter {
   private registry: Registry;
   
   // Metrics
-  private recoveryCounter: Counter;
-  private recoveryDuration: Histogram;
-  private detectionDuration: Histogram;
-  private checkpointRestoreCounter: Counter;
-  private checkpointCreateCounter: Counter;
-  private escalationCounter: Counter;
-  private agentHealthGauge: Gauge;
-  private circuitBreakerStateGauge: Gauge;
-  private recoveryAttemptsGauge: Gauge;
+  private recoveryCounter!: Counter;
+  private recoveryDuration!: Histogram;
+  private detectionDuration!: Histogram;
+  private checkpointRestoreCounter!: Counter;
+  private checkpointCreateCounter!: Counter;
+  private escalationCounter!: Counter;
+  private agentHealthGauge!: Gauge;
+  private circuitBreakerStateGauge!: Gauge;
+  private recoveryAttemptsGauge!: Gauge;
 
   private checkpointManager?: CheckpointManager;
   private circuitBreakerRegistry?: CircuitBreakerRegistry;

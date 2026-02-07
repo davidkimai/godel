@@ -9,10 +9,10 @@
 import { TaskDecomposer } from '../../../src/federation/task-decomposer';
 import {
   AgentRegistry,
-  AgentSelector,
   resetAgentRegistry,
   getAgentRegistry,
 } from '../../../src/federation/agent-registry';
+import { AgentSelector } from '../../../src/federation/agent-selector';
 
 describe('TaskDecomposer + AgentSelector Integration', () => {
   let registry: AgentRegistry;

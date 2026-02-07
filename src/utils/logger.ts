@@ -248,7 +248,7 @@ export class Logger {
    * - error(module, message, metadata?)
    * - error(message, metadata?) [backwards compatible, uses 'app' as module]
    */
-  error(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown>, metadata?: Record<string, unknown>): void {
+  error(moduleOrMessage: string, messageOrMetadata?: string | Record<string, unknown> | unknown, metadata?: Record<string, unknown>): void {
     if (!this.isEnabled(LogLevel.ERROR)) return;
     let module: string;
     let message: string;
@@ -261,7 +261,11 @@ export class Logger {
     } else {
       module = 'app';
       message = moduleOrMessage;
-      meta = messageOrMetadata as Record<string, unknown> | undefined;
+      if (messageOrMetadata !== undefined && messageOrMetadata !== null) {
+        meta = typeof messageOrMetadata === 'object' 
+          ? messageOrMetadata as Record<string, unknown>
+          : { value: String(messageOrMetadata) };
+      }
     }
     
     const entry = this.createEntry(LogLevel.ERROR, module, message, meta);

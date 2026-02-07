@@ -202,8 +202,11 @@ export class PiRegistry extends EventEmitter {
     return {
       discoveryStrategies: config.discoveryStrategies,
       healthMonitoring: {
-        ...DEFAULT_HEALTH_MONITORING,
-        ...config.healthMonitoring,
+        enabled: config.healthMonitoring?.enabled ?? DEFAULT_HEALTH_MONITORING.enabled,
+        intervalMs: config.healthMonitoring?.intervalMs ?? DEFAULT_HEALTH_MONITORING.intervalMs,
+        timeoutMs: config.healthMonitoring?.timeoutMs ?? DEFAULT_HEALTH_MONITORING.timeoutMs,
+        maxRetries: config.healthMonitoring?.maxRetries ?? DEFAULT_HEALTH_MONITORING.maxRetries,
+        removalGracePeriodMs: config.healthMonitoring?.removalGracePeriodMs ?? DEFAULT_HEALTH_MONITORING.removalGracePeriodMs,
       },
       defaults: {
         capacity: { ...DEFAULT_INSTANCE_CAPACITY, ...config.defaults?.capacity },
@@ -211,8 +214,8 @@ export class PiRegistry extends EventEmitter {
         region: config.defaults?.region || 'default',
       },
       circuitBreaker: {
-        ...DEFAULT_CIRCUIT_BREAKER,
-        ...config.circuitBreaker,
+        failureThreshold: config.circuitBreaker?.failureThreshold ?? DEFAULT_CIRCUIT_BREAKER.failureThreshold,
+        resetTimeoutMs: config.circuitBreaker?.resetTimeoutMs ?? DEFAULT_CIRCUIT_BREAKER.resetTimeoutMs,
       },
     };
   }

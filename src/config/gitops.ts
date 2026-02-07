@@ -142,7 +142,8 @@ export function formatDiff(diff: ConfigDiffResult): string {
   }
   
   const lines: string[] = [];
-  lines.push(`Changes: +${diff.summary.added} -${diff.summary.removed} ~${diff.summary.modified}`);
+  const summary = diff.summary ?? { added: 0, removed: 0, modified: 0 };
+  lines.push(`Changes: +${summary.added} -${summary.removed} ~${summary.modified}`);
   lines.push('');
   
   for (const change of diff.differences) {

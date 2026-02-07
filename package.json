@@ -59,9 +59,12 @@
     "migrate:status": "ts-node scripts/migrate.ts status",
     "migrate:create": "ts-node scripts/migrate.ts create",
     "migrate:rollback": "ts-node scripts/migrate.ts rollback",
+    "db:migrate": "./scripts/migrations/migrate-db.sh",
+    "db:validate": "./scripts/migrations/validate-config.sh",
     "db:up": "docker-compose up -d postgres redis",
     "db:down": "docker-compose down",
     "db:logs": "docker-compose logs -f postgres redis",
+    "config:validate": "./scripts/migrations/validate-config.sh",
     "logs": "ts-node scripts/logs.ts",
     "logs:query": "ts-node scripts/logs.ts query",
     "logs:tail": "ts-node scripts/logs.ts tail",
@@ -76,7 +79,8 @@
     "cli:build": "tsc src/cli/index.ts --outDir dist/cli --esModuleInterop --target ES2020 --module commonjs --moduleResolution node",
     "cli:dev": "ts-node src/cli/index.ts",
     "cli:install": "npm run build && npm link",
-    "swarmctl": "node dist/cli/index.js"
+    "swarmctl": "node dist/cli/index.js",
+    "security:scan": "node scripts/security-scan.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

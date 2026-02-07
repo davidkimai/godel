@@ -82,32 +82,32 @@ describe('CLI Commands Integration', () => {
     });
   });
 
-  describe('Swarm Command', () => {
-    it('should define swarm create command', () => {
+  describe('Team Command', () => {
+    it('should define team create command', () => {
       let commandCalled = false;
       
       // Create parent command
       const team = program.command('team').description('Manage teams');
       
-      swarm
+      team
         .command('create')
-        .requiredOption('--name <name>', 'Swarm name')
+        .requiredOption('--name <name>', 'Team name')
         .requiredOption('--task <task>', 'Task description')
         .action(() => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'godel', 'swarm', 'create', '--name', 'test', '--task', 'test']);
+      program.parse(['node', 'godel', 'team', 'create', '--name', 'test', '--task', 'test']);
       
       expect(commandCalled).toBe(true);
     });
 
-    it('should define swarm list command', () => {
+    it('should define team list command', () => {
       let commandCalled = false;
       
       const team = program.command('team').description('Manage teams');
       
-      swarm
+      team
         .command('list')
         .action(() => {
           commandCalled = true;
@@ -142,14 +142,14 @@ describe('CLI Commands Integration', () => {
       
       const team = program.command('team').description('Manage teams');
       
-      swarm
+      team
         .command('create')
         .option('--agents <count>', 'Number of agents', (val) => parseInt(val, 10))
         .action((options) => {
           agentCount = options.agents;
         });
       
-      program.parse(['node', 'godel', 'swarm', 'create', '--agents', '5']);
+      program.parse(['node', 'godel', 'team', 'create', '--agents', '5']);
       
       expect(agentCount).toBe(5);
     });
@@ -159,14 +159,14 @@ describe('CLI Commands Integration', () => {
       
       const team = program.command('team').description('Manage teams');
       
-      swarm
+      team
         .command('create')
-        .option('--strategy <type>', 'Swarm strategy')
+        .option('--strategy <type>', 'Team strategy')
         .action((options) => {
           strategy = options.strategy;
         });
       
-      program.parse(['node', 'godel', 'swarm', 'create', '--strategy', 'parallel']);
+      program.parse(['node', 'godel', 'team', 'create', '--strategy', 'parallel']);
       
       expect(strategy).toBe('parallel');
     });

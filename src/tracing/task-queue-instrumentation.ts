@@ -115,7 +115,7 @@ export async function instrumentTaskDequeue<T>(
       const result = await fn();
       
       if (result) {
-        const task = result as QueuedTask;
+        const task = result as unknown as QueuedTask;
         span.setAttributes({
           'task.dequeue_success': true,
           'task.id': task.id,
@@ -155,7 +155,7 @@ export async function instrumentTaskClaim<T>(
       const result = await fn();
       
       if (result) {
-        const task = result as QueuedTask;
+        const task = result as unknown as QueuedTask;
         span.setAttributes({
           'task.claim_success': true,
           'task.id': task.id,
@@ -296,7 +296,7 @@ export async function instrumentTaskDistribution<T>(
       const result = await fn();
       
       if (result) {
-        const dist = result as { agentId: string; reason?: string };
+        const dist = result as unknown as { agentId: string; reason?: string };
         span.setAttributes({
           'distribution.success': true,
           'distribution.agent_id': dist.agentId,

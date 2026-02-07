@@ -117,7 +117,8 @@ router.get('/agents/:id/state', asyncHandler(async (req: Request, res: Response)
   }
 
   const { id } = parsed.data;
-  const agent = (memoryStore.agents || {})[id];
+  const agents = memoryStore.agents || {};
+  const agent = agents[id as keyof typeof agents];
   
   if (!agent) {
     sendError(res, ErrorCodes.AGENT_NOT_FOUND, `Agent ${id} not found`, { statusCode: 404 });
@@ -194,7 +195,8 @@ router.get('/agents/:id/state/history', asyncHandler(async (req: Request, res: R
 
   const { id } = paramsParsed.data;
   const { limit } = queryParsed.data;
-  const agent = (memoryStore.agents || {})[id];
+  const agents = memoryStore.agents || {};
+  const agent = agents[id as keyof typeof agents];
   
   if (!agent) {
     sendError(res, ErrorCodes.AGENT_NOT_FOUND, `Agent ${id} not found`, { statusCode: 404 });
@@ -268,7 +270,8 @@ router.post('/agents/:id/state/transition', asyncHandler(async (req: Request, re
 
   const { id } = paramsParsed.data;
   const { to, metadata } = bodyParsed.data;
-  const agent = (memoryStore.agents || {})[id];
+  const agents = memoryStore.agents || {};
+  const agent = agents[id as keyof typeof agents];
   
   if (!agent) {
     sendError(res, ErrorCodes.AGENT_NOT_FOUND, `Agent ${id} not found`, { statusCode: 404 });
@@ -358,7 +361,8 @@ router.post('/agents/:id/state/pause', asyncHandler(async (req: Request, res: Re
   }
 
   const { id } = parsed.data;
-  const agent = (memoryStore.agents || {})[id];
+  const agents = memoryStore.agents || {};
+  const agent = agents[id as keyof typeof agents];
   
   if (!agent) {
     sendError(res, ErrorCodes.AGENT_NOT_FOUND, `Agent ${id} not found`, { statusCode: 404 });
@@ -426,7 +430,8 @@ router.post('/agents/:id/state/resume', asyncHandler(async (req: Request, res: R
   }
 
   const { id } = parsed.data;
-  const agent = (memoryStore.agents || {})[id];
+  const agents = memoryStore.agents || {};
+  const agent = agents[id as keyof typeof agents];
   
   if (!agent) {
     sendError(res, ErrorCodes.AGENT_NOT_FOUND, `Agent ${id} not found`, { statusCode: 404 });

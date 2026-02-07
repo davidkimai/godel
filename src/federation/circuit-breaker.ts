@@ -527,7 +527,9 @@ export class AgentCircuitBreakerRegistry extends EventEmitter {
 
     for (const breaker of this.breakers.values()) {
       const state = breaker.getState();
-      counts[state]++;
+      if (state === 'closed') counts.closed++;
+      else if (state === 'open') counts.open++;
+      else if (state === 'half-open') counts.halfOpen++;
     }
 
     return counts;

@@ -313,16 +313,17 @@ export class DashboardServer extends EventEmitter {
 
     // Get all teams
     this.app.get('/api/teams', (_req: Request, res: Response) => {
-      const teams = (this.orchestrator as any).listActiveTeams().map((team) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const teams = (this.orchestrator as any).listActiveTeams().map((team: any) => ({
         id: team.id,
         name: team.name,
         status: team.status,
         agentCount: team.agents.length,
         metrics: team.metrics,
         budget: team.budget,
-        currentBranch: (team as any).currentBranch,
-        hasBranching: (team as any).config.enableBranching,
-        hasEventStreaming: (team as any).config.enableEventStreaming,
+        currentBranch: team.currentBranch,
+        hasBranching: team.config?.enableBranching,
+        hasEventStreaming: team.config?.enableEventStreaming,
       }));
       res.json({ teams });
     });
@@ -341,13 +342,13 @@ export class DashboardServer extends EventEmitter {
       res.json({
         ...team,
         statusInfo: status,
-        agents: agents.map((a) => ({
+        agents: agents.map((a: any) => ({
           id: a.id,
           status: a.status,
           lifecycleState: a.lifecycleState,
-          task: a.agent.task,
-          model: a.agent.model,
-          runtime: a.agent.runtime,
+          task: a.agent?.task,
+          model: a.agent?.model,
+          runtime: a.agent?.runtime,
         })),
       });
     });
@@ -682,22 +683,23 @@ export class DashboardServer extends EventEmitter {
 
   private getDashboardOverview(): DashboardOverview {
     const teams = (this.orchestrator as any).listActiveTeams();
-    const allAgents = teams.flatMap(s => 
+    const allAgents = teams.flatMap((s: any) => 
       (this.orchestrator as any).getTeamAgents(s.id)
     );
 
-    const activeAgents = allAgents.filter(a => 
-      a.status === (AgentStatus as any).RUNNING || a.status === (AgentStatus as any).BUSY
+    const activeAgents = allAgents.filter((a: any) => 
+      a.status === 'running' || a.status === 'busy'
     );
 
-    const activeTeams = teams.filter(s => 
+    const activeTeams = teams.filter((s: any) => 
       s.status === 'active' || s.status === 'scaling'
     );
 
-    const totalCost = allAgents.reduce((sum, a) => sum + ((a as any).cost || 0), 0);
+    const totalCost = allAgents.reduce((sum: number, a: any) => sum + (a.cost || 0), 0);
 
-    const agentsByStatus = allAgents.reduce((acc, a) => {
-      acc[a.status] = (acc[a.status] || 0) + 1;
+    const agentsByStatus = allAgents.reduce((acc: Record<string, number>, a: any) => {
+      const status = a.status as string;
+      acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -715,7 +717,7 @@ export class DashboardServer extends EventEmitter {
   }
 
   private getTeamDashboardInfo(): TeamDashboardInfo[] {
-    return (this.orchestrator as any).listActiveTeams().map(team => {
+    return (this.orchestrator as any).listActiveTeams().map((team: any) => {
       const agents = (this.orchestrator as any).getTeamAgents(team.id);
       const progress = team.metrics.totalAgents > 0
         ? (team.metrics.completedAgents + team.metrics.failedAgents) / team.metrics.totalAgents
@@ -741,9 +743,9 @@ export class DashboardServer extends EventEmitter {
       ? [this.orchestrator.getTeam(teamId)].filter(Boolean)
       : (this.orchestrator as any).listActiveTeams();
 
-    return teams.flatMap(team => {
+    return (teams as any[]).flatMap((team: any) => {
       const agents = (this.orchestrator as any).getTeamAgents(team.id);
-      return agents.map(agent => ({
+      return agents.map((agent: any) => ({
         id: agent.id,
         label: (agent as any).label || 'unnamed',
         status: agent.status,
@@ -770,20 +772,20 @@ export class DashboardServer extends EventEmitter {
 
   private getDashboardMetrics(): any {
     const teams = (this.orchestrator as any).listActiveTeams();
-    const allAgents = teams.flatMap(s => (this.orchestrator as any).getTeamAgents(s.id));
+    const allAgents = teams.flatMap((s: any) => (this.orchestrator as any).getTeamAgents(s.id));
     
-    const totalBudget = teams.reduce((sum, s) => sum + s.budget.allocated, 0);
-    const consumedBudget = teams.reduce((sum, s) => sum + s.budget.consumed, 0);
-    const totalCost = allAgents.reduce((sum, a) => sum + ((a as any).cost || 0), 0);
+    const totalBudget = teams.reduce((sum: number, s: any) => sum + (s.budget?.allocated || 0), 0);
+    const consumedBudget = teams.reduce((sum: number, s: any) => sum + (s.budget?.consumed || 0), 0);
+    const totalCost = allAgents.reduce((sum: number, a: any) => sum + (a.cost || 0), 0);
 
-    const byModel = allAgents.reduce((acc, a) => {
-      const model = (a as any).model || 'unknown';
-      acc[model] = (acc[model] || 0) + ((a as any).cost || 0);
+    const byModel = allAgents.reduce((acc: Record<string, number>, a: any) => {
+      const model = a.model || 'unknown';
+      acc[model] = (acc[model] || 0) + (a.cost || 0);
       return acc;
     }, {} as Record<string, number>);
 
-    const byTeam = teams.reduce((acc, s) => {
-      acc[s.name] = s.budget.consumed;
+    const byTeam = teams.reduce((acc: Record<string, number>, s: any) => {
+      acc[s.name] = s.budget?.consumed || 0;
       return acc;
     }, {} as Record<string, number>);
 
@@ -1112,7 +1114,7 @@ export class DashboardServer extends EventEmitter {
                 branchName: message.branchName,
               });
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
               this.sendToClient(client, {
                 type: 'error',
                 error: error instanceof Error ? error.message : 'Failed to switch branch',

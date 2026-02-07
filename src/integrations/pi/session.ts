@@ -563,7 +563,7 @@ export class PiSessionManager extends EventEmitter {
       // Find or select Pi instance
       let instance = this.registry.getInstance(session.instanceId);
       if (!instance || instance.health === 'unhealthy') {
-        instance = this.selectInstanceForSession(session.config);
+        instance = this.selectInstanceForSession(session.config) ?? undefined;
         if (!instance) {
           throw new SessionManagerError(
             'No available instance for session restoration',

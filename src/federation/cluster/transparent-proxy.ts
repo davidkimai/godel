@@ -304,7 +304,7 @@ export class TransparentClusterProxy extends EventEmitter {
       const agent = this.localAgents.get(agentId)!;
       return {
         status: agent.status,
-        clusterId: null,
+        clusterId: undefined,
         startedAt: agent.startedAt,
       };
     }
@@ -343,7 +343,7 @@ export class TransparentClusterProxy extends EventEmitter {
       if (this.matchesFilter(agent, filter)) {
         agents.push({
           ...agent,
-          clusterId: null,
+          clusterId: undefined,
           clusterName: 'local',
           region: 'local',
           isLocal: true,

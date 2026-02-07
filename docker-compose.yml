@@ -15,7 +15,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=7373
-      - GODEL_API_KEY=${GODEL_API_KEY:-godel-dev-key-change-in-production}
+      - GODEL_API_KEY=${GODEL_API_KEY:?Error: GODEL_API_KEY environment variable must be set}
       - DATABASE_PATH=/data/godel.db
       - LOG_LEVEL=debug
     volumes:
@@ -57,7 +57,7 @@ services:
       - "3000:3000"
     environment:
       - GODEL_API_URL=http://godel:7373
-      - GODEL_API_KEY=${GODEL_API_KEY:-godel-dev-key-change-in-production}
+      - GODEL_API_KEY=${GODEL_API_KEY:?Error: GODEL_API_KEY environment variable must be set}
     depends_on:
       - godel
     networks:

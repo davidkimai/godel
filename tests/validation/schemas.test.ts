@@ -14,7 +14,7 @@ import {
   updateAgentSchema,
   agentActionSchema,
   agentQuerySchema,
-  createSwarmSchema,
+  createTeamSchema as createSwarmSchema,
   updateSwarmSchema,
   swarmActionSchema,
   setBudgetSchema,
@@ -300,7 +300,7 @@ describe('Schema Validation', () => {
     });
   });
 
-  describe('createSwarmSchema', () => {
+  describe('createTeamSchema', () => {
     it('should accept valid swarm creation', () => {
       const data = {
         name: 'test-swarm',
@@ -399,7 +399,7 @@ describe('Schema Validation', () => {
 
     it('should accept valid swarm budget', () => {
       const data = {
-        scopeType: 'swarm' as const,
+        scopeType: 'team' as const,
         scopeId: '550e8400-e29b-41d4-a716-446655440000',
         maxCost: 500,
       };
@@ -408,7 +408,7 @@ describe('Schema Validation', () => {
 
     it('should require scopeId for non-global scopes', () => {
       const data = {
-        scopeType: 'swarm' as const,
+        scopeType: 'team' as const,
         maxTokens: 1000,
       };
       expect(() => setBudgetSchema.parse(data)).toThrow('scopeId required');
@@ -422,7 +422,7 @@ describe('Schema Validation', () => {
     });
 
     it('should accept all valid scope types', () => {
-      const scopeTypes = ['swarm', 'agent', 'project', 'global'] as const;
+      const scopeTypes = ['team', 'agent', 'project', 'global'] as const;
       scopeTypes.forEach((scopeType) => {
         const data: any = {
           scopeType,

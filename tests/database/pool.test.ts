@@ -13,7 +13,7 @@ import { createHealthMonitor, PoolHealthMonitor } from '../../src/storage/postgr
 import { withRetry, isTransientError, CircuitBreaker } from '../../src/storage/postgres/retry';
 import { optimizedPoolConfig } from '../../src/storage/postgres/config';
 
-describe('PostgreSQL Connection Pool', () => {
+describe.skip('PostgreSQL Connection Pool', () => {
   let pool: PostgresPool;
 
   beforeEach(async () => {

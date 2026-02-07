@@ -58,7 +58,7 @@ export class LlmProxy extends EventEmitter {
     this.emit('request', { userId: auth.userId, model: req.model });
 
     // Select provider
-    let provider = this.selectProvider(req);
+    let provider: ProviderConfig | null = this.selectProvider(req);
     let lastError: Error | null = null;
     const attemptedProviders: string[] = [];
 

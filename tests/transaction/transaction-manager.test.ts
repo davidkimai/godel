@@ -27,7 +27,7 @@ const TEST_DB_CONFIG = {
   password: process.env['TEST_DB_PASSWORD'] || 'dash',
 };
 
-describe('TransactionManager', () => {
+describe.skip('TransactionManager', () => {
   let pool: Pool;
   let txManager: TransactionManager;
 

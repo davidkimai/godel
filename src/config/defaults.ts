@@ -113,7 +113,7 @@ export const defaultMetricsConfig: MetricsConfig = {
   host: 'localhost',
   path: '/metrics',
   enableDefaultMetrics: true,
-  prefix: 'dash_',
+  prefix: 'godel_',
   collectIntervalMs: 5000,
 };
 
@@ -337,7 +337,7 @@ export const configMetadata: Record<string, ConfigMetadata> = {
   'server.framework': {
     description: 'Server framework: express or fastify',
     requiresRestart: true,
-    envVar: 'DASH_SERVER_FRAMEWORK',
+    envVar: 'GODEL_SERVER_FRAMEWORK',
   },
   'server.port': {
     description: 'Server port number',
@@ -351,7 +351,7 @@ export const configMetadata: Record<string, ConfigMetadata> = {
   },
   'server.cors.origins': {
     description: 'Allowed CORS origins (comma-separated)',
-    envVar: 'DASH_CORS_ORIGINS',
+    envVar: 'GODEL_CORS_ORIGINS',
   },
   'database.url': {
     description: 'PostgreSQL connection URL',
@@ -368,13 +368,13 @@ export const configMetadata: Record<string, ConfigMetadata> = {
   'auth.apiKeys': {
     description: 'API keys for authentication (comma-separated)',
     sensitive: true,
-    envVar: 'DASH_API_KEY',
+    envVar: 'GODEL_API_KEY',
   },
   'auth.jwtSecret': {
     description: 'JWT secret for token signing',
     sensitive: true,
     requiresRestart: true,
-    envVar: 'DASH_JWT_SECRET',
+    envVar: 'GODEL_JWT_SECRET',
   },
   'logging.level': {
     description: 'Log level (debug, info, warn, error, silent)',

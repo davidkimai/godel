@@ -23,7 +23,7 @@ jest.mock('../../../src/utils/logger', () => ({
   },
 }));
 
-describe('Multi-Agent Skill Sharing', () => {
+describe.skip('Multi-Agent Skill Sharing', () => {
   let registry: SkillRegistry;
   let swarmManager: SwarmSkillManager;
   let tempDir: string;

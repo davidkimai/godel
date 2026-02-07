@@ -245,12 +245,17 @@ export function setBudgetConfig(
 ): BudgetConfig {
   // Single argument form: setBudgetConfig(config)
   if (typeof typeOrScopeOrConfig === 'object') {
+    const inputConfig = typeOrScopeOrConfig as BudgetConfig;
     const fullConfig: BudgetConfig = {
-      type: 'project',
-      scope: 'default',
-      maxTokens: 10_000_000,
-      maxCost: 1000,
-      ...typeOrScopeOrConfig,
+      type: inputConfig.type ?? 'project',
+      scope: inputConfig.scope ?? 'default',
+      maxTokens: inputConfig.maxTokens ?? 10_000_000,
+      maxCost: inputConfig.maxCost ?? 1000,
+      period: inputConfig.period,
+      resetHour: inputConfig.resetHour,
+      resetDay: inputConfig.resetDay,
+      warningThreshold: inputConfig.warningThreshold,
+      criticalThreshold: inputConfig.criticalThreshold,
     };
     return setBudgetConfigInternal(fullConfig);
   }

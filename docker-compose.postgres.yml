@@ -9,7 +9,7 @@ services:
     container_name: godel-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-godel}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-godel_password_change_me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD environment variable must be set}
       POSTGRES_DB: ${POSTGRES_DB:-godel}
     ports:
       - "5433:5432"
@@ -31,7 +31,7 @@ services:
     container_name: godel-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@godel.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin_change_me}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Error: PGADMIN_PASSWORD environment variable must be set}
     ports:
       - "5050:80"
     depends_on:

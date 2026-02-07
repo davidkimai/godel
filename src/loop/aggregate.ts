@@ -552,41 +552,42 @@ export class AgentAggregate extends EventSourcedAggregate {
         this.state = 'idle';
         this.consecutiveErrors = 0;
       },
-      'agent.task_assigned': (p: {
-        taskId: string;
-        title?: string;
-        priority?: string;
-      }) => {
+      'agent.task_assigned': (p: unknown) => {
+        const payload = p as { taskId: string; title?: string; priority?: string };
         this.state = 'busy';
         this.currentTask = {
-          taskId: p.taskId,
-          title: p.title,
-          priority: p.priority as TaskInfo['priority'],
+          taskId: payload.taskId,
+          title: payload.title,
+          priority: payload.priority as TaskInfo['priority'],
         };
       },
-      'agent.task_started': (p: { startedAt: number }) => {
+      'agent.task_started': (p: unknown) => {
+        const payload = p as { startedAt: number };
         if (this.currentTask) {
-          this.currentTask.startedAt = p.startedAt;
+          this.currentTask.startedAt = payload.startedAt;
         }
       },
-      'agent.task_completed': (p: { duration: number }) => {
+      'agent.task_completed': (p: unknown) => {
+        const payload = p as { duration: number };
         this.state = 'idle';
         this.taskCount++;
-        this.totalRuntime += p.duration;
+        this.totalRuntime += payload.duration;
         this.currentTask = undefined;
         this.consecutiveErrors = 0;
       },
-      'agent.task_failed': (p: { error: string }) => {
+      'agent.task_failed': (p: unknown) => {
+        const payload = p as { error: string };
         this.state = 'error';
         this.taskCount++;
         this.failedCount++;
-        this.lastError = p.error;
+        this.lastError = payload.error;
         this.consecutiveErrors++;
         this.currentTask = undefined;
       },
-      'agent.paused': (p: { previousState: string }) => {
+      'agent.paused': (p: unknown) => {
+        const payload = p as { previousState: string };
         this.state = 'paused';
-        this.metadata['pausedFrom'] = p.previousState;
+        this.metadata['pausedFrom'] = payload.previousState;
       },
       'agent.resumed': () => {
         this.state = (this.metadata['pausedFrom'] as AgentAggregateState) || 'idle';
@@ -599,15 +600,17 @@ export class AgentAggregate extends EventSourcedAggregate {
         this.state = 'stopped';
         this.currentTask = undefined;
       },
-      'agent.error_recorded': (p: { error: string; consecutiveErrors: number }) => {
-        this.lastError = p.error;
-        this.consecutiveErrors = p.consecutiveErrors;
+      'agent.error_recorded': (p: unknown) => {
+        const payload = p as { error: string; consecutiveErrors: number };
+        this.lastError = payload.error;
+        this.consecutiveErrors = payload.consecutiveErrors;
         if (this.consecutiveErrors >= 3) {
           this.state = 'error';
         }
       },
-      'agent.capabilities_updated': (p: { capabilities: AgentCapabilities }) => {
-        this.capabilities = p.capabilities;
+      'agent.capabilities_updated': (p: unknown) => {
+        const payload = p as { capabilities: AgentCapabilities };
+        this.capabilities = payload.capabilities;
       },
     };
 

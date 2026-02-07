@@ -331,7 +331,7 @@ export class SecretManager {
   ): Promise<{ result: T; resolved: SecretReference[] }> {
     const allResolved: SecretReference[] = [];
 
-    async function recurse(value: unknown): Promise<unknown> {
+    const recurse = async (value: unknown): Promise<unknown> => {
       if (typeof value === 'string' && this.hasReferences(value)) {
         const { result, resolved } = await this.resolveTemplate(value, options);
         allResolved.push(...resolved);
@@ -339,21 +339,21 @@ export class SecretManager {
       }
 
       if (Array.isArray(value)) {
-        return Promise.all(value.map(recurse.bind(this)));
+        return Promise.all(value.map(v => recurse(v)));
       }
 
       if (value !== null && typeof value === 'object') {
         const result: Record<string, unknown> = {};
         for (const [key, val] of Object.entries(value)) {
-          result[key] = await recurse.call(this, val);
+          result[key] = await recurse(val);
         }
         return result;
       }
 
       return value;
-    }
+    };
 
-    const result = await recurse.call(this, obj);
+    const result = await recurse(obj);
 
     return {
       result: result as T,

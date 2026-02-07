@@ -1,6 +1,6 @@
 /**
- * End-to-end swarm workflow test
- * Tests the complete swarm workflow from agent registration to task completion
+ * End-to-end team workflow test
+ * Tests the complete team workflow from agent registration to task completion
  */
 
 import { jest } from '@jest/globals';
@@ -10,12 +10,12 @@ const RUN_LEGACY_COMBINED_TESTS = process.env['RUN_LEGACY_COMBINED_TESTS'] === '
 const describeLegacy = RUN_LEGACY_COMBINED_TESTS ? describe : describe.skip;
 
 // Mock dependencies before imports
-jest.unstable_mockModule('../../src/services/swarm.service', () => ({
-  SwarmService: jest.fn().mockImplementation(() => ({
+jest.unstable_mockModule('../../src/services/team.service', () => ({
+  TeamService: jest.fn().mockImplementation(() => ({
     initialize: mockAsync(true),
     registerAgent: mockAsync({ id: 'agent-1', name: 'test-agent' }),
     distributeTask: mockAsync({ taskId: 'task-1', status: 'distributed' }),
-    getSwarmStatus: mockAsync({ agents: 2, activeTasks: 3 }),
+    getTeamStatus: mockAsync({ agents: 2, activeTasks: 3 }),
   })),
 }));
 
@@ -34,17 +34,17 @@ jest.unstable_mockModule('../../src/services/task.service', () => ({
   })),
 }));
 
-describeLegacy('Full Swarm Workflow E2E', () => {
-  let swarmService: any;
+describeLegacy('Full Team Workflow E2E', () => {
+  let teamService: any;
   let agentService: any;
   let taskService: any;
 
   beforeAll(async () => {
-    const swarmModule = await import('../../src/services/swarm.service');
+    const teamModule = await import('../../src/services/team.service');
     const agentModule = await import('../../src/services/agent.service');
     const taskModule = await import('../../src/services/task.service');
     
-    swarmService = new swarmModule.SwarmService();
+    teamService = new teamModule.TeamService();
     agentService = new agentModule.AgentService();
     taskService = new taskModule.TaskService();
   });
@@ -95,30 +95,30 @@ describeLegacy('Full Swarm Workflow E2E', () => {
     });
   });
 
-  describe('Swarm Coordination', () => {
-    it('should initialize swarm successfully', async () => {
-      const initialized = await swarmService.initialize();
+  describe('Team Coordination', () => {
+    it('should initialize team successfully', async () => {
+      const initialized = await teamService.initialize();
       
       expect(initialized).toBe(true);
     });
 
-    it('should register agent in swarm', async () => {
-      const registration = await swarmService.registerAgent('agent-1', 'test-agent');
+    it('should register agent in team', async () => {
+      const registration = await teamService.registerAgent('agent-1', 'test-agent');
       
       expect(registration).toBeDefined();
       expect(registration.id).toBe('agent-1');
     });
 
-    it('should distribute task to swarm', async () => {
-      const distribution = await swarmService.distributeTask({ title: 'Swarm Task' });
+    it('should distribute task to team', async () => {
+      const distribution = await teamService.distributeTask({ title: 'Team Task' });
       
       expect(distribution).toBeDefined();
       expect(distribution.taskId).toBe('task-1');
       expect(distribution.status).toBe('distributed');
     });
 
-    it('should get swarm status', async () => {
-      const status = await swarmService.getSwarmStatus();
+    it('should get team status', async () => {
+      const status = await teamService.getTeamStatus();
       
       expect(status).toBeDefined();
       expect(status.agents).toBe(2);
@@ -128,12 +128,12 @@ describeLegacy('Full Swarm Workflow E2E', () => {
 
   describe('Complete Workflow Integration', () => {
     it('should execute complete workflow from start to finish', async () => {
-      // Step 1: Initialize swarm
-      await swarmService.initialize();
+      // Step 1: Initialize team
+      await teamService.initialize();
       
       // Step 2: Create and register agent
       const agent = await agentService.createAgent({ name: 'workflow-agent' });
-      await swarmService.registerAgent(agent.id, agent.name);
+      await teamService.registerAgent(agent.id, agent.name);
       
       // Step 3: Create task
       const task = await taskService.createTask({ title: 'Integration Test Task' });
@@ -145,8 +145,8 @@ describeLegacy('Full Swarm Workflow E2E', () => {
       // Verify final state
       expect(result.status).toBe('completed');
       
-      // Step 5: Verify swarm status reflects changes
-      const status = await swarmService.getSwarmStatus();
+      // Step 5: Verify team status reflects changes
+      const status = await teamService.getTeamStatus();
       expect(status.agents).toBeGreaterThanOrEqual(2);
     });
   });
