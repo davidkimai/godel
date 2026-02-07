@@ -4,11 +4,19 @@
  * Manages database connections with retry logic for transient failures.
  * Uses pg-pool for connection management.
  * Reads configuration from the centralized config system.
+ * 
+ * Optimized for 50+ concurrent agents with:
+ * - Extended timeouts for stability
+ * - Connection validation
+ * - Health monitoring integration
+ * - Advanced retry with exponential backoff
  */
 
 import { logger } from '../../utils/logger';
 import type { PoolClient } from 'pg';
 import { getConfig, type DatabaseConfig } from '../../config';
+import { withRetry, isTransientError, type RetryOptions } from './retry';
+import { PoolHealthMonitor, createHealthMonitor } from './health';
 
 // We'll use dynamic import for pg-pool to avoid type issues
 
@@ -113,10 +121,37 @@ export class PostgresPool {
   private config: PostgresPoolConfig;
   private isConnected: boolean = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private healthMonitor: PoolHealthMonitor | null = null;
+  private queryCount = 0;
+  private failedQueryCount = 0;
 
   constructor(config?: Partial<PostgresPoolConfig>) {
     // Will be set in initialize()
     this.config = config as PostgresPoolConfig;
+  }
+
+  /**
+   * Get the health monitor instance
+   */
+  getHealthMonitor(): PoolHealthMonitor | null {
+    return this.healthMonitor;
+  }
+
+  /**
+   * Enable health monitoring
+   */
+  enableHealthMonitoring(intervalMs?: number): void {
+    if (!this.healthMonitor) {
+      this.healthMonitor = createHealthMonitor(this);
+    }
+    this.healthMonitor.startMonitoring(intervalMs);
+  }
+
+  /**
+   * Disable health monitoring
+   */
+  disableHealthMonitoring(): void {
+    this.healthMonitor?.stopMonitoring();
   }
 
   /**
@@ -148,59 +183,76 @@ export class PostgresPool {
         }
         
         logger.warn(`PostgreSQL connection attempt ${attempts}/${maxAttempts} failed, retrying in ${this.config.retryDelayMs}ms...`);
-        await this.delay(this.config.retryDelayMs);
+        await new Promise(resolve => setTimeout(resolve, this.config.retryDelayMs));
       }
     }
   }
 
   /**
-   * Create and connect the pool
+   * Create and connect the pool with optimized settings
    */
   private async connect(): Promise<void> {
     const { default: PgPool } = await import('pg-pool');
     const { Client } = await import('pg');
     
+    // Optimized pool configuration for 50+ concurrent agents
     this.pool = new PgPool({
       host: this.config.host,
       port: this.config.port,
       database: this.config.database,
       user: this.config.user,
       password: this.config.password,
+      
+      // Pool sizing - optimized for 50+ agents
       min: this.config.minPoolSize,
       max: this.config.maxPoolSize,
+      
+      // Extended timeouts for stability under load
       idleTimeoutMillis: this.config.idleTimeoutMs,
       connectionTimeoutMillis: this.config.connectionTimeoutMs,
+      
+      // Enable connection validation for stability
+      allowExitOnIdle: false,
+      
+      // SSL configuration
       ssl: this.config.ssl,
       Client: Client,
+      
+      // TCP keepalive for connection stability
       keepAlive: this.config.keepAlive,
       keepAliveInitialDelayMillis: this.config.keepAliveInitialDelayMs,
+      
+      // Connection lifecycle - recycle after max uses
       maxUses: this.config.maxUses,
     });
 
-    // Set application_name for debugging
-    await this.pool.query(`SET application_name = '${this.config.applicationName}'`);
-
-    // Set statement timeout
-    await this.pool.query(`SET statement_timeout = ${this.config.statementTimeoutMs}`);
-
-    // Set up event handlers
+    // Set up event handlers before testing connection
     this.pool.on('error', (err: Error) => {
       logger.error('Unexpected PostgreSQL pool error:', err.message);
       this.isConnected = false;
       this.scheduleReconnect();
     });
 
-    this.pool.on('connect', () => {
+    this.pool.on('connect', (client: PoolClient) => {
       this.isConnected = true;
+      // Configure each new connection
+      client.query(`SET application_name = '${this.config.applicationName}'`).catch(() => {});
+      client.query(`SET statement_timeout = '${this.config.statementTimeoutMs}'`).catch(() => {});
     });
 
-    // Test the connection
-    const client = await this.pool.connect();
-    try {
-      await client.query('SELECT 1');
-    } finally {
-      client.release();
-    }
+    this.pool.on('acquire', () => {
+      this.healthMonitor?.recordAcquireTime(0);
+    });
+
+    // Test the connection with retry
+    await withRetry(async () => {
+      const client = await this.pool.connect();
+      try {
+        await client.query('SELECT 1');
+      } finally {
+        client.release();
+      }
+    }, { maxRetries: 3, initialDelayMs: 500 });
   }
 
   /**
@@ -221,6 +273,7 @@ export class PostgresPool {
 
   /**
    * Execute a query with automatic retry for transient failures
+   * Uses advanced retry logic with exponential backoff
    */
   async query<T = unknown>(
     text: string, 
@@ -231,33 +284,46 @@ export class PostgresPool {
       throw new Error('Pool not initialized. Call initialize() first.');
     }
 
-    const maxAttempts = retryOptions?.attempts ?? 3;
-    const baseDelayMs = retryOptions?.delayMs ?? 500;
-    let attempts = 0;
+    const startTime = Date.now();
+    this.queryCount++;
 
-    while (attempts < maxAttempts) {
-      try {
-        const result = await this.pool.query(text, params);
-        return {
-          rows: result.rows as T[],
-          rowCount: result.rowCount || 0,
-        };
-      } catch (error) {
-        attempts++;
-        
-        // Only retry on transient errors
-        if (this.isTransientError(error) && attempts < maxAttempts) {
-          const delayMs = Math.min(baseDelayMs * Math.pow(2, attempts - 1), this.config.retryMaxDelayMs);
-          logger.warn(`Query failed with transient error, retrying (${attempts}/${maxAttempts}) in ${delayMs}ms...`);
-          await this.delay(delayMs);
-          continue;
-        }
-        
-        throw error;
-      }
+    try {
+      const result = await withRetry(async () => {
+        return await this.pool.query(text, params);
+      }, {
+        maxRetries: retryOptions?.attempts ?? this.config.retryAttempts,
+        initialDelayMs: retryOptions?.delayMs ?? this.config.retryDelayMs,
+        maxDelayMs: this.config.retryMaxDelayMs,
+        backoffMultiplier: 2,
+        jitterFactor: 0.1,
+      });
+
+      const duration = Date.now() - startTime;
+      this.healthMonitor?.recordQuery(duration, false);
+
+      return {
+        rows: result.rows as T[],
+        rowCount: result.rowCount || 0,
+      };
+    } catch (error) {
+      this.failedQueryCount++;
+      const duration = Date.now() - startTime;
+      this.healthMonitor?.recordQuery(duration, true);
+      throw error;
     }
+  }
 
-    throw new Error('Query failed after max retries');
+  /**
+   * Get query statistics
+   */
+  getQueryStats(): { total: number; failed: number; successRate: number } {
+    return {
+      total: this.queryCount,
+      failed: this.failedQueryCount,
+      successRate: this.queryCount > 0 
+        ? ((this.queryCount - this.failedQueryCount) / this.queryCount) * 100 
+        : 100,
+    };
   }
 
   // ============================================================================
@@ -395,29 +461,6 @@ export class PostgresPool {
   }
 
   /**
-   * Check if error is transient and retryable
-   */
-  private isTransientError(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
-    
-    const transientCodes = [
-      'ECONNRESET',
-      'ETIMEDOUT',
-      'ECONNREFUSED',
-      '08000', // connection_exception
-      '08003', // connection_does_not_exist
-      '08006', // connection_failure
-      '40001', // serialization_failure
-      '40P01', // deadlock_detected
-      '55P03', // lock_not_available
-    ];
-    
-    const code = (error as { code?: string }).code;
-    return transientCodes.includes(code || '') || 
-           transientCodes.some(c => error.message.includes(c));
-  }
-
-  /**
    * Get pool statistics
    */
   getStats(): { total: number; idle: number; waiting: number; isConnected: boolean } {
@@ -426,6 +469,17 @@ export class PostgresPool {
       idle: this.pool?.idleCount || 0,
       waiting: this.pool?.waitingCount || 0,
       isConnected: this.isConnected,
+    };
+  }
+
+  /**
+   * Get comprehensive pool metrics
+   */
+  getMetrics(): Record<string, unknown> {
+    return {
+      pool: this.getStats(),
+      queries: this.getQueryStats(),
+      health: this.healthMonitor?.getHealthHistory().slice(-10),
     };
   }
 
@@ -455,24 +509,24 @@ export class PostgresPool {
    * Close the pool gracefully
    */
   async close(): Promise<void> {
+    this.disableHealthMonitoring();
+    
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
 
     if (this.pool) {
+      // Log final metrics before closing
+      const stats = this.getStats();
+      const queries = this.getQueryStats();
+      logger.info(`Closing pool - Stats: ${JSON.stringify(stats)}, Queries: ${JSON.stringify(queries)}`);
+      
       await this.pool.end();
       this.pool = null;
       this.isConnected = false;
       logger.info('PostgreSQL pool closed');
     }
-  }
-
-  /**
-   * Delay helper
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

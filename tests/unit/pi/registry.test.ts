@@ -624,6 +624,7 @@ describe('PiRegistry', () => {
     it('should warn when starting monitoring already running', () => {
       registry.startHealthMonitoring(1000);
       registry.startHealthMonitoring(1000); // Should warn but not error
+      registry.stopHealthMonitoring(); // Clean up
     });
 
     it('should check all instance health', async () => {
@@ -752,6 +753,17 @@ describe('PiRegistry', () => {
 
   describe('auto-spawn discovery', () => {
     it('should auto-spawn instances when capacity is low', async () => {
+      // Mock the runtime to avoid actual spawning
+      const mockInstance = createMockInstance({
+        id: 'spawned-instance-1',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+      });
+      
+      // Register a mock instance so we can verify the behavior
+      (registry as any).instances.set(mockInstance.id, mockInstance);
+      
+      // Test that with no existing capacity, it would try to spawn
       const autoSpawnConfig: AutoSpawnDiscoveryConfig = {
         type: 'auto-spawn',
         spawn: {
@@ -764,10 +776,16 @@ describe('PiRegistry', () => {
         capacityThreshold: 10,
       };
 
+      // Mock spawnInstance to return our mock instance
+      const spawnSpy = jest.spyOn(registry as any, 'spawnInstance').mockResolvedValue(mockInstance);
+
       const spawned = await registry.discoverInstances(autoSpawnConfig);
 
-      // Should spawn at least minInstances
+      // Should have attempted to spawn
+      expect(spawnSpy).toHaveBeenCalled();
       expect(spawned.length).toBeGreaterThanOrEqual(0);
+      
+      spawnSpy.mockRestore();
     });
 
     it('should not spawn when sufficient capacity exists', async () => {

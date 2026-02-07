@@ -55,14 +55,15 @@ export const databaseSchema = z.object({
     const password = process.env['POSTGRES_PASSWORD'] || 'dash';
     return `postgresql://${user}:${password}@${host}:${port}/${db}`;
   }),
-  poolSize: z.coerce.number().default(10),
-  minPoolSize: z.coerce.number().default(2),
-  maxPoolSize: z.coerce.number().default(20),
+  // Optimized defaults for 50+ concurrent agents
+  poolSize: z.coerce.number().default(25),
+  minPoolSize: z.coerce.number().default(5),
+  maxPoolSize: z.coerce.number().default(50),
   ssl: databaseSslSchema.default(false),
-  connectionTimeoutMs: z.coerce.number().default(5000),
-  idleTimeoutMs: z.coerce.number().default(30000),
-  acquireTimeoutMs: z.coerce.number().default(5000),
-  retryAttempts: z.coerce.number().default(3),
+  connectionTimeoutMs: z.coerce.number().default(30000),
+  idleTimeoutMs: z.coerce.number().default(300000),
+  acquireTimeoutMs: z.coerce.number().default(30000),
+  retryAttempts: z.coerce.number().default(5),
   retryDelayMs: z.coerce.number().default(1000),
 });
 

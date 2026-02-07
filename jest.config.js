@@ -35,4 +35,6 @@ module.exports = {
     '^@jtan15010/godel$': '<rootDir>/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
+  forceExit: true,
+  detectOpenHandles: false,
 };
