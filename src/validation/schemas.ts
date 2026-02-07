@@ -133,7 +133,7 @@ export const teamActionSchema = z.object({
   return true;
 }, { message: 'Scale requires targetAgents; cancel cannot be graceful' });
 
-export const swarmQuerySchema = z.object({
+export const teamQuerySchema = z.object({
   status: z.array(z.enum(['creating', 'active', 'scaling', 'paused', 'completed', 'failed', 'destroyed'])).optional(),
   ...paginationSchema.shape,
 });
@@ -267,7 +267,7 @@ export type AgentQueryInput = z.infer<typeof agentQuerySchema>;
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 export type TeamActionInput = z.infer<typeof teamActionSchema>;
-export type TeamQueryInput = z.infer<typeof swarmQuerySchema>;
+export type TeamQueryInput = z.infer<typeof teamQuerySchema>;
 
 export type SetBudgetInput = z.infer<typeof setBudgetSchema>;
 export type BudgetConsumptionInput = z.infer<typeof budgetConsumptionSchema>;

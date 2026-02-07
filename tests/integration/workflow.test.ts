@@ -38,7 +38,7 @@ describeLive('Godel Workflow Integration', () => {
   describe('Complete Agent Lifecycle', () => {
     it('should create swarm, spawn agents, and complete workflow', async () => {
       // 1. Create a swarm
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,7 +51,7 @@ describeLive('Godel Workflow Integration', () => {
         }),
       });
       expect(swarmRes.status).toBe(201);
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
       expect(swarm.status).toBe('creating');
 
       // 2. Wait for swarm to be active
@@ -71,7 +71,7 @@ describeLive('Godel Workflow Integration', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            swarmId: swarm.id,
+            teamId: team.id,
             model: 'test-model',
             task: `Test task ${i}`,
             label: `test_agent_${i}`,
@@ -124,7 +124,7 @@ describeLive('Godel Workflow Integration', () => {
   describe('Error Recovery Workflow', () => {
     it('should handle agent failure and retry', async () => {
       // 1. Create swarm
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,14 +132,14 @@ describeLive('Godel Workflow Integration', () => {
           config: { maxRetries: 2 },
         }),
       });
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
 
       // 2. Spawn agent
       const agentRes = await fetch(`${API_URL}/api/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          swarmId: swarm.id,
+          teamId: team.id,
           model: 'test-model',
           task: 'Task that will fail',
           label: 'test_recovery_agent',
@@ -186,7 +186,7 @@ describeLive('Godel Workflow Integration', () => {
   describe('Budget Management Workflow', () => {
     it('should track and enforce budget limits', async () => {
       // 1. Create swarm with budget
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -197,7 +197,7 @@ describeLive('Godel Workflow Integration', () => {
           },
         }),
       });
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
 
       // 2. Verify budget was created
       const budgetRes = await fetch(`${API_URL}/api/swarms/${swarm.id}/budget`);
@@ -239,12 +239,12 @@ describeLive('Godel Workflow Integration', () => {
   describe('Event Stream Workflow', () => {
     it('should emit and query events correctly', async () => {
       // 1. Create swarm to generate events
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'test_events_swarm' }),
       });
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
 
       // 2. Emit custom events
       const eventTypes = ['test_start', 'test_progress', 'test_complete'];
@@ -254,7 +254,7 @@ describeLive('Godel Workflow Integration', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type,
-            swarmId: swarm.id,
+            teamId: team.id,
             payload: { step: eventTypes.indexOf(type) },
             severity: 'info',
           }),
@@ -263,7 +263,7 @@ describeLive('Godel Workflow Integration', () => {
       }
 
       // 3. Query events
-      const queryRes = await fetch(`${API_URL}/api/events?swarmId=${swarm.id}&limit=10`);
+      const queryRes = await fetch(`${API_URL}/api/events?teamId=${team.id}&limit=10`);
       expect(queryRes.status).toBe(200);
       const { events, total } = await queryRes.json();
       expect(events.length).toBeGreaterThanOrEqual(3);
@@ -278,7 +278,7 @@ describeLive('Godel Workflow Integration', () => {
   describe('Concurrent Operations', () => {
     it('should handle concurrent agent spawns', async () => {
       // 1. Create swarm
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -286,7 +286,7 @@ describeLive('Godel Workflow Integration', () => {
           config: { maxAgents: 20 },
         }),
       });
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
 
       // 2. Spawn 10 agents concurrently
       const spawnPromises = [];
@@ -295,7 +295,7 @@ describeLive('Godel Workflow Integration', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            swarmId: swarm.id,
+            teamId: team.id,
             model: 'test-model',
             task: `Concurrent task ${i}`,
             label: `test_concurrent_${i}`,
@@ -321,12 +321,12 @@ describeLive('Godel Workflow Integration', () => {
   describe('Cleanup Workflow', () => {
     it('should properly cleanup resources on swarm destruction', async () => {
       // 1. Create swarm with agents
-      const swarmRes = await fetch(`${API_URL}/api/swarms`, {
+      const teamRes = await fetch(`${API_URL}/api/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'test_cleanup_swarm' }),
       });
-      const swarm = await swarmRes.json();
+      const team = await teamRes.json();
 
       // Spawn agents
       for (let i = 0; i < 3; i++) {
@@ -334,7 +334,7 @@ describeLive('Godel Workflow Integration', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            swarmId: swarm.id,
+            teamId: team.id,
             model: 'test-model',
             task: `Task ${i}`,
           }),

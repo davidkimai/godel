@@ -138,7 +138,7 @@ describe('StatePersistence', () => {
       id: 'agent-test-001',
       status: 'running',
       lifecycleState: 'running',
-      swarmId: 'swarm-001',
+      teamId: 'team-001';
       model: 'kimi-k2.5',
       task: 'test task',
       retryCount: 0,
@@ -179,11 +179,11 @@ describe('StatePersistence', () => {
     it('should load agents by swarm', async () => {
       await persistence.persistAgent(mockAgent, 'test');
       await persistence.persistAgent(
-        { ...mockAgent, id: 'agent-002', swarmId: 'swarm-001' },
+        { ...mockAgent, id: 'agent-002', teamId: 'team-001' },
         'test'
       );
       await persistence.persistAgent(
-        { ...mockAgent, id: 'agent-003', swarmId: 'swarm-002' },
+        { ...mockAgent, id: 'agent-003', teamId: 'team-002' },
         'test'
       );
 

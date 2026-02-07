@@ -26,45 +26,45 @@ import {
 import { Card, Button, Badge, LoadingSpinner, EmptyState } from '../components/Layout';
 import { useDashboardStore, useUIStore, useAuthStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useSwarmUpdates } from '../services/websocket';
+import { useTeamUpdates } from '../services/websocket';
 import {
-  SwarmState,
+  TeamState,
   formatCurrency,
   formatNumber,
   formatRelativeTime,
   getStatusColor,
   cn
 } from '../types/index';
-import type { Team, Agent, SwarmConfig } from '../types/index';
+import type { Team, Agent, TeamConfig } from '../types/index';
 
 // ============================================================================
 // Teams Page
 // ============================================================================
 
-export function SwarmsPage(): React.ReactElement {
-  const { teams, agents, isLoadingSwarms, setSwarms, updateSwarm } = useDashboardStore();
-  const { view, toggleSwarmExpanded, setSelectedSwarm, filters, setFilter } = useUIStore();
+export function TeamsPage(): React.ReactElement {
+  const { teams, agents, isLoadingTeams, setTeams, updateTeam } = useDashboardStore();
+  const { view, toggleTeamExpanded, setSelectedTeam, filters, setFilter } = useUIStore();
   const { isAdmin } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [scalingSwarm, setScalingSwarm] = useState<string | null>(null);
+  const [scalingTeam, setScalingTeam] = useState<string | null>(null);
   const { addNotification } = useUIStore();
 
   // Subscribe to real-time updates
-  const { teams: updatedSwarms } = useSwarmUpdates();
+  const { teams: updatedTeams } = useTeamUpdates();
 
   // Merge real-time updates
   useEffect(() => {
-    updatedSwarms.forEach(team => {
-      updateSwarm(team);
+    updatedTeams.forEach(team => {
+      updateTeam(team);
     });
-  }, [updatedSwarms, updateSwarm]);
+  }, [updatedTeams, updateTeam]);
 
   // Fetch teams on mount
   useEffect(() => {
-    const fetchSwarms = async () => {
+    const fetchTeams = async () => {
       try {
         const data = await api.teams.list();
-        setSwarms(data);
+        setTeams(data);
       } catch (error) {
         addNotification({
           type: 'error',
@@ -74,13 +74,13 @@ export function SwarmsPage(): React.ReactElement {
       }
     };
 
-    fetchSwarms();
-  }, [setSwarms, addNotification]);
+    fetchTeams();
+  }, [setTeams, addNotification]);
 
   // Filter teams
-  const filteredSwarms = useMemo(() => {
+  const filteredTeams = useMemo(() => {
     return teams.filter(team => {
-      if (filters.status !== 'all' && team.status !== (filters.status as unknown as SwarmState)) return false;
+      if (filters.status !== 'all' && team.status !== (filters.status as unknown as TeamState)) return false;
       if (filters.search) {
         const search = filters.search.toLowerCase();
         return (
@@ -93,7 +93,7 @@ export function SwarmsPage(): React.ReactElement {
   }, [teams, filters]);
 
   // Group agents by team
-  const agentsBySwarm = useMemo(() => {
+  const agentsByTeam = useMemo(() => {
     return agents.reduce((acc, agent) => {
       if (!acc[agent.teamId]) acc[agent.teamId] = [];
       acc[agent.teamId].push(agent);
@@ -101,7 +101,7 @@ export function SwarmsPage(): React.ReactElement {
     }, {} as Record<string, Agent[]>);
   }, [agents]);
 
-  const handleStartSwarm = async (teamId: string) => {
+  const handleStartTeam = async (teamId: string) => {
     try {
       await api.teams.start(teamId);
       addNotification({ type: 'success', message: 'Team started', dismissible: true });
@@ -110,7 +110,7 @@ export function SwarmsPage(): React.ReactElement {
     }
   };
 
-  const handleStopSwarm = async (teamId: string) => {
+  const handleStopTeam = async (teamId: string) => {
     try {
       await api.teams.stop(teamId);
       addNotification({ type: 'success', message: 'Team stopped', dismissible: true });
@@ -119,14 +119,14 @@ export function SwarmsPage(): React.ReactElement {
     }
   };
 
-  const handleScaleSwarm = async (teamId: string, delta: number) => {
+  const handleScaleTeam = async (teamId: string, delta: number) => {
     const team = teams.find(s => s.id === teamId);
     if (!team) return;
 
     const newSize = team.agents.length + delta;
     if (newSize < 1 || newSize > team.config.maxAgents) return;
 
-    setScalingSwarm(teamId);
+    setScalingTeam(teamId);
     try {
       await api.teams.scale(teamId, newSize);
       addNotification({ 
@@ -137,11 +137,11 @@ export function SwarmsPage(): React.ReactElement {
     } catch (error) {
       addNotification({ type: 'error', message: 'Failed to scale team', dismissible: true });
     } finally {
-      setScalingSwarm(null);
+      setScalingTeam(null);
     }
   };
 
-  const handleDestroySwarm = async (teamId: string) => {
+  const handleDestroyTeam = async (teamId: string) => {
     if (!confirm('Are you sure you want to destroy this team? This action cannot be undone.')) {
       return;
     }
@@ -185,11 +185,11 @@ export function SwarmsPage(): React.ReactElement {
         
         <select
           value={filters.status}
-          onChange={(e) => setFilter('status', e.target.value as SwarmState | 'all')}
+          onChange={(e) => setFilter('status', e.target.value as TeamState | 'all')}
           className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <option value="all">All Statuses</option>
-          {Object.values(SwarmState).map(status => (
+          {Object.values(TeamState).map(status => (
             <option key={status} value={status}>{status}</option>
           ))}
         </select>
@@ -197,9 +197,9 @@ export function SwarmsPage(): React.ReactElement {
 
       {/* Teams List */}
       <div className="space-y-4">
-        {isLoadingSwarms ? (
+        {isLoadingTeams ? (
           <LoadingSpinner className="py-12" />
-        ) : filteredSwarms.length === 0 ? (
+        ) : filteredTeams.length === 0 ? (
           <Card>
             <EmptyState
               title="No teams found"
@@ -211,18 +211,18 @@ export function SwarmsPage(): React.ReactElement {
             />
           </Card>
         ) : (
-          filteredSwarms.map(team => (
-            <SwarmCard
+          filteredTeams.map(team => (
+            <TeamCard
               key={team.id}
               team={team}
               agents={agentsBySwarm[team.id] || []}
-              isExpanded={view.expandedSwarms.has(team.id)}
-              onToggleExpand={() => toggleSwarmExpanded(team.id)}
-              onStart={() => handleStartSwarm(team.id)}
-              onStop={() => handleStopSwarm(team.id)}
-              onScale={(delta) => handleScaleSwarm(team.id, delta)}
-              onDestroy={() => handleDestroySwarm(team.id)}
-              isScaling={scalingSwarm === team.id}
+              isExpanded={view.expandedTeams.has(team.id)}
+              onToggleExpand={() => toggleTeamExpanded(team.id)}
+              onStart={() => handleStartTeam(team.id)}
+              onStop={() => handleStopTeam(team.id)}
+              onScale={(delta) => handleScaleTeam(team.id, delta)}
+              onDestroy={() => handleDestroyTeam(team.id)}
+              isScaling={scalingTeam === team.id}
               isAdmin={isAdmin()}
             />
           ))
@@ -231,7 +231,7 @@ export function SwarmsPage(): React.ReactElement {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <CreateSwarmModal onClose={() => setShowCreateModal(false)} />
+        <CreateTeamModal onClose={() => setShowCreateModal(false)} />
       )}
     </div>
   );
@@ -241,7 +241,7 @@ export function SwarmsPage(): React.ReactElement {
 // Team Card
 // ============================================================================
 
-interface SwarmCardProps {
+interface TeamCardProps {
   team: Team;
   agents: Agent[];
   isExpanded: boolean;
@@ -254,7 +254,7 @@ interface SwarmCardProps {
   isAdmin: boolean;
 }
 
-function SwarmCard({
+function TeamCard({
   team,
   agents,
   isExpanded,
@@ -265,12 +265,12 @@ function SwarmCard({
   onDestroy,
   isScaling,
   isAdmin
-}: SwarmCardProps): React.ReactElement {
+}: TeamCardProps): React.ReactElement {
   const progress = team.metrics.totalAgents > 0
     ? (team.metrics.completedAgents + team.metrics.failedAgents) / team.metrics.totalAgents
     : 0;
 
-  const isActive = team.status === SwarmState.ACTIVE || team.status === SwarmState.SCALING;
+  const isActive = team.status === TeamState.ACTIVE || team.status === TeamState.SCALING;
 
   return (
     <Card className={cn('overflow-hidden', isExpanded && 'ring-1 ring-emerald-500/30')}>
@@ -335,7 +335,7 @@ function SwarmCard({
                     <Pause className="w-4 h-4" />
                   </button>
                 </>
-              ) : team.status === SwarmState.PAUSED ? (
+              ) : team.status === TeamState.PAUSED ? (
                 <button
                   onClick={onStart}
                   className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400"
@@ -416,12 +416,12 @@ function AgentListItem({ agent }: { agent: Agent }): React.ReactElement {
 // Create Team Modal
 // ============================================================================
 
-function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElement {
+function CreateTeamModal({ onClose }: { onClose: () => void }): React.ReactElement {
   const [name, setName] = useState('');
   const [task, setTask] = useState('');
   const [initialAgents, setInitialAgents] = useState(5);
   const [maxAgents, setMaxAgents] = useState(50);
-  const [strategy, setStrategy] = useState<SwarmConfig['strategy']>('parallel');
+  const [strategy, setStrategy] = useState<TeamConfig['strategy']>('parallel');
   const [isCreating, setIsCreating] = useState(false);
   const { addNotification } = useUIStore();
   const navigate = useNavigate();
@@ -510,7 +510,7 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
             <label className="block text-sm font-medium text-slate-400 mb-1">Strategy</label>
             <select
               value={strategy}
-              onChange={(e) => setStrategy(e.target.value as SwarmConfig['strategy'])}
+              onChange={(e) => setStrategy(e.target.value as TeamConfig['strategy'])}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="parallel">Parallel</option>
@@ -533,4 +533,4 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
 // Fix missing import
 import { X } from 'lucide-react';
 
-export default SwarmsPage;
+export default TeamsPage;

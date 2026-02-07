@@ -6,15 +6,15 @@
 
 import React, { useState } from 'react';
 import { WorkflowGraph } from '../components/WorkflowVisualizer/WorkflowGraph';
-import { useSwarmsRealtime } from '../hooks/useWebSocket';
+import { useTeamsRealtime } from '../hooks/useWebSocket';
 import { Play, Pause, Square, Plus, Filter, Search } from 'lucide-react';
 
 const Workflows: React.FC = () => {
-  const { teams } = useSwarmsRealtime();
-  const [selectedSwarm, setSelectedSwarm] = useState<string | null>(null);
+  const { teams } = useTeamsRealtime();
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredSwarms = teams.filter(team => 
+  const filteredTeams = teams.filter(team => 
     team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     team.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -52,12 +52,12 @@ const Workflows: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 overflow-x-auto">
-          {filteredSwarms.map(team => (
+          {filteredTeams.map(team => (
             <button
               key={team.id}
-              onClick={() => setSelectedSwarm(team.id)}
+              onClick={() => setSelectedTeam(team.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedSwarm === team.id
+                selectedTeam === team.id
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
@@ -71,7 +71,7 @@ const Workflows: React.FC = () => {
       {/* Workflow Graph */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
         <WorkflowGraph 
-          workflowId={selectedSwarm || undefined} 
+          workflowId={selectedTeam || undefined} 
           height={600}
         />
       </div>

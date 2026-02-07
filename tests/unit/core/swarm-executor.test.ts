@@ -1,77 +1,77 @@
-import { SwarmExecutor, swarmExecutor } from '../../../src/core/swarm-executor';
+import { TeamExecutor, teamExecutor } from '../../../src/core/team-executor';
 
-describe('SwarmExecutor', () => {
-  describe('executeSwarm', () => {
+describe('TeamExecutor', () => {
+  describe('executeTeam', () => {
     it('should create execution context for valid swarm', async () => {
-      const swarmId = 'test-swarm-1';
+      const teamId = 'test-team-1';
       const agentIds = ['agent_1', 'agent_2', 'agent_3'];
 
-      const context = await swarmExecutor.executeSwarm(swarmId, agentIds);
+      const context = await teamExecutor.executeTeam(teamId, agentIds);
 
-      expect(context.swarmId).toBe(swarmId);
+      expect(context.teamId).toBe(teamId);
       expect(context.agentResults.size).toBe(3);
       expect(context.status).toBe('completed');
     });
 
     it('should track agent results', async () => {
-      const swarmId = 'test-swarm-2';
+      const teamId = 'test-team-2';
       const agentIds = ['agent_4', 'agent_5'];
 
-      const context = await swarmExecutor.executeSwarm(swarmId, agentIds);
+      const context = await teamExecutor.executeTeam(teamId, agentIds);
 
       expect(context.agentResults.has('agent_4')).toBe(true);
       expect(context.agentResults.has('agent_5')).toBe(true);
     });
 
     it('should record cost on completion', async () => {
-      const swarmId = 'test-swarm-3';
+      const teamId = 'test-team-3';
       const agentIds = ['agent_6'];
 
-      const context = await swarmExecutor.executeSwarm(swarmId, agentIds);
+      const context = await teamExecutor.executeTeam(teamId, agentIds);
 
       expect(context.totalCost).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('cancelSwarm', () => {
-    it('should cancel running swarm', async () => {
-      const swarmId = 'test-swarm-cancel';
+  describe('cancelTeam', () => {
+    it('should cancel running team', async () => {
+      const teamId = 'test-team-cancel';
       const agentIds = ['agent_cancel'];
 
       // Execute first
-      await swarmExecutor.executeSwarm(swarmId, agentIds);
+      await teamExecutor.executeTeam(teamId, agentIds);
 
       // Cancel
-      const result = await swarmExecutor.cancelSwarm(swarmId);
+      const result = await teamExecutor.cancelTeam(teamId);
       expect(result).toBe(true);
     });
 
-    it('should return false for non-existent swarm', async () => {
-      const result = await swarmExecutor.cancelSwarm('non-existent');
+    it('should return false for non-existent team', async () => {
+      const result = await teamExecutor.cancelTeam('non-existent');
       expect(result).toBe(false);
     });
   });
 
-  describe('getActiveSwarms', () => {
-    it('should return empty array when no swarms running', () => {
-      const activeSwarms = swarmExecutor.getActiveSwarms();
-      expect(Array.isArray(activeSwarms)).toBe(true);
+  describe('getActiveTeams', () => {
+    it('should return empty array when no teams running', () => {
+      const activeTeams = teamExecutor.getActiveTeams();
+      expect(Array.isArray(activeTeams)).toBe(true);
     });
   });
 
   describe('getMetrics', () => {
     it('should return execution metrics', () => {
-      const metrics = swarmExecutor.getMetrics();
+      const metrics = teamExecutor.getMetrics();
 
-      expect(metrics).toHaveProperty('swarmsCompleted');
-      expect(metrics).toHaveProperty('swarmsFailed');
+      expect(metrics).toHaveProperty('teamsCompleted');
+      expect(metrics).toHaveProperty('teamsFailed');
       expect(metrics).toHaveProperty('totalAgentsExecuted');
       expect(metrics).toHaveProperty('totalCost');
       expect(metrics).toHaveProperty('successRate');
     });
 
     it('should have valid success rate (0-1)', () => {
-      const metrics = swarmExecutor.getMetrics();
+      const metrics = teamExecutor.getMetrics();
       expect(metrics.successRate).toBeGreaterThanOrEqual(0);
       expect(metrics.successRate).toBeLessThanOrEqual(1);
     });
@@ -79,7 +79,7 @@ describe('SwarmExecutor', () => {
 
   describe('getQueueStatus', () => {
     it('should return queue status', () => {
-      const status = swarmExecutor.getQueueStatus();
+      const status = teamExecutor.getQueueStatus();
 
       expect(status).toHaveProperty('queued');
       expect(status).toHaveProperty('processing');
@@ -88,16 +88,16 @@ describe('SwarmExecutor', () => {
     });
   });
 
-  describe('scaleSwarm', () => {
+  describe('scaleTeam', () => {
     it('should return false for non-existent swarm', async () => {
-      const result = await swarmExecutor.scaleSwarm('non-existent', 5);
+      const result = await teamExecutor.scaleTeam('non-existent', 5);
       expect(result).toBe(false);
     });
   });
 
   describe('getContext', () => {
-    it('should return undefined for non-existent swarm', () => {
-      const context = swarmExecutor.getContext('non-existent');
+    it('should return undefined for non-existent team', () => {
+      const context = teamExecutor.getContext('non-existent');
       expect(context).toBeUndefined();
     });
   });

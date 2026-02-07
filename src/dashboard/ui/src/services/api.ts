@@ -116,7 +116,7 @@ export const capabilitiesApi = {
 // Team API
 // ============================================================================
 
-export const swarmApi = {
+export const teamApi = {
   async list(): Promise<Team[]> {
     const response = await fetchApi<ApiResponse<{ teams: Team[]; hasMore: boolean; nextCursor?: string }>>('/api/teams');
     return response.data?.teams || [];
@@ -586,7 +586,7 @@ export const healthApi = {
 
 export const api = {
   capabilities: capabilitiesApi,
-  teams: swarmApi,
+  teams: teamApi,
   agents: agentApi,
   tasks: taskApi,
   events: eventApi,

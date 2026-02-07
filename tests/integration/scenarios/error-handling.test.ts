@@ -66,7 +66,7 @@ describeLive('Scenario 9: Error Handling', () => {
 
     it('should return 400 for invalid field values', async () => {
       const response = await apiClient.post('/api/agents', {
-        swarmId: 'valid-swarm-id',
+        teamId: 'valid-team-id',
         model: '', // Empty model might be invalid
         task: '', // Empty task might be invalid
       });

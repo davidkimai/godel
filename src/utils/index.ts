@@ -34,7 +34,7 @@ export {
   ComplexityAnalysisError,
   CoreError,
   EventBusError,
-  SwarmError,
+  TeamError,
   ExtensionError,
   ConfigurationError,
   ValidationError,

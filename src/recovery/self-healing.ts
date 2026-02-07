@@ -284,7 +284,7 @@ export class SelfHealingController extends EventEmitter {
     `);
 
     await this.pool!.query(`
-      CREATE INDEX IF NOT EXISTS idx_failed_agents_swarm 
+      CREATE INDEX IF NOT EXISTS idx_failed_agents_team 
       ON failed_agents(team_id)
     `);
 

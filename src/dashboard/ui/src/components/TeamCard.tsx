@@ -1,5 +1,5 @@
 /**
- * SwarmCard Component
+ * TeamCard Component
  * 
  * Displays a team status card with real-time updates and controls.
  */
@@ -23,13 +23,13 @@ import {
 import { Card, Badge, Button } from './Layout';
 import { cn, formatCurrency, formatNumber, getStatusColor } from '../types/index';
 import type { Team, Agent } from '../types/index';
-import { SwarmState } from '../types/index';
+import { TeamState } from '../types/index';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface SwarmCardProps {
+interface TeamCardProps {
   team: Team;
   agents: Agent[];
   isExpanded?: boolean;
@@ -45,8 +45,8 @@ interface SwarmCardProps {
   className?: string;
 }
 
-interface SwarmStatusBadgeProps {
-  status: SwarmState;
+interface TeamStatusBadgeProps {
+  status: TeamState;
 }
 
 interface AgentMiniListProps {
@@ -58,7 +58,7 @@ interface AgentMiniListProps {
 // Team Card Component
 // ============================================================================
 
-export function SwarmCard({
+export function TeamCard({
   team,
   agents,
   isExpanded = false,
@@ -72,15 +72,15 @@ export function SwarmCard({
   isScaling = false,
   isAdmin = false,
   className
-}: SwarmCardProps): React.ReactElement {
+}: TeamCardProps): React.ReactElement {
   const [showConfirmDestroy, setShowConfirmDestroy] = useState(false);
 
   const progress = team.metrics.totalAgents > 0
     ? (team.metrics.completedAgents + team.metrics.failedAgents) / team.metrics.totalAgents
     : 0;
 
-  const isActive = team.status === SwarmState.ACTIVE || team.status === SwarmState.SCALING;
-  const isPaused = team.status === SwarmState.PAUSED;
+  const isActive = team.status === TeamState.ACTIVE || team.status === TeamState.SCALING;
+  const isPaused = team.status === TeamState.PAUSED;
 
   const runningAgents = agents.filter(a => a.status === 'running').length;
   const failedAgents = agents.filter(a => a.status === 'failed').length;
@@ -119,7 +119,7 @@ export function SwarmCard({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-white">{team.name}</h3>
-              <SwarmStatusBadge status={team.status} />
+              <TeamStatusBadge status={team.status} />
             </div>
             <p className="text-sm text-slate-500 font-mono">{team.id.slice(0, 8)}...</p>
           </div>
@@ -228,7 +228,7 @@ export function SwarmCard({
           <div
             className={cn(
               "h-full transition-all duration-500",
-              team.status === SwarmState.FAILED ? "bg-red-500" : "bg-emerald-500"
+              team.status === TeamState.FAILED ? "bg-red-500" : "bg-emerald-500"
             )}
             style={{ width: `${progress * 100}%` }}
           />
@@ -281,15 +281,15 @@ export function SwarmCard({
 // Team Status Badge
 // ============================================================================
 
-function SwarmStatusBadge({ status }: SwarmStatusBadgeProps): React.ReactElement {
-  const variants: Record<SwarmState, { variant: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
-    [SwarmState.CREATING]: { variant: 'info', label: 'Creating' },
-    [SwarmState.ACTIVE]: { variant: 'success', label: 'Active' },
-    [SwarmState.SCALING]: { variant: 'info', label: 'Scaling' },
-    [SwarmState.PAUSED]: { variant: 'warning', label: 'Paused' },
-    [SwarmState.COMPLETED]: { variant: 'success', label: 'Completed' },
-    [SwarmState.FAILED]: { variant: 'error', label: 'Failed' },
-    [SwarmState.DESTROYED]: { variant: 'default', label: 'Destroyed' },
+function TeamStatusBadge({ status }: TeamStatusBadgeProps): React.ReactElement {
+  const variants: Record<TeamState, { variant: 'default' | 'success' | 'warning' | 'error' | 'info'; label: string }> = {
+    [TeamState.CREATING]: { variant: 'info', label: 'Creating' },
+    [TeamState.ACTIVE]: { variant: 'success', label: 'Active' },
+    [TeamState.SCALING]: { variant: 'info', label: 'Scaling' },
+    [TeamState.PAUSED]: { variant: 'warning', label: 'Paused' },
+    [TeamState.COMPLETED]: { variant: 'success', label: 'Completed' },
+    [TeamState.FAILED]: { variant: 'error', label: 'Failed' },
+    [TeamState.DESTROYED]: { variant: 'default', label: 'Destroyed' },
   };
 
   const { variant, label } = variants[status] || { variant: 'default', label: status };
@@ -373,4 +373,4 @@ function StatItem({ label, value }: { label: string; value: string }): React.Rea
   );
 }
 
-export default SwarmCard;
+export default TeamCard;

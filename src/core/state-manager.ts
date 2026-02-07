@@ -178,7 +178,7 @@ export class StateManager {
     logger.info('state-manager', 'Checkpoint saved', {
       filepath,
       agentCount: state.agents.length,
-      swarmCount: state.teams.length,
+      teamCount: state.teams.length,
       totalSpend: state.budgets.totalSpend,
     });
 

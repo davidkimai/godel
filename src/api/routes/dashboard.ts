@@ -30,20 +30,20 @@ const router = Router();
  *         description: Server error
  */
 router.get('/dashboard', asyncHandler(async (_req: Request, res: Response) => {
-  const swarmRepo = new TeamRepository();
-  await swarmRepo.initialize();
+  const teamRepo = new TeamRepository();
+  await teamRepo.initialize();
   const agentRepo = new AgentRepository();
   await agentRepo.initialize();
   const eventRepo = new EventRepository();
   await eventRepo.initialize();
 
-  const [swarms, agents, events] = await Promise.all([
-    swarmRepo.list(),
+  const [teams, agents, events] = await Promise.all([
+    teamRepo.list(),
     agentRepo.list(),
     eventRepo.list({ limit: 1000 })
   ]);
 
-  const activeSwarms = swarms.filter(s => s.status === 'active').length;
+  const activeTeams = teams.filter(s => s.status === 'active').length;
   const runningAgents = agents.filter(a => a.status === 'running').length;
   const failedAgents = agents.filter(a => a.status === 'failed').length;
   
@@ -57,8 +57,8 @@ router.get('/dashboard', asyncHandler(async (_req: Request, res: Response) => {
     totalAgents: agents.length,
     activeAgents: runningAgents,
     failedAgents,
-    totalSwarms: swarms.length,
-    activeSwarms,
+    totalTeams: teams.length,
+    activeTeams,
     totalCost,
     eventsLastHour,
     systemHealth: failedAgents / Math.max(agents.length, 1) > 0.1 ? 'degraded' : 'healthy'
@@ -80,15 +80,15 @@ router.get('/dashboard', asyncHandler(async (_req: Request, res: Response) => {
  */
 router.get('/cost', asyncHandler(async (_req: Request, res: Response) => {
   const agentRepo = new AgentRepository();
-  const swarmRepo = new TeamRepository();
+  const teamRepo = new TeamRepository();
 
-  const [agents, swarms] = await Promise.all([
+  const [agents, teams] = await Promise.all([
     agentRepo.list(),
-    swarmRepo.list()
+    teamRepo.list()
   ]);
 
   const totalSpent = agents.reduce((sum, a) => sum + (a.cost || 0), 0);
-  const totalBudget = swarms.reduce((sum, s) => sum + (s.budget_allocated || 0), 0);
+  const totalBudget = teams.reduce((sum, s) => sum + (s.budget_allocated || 0), 0);
   const budgetRemaining = totalBudget - totalSpent;
   
   // Calculate burn rate (last hour)
@@ -115,7 +115,7 @@ router.get('/cost', asyncHandler(async (_req: Request, res: Response) => {
  * /api/v1/metrics/cost/breakdown:
  *   get:
  *     summary: Cost breakdown
- *     description: Get cost breakdown by model, swarm, and time
+ *     description: Get cost breakdown by model, team, and time
  *     tags: [metrics]
  *     responses:
  *       200:
@@ -126,12 +126,12 @@ router.get('/cost', asyncHandler(async (_req: Request, res: Response) => {
 router.get('/cost/breakdown', asyncHandler(async (_req: Request, res: Response) => {
   const agentRepo = new AgentRepository();
   await agentRepo.initialize();
-  const swarmRepo = new TeamRepository();
-  await swarmRepo.initialize();
+  const teamRepo = new TeamRepository();
+  await teamRepo.initialize();
 
-  const [agents, swarms] = await Promise.all([
+  const [agents, teams] = await Promise.all([
     agentRepo.list(),
-    swarmRepo.list()
+    teamRepo.list()
   ]);
 
   const byModel: Record<string, number> = {};
@@ -199,38 +199,38 @@ router.get('/agents', asyncHandler(async (_req: Request, res: Response) => {
 
 /**
  * @openapi
- * /api/v1/metrics/swarms:
+ * /api/v1/metrics/teams:
  *   get:
- *     summary: Swarm metrics
- *     description: Get swarm-level metrics
+ *     summary: Team metrics
+ *     description: Get team-level metrics
  *     tags: [metrics]
  *     responses:
  *       200:
- *         description: Swarm metrics
+ *         description: Team metrics
  *       500:
  *         description: Server error
  */
-router.get('/swarms', asyncHandler(async (_req: Request, res: Response) => {
-  const swarmRepo = new TeamRepository();
+router.get('/teams', asyncHandler(async (_req: Request, res: Response) => {
+  const teamRepo = new TeamRepository();
   const agentRepo = new AgentRepository();
-  const swarms = await swarmRepo.list();
+  const teams = await teamRepo.list();
 
-  const metrics = await Promise.all(swarms.map(async swarm => {
-    const agents = await agentRepo.findByTeamId(swarm.id);
+  const metrics = await Promise.all(teams.map(async team => {
+    const agents = await agentRepo.findByTeamId(team.id);
     return {
-      id: swarm.id,
-      name: swarm.name,
-      status: swarm.status,
+      id: team.id,
+      name: team.name,
+      status: team.status,
       agentCount: agents.length,
       completedAgents: agents.filter(a => a.status === 'completed').length,
       failedAgents: agents.filter(a => a.status === 'failed').length,
       cost: agents.reduce((sum, a) => sum + (a.cost || 0), 0),
-      budget: swarm.budget_allocated,
-      budgetRemaining: (swarm.budget_allocated || 0) - (swarm.budget_consumed || 0)
+      budget: team.budget_allocated,
+      budgetRemaining: (team.budget_allocated || 0) - (team.budget_consumed || 0)
     };
   }));
 
-  sendSuccess(res, { swarms: metrics });
+  sendSuccess(res, { teams: metrics });
 }));
 
 /**

@@ -151,7 +151,7 @@ describeIfWebsocket('Godel WebSocket Integration', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          swarmId: swarm.id,
+          teamId: team.id,
           model: 'test-model',
           task: 'WebSocket test task',
         }),

@@ -468,8 +468,8 @@ export async function runImprovementCycle(
     // Spawn agents in parallel (according to parallelism config)
     for (const agentConfig of teamConfig.agents) {
       // Check team budget first
-      const swarmStatus = await budgetTracker.checkTeam(team.id);
-      if (swarmStatus.remaining < agentConfig.budgetLimit) {
+      const teamStatus = await budgetTracker.checkTeam(team.id);
+      if (teamStatus.remaining < agentConfig.budgetLimit) {
         logger.warn('self-improvement/orchestrator', 'Skipping agent - team budget exceeded', { role: agentConfig.role });
         continue;
       }

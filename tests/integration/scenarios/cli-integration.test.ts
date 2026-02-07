@@ -62,9 +62,9 @@ describeLive('Scenario 5: CLI Integration', () => {
       }
     }
     
-    for (const swarmId of createdSwarms) {
+    for (const teamId of createdTeams) {
       try {
-        execCli(`swarm destroy ${swarmId} --force`, 10000);
+        execCli(`team destroy ${teamId} --force`, 10000);
       } catch {
         // Ignore cleanup errors
       }
@@ -98,21 +98,21 @@ describeLive('Scenario 5: CLI Integration', () => {
 
   describe('Agent Commands', () => {
     it('should spawn agent via CLI', () => {
-      // Create a swarm first
-      const swarmResult = execCli(`swarm create --name cli-test-swarm-${Date.now()}`);
-      expect(swarmResult.success).toBe(true);
+      // Create a team first
+      const teamResult = execCli(`team create --name cli-test-team-${Date.now()}`);
+      expect(teamResult.success).toBe(true);
       
-      // Extract swarm ID from output (format varies)
-      const swarmMatch = swarmResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i);
-      const swarmId = swarmMatch ? swarmMatch[1] : null;
+      // Extract team ID from output (format varies)
+      const teamMatch = teamResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i);
+      const teamId = teamMatch ? teamMatch[1] : null;
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
-      // Spawn agent in the swarm
+      // Spawn agent in the team
       const spawnResult = execCli(
-        `agent spawn --swarm ${swarmId || 'default'} --type code-review --task "CLI test task"`
+        `agent spawn --team ${teamId || 'default'} --type code-review --task "CLI test task"`
       );
       
       expect(spawnResult.success).toBe(true);
@@ -138,15 +138,15 @@ describeLive('Scenario 5: CLI Integration', () => {
 
     it('should show agent status via CLI', () => {
       // First create an agent
-      const swarmResult = execCli(`swarm create --name status-test-${Date.now()}`);
-      const swarmId = swarmResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+      const teamResult = execCli(`team create --name status-test-${Date.now()}`);
+      const teamId = teamResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
       const spawnResult = execCli(
-        `agent spawn --swarm ${swarmId || 'default'} --type test`
+        `agent spawn --team ${teamId || 'default'} --type test`
       );
       const agentId = spawnResult.stdout.match(/(agent-[a-z0-9-]+)/)?.[1];
       
@@ -166,15 +166,15 @@ describeLive('Scenario 5: CLI Integration', () => {
 
     it('should kill agent via CLI', () => {
       // Create and then kill
-      const swarmResult = execCli(`swarm create --name kill-test-${Date.now()}`);
-      const swarmId = swarmResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+      const teamResult = execCli(`team create --name kill-test-${Date.now()}`);
+      const teamId = teamResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
       const spawnResult = execCli(
-        `agent spawn --swarm ${swarmId || 'default'} --type test`
+        `agent spawn --team ${teamId || 'default'} --type test`
       );
       const agentId = spawnResult.stdout.match(/(agent-[a-z0-9-]+)/)?.[1];
 
@@ -195,16 +195,16 @@ describeLive('Scenario 5: CLI Integration', () => {
     }, testConfig.testTimeout);
 
     it('should handle agent spawn with options', () => {
-      const swarmResult = execCli(`swarm create --name options-test-${Date.now()}`);
-      const swarmId = swarmResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+      const teamResult = execCli(`team create --name options-test-${Date.now()}`);
+      const teamId = teamResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
       const result = execCli(
         `agent spawn ` +
-        `--swarm ${swarmId || 'default'} ` +
+        `--team ${teamId || 'default'} ` +
         `--type security-audit ` +
         `--model kimi-k2.5 ` +
         `--task "Security audit task" ` +
@@ -222,70 +222,70 @@ describeLive('Scenario 5: CLI Integration', () => {
 
   describe('Swarm Commands', () => {
     it('should create swarm via CLI', () => {
-      const result = execCli(`swarm create --name cli-swarm-${Date.now()}`);
+      const result = execCli(`team create --name cli-team-${Date.now()}`);
       
       expect(result.success).toBe(true);
-      expect(result.stdout).toContain('Swarm');
-      expect(result.stdout).toMatch(/(?:swarm-|id[:\s]+)[a-z0-9-]+/i);
+      expect(result.stdout).toContain('Team');
+      expect(result.stdout).toMatch(/(?:team-|id[:\s]+)[a-z0-9-]+/i);
 
-      const swarmId = result.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      const teamId = result.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+      if (teamId) {
+        createdTeams.push(teamId);
       }
     }, testConfig.testTimeout);
 
-    it('should list swarms via CLI', () => {
-      const result = execCli('swarm list');
+    it('should list teams via CLI', () => {
+      const result = execCli('team list');
       
       expect(result.success).toBe(true);
-      // Output should contain headers or swarm data
+      // Output should contain headers or team data
     }, testConfig.testTimeout);
 
-    it('should show swarm status via CLI', () => {
-      // Create a swarm first
-      const createResult = execCli(`swarm create --name status-swarm-${Date.now()}`);
-      const swarmId = createResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+    it('should show team status via CLI', () => {
+      // Create a team first
+      const createResult = execCli(`team create --name status-team-${Date.now()}`);
+      const teamId = createResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
       // Get status
-      const statusResult = execCli(`swarm get ${swarmId || 'unknown'}`);
+      const statusResult = execCli(`team get ${teamId || 'unknown'}`);
       
-      if (swarmId) {
+      if (teamId) {
         expect(statusResult.success).toBe(true);
-        expect(statusResult.stdout).toContain(swarmId);
+        expect(statusResult.stdout).toContain(teamId);
       }
     }, testConfig.testTimeout);
 
-    it('should scale swarm via CLI', () => {
-      const createResult = execCli(`swarm create --name scale-swarm-${Date.now()} --agents 1`);
-      const swarmId = createResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+    it('should scale team via CLI', () => {
+      const createResult = execCli(`team create --name scale-team-${Date.now()} --agents 1`);
+      const teamId = createResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
       
-      if (swarmId) {
-        createdSwarms.push(swarmId);
+      if (teamId) {
+        createdTeams.push(teamId);
       }
 
-      const scaleResult = execCli(`swarm scale ${swarmId || 'unknown'} --agents 3`);
+      const scaleResult = execCli(`team scale ${teamId || 'unknown'} --agents 3`);
       
-      if (swarmId) {
+      if (teamId) {
         expect(scaleResult.success).toBe(true);
       }
     }, testConfig.testTimeout);
 
-    it('should destroy swarm via CLI', () => {
-      // Create a swarm to destroy
-      const createResult = execCli(`swarm create --name destroy-test-${Date.now()}`);
-      const swarmId = createResult.stdout.match(/(?:swarm-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
+    it('should destroy team via CLI', () => {
+      // Create a team to destroy
+      const createResult = execCli(`team create --name destroy-test-${Date.now()}`);
+      const teamId = createResult.stdout.match(/(?:team-|id[:\s]+)([a-z0-9-]+)/i)?.[1];
 
-      if (swarmId) {
+      if (teamId) {
         // Destroy it
-        const destroyResult = execCli(`swarm destroy ${swarmId} --force`);
+        const destroyResult = execCli(`team destroy ${teamId} --force`);
         expect(destroyResult.success).toBe(true);
 
         // Verify it's gone
-        const getResult = execCli(`swarm get ${swarmId}`);
+        const getResult = execCli(`team get ${teamId}`);
         expect(getResult.success).toBe(false);
       }
     }, testConfig.testTimeout);

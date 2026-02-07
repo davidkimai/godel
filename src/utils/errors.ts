@@ -303,15 +303,20 @@ export class EventBusError extends CoreError {
   }
 }
 
-export class SwarmError extends CoreError {
+export class TeamError extends CoreError {
   constructor(
     public readonly teamId: string,
     message: string,
-    code: string = 'SWARM_ERROR'
+    code: string = 'TEAM_ERROR'
   ) {
     super(message, code, { teamId });
   }
 }
+
+/**
+ * @deprecated Use TeamError instead
+ */
+export const SwarmError = TeamError;
 
 export class ExtensionError extends CoreError {
   constructor(
@@ -578,7 +583,7 @@ export enum ErrorCode {
   // Core
   CORE_ERROR = 'CORE_ERROR',
   EVENT_BUS_ERROR = 'EVENT_BUS_ERROR',
-  SWARM_ERROR = 'SWARM_ERROR',
+  TEAM_ERROR = 'TEAM_ERROR',
   EXTENSION_ERROR = 'EXTENSION_ERROR',
   
   // Config & Validation

@@ -139,7 +139,7 @@ export const ErrorCodes = {
   // 404 - Not Found
   NOT_FOUND: 'NOT_FOUND',
   AGENT_NOT_FOUND: 'AGENT_NOT_FOUND',
-  SWARM_NOT_FOUND: 'SWARM_NOT_FOUND',
+  TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
   TASK_NOT_FOUND: 'TASK_NOT_FOUND',
   ROLE_NOT_FOUND: 'ROLE_NOT_FOUND',
   WORKTREE_NOT_FOUND: 'WORKTREE_NOT_FOUND',
@@ -181,7 +181,7 @@ export const ErrorCodeToStatus: Record<string, number> = {
   [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
   [ErrorCodes.NOT_FOUND]: 404,
   [ErrorCodes.AGENT_NOT_FOUND]: 404,
-  [ErrorCodes.SWARM_NOT_FOUND]: 404,
+  [ErrorCodes.TEAM_NOT_FOUND]: 404,
   [ErrorCodes.TASK_NOT_FOUND]: 404,
   [ErrorCodes.ROLE_NOT_FOUND]: 404,
   [ErrorCodes.WORKTREE_NOT_FOUND]: 404,
@@ -273,7 +273,7 @@ export function sendNotFound(
 ): void {
   const codeMap: Record<string, string> = {
     agent: ErrorCodes.AGENT_NOT_FOUND,
-    team: ErrorCodes.SWARM_NOT_FOUND,
+    team: ErrorCodes.TEAM_NOT_FOUND,
     task: ErrorCodes.TASK_NOT_FOUND,
     role: ErrorCodes.ROLE_NOT_FOUND,
     worktree: ErrorCodes.WORKTREE_NOT_FOUND,

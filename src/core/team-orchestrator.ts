@@ -106,7 +106,7 @@ export interface TeamOrchestratorConfig {
   storage: AgentStorage;
   eventBus?: AgentEventBus;
   sessionTree?: SessionTree;
-  swarmRepository?: TeamRepository;
+  teamRepository?: TeamRepository;
 }
 
 // ============================================================================
@@ -119,7 +119,7 @@ export class TeamOrchestrator extends EventEmitter {
   protected agentLifecycle: AgentLifecycle;
   protected messageBus: MessageBus;
   protected storage: AgentStorage;
-  protected swarmRepository?: TeamRepository;
+  protected teamRepository?: TeamRepository;
   protected eventBus?: AgentEventBus;
   protected sessionTree?: SessionTree;
   protected active: boolean = false;
@@ -134,7 +134,7 @@ export class TeamOrchestrator extends EventEmitter {
     this.agentLifecycle = config.agentLifecycle;
     this.messageBus = config.messageBus;
     this.storage = config.storage;
-    this.swarmRepository = config.swarmRepository;
+    this.teamRepository = config.teamRepository;
     this.eventBus = config.eventBus;
     this.sessionTree = config.sessionTree;
   }
@@ -230,8 +230,8 @@ export class TeamOrchestrator extends EventEmitter {
       team.status = 'active';
 
       // Persist to repository if available
-      if (this.swarmRepository) {
-        await this.swarmRepository.create({
+      if (this.teamRepository) {
+        await this.teamRepository.create({
           id: team.id,
           name: team.name,
           status: team.status as unknown as 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed',

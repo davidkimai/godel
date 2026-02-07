@@ -92,7 +92,7 @@ export class StateAwareOrchestrator extends TeamOrchestrator {
     config: Partial<StateAwareOrchestratorConfig> = {},
     eventBus?: AgentEventBus,
     sessionTree?: SessionTree,
-    swarmRepository?: TeamRepository
+    teamRepository?: TeamRepository
   ) {
     super({
       agentLifecycle,
@@ -100,7 +100,7 @@ export class StateAwareOrchestrator extends TeamOrchestrator {
       storage,
       eventBus,
       sessionTree,
-      swarmRepository,
+      teamRepository,
     });
 
     this.statePersistence = statePersistence;
@@ -601,7 +601,7 @@ export async function createStateAwareOrchestrator(
   config: Partial<StateAwareOrchestratorConfig> = {},
   eventBus?: AgentEventBus,
   sessionTree?: SessionTree,
-  swarmRepository?: TeamRepository
+  teamRepository?: TeamRepository
 ): Promise<StateAwareOrchestrator> {
   const statePersistence = getGlobalStatePersistence({
     maxRetries: config.maxLockRetries || DEFAULT_STATE_CONFIG.maxLockRetries,
@@ -620,7 +620,7 @@ export async function createStateAwareOrchestrator(
     config,
     eventBus,
     sessionTree,
-    swarmRepository
+    teamRepository
   );
 }
 
@@ -637,7 +637,7 @@ export async function getGlobalStateAwareOrchestrator(
   config?: Partial<StateAwareOrchestratorConfig>,
   eventBus?: AgentEventBus,
   sessionTree?: SessionTree,
-  swarmRepository?: TeamRepository
+  teamRepository?: TeamRepository
 ): Promise<StateAwareOrchestrator> {
   if (!globalStateAwareOrchestrator) {
     if (!agentLifecycle || !messageBus || !storage) {
@@ -650,7 +650,7 @@ export async function getGlobalStateAwareOrchestrator(
       config,
       eventBus,
       sessionTree,
-      swarmRepository
+      teamRepository
     );
   }
   return globalStateAwareOrchestrator;

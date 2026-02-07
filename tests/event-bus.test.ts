@@ -315,7 +315,7 @@ describe('ScopedEventBus', () => {
 
   beforeEach(() => {
     eventBus = new AgentEventBus();
-    scopedBus = eventBus.createScopedBus('agent_123', 'swarm_456', 'session_789');
+    scopedBus = eventBus.createScopedBus('agent_123', 'team_456', 'session_789');
   });
 
   it('should emit events with scoped context', () => {
@@ -327,7 +327,7 @@ describe('ScopedEventBus', () => {
     expect(handler).toHaveBeenCalledTimes(1);
     const event = handler.mock.calls[0][0];
     expect(event.agentId).toBe('agent_123');
-    expect(event.swarmId).toBe('swarm_456');
+    expect(event.teamId).toBe('team_456');
     expect(event.sessionId).toBe('session_789');
     expect(event.task).toBe('test task');
     expect(event.model).toBe('test-model');

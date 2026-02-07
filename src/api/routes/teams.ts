@@ -68,7 +68,7 @@ const teams = new Map<string, {
 }>();
 
 // In-memory events
-const swarmEvents = new Map<string, Array<{
+const teamEvents = new Map<string, Array<{
   id: string;
   teamId: string;
   type: string;
@@ -78,10 +78,10 @@ const swarmEvents = new Map<string, Array<{
 }>>();
 
 export async function teamRoutes(fastify: FastifyInstance) {
-  const swarmRepo = new TeamRepository();
+  const teamRepo = new TeamRepository();
   
   try {
-    await swarmRepo.initialize();
+    await teamRepo.initialize();
   } catch (error) {
     fastify.log.warn('Failed to initialize TeamRepository, using in-memory store');
   }
@@ -107,19 +107,19 @@ export async function teamRoutes(fastify: FastifyInstance) {
         const params = parsePaginationParams(request.query);
         
         // Get teams from memory and database
-        let swarmList = Array.from(teams.values());
+        let teamList = Array.from(teams.values());
         
         try {
-          const dbTeams = await swarmRepo.listSummaries({
+          const dbTeams = await teamRepo.listSummaries({
             limit: params.limit,
             status: request.query.status,
           });
           
           // Merge with memory teams
-          const existingIds = new Set(swarmList.map(s => s.id));
+          const existingIds = new Set(teamList.map(s => s.id));
           for (const dbTeam of dbTeams) {
             if (!existingIds.has(dbTeam.id)) {
-              swarmList.push({
+              teamList.push({
                 id: dbTeam.id,
                 name: dbTeam.name,
                 status: dbTeam.status,
@@ -149,11 +149,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Apply filters
         if (request.query.status) {
-          swarmList = swarmList.filter(s => s.status === request.query.status);
+          teamList = teamList.filter(s => s.status === request.query.status);
         }
         
         // Apply pagination
-        const paginated = paginateArray(swarmList, request.query);
+        const paginated = paginateArray(teamList, request.query);
         const links = createPaginationLinks('/api/v1/teams', request.query, paginated);
         
         // Transform to summary format
@@ -258,7 +258,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Persist to database
         try {
-          await swarmRepo.create({
+          await teamRepo.create({
             name: team.name,
             config: team.config,
             status: 'creating',
@@ -312,7 +312,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         if (!team) {
           try {
-            const dbTeam = await swarmRepo.findById(id);
+            const dbTeam = await teamRepo.findById(id);
             if (dbTeam) {
               team = {
                 id: dbTeam.id,
@@ -392,7 +392,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Update in database
         try {
-          await swarmRepo.update(id, {
+          await teamRepo.update(id, {
             name: validated.name,
             config: validated.config,
             status: validated.status as any,
@@ -447,11 +447,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         const { id } = IdParamSchema.parse(request.params);
         
         teams.delete(id);
-        swarmEvents.delete(id);
+        teamEvents.delete(id);
         
         // Delete from database
         try {
-          await swarmRepo.delete(id);
+          await teamRepo.delete(id);
         } catch (dbError) {
           fastify.log.warn({ err: dbError }, 'Failed to delete team from database');
         }
@@ -505,7 +505,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Update in database
         try {
-          await swarmRepo.updateStatus(id, 'active');
+          await teamRepo.updateStatus(id, 'active');
         } catch (dbError) {
           fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
@@ -561,7 +561,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Update in database
         try {
-          await swarmRepo.updateStatus(id, 'completed');
+          await teamRepo.updateStatus(id, 'completed');
         } catch (dbError) {
           fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
@@ -617,7 +617,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Update in database
         try {
-          await swarmRepo.updateStatus(id, 'paused');
+          await teamRepo.updateStatus(id, 'paused');
         } catch (dbError) {
           fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
@@ -673,7 +673,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         
         // Update in database
         try {
-          await swarmRepo.updateStatus(id, 'active');
+          await teamRepo.updateStatus(id, 'active');
         } catch (dbError) {
           fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
@@ -786,7 +786,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
           );
         }
         
-        const events = swarmEvents.get(id) || [];
+        const events = teamEvents.get(id) || [];
         const paginatedEvents = events.slice(-limit);
         
         return reply.send(

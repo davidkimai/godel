@@ -88,7 +88,7 @@ ${whenToUseContent}
   describe('Swarm Initialization', () => {
     it('should initialize swarm with shared skills', async () => {
       const context = await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'deploy application',
         skillConfig: {
           sharedSkills: ['deployment', 'monitoring'],
@@ -98,14 +98,14 @@ ${whenToUseContent}
         },
       });
 
-      expect(context.swarmId).toBe('swarm-1');
+      expect(context.teamId).toBe('team-1');
       expect(context.activeSkills.map((s) => s.name)).toContain('deployment');
       expect(context.activeSkills.map((s) => s.name)).toContain('monitoring');
     });
 
     it('should auto-load skills based on task', async () => {
       const context = await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'deploy application',
         skillConfig: {
           sharedSkills: [],
@@ -124,7 +124,7 @@ ${whenToUseContent}
   describe('Agent Registration', () => {
     beforeEach(async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'deploy application',
         skillConfig: {
           sharedSkills: ['deployment'],
@@ -192,7 +192,7 @@ ${whenToUseContent}
   describe('Skill Sharing', () => {
     beforeEach(async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'deploy application',
         skillConfig: {
           sharedSkills: [],
@@ -309,7 +309,7 @@ ${whenToUseContent}
   describe('Dynamic Loading', () => {
     beforeEach(async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'monitoring',
         skillConfig: {
           sharedSkills: [],
@@ -358,7 +358,7 @@ ${whenToUseContent}
 
       expect(eventHandler).toHaveBeenCalled();
       const event = eventHandler.mock.calls[0][0];
-      expect(event.swarmId).toBe('swarm-1');
+      expect(event.teamId).toBe('team-1');
       expect(event.agentId).toBe('agent-1');
       expect(event.skills).toContain('deployment');
     });
@@ -367,7 +367,7 @@ ${whenToUseContent}
   describe('Role Management', () => {
     beforeEach(async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'testing',
         skillConfig: {
           sharedSkills: [],
@@ -418,7 +418,7 @@ ${whenToUseContent}
   describe('Events', () => {
     it('should emit skill.shared event', async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'test',
         skillConfig: {
           sharedSkills: [],
@@ -469,7 +469,7 @@ ${whenToUseContent}
   describe('Cleanup', () => {
     it('should clean up swarm resources', async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'test',
         skillConfig: {
           sharedSkills: ['deployment'],
@@ -489,7 +489,7 @@ ${whenToUseContent}
 
     it('should emit cleaned_up event', async () => {
       await swarmManager.initializeSwarm({
-        swarmId: 'swarm-1',
+        teamId: 'team-1',
         task: 'test',
         skillConfig: {
           sharedSkills: [],
@@ -505,7 +505,7 @@ ${whenToUseContent}
       await swarmManager.cleanupSwarm('swarm-1');
 
       expect(eventHandler).toHaveBeenCalled();
-      expect(eventHandler.mock.calls[0][0].swarmId).toBe('swarm-1');
+      expect(eventHandler.mock.calls[0][0].teamId).toBe('team-1');
     });
   });
 });

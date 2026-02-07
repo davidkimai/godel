@@ -118,15 +118,15 @@ describeLive('Godel API Integration', () => {
       const response = await fetch(`${apiUrl}/api/swarms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'test_agent_swarm' }),
+        body: JSON.stringify({ name: 'test_agent_team' }),
       });
       const data = await response.json();
-      testSwarmId = data.id;
+      testTeamId = data.id;
     });
 
     it('should spawn an agent', async () => {
       const agentConfig = {
-        swarmId: testSwarmId,
+        teamId: testTeamId,
         model: 'test-model',
         task: 'Test task',
       };
@@ -157,7 +157,7 @@ describeLive('Godel API Integration', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          swarmId: testSwarmId,
+          teamId: testTeamId,
           model: 'test-model',
           task: 'Test task',
         }),

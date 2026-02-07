@@ -58,12 +58,12 @@ export function CostsPage(): React.ReactElement {
       const cost = agent.cost || 0;
       acc.total += cost;
       acc.byModel[agent.model] = (acc.byModel[agent.model] || 0) + cost;
-      acc.bySwarm[agent.teamId] = (acc.bySwarm[agent.teamId] || 0) + cost;
+      acc.byTeam[agent.teamId] = (acc.byTeam[agent.teamId] || 0) + cost;
       return acc;
     }, {
       total: 0,
       byModel: {} as Record<string, number>,
-      bySwarm: {} as Record<string, number>
+      byTeam: {} as Record<string, number>
     });
   }, [agents]);
 
@@ -256,7 +256,7 @@ export function CostsPage(): React.ReactElement {
             <BarChart
               data={teams.slice(0, 10).map(team => ({
                 name: team.name.slice(0, 15),
-                cost: agentCosts.bySwarm[team.id] || 0
+                cost: agentCosts.byTeam[team.id] || 0
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />

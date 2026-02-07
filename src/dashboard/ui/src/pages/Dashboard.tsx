@@ -16,7 +16,7 @@ import {
 } from '../components/MetricsCharts/TaskRateChart';
 import { EventStream } from '../components/EventStream/EventStream';
 import { AlertPanel } from '../components/AlertPanel/AlertPanel';
-import { useAgentsRealtime, useSwarmsRealtime, useMetricsRealtime } from '../hooks/useWebSocket';
+import { useAgentsRealtime, useTeamsRealtime, useMetricsRealtime } from '../hooks/useWebSocket';
 import { 
   Activity, 
   Users, 
@@ -57,7 +57,7 @@ const StatCard: React.FC<{
 
 const Dashboard: React.FC = () => {
   const { agents } = useAgentsRealtime();
-  const { teams } = useSwarmsRealtime();
+  const { teams } = useTeamsRealtime();
   const { metrics } = useMetricsRealtime();
 
   // Calculate stats

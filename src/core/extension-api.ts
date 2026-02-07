@@ -246,9 +246,9 @@ export interface ExtensionAPI {
   /** Subscribe to agent error events */
   on(event: 'agent_error', handler: EventHandler<AgentErrorEvent>): void;
   /** Subscribe to team start events */
-  on(event: 'swarm_start', handler: EventHandler<TeamStartEvent>): void;
+  on(event: 'team_start', handler: EventHandler<TeamStartEvent>): void;
   /** Subscribe to team complete events */
-  on(event: 'swarm_complete', handler: EventHandler<TeamCompleteEvent>): void;
+  on(event: 'team_complete', handler: EventHandler<TeamCompleteEvent>): void;
   /** Subscribe to tool call events */
   on(event: 'tool_call', handler: EventHandler<ToolCallEvent>): void;
   /** Subscribe to tool result events */

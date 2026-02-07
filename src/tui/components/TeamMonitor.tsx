@@ -15,7 +15,7 @@ export interface TeamMonitorProps {
   height: number;
 }
 
-interface SwarmInfo {
+interface TeamInfo {
   id: string;
   name: string;
   status: 'active' | 'paused' | 'completed' | 'failed' | 'idle';
@@ -36,28 +36,28 @@ interface AgentInfo {
 
 export function TeamMonitor({ width, height }: TeamMonitorProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [expandedSwarms, setExpandedSwarms] = useState<Set<string>>(new Set());
+  const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'teams' | 'agents'>('teams');
 
   const { teams, agents, loading, error, refresh } = useTeamData();
 
   // Calculate display items
   const displayItems = useMemo(() => {
-    const items: Array<{ type: 'team' | 'agent'; data: SwarmInfo | AgentInfo }> = [];
+    const items: Array<{ type: 'team' | 'agent'; data: TeamInfo | AgentInfo }> = [];
     
-    for (const team of (teams as unknown as SwarmInfo[])) {
+    for (const team of (teams as unknown as TeamInfo[])) {
       items.push({ type: 'team', data: team });
       
-      if (expandedSwarms.has(team.id)) {
-        const swarmAgents = agents.filter(a => a.teamId === team.id);
-        for (const agent of swarmAgents) {
+      if (expandedTeams.has(team.id)) {
+        const teamAgents = agents.filter(a => a.teamId === team.id);
+        for (const agent of teamAgents) {
           items.push({ type: 'agent', data: agent });
         }
       }
     }
     
     return items;
-  }, [teams, agents, expandedSwarms]);
+  }, [teams, agents, expandedTeams]);
 
   // Keyboard navigation
   useInput((input, key) => {
@@ -72,8 +72,8 @@ export function TeamMonitor({ width, height }: TeamMonitorProps) {
     if (key.return) {
       const item = displayItems[selectedIndex];
       if (item?.type === 'team') {
-        const teamId = (item.data as SwarmInfo).id;
-        setExpandedSwarms(prev => {
+        const teamId = (item.data as TeamInfo).id;
+        setExpandedTeams(prev => {
           const next = new Set(prev);
           if (next.has(teamId)) {
             next.delete(teamId);
@@ -142,8 +142,8 @@ export function TeamMonitor({ width, height }: TeamMonitorProps) {
     return `${seconds}s`;
   };
 
-  const renderSwarmRow = (team: SwarmInfo, index: number, isSelected: boolean) => {
-    const isExpanded = expandedSwarms.has(team.id);
+  const renderTeamRow = (team: TeamInfo, index: number, isSelected: boolean) => {
+    const isExpanded = expandedTeams.has(team.id);
     const agentCount = agents.filter(a => a.teamId === team.id).length;
     const maxIdWidth = 20;
     const maxNameWidth = 25;
@@ -265,7 +265,7 @@ export function TeamMonitor({ width, height }: TeamMonitorProps) {
             const isSelected = actualIndex === selectedIndex;
             
             if (item.type === 'team') {
-              return renderSwarmRow(item.data as SwarmInfo, actualIndex, isSelected);
+              return renderTeamRow(item.data as TeamInfo, actualIndex, isSelected);
             } else {
               return renderAgentRow(item.data as AgentInfo, actualIndex, isSelected);
             }

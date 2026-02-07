@@ -94,14 +94,14 @@ describe('OpenClawAdapter', () => {
     it('should spawn agent and return agent ID', async () => {
       const mockSwarm = {
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       };
       const mockAgent = {
         success: true,
         data: {
           id: 'agent-xyz789',
           status: 'spawning',
-          swarmId: 'swarm-abc123',
+          teamId: 'team-abc123',
         },
       };
 
@@ -112,11 +112,11 @@ describe('OpenClawAdapter', () => {
 
       expect(result.godelAgentId).toBe('agent-xyz789');
       expect(result.status).toBe('spawning');
-      expect(result.swarmId).toBe('swarm-abc123');
+      expect(result.teamId).toBe('team-abc123');
     });
 
-    it('should create swarm with correct config', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+    it('should create team with correct config', async () => {
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -141,7 +141,7 @@ describe('OpenClawAdapter', () => {
     });
 
     it('should map session to agent', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -157,7 +157,7 @@ describe('OpenClawAdapter', () => {
     });
 
     it('should throw error if swarm creation fails', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: false,
         error: { code: 'SWARM_ERROR', message: 'Failed to create swarm' },
       });
@@ -166,7 +166,7 @@ describe('OpenClawAdapter', () => {
     });
 
     it('should throw error if agent spawn fails and cleanup swarm', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -180,7 +180,7 @@ describe('OpenClawAdapter', () => {
     });
 
     it('should setup event forwarding', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -201,7 +201,7 @@ describe('OpenClawAdapter', () => {
   describe('sendMessage', () => {
     it('should send message to mapped agent', async () => {
       // First spawn an agent
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -237,7 +237,7 @@ describe('OpenClawAdapter', () => {
 
   describe('killAgent', () => {
     beforeEach(async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -291,7 +291,7 @@ describe('OpenClawAdapter', () => {
 
   describe('getStatus', () => {
     it('should return agent status', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -329,7 +329,7 @@ describe('OpenClawAdapter', () => {
     });
 
     it('should return not_found if agent API fails', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -389,7 +389,7 @@ describe('OpenClawAdapter', () => {
 
   describe('Stats', () => {
     it('should track active sessions', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });
@@ -408,7 +408,7 @@ describe('OpenClawAdapter', () => {
 
   describe('dispose', () => {
     it('should kill all agents and cleanup', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-abc123' },
       });

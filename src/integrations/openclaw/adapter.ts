@@ -152,7 +152,7 @@ export class OpenClawAdapter extends EventEmitter {
 
     try {
       // Create a team for this agent
-      const swarmResult = await this.client.createTeam({
+      const teamResult = await this.client.createTeam({
         name: `openclaw-${openclawSessionKey}`,
         task: options.task,
         initialAgents: 1,
@@ -165,16 +165,16 @@ export class OpenClawAdapter extends EventEmitter {
         },
       });
 
-      if (!swarmResult.success || !swarmResult.data) {
+      if (!teamResult.success || !teamResult.data) {
         throw new ApplicationError(
           'Failed to create team',
           DashErrorCode.TEAM_CREATE_FAILED,
           500,
-          { error: swarmResult.error }
+          { error: teamResult.error }
         );
       }
 
-      const teamId = swarmResult.data.id;
+      const teamId = teamResult.data.id;
       this.teamIdMap.set(openclawSessionKey, teamId);
 
       // Spawn agent in the team

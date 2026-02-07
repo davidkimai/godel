@@ -34,7 +34,7 @@ export class ScalingService {
   private orchestrator?: TeamOrchestrator;
   private eventBus?: RedisEventBus;
   private prometheus?: PrometheusMetrics;
-  private swarmRepository?: TeamRepository;
+  private teamRepository?: TeamRepository;
   private budgetRepository?: BudgetRepository;
   private isInitialized: boolean = false;
 
@@ -50,13 +50,13 @@ export class ScalingService {
     orchestrator: TeamOrchestrator;
     eventBus: RedisEventBus;
     prometheus: PrometheusMetrics;
-    swarmRepository: TeamRepository;
+    teamRepository: TeamRepository;
     budgetRepository: BudgetRepository;
   }): void {
     this.orchestrator = options.orchestrator;
     this.eventBus = options.eventBus;
     this.prometheus = options.prometheus;
-    this.swarmRepository = options.swarmRepository;
+    this.teamRepository = options.teamRepository;
     this.budgetRepository = options.budgetRepository;
 
     // Set up event bus integration
@@ -105,7 +105,7 @@ export class ScalingService {
     }
 
     // Get team info
-    const team = await this.swarmRepository?.findById(teamId);
+    const team = await this.teamRepository?.findById(teamId);
     if (!team) {
       throw new Error(`Team ${teamId} not found`);
     }
@@ -151,7 +151,7 @@ export class ScalingService {
     this.autoScaler.registerPolicy(fullPolicy);
 
     // Update team config in database
-    await this.swarmRepository?.update(teamId, {
+    await this.teamRepository?.update(teamId, {
       config: {
         ...team.config,
         autoScaling: {
@@ -171,9 +171,9 @@ export class ScalingService {
     this.autoScaler.unregisterPolicy(teamId);
 
     // Update team config in database
-    const team = await this.swarmRepository?.findById(teamId);
+    const team = await this.teamRepository?.findById(teamId);
     if (team) {
-      await this.swarmRepository?.update(teamId, {
+      await this.teamRepository?.update(teamId, {
         config: {
           ...team.config,
           autoScaling: {
@@ -285,8 +285,8 @@ export class ScalingService {
       await (this.orchestrator as any).scale(command.teamId, command.toCount);
 
       // Update team status in database
-      await this.swarmRepository?.updateStatus(command.teamId, 'scaling');
-      await this.swarmRepository?.updateStatus(command.teamId, 'active');
+      await this.teamRepository?.updateStatus(command.teamId, 'scaling');
+      await this.teamRepository?.updateStatus(command.teamId, 'active');
 
     } catch (error) {
       logger.error(`[ScalingService] Scale execution failed: ${error}`);
@@ -338,7 +338,7 @@ export function createScalingService(
     orchestrator: TeamOrchestrator;
     eventBus: RedisEventBus;
     prometheus: PrometheusMetrics;
-    swarmRepository: TeamRepository;
+    teamRepository: TeamRepository;
     budgetRepository: BudgetRepository;
     config?: Partial<AutoScalerConfig>;
   }
@@ -348,7 +348,7 @@ export function createScalingService(
     orchestrator: options.orchestrator,
     eventBus: options.eventBus,
     prometheus: options.prometheus,
-    swarmRepository: options.swarmRepository,
+    teamRepository: options.teamRepository,
     budgetRepository: options.budgetRepository,
   });
   return service;

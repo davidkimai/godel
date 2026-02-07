@@ -28,9 +28,9 @@ describeLive('Scenario 4: API Load Testing', () => {
       }
     }
     
-    for (const swarmId of createdSwarmIds) {
+    for (const teamId of createdTeamIds) {
       try {
-        await apiClient.delete(`/api/swarms/${swarmId}`);
+        await apiClient.delete(`/api/teams/${teamId}`);
       } catch {
         // Ignore cleanup errors
       }
@@ -94,7 +94,7 @@ describeLive('Scenario 4: API Load Testing', () => {
     it('should handle concurrent swarm creation requests', async () => {
       const concurrentCount = 20;
       const latencies: number[] = [];
-      const swarmIds: string[] = [];
+      const teamIds: string[] = [];
 
       const requests = Array(concurrentCount).fill(null).map((_, i) =>
         async () => {
@@ -108,7 +108,7 @@ describeLive('Scenario 4: API Load Testing', () => {
           
           expect(response.status).toBe(201);
           expect((response.data as any).id).toBeDefined();
-          swarmIds.push((response.data as any).id);
+          teamIds.push((response.data as any).id);
           
           return (response.data as any).id;
         }
@@ -118,10 +118,10 @@ describeLive('Scenario 4: API Load Testing', () => {
       await Promise.all(requests.map(fn => fn()));
       const duration = Date.now() - startTime;
 
-      createdSwarmIds.push(...swarmIds);
+      createdTeamIds.push(...teamIds);
 
       const stats = calculateLatencyStats(latencies);
-      logger.info(`Concurrent swarm creation (${concurrentCount}):`);
+      logger.info(`Concurrent team creation (${concurrentCount}):`);
       logger.info(`  Duration: ${duration}ms`);
       logger.info(`  Mean latency: ${stats.mean.toFixed(2)}ms`);
       logger.info(`  P99 latency: ${stats.p99}ms`);
@@ -131,11 +131,11 @@ describeLive('Scenario 4: API Load Testing', () => {
 
     it('should handle concurrent agent spawn requests', async () => {
       // First create a swarm
-      const swarmRes = await apiClient.post('/api/swarms', {
+      const teamRes = await apiClient.post('/api/teams', {
         name: `agent-load-test-${Date.now()}`,
       });
-      const swarmId = (swarmRes.data as any).id;
-      createdSwarmIds.push(swarmId);
+      const teamId = (teamRes.data as any).id;
+      createdTeamIds.push(teamId);
 
       const concurrentCount = 20;
       const latencies: number[] = [];
@@ -145,7 +145,7 @@ describeLive('Scenario 4: API Load Testing', () => {
         async () => {
           const start = Date.now();
           const response = await apiClient.post('/api/agents', {
-            swarmId,
+            teamId,
             model: 'test-model',
             task: `Load test task ${i}`,
           });
@@ -213,14 +213,14 @@ describeLive('Scenario 4: API Load Testing', () => {
     it('should handle mixed read/write load', async () => {
       const requestCount = 100;
       const latencies: { read: number[]; write: number[] } = { read: [], write: [] };
-      const localSwarmIds: string[] = [];
+      const localTeamIds: string[] = [];
 
-      // Create a test swarm
-      const swarmRes = await apiClient.post('/api/swarms', {
+      // Create a test team
+      const teamRes = await apiClient.post('/api/teams', {
         name: `mixed-load-${Date.now()}`,
       });
-      const swarmId = (swarmRes.data as any).id;
-      localSwarmIds.push(swarmId);
+      const teamId = (teamRes.data as any).id;
+      localTeamIds.push(teamId);
 
       const requests = Array(requestCount).fill(null).map((_, i) =>
         async () => {
@@ -257,8 +257,8 @@ describeLive('Scenario 4: API Load Testing', () => {
       expect(writeStats.p99).toBeLessThan(testConfig.apiP99LatencyThreshold * 2);
 
       // Cleanup
-      for (const id of localSwarmIds) {
-        await apiClient.delete(`/api/swarms/${id}`);
+      for (const id of localTeamIds) {
+        await apiClient.delete(`/api/teams/${id}`);
       }
     }, testConfig.testTimeout);
   });
@@ -355,7 +355,7 @@ describeLive('Scenario 4: API Load Testing', () => {
     it('should properly clean up resources after load test', async () => {
       // Create and delete many swarms rapidly
       const rapidCount = 20;
-      const swarmIds: string[] = [];
+      const teamIds: string[] = [];
 
       // Create
       for (let i = 0; i < rapidCount; i++) {
@@ -363,13 +363,13 @@ describeLive('Scenario 4: API Load Testing', () => {
           name: `cleanup-test-${Date.now()}-${i}`,
         });
         if (response.status === 201) {
-          swarmIds.push((response.data as any).id);
+          teamIds.push((response.data as any).id);
         }
       }
 
       // Delete all
       const deleteResults = await Promise.all(
-        swarmIds.map(id =>
+        teamIds.map(id =>
           apiClient.delete(`/api/swarms/${id}`)
             .then(r => r.status)
             .catch(e => e.status || 0)
@@ -377,11 +377,11 @@ describeLive('Scenario 4: API Load Testing', () => {
       );
 
       const successfulDeletes = deleteResults.filter(s => s === 200 || s === 204).length;
-      expect(successfulDeletes).toBe(swarmIds.length);
+      expect(successfulDeletes).toBe(teamIds.length);
 
       // Verify they're gone
-      for (const id of swarmIds) {
-        const response = await apiClient.get(`/api/swarms/${id}`);
+      for (const id of teamIds) {
+        const response = await apiClient.get(`/api/teams/${id}`);
         expect(response.status).toBe(404);
       }
     }, testConfig.testTimeout);

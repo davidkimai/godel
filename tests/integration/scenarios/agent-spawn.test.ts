@@ -22,7 +22,7 @@ const describeLive = RUN_LIVE_INTEGRATION_TESTS ? describe : describe.skip;
 describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
   let adapter: OpenClawAdapter;
   let createdAgentIds: string[] = [];
-  let createdSwarmIds: string[] = [];
+  let createdTeamIds: string[] = [];
 
   beforeAll(async () => {
     // Initialize the adapter with test configuration
@@ -47,7 +47,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
   beforeEach(() => {
     // Reset tracking for each test
     createdAgentIds = [];
-    createdSwarmIds = [];
+    createdTeamIds = [];
   });
 
   describe('Single Agent Spawn', () => {
@@ -66,12 +66,12 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
       expect(result.godelAgentId).toBeDefined();
       expect(result.godelAgentId).toMatch(/^agent-[a-z0-9-]+$/);
       expect(result.status).toBe('pending');
-      expect(result.swarmId).toBeDefined();
+      expect(result.teamId).toBeDefined();
 
       // Track for cleanup
       createdAgentIds.push(sessionKey);
-      if (result.swarmId) {
-        createdSwarmIds.push(result.swarmId);
+      if (result.teamId) {
+        createdTeamIds.push(result.teamId);
       }
 
       // 3. Verify agent exists in Godel via client
@@ -82,7 +82,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
       expect(agentResult.data).toBeDefined();
       expect(agentResult.data?.id).toBe(result.godelAgentId);
       expect(agentResult.data?.status).toBe('pending');
-      expect(agentResult.data?.swarmId).toBe(result.swarmId);
+      expect(agentResult.data?.teamId).toBe(result.teamId);
 
       // 4. Verify session mapping works
       expect(adapter.hasAgent(sessionKey)).toBe(true);
@@ -165,7 +165,7 @@ describeLive('Scenario 1: OpenClaw Agent Spawn', () => {
         expect(result.godelAgentId).toBeDefined();
         expect(result.godelAgentId).toMatch(/^agent-[a-z0-9-]+$/);
         expect(result.status).toBe('pending');
-        expect(result.swarmId).toBeDefined();
+        expect(result.teamId).toBeDefined();
       }
 
       // Verify all godelAgentIds are unique

@@ -258,7 +258,7 @@ export function useTeamStatus(initialTeam: any = null) {
   useEffect(() => {
     if (!connected) return undefined;
 
-    const unsubscribe = subscribe('swarm_status', (data: any) => {
+    const unsubscribe = subscribe('team_status', (data: any) => {
       setTeam(data.team);
     });
 

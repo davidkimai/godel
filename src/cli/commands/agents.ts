@@ -152,8 +152,8 @@ export function registerAgentsCommand(program: Command): void {
 
         // Validate team if specified
         if (options.team) {
-          const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
-          const team = swarmManager.getTeam(options.team);
+          const teamManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
+          const team = teamManager.getTeam(options.team);
           if (!team) {
             logger.error(`❌ Team ${options.team} not found`);
             process.exit(2);
@@ -337,7 +337,7 @@ export function registerAgentsCommand(program: Command): void {
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
         await lifecycle.start();
-        const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
+        const teamManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -348,7 +348,7 @@ export function registerAgentsCommand(program: Command): void {
         if (options.format === 'json') {
           const output = {
             ...state,
-            team: state.agent.teamId ? swarmManager.getTeam(state.agent.teamId) : null,
+            team: state.agent.teamId ? teamManager.getTeam(state.agent.teamId) : null,
           };
           logger.info(JSON.stringify(output, null, 2));
           return;
@@ -361,7 +361,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`   Task:         ${state.agent.task}`);
         
         if (state.agent.teamId) {
-          const team = swarmManager.getTeam(state.agent.teamId);
+          const team = teamManager.getTeam(state.agent.teamId);
           logger.info(`   Team:        ${team?.name || state.agent.teamId}`);
         }
         

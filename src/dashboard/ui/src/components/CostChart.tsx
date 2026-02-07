@@ -59,7 +59,7 @@ interface CostMetrics {
   weeklyEstimate: number;
   monthlyEstimate: number;
   byModel: Record<string, number>;
-  bySwarm: Record<string, number>;
+  byTeam: Record<string, number>;
   byAgent: Record<string, number>;
   overTime: Array<{
     time: string;
@@ -187,7 +187,7 @@ export function CostChart({
         );
 
       case 'pie':
-        const pieData = Object.entries(metrics.bySwarm)
+        const pieData = Object.entries(metrics.byTeam)
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 8);
@@ -393,7 +393,7 @@ export function CostChart({
         <div>
           <h4 className="text-sm font-medium text-slate-400 mb-3">By Team</h4>
           <div className="space-y-2">
-            {Object.entries(metrics.bySwarm)
+            {Object.entries(metrics.byTeam)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 5)
               .map(([team, cost], index) => (
@@ -490,9 +490,9 @@ function calculateMetrics(agents: Agent[], teams: Team[], timeRange: TimeRange):
   }, {} as Record<string, number>);
 
   // Calculate costs by team
-  const bySwarm = teams.reduce((acc, s) => {
-    const swarmAgents = agents.filter(a => a.teamId === s.id);
-    const cost = swarmAgents.reduce((sum, a) => sum + (a.cost || 0), 0);
+  const byTeam = teams.reduce((acc, s) => {
+    const teamAgents = agents.filter(a => a.teamId === s.id);
+    const cost = teamAgents.reduce((sum, a) => sum + (a.cost || 0), 0);
     acc[s.name] = cost;
     return acc;
   }, {} as Record<string, number>);
@@ -558,7 +558,7 @@ function calculateMetrics(agents: Agent[], teams: Team[], timeRange: TimeRange):
     weeklyEstimate: hourlyRate * 24 * 7,
     monthlyEstimate: hourlyRate * 24 * 30,
     byModel,
-    bySwarm,
+    byTeam,
     byAgent,
     overTime
   };

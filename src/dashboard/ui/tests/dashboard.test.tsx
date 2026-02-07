@@ -55,7 +55,7 @@ vi.mock('./services/websocket', () => ({
     subscribe: () => () => {}
   }),
   useAgentUpdates: () => ({ agents: [], updateAgent: vi.fn() }),
-  useSwarmUpdates: () => ({ teams: [], updateSwarm: vi.fn() }),
+  useTeamUpdates: () => ({ teams: [], updateTeam: vi.fn() }),
   useCostUpdates: () => null,
   useEventStream: () => []
 }));
@@ -275,12 +275,12 @@ describe('Type Definitions', () => {
     expect(AgentStatus.FAILED).toBe('failed');
   });
 
-  it('validates SwarmState type', () => {
-    const { SwarmState } = require('./types');
+  it('validates TeamState type', () => {
+    const { TeamState } = require('./types');
     
-    expect(SwarmState.ACTIVE).toBe('active');
-    expect(SwarmState.SCALING).toBe('scaling');
-    expect(SwarmState.PAUSED).toBe('paused');
+    expect(TeamState.ACTIVE).toBe('active');
+    expect(TeamState.SCALING).toBe('scaling');
+    expect(TeamState.PAUSED).toBe('paused');
   });
 });
 

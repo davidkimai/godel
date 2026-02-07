@@ -321,23 +321,23 @@ export class LoadTestGenerator {
     const batchSize = Math.min(10, this.config.agentCount);
     const batches = Math.ceil(this.config.agentCount / batchSize);
 
-    // Create swarms in batches
-    const swarmConfigs: SwarmConfig[] = this.generateSwarmConfigs();
-    const swarmIds: string[] = [];
+    // Create teams in batches
+    const teamConfigs: TeamConfig[] = this.generateTeamConfigs();
+    const teamIds: string[] = [];
 
     for (let i = 0; i < batches; i++) {
       const batchStart = i * batchSize;
-      const batchEnd = Math.min((i + 1) * batchSize, swarmConfigs.length);
-      const batch = swarmConfigs.slice(batchStart, batchEnd);
+      const batchEnd = Math.min((i + 1) * batchSize, teamConfigs.length);
+      const batch = teamConfigs.slice(batchStart, batchEnd);
 
-      // Create swarms in parallel within batch
+      // Create teams in parallel within batch
       const batchPromises = batch.map(async (config) => {
         const spawnStart = performance.now();
         try {
-          const swarm = await this.orchestrator.create(config);
+          const team = await this.orchestrator.create(config);
           const spawnTime = performance.now() - spawnStart;
           this.spawnTimes.push(spawnTime);
-          return swarm.id;
+          return team.id;
         } catch (error) {
           this.recordError(`Spawn failed: ${error}`);
           return null;
@@ -345,7 +345,7 @@ export class LoadTestGenerator {
       });
 
       const batchResults = await Promise.all(batchPromises);
-      swarmIds.push(...batchResults.filter((id): id is string => id !== null));
+      teamIds.push(...batchResults.filter((id): id is string => id !== null));
 
       // Small delay between batches
       await this.delay(10);
@@ -357,22 +357,22 @@ export class LoadTestGenerator {
 
     // Event generation load
     if (this.config.eventRate > 0) {
-      loadPromises.push(this.generateEventLoad(swarmIds, loadStartTime));
+      loadPromises.push(this.generateEventLoad(teamIds, loadStartTime));
     }
 
     // Message load
-    loadPromises.push(this.generateMessageLoad(swarmIds, loadStartTime));
+    loadPromises.push(this.generateMessageLoad(teamIds, loadStartTime));
 
     // State transition load
-    loadPromises.push(this.generateStateTransitionLoad(swarmIds, loadStartTime));
+    loadPromises.push(this.generateStateTransitionLoad(teamIds, loadStartTime));
 
     // Run loads for test duration
     await Promise.all(loadPromises);
 
     // Cleanup
-    for (const swarmId of swarmIds) {
+    for (const teamId of teamIds) {
       try {
-        await this.orchestrator.destroy(swarmId, true);
+        await this.orchestrator.destroy(teamId, true);
       } catch (error) {
         this.recordError(`Destroy failed: ${error}`);
       }
@@ -414,23 +414,23 @@ export class LoadTestGenerator {
   /**
    * Generate event load
    */
-  private async generateEventLoad(swarmIds: string[], startTime: number): Promise<void> {
+  private async generateEventLoad(teamIds: string[], startTime: number): Promise<void> {
     const eventInterval = 1000 / this.config.eventRate;
-    const totalEvents = Math.floor((this.config.durationMs / 1000) * this.config.eventRate * swarmIds.length);
+    const totalEvents = Math.floor((this.config.durationMs / 1000) * this.config.eventRate * teamIds.length);
 
     let eventsEmitted = 0;
 
     while (performance.now() - startTime < this.config.durationMs && eventsEmitted < totalEvents) {
       const eventStart = performance.now();
 
-      for (const swarmId of swarmIds) {
+      for (const teamId of teamIds) {
         try {
           this.eventBus.emitEvent({
             id: `evt_${randomUUID().slice(0, 8)}`,
             type: 'agent_start',
             timestamp: Date.now(),
             agentId: `agent-${randomUUID().slice(0, 8)}`,
-            swarmId,
+            teamId,
             task: 'load test event',
             model: 'test-model',
             provider: 'test',
@@ -451,17 +451,17 @@ export class LoadTestGenerator {
   /**
    * Generate message load
    */
-  private async generateMessageLoad(swarmIds: string[], startTime: number): Promise<void> {
+  private async generateMessageLoad(teamIds: string[], startTime: number): Promise<void> {
     const messageRate = this.config.eventRate * 2; // 2x event rate
     const messageInterval = 1000 / messageRate;
 
     while (performance.now() - startTime < this.config.durationMs) {
       const msgStart = performance.now();
 
-      for (const swarmId of swarmIds) {
+      for (const teamId of teamIds) {
         try {
           this.messageBus.publish(
-            MessageBus.swarmBroadcast(swarmId),
+            MessageBus.teamBroadcast(teamId),
             {
               eventType: 'test.message',
               payload: this.generatePayload(this.config.payloadSize),
@@ -483,7 +483,7 @@ export class LoadTestGenerator {
   /**
    * Generate state transition load
    */
-  private async generateStateTransitionLoad(swarmIds: string[], startTime: number): Promise<void> {
+  private async generateStateTransitionLoad(teamIds: string[], startTime: number): Promise<void> {
     const transitionInterval = 100; // Every 100ms
 
     while (performance.now() - startTime < this.config.durationMs) {

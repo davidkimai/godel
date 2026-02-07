@@ -373,7 +373,7 @@ export class ReportGenerator {
           ${scenarios.slice(0, 20).map(s => `
             <tr>
               <td>#${s.sessionIndex + 1}</td>
-              <td><code>${s.swarmId.slice(-12)}</code></td>
+              <td><code>${s.teamId.slice(-12)}</code></td>
               <td class="${s.success ? 'check-passed' : 'check-failed'}">${s.success ? '✓' : '✗'}</td>
               <td>${(s.durationMs / 1000).toFixed(1)}s</td>
               <td>${s.agentsSpawned}</td>

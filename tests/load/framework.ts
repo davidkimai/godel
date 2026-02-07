@@ -65,8 +65,8 @@ export interface TestResult {
 export interface ScenarioResult {
   /** Session index */
   sessionIndex: number;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Success flag */
   success: boolean;
   /** Duration in ms */
@@ -332,7 +332,7 @@ export class LoadTestRunner extends EventEmitter {
    */
   private async executeSession(test: LoadTest, sessionIndex: number): Promise<ScenarioResult> {
     const startTime = performance.now();
-    const swarmId = `load-test-${test.sessions}-${Date.now()}-${sessionIndex}`;
+    const teamId = `load-test-${test.sessions}-${Date.now()}-${sessionIndex}`;
     const errors: string[] = [];
     const latencies: number[] = [];
 
@@ -340,29 +340,29 @@ export class LoadTestRunner extends EventEmitter {
       // Simulate session lifecycle
       // 1. Spawn coordinator
       const coordinatorStart = performance.now();
-      await this.simulateAgentSpawn(swarmId, 'coordinator');
+      await this.simulateAgentSpawn(teamId, 'coordinator');
       latencies.push(performance.now() - coordinatorStart);
-      this.recordMetric('latency', 'agent_spawn', latencies[latencies.length - 1], { swarmId, role: 'coordinator' });
+      this.recordMetric('latency', 'agent_spawn', latencies[latencies.length - 1], { teamId, role: 'coordinator' });
 
       // 2. Spawn workers
       for (let i = 0; i < test.agentsPerSession - 1; i++) {
         const workerStart = performance.now();
-        await this.simulateAgentSpawn(swarmId, `worker-${i}`);
+        await this.simulateAgentSpawn(teamId, `worker-${i}`);
         latencies.push(performance.now() - workerStart);
-        this.recordMetric('latency', 'agent_spawn', latencies[latencies.length - 1], { swarmId, role: 'worker' });
+        this.recordMetric('latency', 'agent_spawn', latencies[latencies.length - 1], { teamId, role: 'worker' });
       }
 
       // 3. Execute workload
-      await this.executeWorkload(test, swarmId, latencies);
+      await this.executeWorkload(test, teamId, latencies);
 
       // 4. Cleanup
-      await this.simulateCleanup(swarmId);
+      await this.simulateCleanup(teamId);
 
       const durationMs = performance.now() - startTime;
       
       return {
         sessionIndex,
-        swarmId,
+        teamId,
         success: true,
         durationMs,
         agentsSpawned: test.agentsPerSession,
@@ -373,11 +373,11 @@ export class LoadTestRunner extends EventEmitter {
       const durationMs = performance.now() - startTime;
       const errorMsg = error instanceof Error ? error.message : String(error);
       errors.push(errorMsg);
-      this.recordMetric('error', 'session_failure', 1, { swarmId, error: errorMsg });
+      this.recordMetric('error', 'session_failure', 1, { teamId, error: errorMsg });
 
       return {
         sessionIndex,
-        swarmId,
+        teamId,
         success: false,
         durationMs,
         agentsSpawned: 0,
@@ -390,7 +390,7 @@ export class LoadTestRunner extends EventEmitter {
   /**
    * Execute workload for a session
    */
-  private async executeWorkload(test: LoadTest, swarmId: string, latencies: number[]): Promise<void> {
+  private async executeWorkload(test: LoadTest, teamId: string, latencies: number[]): Promise<void> {
     const workloadDuration = test.duration * 60 * 1000;
     const checkInterval = 1000; // 1 second
     const startTime = performance.now();
@@ -405,27 +405,27 @@ export class LoadTestRunner extends EventEmitter {
       // Simulate workload based on type
       switch (test.workload) {
         case 'review':
-          await this.simulateCodeReview(swarmId);
+          await this.simulateCodeReview(teamId);
           break;
         case 'test':
-          await this.simulateTestExecution(swarmId);
+          await this.simulateTestExecution(teamId);
           break;
         case 'refactor':
-          await this.simulateRefactoring(swarmId);
+          await this.simulateRefactoring(teamId);
           break;
         case 'mixed':
           const workloads = ['review', 'test', 'refactor'];
           const randomWorkload = workloads[Math.floor(Math.random() * workloads.length)];
           switch (randomWorkload) {
-            case 'review': await this.simulateCodeReview(swarmId); break;
-            case 'test': await this.simulateTestExecution(swarmId); break;
-            case 'refactor': await this.simulateRefactoring(swarmId); break;
+            case 'review': await this.simulateCodeReview(teamId); break;
+            case 'test': await this.simulateTestExecution(teamId); break;
+            case 'refactor': await this.simulateRefactoring(teamId); break;
           }
           break;
       }
 
       latencies.push(performance.now() - opStart);
-      this.recordMetric('throughput', 'operation_completed', 1, { swarmId, workload: test.workload });
+      this.recordMetric('throughput', 'operation_completed', 1, { teamId, workload: test.workload });
 
       await this.delay(checkInterval);
     }
@@ -434,49 +434,49 @@ export class LoadTestRunner extends EventEmitter {
   /**
    * Simulate agent spawn
    */
-  private async simulateAgentSpawn(swarmId: string, role: string): Promise<void> {
+  private async simulateAgentSpawn(teamId: string, role: string): Promise<void> {
     // Simulate spawn latency (10-50ms)
     const spawnLatency = 10 + Math.random() * 40;
     await this.delay(spawnLatency);
-    this.recordMetric('latency', 'agent_spawn', spawnLatency, { swarmId, role });
+    this.recordMetric('latency', 'agent_spawn', spawnLatency, { teamId, role });
   }
 
   /**
    * Simulate code review workload
    */
-  private async simulateCodeReview(swarmId: string): Promise<void> {
+  private async simulateCodeReview(teamId: string): Promise<void> {
     // Simulate code review operation (50-150ms)
     const latency = 50 + Math.random() * 100;
     await this.delay(latency);
-    this.recordMetric('latency', 'code_review', latency, { swarmId });
+    this.recordMetric('latency', 'code_review', latency, { teamId });
   }
 
   /**
    * Simulate test execution workload
    */
-  private async simulateTestExecution(swarmId: string): Promise<void> {
+  private async simulateTestExecution(teamId: string): Promise<void> {
     // Simulate test execution (100-300ms)
     const latency = 100 + Math.random() * 200;
     await this.delay(latency);
-    this.recordMetric('latency', 'test_execution', latency, { swarmId });
+    this.recordMetric('latency', 'test_execution', latency, { teamId });
   }
 
   /**
    * Simulate refactoring workload
    */
-  private async simulateRefactoring(swarmId: string): Promise<void> {
+  private async simulateRefactoring(teamId: string): Promise<void> {
     // Simulate refactoring operation (200-500ms)
     const latency = 200 + Math.random() * 300;
     await this.delay(latency);
-    this.recordMetric('latency', 'refactoring', latency, { swarmId });
+    this.recordMetric('latency', 'refactoring', latency, { teamId });
   }
 
   /**
    * Simulate cleanup
    */
-  private async simulateCleanup(swarmId: string): Promise<void> {
+  private async simulateCleanup(teamId: string): Promise<void> {
     await this.delay(10);
-    this.recordMetric('resource', 'session_cleanup', 1, { swarmId });
+    this.recordMetric('resource', 'session_cleanup', 1, { teamId });
   }
 
   /**

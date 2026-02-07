@@ -87,7 +87,7 @@ describe('CLI Commands Integration', () => {
       let commandCalled = false;
       
       // Create parent command
-      const swarm = program.command('swarm').description('Manage swarms');
+      const team = program.command('team').description('Manage teams');
       
       swarm
         .command('create')
@@ -105,7 +105,7 @@ describe('CLI Commands Integration', () => {
     it('should define swarm list command', () => {
       let commandCalled = false;
       
-      const swarm = program.command('swarm').description('Manage swarms');
+      const team = program.command('team').description('Manage teams');
       
       swarm
         .command('list')
@@ -113,34 +113,34 @@ describe('CLI Commands Integration', () => {
           commandCalled = true;
         });
       
-      program.parse(['node', 'godel', 'swarm', 'list']);
+      program.parse(['node', 'godel', 'team', 'list']);
       
       expect(commandCalled).toBe(true);
     });
 
-    it('should define swarm destroy command', () => {
+    it('should define team destroy command', () => {
       let commandCalled = false;
-      let swarmId = '';
+      let teamId = '';
       
-      const swarm = program.command('swarm').description('Manage swarms');
+      const team = program.command('team').description('Manage teams');
       
-      swarm
+      team
         .command('destroy <id>')
         .action((id) => {
           commandCalled = true;
-          swarmId = id;
+          teamId = id;
         });
       
-      program.parse(['node', 'godel', 'swarm', 'destroy', 'swarm-123']);
+      program.parse(['node', 'godel', 'team', 'destroy', 'team-123']);
       
       expect(commandCalled).toBe(true);
-      expect(swarmId).toBe('swarm-123');
+      expect(teamId).toBe('team-123');
     });
 
     it('should accept --agents option', () => {
       let agentCount = 0;
       
-      const swarm = program.command('swarm').description('Manage swarms');
+      const team = program.command('team').description('Manage teams');
       
       swarm
         .command('create')
@@ -157,7 +157,7 @@ describe('CLI Commands Integration', () => {
     it('should accept --strategy option', () => {
       let strategy = '';
       
-      const swarm = program.command('swarm').description('Manage swarms');
+      const team = program.command('team').description('Manage teams');
       
       swarm
         .command('create')

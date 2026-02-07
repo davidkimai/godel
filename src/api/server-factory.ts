@@ -734,11 +734,11 @@ async function validateCredentials(username: string, password: string): Promise<
  */
 async function createApiRoutes(config: UnifiedServerConfig) {
   const router = Router();
-  const swarmRepo = new TeamRepository();
+  const teamRepo = new TeamRepository();
   const agentRepo = new AgentRepository();
   const eventRepo = new EventRepository();
   await Promise.all([
-    swarmRepo.initialize(),
+    teamRepo.initialize(),
     agentRepo.initialize(),
     eventRepo.initialize(),
   ]);
@@ -768,7 +768,7 @@ async function createApiRoutes(config: UnifiedServerConfig) {
   // ============================================================================
   router.post('/teams', csrfProtection, validators.createTeam, asyncHandler(async (req: Request, res: Response) => {
     const { name, config } = req.body;
-    const team = await swarmRepo.create({ name, config, status: 'active' });
+    const team = await teamRepo.create({ name, config, status: 'active' });
     res.status(201).json({
       success: true,
       data: team,
@@ -780,7 +780,7 @@ async function createApiRoutes(config: UnifiedServerConfig) {
     const id = getIdParam(req);
     let team;
     try {
-      team = await swarmRepo.findById(id);
+      team = await teamRepo.findById(id);
     } catch (error) {
       if (isInvalidUuidError(error)) {
         throw new APIError('Team not found', 404, 'NOT_FOUND');
@@ -799,13 +799,13 @@ async function createApiRoutes(config: UnifiedServerConfig) {
 
   router.delete('/teams/:id', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
     const id = getIdParam(req);
-    await swarmRepo.delete(id);
+    await teamRepo.delete(id);
     res.status(204).send();
   }));
 
   // List teams
   router.get('/teams', asyncHandler(async (_req: Request, res: Response) => {
-    const teams = await swarmRepo.list();
+    const teams = await teamRepo.list();
     res.json({
       success: true,
       data: { teams },

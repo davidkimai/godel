@@ -34,10 +34,10 @@ import { Card, StatsCard, Badge, LoadingSpinner } from '../components/Layout';
 import { EventFeed } from '../components/EventFeed';
 import { useDashboardStore, useUIStore } from '../contexts/store';
 import { api } from '../services/api';
-import { useEventStream, useAgentUpdates, useSwarmUpdates } from '../services/websocket';
+import { useEventStream, useAgentUpdates, useTeamUpdates } from '../services/websocket';
 import {
   AgentStatus,
-  SwarmState,
+  TeamState,
   formatCurrency,
   formatNumber,
   getStatusColor,
@@ -51,13 +51,13 @@ import type { Agent, Team, AgentEvent } from '../types/index';
 // ============================================================================
 
 export function Overview(): React.ReactElement {
-  const { agents, teams, stats, isLoadingAgents, isLoadingSwarms, setAgents, setSwarms, setStats, updateAgent, updateSwarm } = useDashboardStore();
+  const { agents, teams, stats, isLoadingAgents, isLoadingTeams, setAgents, setTeams, setStats, updateAgent, updateTeam } = useDashboardStore();
   const { addNotification } = useUIStore();
   const events = useEventStream(50);
 
   // Subscribe to real-time updates
   const { agents: updatedAgents } = useAgentUpdates();
-  const { teams: updatedSwarms } = useSwarmUpdates();
+  const { teams: updatedTeams } = useTeamUpdates();
 
   // Merge real-time updates
   useEffect(() => {
@@ -65,20 +65,20 @@ export function Overview(): React.ReactElement {
   }, [updatedAgents, updateAgent]);
 
   useEffect(() => {
-    updatedSwarms.forEach(team => updateSwarm(team));
-  }, [updatedSwarms, updateSwarm]);
+    updatedTeams.forEach(team => updateTeam(team));
+  }, [updatedTeams, updateTeam]);
 
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [agentsData, swarmsData, statsData] = await Promise.all([
+        const [agentsData, teamsData, statsData] = await Promise.all([
           api.agents.list(),
           api.teams.list(),
           api.metrics.getDashboardStats()
         ]);
         setAgents(agentsData);
-        setSwarms(swarmsData);
+        setTeams(teamsData);
         setStats(statsData);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -95,7 +95,7 @@ export function Overview(): React.ReactElement {
     // Refresh data every 30 seconds
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, [setAgents, setSwarms, setStats, addNotification]);
+  }, [setAgents, setTeams, setStats, addNotification]);
 
   // Calculate metrics
   const agentMetrics = useMemo(() => calculateAgentMetrics(agents), [agents]);
@@ -107,7 +107,7 @@ export function Overview(): React.ReactElement {
     [agents]
   );
 
-  const isLoading = isLoadingAgents || isLoadingSwarms;
+  const isLoading = isLoadingAgents || isLoadingTeams;
 
   // Calculate cost trend
   const costTrend = useMemo(() => {
@@ -164,7 +164,7 @@ export function Overview(): React.ReactElement {
         />
         <StatsCard
           title="Active Teams"
-          value={isLoading ? '-' : activeSwarms}
+          value={isLoading ? '-' : activeTeams}
           subtitle={`of ${teams.length} total teams`}
           icon={<Hexagon className="w-6 h-6" />}
           color="emerald"
@@ -208,16 +208,16 @@ export function Overview(): React.ReactElement {
         </Card>
 
         <Card title="Team Activity">
-          <SwarmActivityChart teams={teams} isLoading={isLoading} />
+          <TeamActivityChart teams={teams} isLoading={isLoading} />
         </Card>
       </div>
 
       {/* Active Teams Preview */}
-      {activeSwarms > 0 && (
+      {activeTeams > 0 && (
         <Card title="Active Teams">
           <div className="space-y-3">
             {teams
-              .filter(s => s.status === SwarmState.ACTIVE || s.status === SwarmState.SCALING)
+              .filter(s => s.status === TeamState.ACTIVE || s.status === TeamState.SCALING)
               .slice(0, 3)
               .map(team => (
                 <div 
@@ -247,13 +247,13 @@ export function Overview(): React.ReactElement {
                 </div>
               ))}
           </div>
-          {activeSwarms > 3 && (
+          {activeTeams > 3 && (
             <div className="mt-4 text-center">
               <a 
                 href="/teams" 
                 className="text-sm text-emerald-400 hover:text-emerald-300"
               >
-                View all {activeSwarms} active teams →
+                View all {activeTeams} active teams →
               </a>
             </div>
           )}
@@ -431,7 +431,7 @@ function CostChart({ agents, isLoading }: { agents: Agent[]; isLoading: boolean 
 // Team Activity Chart
 // ============================================================================
 
-function SwarmActivityChart({ teams, isLoading }: { teams: Team[]; isLoading: boolean }): React.ReactElement {
+function TeamActivityChart({ teams, isLoading }: { teams: Team[]; isLoading: boolean }): React.ReactElement {
   if (isLoading) {
     return <LoadingSpinner className="py-8" />;
   }

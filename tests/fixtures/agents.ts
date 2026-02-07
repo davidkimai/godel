@@ -32,7 +32,7 @@ export const mockAgent: Agent = {
   task: 'Test task execution',
   spawnedAt: new Date('2024-01-01T00:00:00Z'),
   runtime: 0,
-  swarmId: undefined,
+  teamId: undefined,
   parentId: undefined,
   childIds: [],
   context: {
@@ -153,7 +153,7 @@ export const mockChildAgent: Agent = {
   label: 'child-agent-1',
   status: AgentStatus.RUNNING,
   parentId: 'agent-parent-001',
-  swarmId: 'swarm-001',
+  teamId: 'team-001';
 };
 
 /**
@@ -238,7 +238,7 @@ export const mockAgentSwarm: Agent[] = [
     label: 'child-agent-2',
     status: AgentStatus.PENDING,
     parentId: 'agent-parent-001',
-    swarmId: 'swarm-001',
+    teamId: 'team-001';
   },
 ];
 

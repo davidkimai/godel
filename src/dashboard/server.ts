@@ -103,7 +103,7 @@ export interface AgentDashboardInfo {
   status: string;
   model: string;
   teamId: string;
-  swarmName: string;
+  teamName: string;
   task: string;
   runtime: number;
   cost: number;
@@ -749,7 +749,7 @@ export class DashboardServer extends EventEmitter {
         status: agent.status,
         model: (agent as any).model || 'unknown',
         teamId: team.id,
-        swarmName: team.name,
+        teamName: team.name,
         task: (agent as any).task || '',
         runtime: (agent as any).runtime || 0,
         cost: (agent as any).cost || 0,
@@ -797,7 +797,7 @@ export class DashboardServer extends EventEmitter {
       byModel,
       byTeam,
       agentCount: allAgents.length,
-      swarmCount: teams.length,
+      teamCount: teams.length,
     };
   }
 

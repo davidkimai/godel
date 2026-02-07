@@ -425,7 +425,7 @@ describe('Federation E2E', () => {
       // Override metrics collection for testing
       const mockMetrics = {
         timestamp: new Date(),
-        swarmId: 'test-swarm',
+        teamId: 'test-team',
         currentAgentCount: 1,
         queueDepth: 10,
         queueGrowthRate: 0,
@@ -465,7 +465,7 @@ describe('Federation E2E', () => {
       // Test that we don't scale below minimum
       const lowMetrics = {
         timestamp: new Date(),
-        swarmId: 'test-swarm',
+        teamId: 'test-team',
         currentAgentCount: 2,
         queueDepth: 0,
         queueGrowthRate: 0,
@@ -510,7 +510,7 @@ describe('Federation E2E', () => {
       // Simulate recent scaling operation
       const metrics = {
         timestamp: new Date(),
-        swarmId: 'test-swarm',
+        teamId: 'test-team',
         currentAgentCount: 2,
         queueDepth: 10,
         queueGrowthRate: 0,

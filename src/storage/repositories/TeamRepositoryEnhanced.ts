@@ -405,12 +405,12 @@ export class TeamRepositoryEnhanced extends TeamRepository {
 
     return this.txManager.withTransaction(async (client) => {
       // Get team info
-      const swarmResult = await client.query<TeamWithVersion>(
+      const teamResult = await client.query<TeamWithVersion>(
         `SELECT *, COALESCE(version, 0) as version FROM teams WHERE id = $1`,
         [id]
       );
 
-      if (swarmResult.rowCount === 0) {
+      if (teamResult.rowCount === 0) {
         return null;
       }
 
@@ -443,7 +443,7 @@ export class TeamRepositoryEnhanced extends TeamRepository {
       }
 
       return {
-        ...swarmResult.rows[0],
+        ...teamResult.rows[0],
         ...counts,
       };
     }, { isolationLevel: 'REPEATABLE READ', readOnly: true });

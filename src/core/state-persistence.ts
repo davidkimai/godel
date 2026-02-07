@@ -1224,7 +1224,7 @@ export class StatePersistence extends EventEmitter {
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
 
     const teamsResult = await db.run(
-      "DELETE FROM swarm_states WHERE status IN ('completed', 'failed', 'destroyed') AND completed_at < ?",
+      "DELETE FROM team_states WHERE status IN ('completed', 'failed', 'destroyed') AND completed_at < ?",
       [cutoff]
     );
 

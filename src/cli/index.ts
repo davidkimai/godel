@@ -165,7 +165,7 @@ function generateBashCompletion(): string {
 # godel bash completion script
 # Source this file: source <(godel completion bash)
 
-_swarmctl_completions() {
+_godel_completions() {
   local cur prev opts
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
@@ -308,7 +308,7 @@ _swarmctl_completions() {
   return 0
 }
 
-complete -F _swarmctl_completions godel
+complete -F _godel_completions godel
 `;
 }
 

@@ -178,12 +178,12 @@ describe('Schema Validation', () => {
       expect(result.metadata).toEqual(data.metadata);
     });
 
-    it('should accept parentId and swarmId', () => {
+    it('should accept parentId and teamId', () => {
       const data = {
         task: 'Test',
         model: 'gpt-4',
         parentId: '550e8400-e29b-41d4-a716-446655440000',
-        swarmId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+        teamId: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
       };
       expect(() => spawnAgentSchema.parse(data)).not.toThrow();
     });

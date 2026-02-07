@@ -159,9 +159,9 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ maxAlerts = 50 }) => {
   function isAlertEvent(event: AgentEvent): boolean {
     const alertTypes = [
       EventType.AGENT_FAILED,
-      EventType.SWARM_FAILED,
-      EventType.SWARM_BUDGET_WARNING,
-      EventType.SWARM_BUDGET_CRITICAL,
+      EventType.TEAM_FAILED,
+      EventType.TEAM_BUDGET_WARNING,
+      EventType.TEAM_BUDGET_CRITICAL,
       EventType.SYSTEM_ERROR,
       EventType.TASK_FAILED
     ];
@@ -179,17 +179,17 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ maxAlerts = 50 }) => {
         title = 'Agent Failed';
         message = `Agent ${event.agentId?.slice(0, 8)}... has failed`;
         break;
-      case EventType.SWARM_FAILED:
+      case EventType.TEAM_FAILED:
         severity = 'error';
         title = 'Team Failed';
         message = `Team ${event.teamId?.slice(0, 8)}... has failed`;
         break;
-      case EventType.SWARM_BUDGET_WARNING:
+      case EventType.TEAM_BUDGET_WARNING:
         severity = 'warning';
         title = 'Budget Warning';
         message = 'Team approaching budget limit';
         break;
-      case EventType.SWARM_BUDGET_CRITICAL:
+      case EventType.TEAM_BUDGET_CRITICAL:
         severity = 'critical';
         title = 'Budget Critical';
         message = 'Team has exceeded critical budget threshold';

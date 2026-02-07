@@ -357,7 +357,7 @@ describe('Orchestrator Integration', () => {
       await swarmManager.scale(swarm.id, 3);
 
       expect(scaledSpy).toHaveBeenCalledWith(expect.objectContaining({
-        swarmId: swarm.id,
+        teamId: team.id,
         newSize: 3,
       }));
     });

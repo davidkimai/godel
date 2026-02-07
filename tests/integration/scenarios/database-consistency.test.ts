@@ -62,25 +62,25 @@ describeLive('Scenario 7: Database Consistency', () => {
       }
 
       const concurrentCount = 50;
-      const swarmName = `consistency-test-swarm-${Date.now()}`;
+      const teamName = `consistency-test-team-${Date.now()}`;
       
-      // Create a test swarm
-      const swarmResult = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+      // Create a test team
+      const teamResult = await db.query(`
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
-      `, [swarmName]);
+      `, [teamName]);
       
-      const swarmId = swarmResult.rows[0]?.id;
-      expect(swarmId).toBeDefined();
+      const teamId = teamResult.rows[0]?.id;
+      expect(teamId).toBeDefined();
 
       // Concurrent agent inserts
       const insertPromises = Array(concurrentCount).fill(null).map((_, i) =>
         db!.query(`
-          INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
+          INSERT INTO agents (team_id, label, status, model, task, created_at, updated_at)
           VALUES ($1, $2, 'pending', 'test-model', 'Test task', NOW(), NOW())
           RETURNING id
-        `, [swarmId, `consistency-test-agent-${Date.now()}-${i}`])
+        `, [teamId, `consistency-test-agent-${Date.now()}-${i}`])
       );
 
       const results = await Promise.all(insertPromises);
@@ -91,8 +91,8 @@ describeLive('Scenario 7: Database Consistency', () => {
 
       // Verify all agents exist
       const countResult = await db.query(`
-        SELECT COUNT(*) as count FROM agents WHERE swarm_id = $1
-      `, [swarmId]);
+        SELECT COUNT(*) as count FROM agents WHERE team_id = $1
+      `, [teamId]);
 
       expect(parseInt((countResult.rows[0] as any).count)).toBe(concurrentCount);
     }, testConfig.testTimeout);
@@ -103,25 +103,25 @@ describeLive('Scenario 7: Database Consistency', () => {
         return;
       }
 
-      const swarmName = `consistency-test-swarm-${Date.now()}`;
+      const teamName = `consistency-test-team-${Date.now()}`;
       
-      // Create a test swarm
-      const swarmResult = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+      // Create a test team
+      const teamResult = await db.query(`
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
-      `, [swarmName]);
+      `, [teamName]);
       
-      const swarmId = swarmResult.rows[0].id;
+      const teamId = teamResult.rows[0].id;
 
       // Concurrent status updates
       const updatePromises = Array(20).fill(null).map((_, i) =>
         db!.query(`
-          UPDATE swarms 
+          UPDATE teams 
           SET status = $1, updated_at = NOW()
           WHERE id = $2
           RETURNING status
-        `, [i % 2 === 0 ? 'active' : 'scaling', swarmId])
+        `, [i % 2 === 0 ? 'active' : 'scaling', teamId])
       );
 
       const results = await Promise.all(updatePromises);
@@ -131,8 +131,8 @@ describeLive('Scenario 7: Database Consistency', () => {
 
       // Final status should be one of the valid states
       const finalResult = await db.query(`
-        SELECT status FROM swarms WHERE id = $1
-      `, [swarmId]);
+        SELECT status FROM teams WHERE id = $1
+      `, [teamId]);
 
       expect(['active', 'scaling']).toContain(finalResult.rows[0].status);
     }, testConfig.testTimeout);
@@ -143,15 +143,15 @@ describeLive('Scenario 7: Database Consistency', () => {
         return;
       }
 
-      const swarmName = `consistency-test-swarm-${Date.now()}`;
+      const teamName = `consistency-test-team-${Date.now()}`;
       
-      const swarmResult = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+      const teamResult = await db.query(`
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
-      `, [swarmName]);
+      `, [teamName]);
       
-      const swarmId = swarmResult.rows[0].id;
+      const teamId = teamResult.rows[0].id;
 
       // Mix of reads and writes
       const operations = Array(30).fill(null).map((_, i) =>
@@ -160,12 +160,12 @@ describeLive('Scenario 7: Database Consistency', () => {
             // Write
             return db!.query(`
               UPDATE swarms SET updated_at = NOW() WHERE id = $1
-            `, [swarmId]);
+            `, [teamId]);
           } else {
             // Read
             return db!.query(`
               SELECT * FROM swarms WHERE id = $1
-            `, [swarmId]);
+            `, [teamId]);
           }
         }
       );
@@ -178,10 +178,10 @@ describeLive('Scenario 7: Database Consistency', () => {
       // Verify record still exists and is consistent
       const finalResult = await db.query(`
         SELECT * FROM swarms WHERE id = $1
-      `, [swarmId]);
+      `, [teamId]);
 
       expect(finalResult.rows.length).toBe(1);
-      expect(finalResult.rows[0].id).toBe(swarmId);
+      expect(finalResult.rows[0].id).toBe(teamId);
     }, testConfig.testTimeout);
   });
 
@@ -197,38 +197,38 @@ describeLive('Scenario 7: Database Consistency', () => {
       try {
         await client.query('BEGIN');
 
-        // Create swarm
-        const swarmResult = await client.query(`
-          INSERT INTO swarms (name, status, config, created_at, updated_at)
+        // Create team
+        const teamResult = await client.query(`
+          INSERT INTO teams (name, status, config, created_at, updated_at)
           VALUES ($1, 'active', '{}', NOW(), NOW())
           RETURNING id
         `, [`consistency-test-transaction-${Date.now()}`]);
         
-        const swarmId = swarmResult.rows[0].id;
+        const teamId = teamResult.rows[0].id;
 
         // Create agents in same transaction
         await client.query(`
-          INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
+          INSERT INTO agents (team_id, label, status, model, task, created_at, updated_at)
           VALUES ($1, $2, 'pending', 'test-model', 'Test task', NOW(), NOW())
-        `, [swarmId, `consistency-test-agent-${Date.now()}`]);
+        `, [teamId, `consistency-test-agent-${Date.now()}`]);
 
         await client.query(`
-          INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
+          INSERT INTO agents (team_id, label, status, model, task, created_at, updated_at)
           VALUES ($1, $2, 'pending', 'test-model', 'Test task', NOW(), NOW())
-        `, [swarmId, `consistency-test-agent-${Date.now()}-2`]);
+        `, [teamId, `consistency-test-agent-${Date.now()}-2`]);
 
         await client.query('COMMIT');
 
         // Verify all records exist
-        const swarmCount = await db.query(`
-          SELECT COUNT(*) FROM swarms WHERE id = $1
-        `, [swarmId]);
+        const teamCount = await db.query(`
+          SELECT COUNT(*) FROM teams WHERE id = $1
+        `, [teamId]);
         
         const agentCount = await db.query(`
-          SELECT COUNT(*) FROM agents WHERE swarm_id = $1
-        `, [swarmId]);
+          SELECT COUNT(*) FROM agents WHERE team_id = $1
+        `, [teamId]);
 
-        expect(parseInt(swarmCount.rows[0].count)).toBe(1);
+        expect(parseInt(teamCount.rows[0].count)).toBe(1);
         expect(parseInt(agentCount.rows[0].count)).toBe(2);
       } catch (error) {
         await client.query('ROLLBACK');
@@ -252,7 +252,7 @@ describeLive('Scenario 7: Database Consistency', () => {
 
         // Insert valid record
         await client.query(`
-          INSERT INTO swarms (name, status, config, created_at, updated_at)
+          INSERT INTO teams (name, status, config, created_at, updated_at)
           VALUES ($1, 'active', '{}', NOW(), NOW())
         `, [`consistency-test-rollback-${testId}`]);
 
@@ -269,7 +269,7 @@ describeLive('Scenario 7: Database Consistency', () => {
 
         // Verify no records were created
         const result = await db.query(`
-          SELECT COUNT(*) FROM swarms WHERE name = $1
+          SELECT COUNT(*) FROM teams WHERE name = $1
         `, [`consistency-test-rollback-${testId}`]);
 
         expect(parseInt(result.rows[0].count)).toBe(0);
@@ -286,13 +286,13 @@ describeLive('Scenario 7: Database Consistency', () => {
 
       // Create test records
       const result1 = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
       `, [`consistency-test-deadlock-1-${Date.now()}`]);
 
       const result2 = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
       `, [`consistency-test-deadlock-2-${Date.now()}`]);
@@ -302,11 +302,11 @@ describeLive('Scenario 7: Database Consistency', () => {
 
       // Attempt concurrent updates that could deadlock
       const update1 = db.query(`
-        UPDATE swarms SET status = 'updating' WHERE id = $1
+        UPDATE teams SET status = 'updating' WHERE id = $1
       `, [id1]);
 
       const update2 = db.query(`
-        UPDATE swarms SET status = 'updating' WHERE id = $2
+        UPDATE teams SET status = 'updating' WHERE id = $2
       `, [id2]);
 
       // Both should complete (PostgreSQL handles deadlock detection)
@@ -321,10 +321,10 @@ describeLive('Scenario 7: Database Consistency', () => {
         return;
       }
 
-      // Attempt to create agent with non-existent swarm
+      // Attempt to create agent with non-existent team
       await expect(
         db.query(`
-          INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
+          INSERT INTO agents (team_id, label, status, model, task, created_at, updated_at)
           VALUES ('00000000-0000-0000-0000-000000000000', 'test', 'pending', 'model', 'task', NOW(), NOW())
         `)
       ).rejects.toThrow();
@@ -340,14 +340,14 @@ describeLive('Scenario 7: Database Consistency', () => {
 
       // First insert should succeed
       await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
       `, [uniqueName]);
 
       // Second insert with same name should fail
       await expect(
         db.query(`
-          INSERT INTO swarms (name, status, config, created_at, updated_at)
+          INSERT INTO teams (name, status, config, created_at, updated_at)
           VALUES ($1, 'active', '{}', NOW(), NOW())
         `, [uniqueName])
       ).rejects.toThrow();
@@ -359,39 +359,39 @@ describeLive('Scenario 7: Database Consistency', () => {
         return;
       }
 
-      const swarmName = `consistency-test-fk-${Date.now()}`;
+      const teamName = `consistency-test-fk-${Date.now()}`;
       
-      // Create swarm with agent
-      const swarmResult = await db.query(`
-        INSERT INTO swarms (name, status, config, created_at, updated_at)
+      // Create team with agent
+      const teamResult = await db.query(`
+        INSERT INTO teams (name, status, config, created_at, updated_at)
         VALUES ($1, 'active', '{}', NOW(), NOW())
         RETURNING id
-      `, [swarmName]);
+      `, [teamName]);
       
-      const swarmId = swarmResult.rows[0].id;
+      const teamId = teamResult.rows[0].id;
 
       await db.query(`
-        INSERT INTO agents (swarm_id, label, status, model, task, created_at, updated_at)
+        INSERT INTO agents (team_id, label, status, model, task, created_at, updated_at)
         VALUES ($1, 'test-agent', 'pending', 'model', 'task', NOW(), NOW())
-      `, [swarmId]);
+      `, [teamId]);
 
-      // Delete swarm (should cascade or prevent based on schema)
+      // Delete team (should cascade or prevent based on schema)
       try {
-        await db.query(`DELETE FROM swarms WHERE id = $1`, [swarmId]);
+        await db.query(`DELETE FROM teams WHERE id = $1`, [teamId]);
         
         // If cascade, agent should be gone
         const agentResult = await db.query(`
-          SELECT COUNT(*) FROM agents WHERE swarm_id = $1
-        `, [swarmId]);
+          SELECT COUNT(*) FROM agents WHERE team_id = $1
+        `, [teamId]);
         
         expect(parseInt(agentResult.rows[0].count)).toBe(0);
       } catch {
         // If FK constraint prevents delete, that's also valid
-        const swarmStillExists = await db.query(`
-          SELECT COUNT(*) FROM swarms WHERE id = $1
-        `, [swarmId]);
+        const teamStillExists = await db.query(`
+          SELECT COUNT(*) FROM teams WHERE id = $1
+        `, [teamId]);
         
-        expect(parseInt(swarmStillExists.rows[0].count)).toBe(1);
+        expect(parseInt(teamStillExists.rows[0].count)).toBe(1);
       }
     }, testConfig.testTimeout);
   });

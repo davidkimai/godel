@@ -62,27 +62,27 @@ const eventTypeConfig: Record<string, { icon: React.ReactNode; color: string; bg
     color: 'text-blue-400',
     bg: 'bg-blue-400/10'
   },
-  [EventType.SWARM_CREATED]: {
+  [EventType.TEAM_CREATED]: {
     icon: <Info className="w-4 h-4" />,
     color: 'text-purple-400',
     bg: 'bg-purple-400/10'
   },
-  [EventType.SWARM_COMPLETED]: {
+  [EventType.TEAM_COMPLETED]: {
     icon: <CheckCircle className="w-4 h-4" />,
     color: 'text-green-400',
     bg: 'bg-green-400/10'
   },
-  [EventType.SWARM_FAILED]: {
+  [EventType.TEAM_FAILED]: {
     icon: <AlertTriangle className="w-4 h-4" />,
     color: 'text-red-400',
     bg: 'bg-red-400/10'
   },
-  [EventType.SWARM_BUDGET_WARNING]: {
+  [EventType.TEAM_BUDGET_WARNING]: {
     icon: <AlertTriangle className="w-4 h-4" />,
     color: 'text-yellow-400',
     bg: 'bg-yellow-400/10'
   },
-  [EventType.SWARM_BUDGET_CRITICAL]: {
+  [EventType.TEAM_BUDGET_CRITICAL]: {
     icon: <AlertCircle className="w-4 h-4" />,
     color: 'text-red-400',
     bg: 'bg-red-400/10'

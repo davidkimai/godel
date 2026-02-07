@@ -376,7 +376,7 @@ describe('RedisEventBus', () => {
         type: 'agent_start',
         timestamp: Date.now(),
         agentId: 'agent_1',
-        swarmId: 'swarm_1',
+        teamId: 'team_1',
         sessionId: 'session_1',
         task: 'test task',
         model: 'test-model',
@@ -390,7 +390,7 @@ describe('RedisEventBus', () => {
       expect(receivedEvent.id).toBe('evt_1');
       expect(receivedEvent.type).toBe('agent_start');
       expect(receivedEvent.agentId).toBe('agent_1');
-      expect(receivedEvent.swarmId).toBe('swarm_1');
+      expect(receivedEvent.teamId).toBe('team_1');
       expect(receivedEvent.sessionId).toBe('session_1');
       expect(receivedEvent.task).toBe('test task');
     });
@@ -662,7 +662,7 @@ describe('RedisEventBus', () => {
       const handler = jest.fn();
       eventBus.subscribe('agent_start', handler);
 
-      const scopedBus = eventBus.createScopedBus('agent_123', 'swarm_456', 'session_789');
+      const scopedBus = eventBus.createScopedBus('agent_123', 'team_456', 'session_789');
       scopedBus.emitAgentStart('test task', 'test-model', 'test-provider');
 
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -670,7 +670,7 @@ describe('RedisEventBus', () => {
       expect(handler).toHaveBeenCalledTimes(1);
       const event = handler.mock.calls[0][0];
       expect(event.agentId).toBe('agent_123');
-      expect(event.swarmId).toBe('swarm_456');
+      expect(event.teamId).toBe('team_456');
       expect(event.sessionId).toBe('session_789');
       expect(event.task).toBe('test task');
     });

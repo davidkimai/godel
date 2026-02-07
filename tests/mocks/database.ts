@@ -396,7 +396,7 @@ export function createMockAgentRow(overrides?: Record<string, unknown>): Record<
     status: 'running',
     model: 'claude-sonnet-4-5',
     task: 'Test task',
-    swarm_id: null,
+    team_id: null;
     parent_id: null,
     child_ids: [],
     spawned_at: new Date(),
@@ -442,7 +442,7 @@ export function createMockEventRow(overrides?: Record<string, unknown>): Record<
     type: 'agent.spawned',
     agent_id: `agent-${Date.now()}`,
     task_id: null,
-    swarm_id: null,
+    team_id: null;
     severity: 'info',
     message: 'Test event',
     details: {},

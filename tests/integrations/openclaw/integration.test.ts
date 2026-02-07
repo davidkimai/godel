@@ -135,7 +135,7 @@ describe('OpenClaw-Godel Integration', () => {
           status: 'running' as const,
           model: 'claude-3',
           task: 'test',
-          swarmId: 'swarm-test-123',
+          teamId: 'team-test-123';
           metadata: {},
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -154,7 +154,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'running' as const,
             model: 'claude-3',
             task: 'test',
-            swarmId: 'swarm-test-123',
+            teamId: 'team-test-123';
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -171,7 +171,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'running' as const,
             model: 'claude-3',
             task: 'test',
-            swarmId: 'swarm-test-123',
+            teamId: 'team-test-123';
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -188,7 +188,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'completed' as const,
             model: 'claude-3',
             task: 'test',
-            swarmId: 'swarm-test-123',
+            teamId: 'team-test-123';
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -200,7 +200,7 @@ describe('OpenClaw-Godel Integration', () => {
         });
 
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
@@ -274,7 +274,7 @@ describe('OpenClaw-Godel Integration', () => {
           status: 'running' as const,
           model: 'claude-3',
           task: 'test',
-          swarmId: 'swarm-event-123',
+          teamId: 'team-event-123',
           metadata: {},
           createdAt: new Date(),
           updatedAt: new Date(),
