@@ -1,0 +1,143 @@
+/**
+ * Workflows Page
+ * 
+ * Workflow visualizer and management
+ */
+
+import React, { useState } from 'react';
+import { WorkflowGraph } from '../components/WorkflowVisualizer/WorkflowGraph';
+import { useSwarmsRealtime } from '../hooks/useWebSocket';
+import { Play, Pause, Square, Plus, Filter, Search } from 'lucide-react';
+
+const Workflows: React.FC = () => {
+  const { swarms } = useSwarmsRealtime();
+  const [selectedSwarm, setSelectedSwarm] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredSwarms = swarms.filter(swarm => 
+    swarm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    swarm.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-100">Workflows</h2>
+          <p className="text-gray-400 mt-1">
+            Visualize and manage agent workflows
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors">
+            <Plus className="w-4 h-4" />
+            New Workflow
+          </button>
+        </div>
+      </div>
+
+      {/* Swarm Selector */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search workflows..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {filteredSwarms.map(swarm => (
+            <button
+              key={swarm.id}
+              onClick={() => setSelectedSwarm(swarm.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                selectedSwarm === swarm.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+            >
+              {swarm.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Workflow Graph */}
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <WorkflowGraph 
+          workflowId={selectedSwarm || undefined} 
+          height={600}
+        />
+      </div>
+
+      {/* Workflow Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Active Workflows</h3>
+          <div className="space-y-3">
+            {swarms.slice(0, 5).map(swarm => (
+              <div key={swarm.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-200">{swarm.name}</p>
+                  <p className="text-sm text-gray-400">{swarm.agents.length} agents</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${
+                    swarm.status === 'active' ? 'bg-green-500' :
+                    swarm.status === 'paused' ? 'bg-yellow-500' :
+                    'bg-gray-500'
+                  }`} />
+                  <span className="text-sm text-gray-400 capitalize">{swarm.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            {[
+              { action: 'Workflow started', time: '2 min ago', status: 'success' },
+              { action: 'Agent spawned', time: '5 min ago', status: 'success' },
+              { action: 'Task completed', time: '10 min ago', status: 'success' },
+              { action: 'Error occurred', time: '15 min ago', status: 'error' },
+              { action: 'Workflow paused', time: '20 min ago', status: 'warning' }
+            ].map((activity, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                <span className="text-gray-300">{activity.action}</span>
+                <span className="text-sm text-gray-500">{activity.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <button className="w-full flex items-center gap-3 px-4 py-3 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors">
+              <Play className="w-4 h-4" />
+              Resume All
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 bg-yellow-600/20 text-yellow-400 rounded-lg hover:bg-yellow-600/30 transition-colors">
+              <Pause className="w-4 h-4" />
+              Pause All
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition-colors">
+              <Square className="w-4 h-4" />
+              Stop All
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Workflows;

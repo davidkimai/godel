@@ -6,6 +6,7 @@
  * - Topological sorting and cycle detection
  * - Parallel execution planning
  * - Visual progress tracking
+ * - Multi-region cluster federation
  * 
  * @example
  * ```typescript
@@ -13,7 +14,10 @@
  *   DependencyResolver, 
  *   ExecutionEngine, 
  *   ExecutionTracker,
- *   DAG 
+ *   DAG,
+ *   ClusterRegistry,
+ *   MultiClusterLoadBalancer,
+ *   TransparentClusterProxy
  * } from './federation';
  * 
  * // Create tasks with dependencies
@@ -31,6 +35,13 @@
  * // Execute the plan
  * const engine = new ExecutionEngine(selector, executor);
  * const result = await engine.executePlan(plan);
+ * 
+ * // Or use multi-cluster federation
+ * const registry = new ClusterRegistry();
+ * registry.register({ id: 'cloud', name: 'Cloud GPU', endpoint: '...' });
+ * 
+ * const proxy = new TransparentClusterProxy(registry, balancer, localRuntime);
+ * const agent = await proxy.spawn({ model: 'claude', labels: {} });
  * ```
  */
 
@@ -127,3 +138,6 @@ export type {
   TaskContext,
   DecompositionResult,
 } from './task-decomposer';
+
+// Cluster Federation (Multi-Region)
+export * from './cluster';

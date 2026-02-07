@@ -48,6 +48,8 @@ import { registerPiCommand } from './commands/pi';
 import { registerFederationCommand } from './commands/federation';
 import { registerStateCommands } from './commands/state';
 import { registerWorkflowCommand } from './commands/workflow';
+import { registerAutonomicCommand } from './commands/autonomic';
+import { registerClusterCommands } from './commands/cluster';
 
 // Get version from package.json
 function getVersion(): string {
@@ -97,6 +99,7 @@ registerPiCommand(program);
 registerFederationCommand(program);
 registerStateCommands(program);
 registerWorkflowCommand(program);
+registerAutonomicCommand(program);
 
 // Add completion command
 program
@@ -139,6 +142,8 @@ export function registerCommands(program: Command): void {
   registerFederationCommand(program);
   registerStateCommands(program);
   registerWorkflowCommand(program);
+  registerAutonomicCommand(program);
+registerClusterCommands(program);
 }
 
 // Run if executed directly

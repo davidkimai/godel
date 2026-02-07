@@ -1,230 +1,187 @@
 /**
- * Global Styles
+ * Dashboard Styles
  * 
- * Tailwind CSS imports and global styles
+ * Global styles for the Godel Dashboard
  */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom base styles */
-:root {
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
+/* Base styles */
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-gray-950 text-gray-100;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
 }
 
-body {
-  @apply bg-slate-950 text-slate-300;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+/* Component styles */
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-gray-800 rounded-xl border border-gray-700 p-6;
+  }
+
+  /* Button styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-blue-600 text-white hover:bg-blue-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-700 text-gray-200 hover:bg-gray-600;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-500;
+  }
+
+  /* Input styles */
+  .input {
+    @apply px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-200 
+           placeholder-gray-500 focus:outline-none focus:border-blue-500;
+  }
+
+  /* Badge styles */
+  .badge {
+    @apply px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-green-500/20 text-green-400;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-500/20 text-yellow-400;
+  }
+
+  .badge-error {
+    @apply badge bg-red-500/20 text-red-400;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-500/20 text-blue-400;
+  }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Utility styles */
+@layer utilities {
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-slate-900;
+/* React Flow custom styles */
+.react-flow {
+  @apply bg-gray-900;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-700 rounded-full;
+.react-flow__node {
+  @apply transition-all duration-200;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-600;
+.react-flow__edge-path {
+  @apply stroke-2;
 }
 
-/* Selection */
-::selection {
-  @apply bg-emerald-500/30 text-white;
+.react-flow__controls {
+  @apply bg-gray-800 border-gray-700 shadow-lg;
+}
+
+.react-flow__controls-button {
+  @apply bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200;
+}
+
+.react-flow__minimap {
+  @apply bg-gray-800 border-gray-700 rounded-lg;
+}
+
+/* D3 Tree custom styles */
+.session-tree .node circle {
+  @apply transition-all duration-300;
+}
+
+.session-tree .link {
+  @apply transition-all duration-300;
+}
+
+/* Recharts custom styles */
+.recharts-tooltip-wrapper {
+  @apply z-50;
 }
 
 /* Focus styles */
-*:focus {
-  @apply outline-none;
-}
-
 *:focus-visible {
-  @apply ring-2 ring-emerald-500 ring-offset-2 ring-offset-slate-900;
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900;
 }
 
-/* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { 
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from { 
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to { 
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
-}
-
-.animate-spin-slow {
-  animation: spin 3s linear infinite;
-}
-
-/* Glass effect */
-.glass {
-  @apply bg-slate-900/80 backdrop-blur-lg;
-}
-
-/* Card hover effect */
-.card-hover {
-  @apply transition-all duration-200 hover:bg-slate-800/80;
-}
-
-/* Gradient text */
-.gradient-text {
-  @apply bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent;
-}
-
-/* Status indicators */
-.status-online {
-  @apply bg-emerald-500;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-}
-
-.status-offline {
-  @apply bg-slate-500;
-}
-
-.status-warning {
-  @apply bg-amber-500;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
-}
-
-.status-error {
-  @apply bg-red-500;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-}
-
-/* Metric card styles */
-.metric-card {
-  @apply relative overflow-hidden;
-}
-
-.metric-card::before {
-  content: '';
-  @apply absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent;
-}
-
-/* Table styles */
-table {
-  @apply border-collapse;
-}
-
-th {
-  @apply text-left text-xs font-medium text-slate-500 uppercase tracking-wider;
-}
-
-td {
-  @apply border-t border-slate-800;
-}
-
-/* Input styles */
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-textarea,
-select {
-  @apply transition-colors duration-200;
-}
-
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="email"]:focus,
-input[type="number"]:focus,
-textarea:focus,
-select:focus {
-  @apply border-emerald-500 ring-2 ring-emerald-500/20;
-}
-
-/* Button animations */
-.btn-primary {
-  @apply transition-all duration-200 active:scale-95;
-}
-
-.btn-secondary {
-  @apply transition-all duration-200 hover:bg-slate-700 active:scale-95;
-}
-
-/* Chart tooltip */
-.recharts-tooltip-wrapper {
-  @apply !outline-none;
-}
-
-.recharts-default-tooltip {
-  @apply !bg-slate-900 !border-slate-800 !rounded-lg;
-}
-
-/* Loading skeleton */
-.skeleton {
-  @apply animate-pulse bg-slate-800 rounded;
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  .hide-mobile {
-    display: none;
-  }
-  
-  .stack-mobile {
-    flex-direction: column;
-  }
-}
-
-/* PWA styles */
-@media (display-mode: standalone) {
-  body {
-    -webkit-user-select: none;
-    user-select: none;
-  }
+/* Selection styles */
+::selection {
+  @apply bg-blue-500/30 text-blue-100;
 }

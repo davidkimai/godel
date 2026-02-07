@@ -1,0 +1,184 @@
+/**
+ * Godel Cluster Federation Protocol
+ * 
+ * This protobuf definition provides inter-cluster communication for
+ * multi-region agent federation. It enables transparent offloading
+ * from local to cloud GPU clusters with unified agent management.
+ * 
+ * @module federation/cluster/proto/federation
+ */
+
+syntax = "proto3";
+
+package godel.federation;
+
+// ============================================================================
+// Cluster Federation Service
+// ============================================================================
+
+service ClusterFederation {
+  // Spawn a new agent on the cluster
+  rpc SpawnAgent(SpawnRequest) returns (SpawnResponse);
+  
+  // Kill/terminate an agent
+  rpc KillAgent(KillRequest) returns (KillResponse);
+  
+  // Execute a command on an agent (streaming response)
+  rpc ExecuteCommand(ExecuteRequest) returns (stream ExecuteResponse);
+  
+  // Get agent status
+  rpc GetAgentStatus(StatusRequest) returns (StatusResponse);
+  
+  // Stream events bidirectionally between clusters
+  rpc StreamEvents(stream EventSubscription) returns (stream FederationEvent);
+  
+  // Health check and capability reporting
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  
+  // Export agent state for migration
+  rpc ExportAgent(ExportRequest) returns (ExportResponse);
+  
+  // Import agent state for migration
+  rpc ImportAgent(ImportRequest) returns (ImportResponse);
+  
+  // List all agents on the cluster
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+}
+
+// ============================================================================
+// Message Definitions
+// ============================================================================
+
+message SpawnRequest {
+  string agent_id = 1;
+  string model = 2;
+  map<string, string> labels = 3;
+  int32 timeout_seconds = 4;
+  bool gpu_enabled = 5;
+  string gpu_type = 6;
+  map<string, string> env_vars = 7;
+}
+
+message SpawnResponse {
+  string agent_id = 1;
+  string cluster_id = 2;
+  string status = 3;
+  string endpoint = 4;
+  string error = 5;
+}
+
+message KillRequest {
+  string agent_id = 1;
+  bool force = 2;
+}
+
+message KillResponse {
+  string agent_id = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message ExecuteRequest {
+  string agent_id = 1;
+  string command = 2;
+  map<string, string> env = 3;
+  int32 timeout_seconds = 4;
+}
+
+message ExecuteResponse {
+  string output = 1;
+  bool is_error = 2;
+  int32 exit_code = 3;
+  bool done = 4;
+}
+
+message StatusRequest {
+  string agent_id = 1;
+}
+
+message StatusResponse {
+  string agent_id = 1;
+  string status = 2;
+  int64 started_at = 3;
+  int64 last_activity = 4;
+  map<string, string> metadata = 5;
+}
+
+message EventSubscription {
+  string cluster_id = 1;
+  repeated string event_types = 2;
+  string agent_id_filter = 3;
+}
+
+message FederationEvent {
+  string type = 1;
+  string agent_id = 2;
+  string cluster_id = 3;
+  bytes payload = 4;
+  int64 timestamp = 5;
+  string source_cluster = 6;
+}
+
+message HeartbeatRequest {
+  string cluster_id = 1;
+  int64 timestamp = 2;
+}
+
+message HeartbeatResponse {
+  string cluster_id = 1;
+  int32 max_agents = 2;
+  int32 available_agents = 3;
+  int32 active_agents = 4;
+  bool gpu_enabled = 5;
+  repeated string gpu_types = 6;
+  double cost_per_hour = 7;
+  double latency = 8;
+  string region = 9;
+  map<string, string> capabilities = 10;
+  int64 timestamp = 11;
+}
+
+message ExportRequest {
+  string agent_id = 1;
+  bool include_state = 2;
+}
+
+message ExportResponse {
+  string agent_id = 1;
+  bytes state_data = 2;
+  map<string, string> metadata = 3;
+  bool success = 4;
+  string error = 5;
+}
+
+message ImportRequest {
+  string agent_id = 1;
+  bytes state_data = 2;
+  map<string, string> metadata = 3;
+  string target_cluster = 4;
+}
+
+message ImportResponse {
+  string agent_id = 1;
+  string cluster_id = 2;
+  bool success = 3;
+  string error = 4;
+}
+
+message ListAgentsRequest {
+  string status_filter = 1;
+  map<string, string> label_selector = 2;
+}
+
+message ListAgentsResponse {
+  repeated AgentInfo agents = 1;
+}
+
+message AgentInfo {
+  string agent_id = 1;
+  string status = 2;
+  string model = 3;
+  int64 started_at = 4;
+  map<string, string> labels = 5;
+  bool gpu_enabled = 6;
+}

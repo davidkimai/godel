@@ -26,5 +26,5 @@
     "types": ["node", "react"]
   },
   "include": ["src/**/*", "packages/*/src/**/*"],
-  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts", "packages/**/__tests__", "src/dashboard/ui"]
+  "exclude": ["node_modules", "dist", "tests", "**/*.test.ts", "**/*.spec.ts", "packages/**/__tests__", "src/dashboard/ui", "src/__mocks__"]
 }

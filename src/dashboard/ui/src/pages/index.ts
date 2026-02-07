@@ -1,13 +1,17 @@
 /**
- * Page Exports
+ * Pages Index
  * 
- * Export all page components
+ * Export all dashboard pages
  */
 
-export { DashboardPage } from './Dashboard';
-export { SwarmsPage } from './Swarms';
-export { AgentsPage } from './Agents';
-export { EventsPage } from './Events';
-export { CostsPage } from './Costs';
-export { SettingsPage } from './Settings';
-export { LoginPage } from './Login';
+export { default as Dashboard } from './Dashboard';
+export { default as Sessions } from './Sessions';
+export { default as Agents } from './Agents';
+export { default as Metrics } from './Metrics';
+export { default as Workflows } from './Workflows';
+export { default as Alerts } from './Alerts';
+export { default as Settings } from './Settings';
+export { default as Login } from './Login';
+export { default as Events } from './Events';
+export { default as Swarms } from './Swarms';
+export { default as Costs } from './Costs';

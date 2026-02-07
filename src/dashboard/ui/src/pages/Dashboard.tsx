@@ -1,461 +1,174 @@
 /**
  * Dashboard Page
  * 
- * Main dashboard view with real-time metrics and visualizations
+ * Main dashboard overview with all key metrics and visualizations
  */
 
-import React, { useEffect, useMemo } from 'react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import {
-  Users,
-  Hexagon,
-  DollarSign,
-  TrendingUp,
-  Zap,
-  Activity
+import React from 'react';
+import { SessionTree } from '../components/SessionTree/SessionTree';
+import { AgentGrid } from '../components/FederationHealth/AgentGrid';
+import { 
+  TaskRateChart, 
+  AgentUtilizationChart, 
+  QueueDepthChart, 
+  ErrorRateChart,
+  CostChart 
+} from '../components/MetricsCharts/TaskRateChart';
+import { EventStream } from '../components/EventStream/EventStream';
+import { AlertPanel } from '../components/AlertPanel/AlertPanel';
+import { useAgentsRealtime, useSwarmsRealtime, useMetricsRealtime } from '../hooks/useWebSocket';
+import { 
+  Activity, 
+  Users, 
+  Zap, 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown,
+  Clock
 } from 'lucide-react';
-import { Card, StatsCard, Badge, LoadingSpinner } from '../components/Layout';
-import { useDashboardStore, useUIStore } from '../contexts/store';
-import { api } from '../services/api';
-import { useEventStream } from '../services/websocket';
-import {
-  AgentStatus,
-  SwarmState,
-  formatCurrency,
-  formatNumber,
-  getStatusColor,
-  calculateAgentMetrics
-} from '../types/index';
-import type { Agent, Swarm, AgentEvent } from '../types/index';
 
-// ============================================================================
-// Dashboard Page
-// ============================================================================
-
-export function DashboardPage(): React.ReactElement {
-  const { agents, swarms, stats, isLoadingAgents, isLoadingSwarms, setAgents, setSwarms, setStats } = useDashboardStore();
-  const { addNotification } = useUIStore();
-  const events = useEventStream(50);
-
-  // Fetch initial data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [agentsData, swarmsData, statsData] = await Promise.all([
-          api.agents.list(),
-          api.swarms.list(),
-          api.metrics.getDashboardStats()
-        ]);
-        setAgents(agentsData);
-        setSwarms(swarmsData);
-        setStats(statsData);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        addNotification({
-          type: 'error',
-          message: 'Failed to load dashboard data',
-          dismissible: true
-        });
-      }
-    };
-
-    fetchData();
-  }, [setAgents, setSwarms, setStats, addNotification]);
-
-  // Calculate metrics
-  const agentMetrics = useMemo(() => calculateAgentMetrics(agents), [agents]);
-  const activeSwarms = useMemo(() => swarms.filter(s => 
-    s.status === SwarmState.ACTIVE || s.status === SwarmState.SCALING
-  ).length, [swarms]);
-  const totalCost = useMemo(() => 
-    agents.reduce((sum, a) => sum + (a.cost || 0), 0),
-    [agents]
+const StatCard: React.FC<{
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  trend?: { value: number; positive: boolean };
+  color: string;
+}> = ({ title, value, icon, trend, color }) => {
+  return (
+    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-400 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-100">{value}</p>
+          {trend && (
+            <div className={`flex items-center gap-1 mt-2 text-sm ${trend.positive ? 'text-green-400' : 'text-red-400'}`}>
+              {trend.positive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span>{trend.value}%</span>
+            </div>
+          )}
+        </div>
+        <div className={`p-3 rounded-lg ${color}`}>
+          {icon}
+        </div>
+      </div>
+    </div>
   );
+};
 
-  const isLoading = isLoadingAgents || isLoadingSwarms;
+const Dashboard: React.FC = () => {
+  const { agents } = useAgentsRealtime();
+  const { swarms } = useSwarmsRealtime();
+  const { metrics } = useMetricsRealtime();
+
+  // Calculate stats
+  const activeAgents = agents.filter(a => a.status === 'running' || a.status === 'busy').length;
+  const completedAgents = agents.filter(a => a.status === 'completed').length;
+  const failedAgents = agents.filter(a => a.status === 'failed').length;
+  const totalCost = agents.reduce((sum, a) => sum + (a.cost || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 mt-1">Real-time overview of your agent swarms</p>
+          <h2 className="text-2xl font-bold text-gray-100">Dashboard Overview</h2>
+          <p className="text-gray-400 mt-1">Real-time swarm monitoring and visualization</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={stats?.systemHealth === 'healthy' ? 'success' : stats?.systemHealth === 'degraded' ? 'warning' : 'error'}>
-            {stats?.systemHealth || 'unknown'}
-          </Badge>
+        <div className="flex items-center gap-2 text-sm text-gray-400">
+          <Clock className="w-4 h-4" />
+          <span>Last updated: {new Date().toLocaleTimeString()}</span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          title="Total Agents"
-          value={isLoading ? '-' : agentMetrics.total}
-          subtitle={`${agentMetrics.online} online, ${agentMetrics.offline} offline`}
-          icon={<Users className="w-6 h-6" />}
-          color="blue"
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Active Agents"
+          value={activeAgents}
+          icon={<Activity className="w-6 h-6 text-blue-400" />}
+          trend={{ value: 12, positive: true }}
+          color="bg-blue-500/10"
         />
-        <StatsCard
+        <StatCard
           title="Active Swarms"
-          value={isLoading ? '-' : activeSwarms}
-          subtitle={`of ${swarms.length} total swarms`}
-          icon={<Hexagon className="w-6 h-6" />}
-          color="emerald"
+          value={swarms.length}
+          icon={<Zap className="w-6 h-6 text-purple-400" />}
+          trend={{ value: 5, positive: true }}
+          color="bg-purple-500/10"
         />
-        <StatsCard
+        <StatCard
           title="Total Cost"
-          value={isLoading ? '-' : formatCurrency(totalCost)}
-          subtitle="This billing period"
-          icon={<DollarSign className="w-6 h-6" />}
-          color="purple"
+          value={`$${totalCost.toFixed(2)}`}
+          icon={<DollarSign className="w-6 h-6 text-yellow-400" />}
+          color="bg-yellow-500/10"
         />
-        <StatsCard
-          title="Events/sec"
-          value={isLoading ? '-' : formatNumber(stats?.eventsPerSecond || 0, 1)}
-          subtitle="Real-time event rate"
-          icon={<Activity className="w-6 h-6" />}
-          color="amber"
+        <StatCard
+          title="Success Rate"
+          value={`${agents.length > 0 ? Math.round((completedAgents / agents.length) * 100) : 0}%`}
+          icon={<Users className="w-6 h-6 text-green-400" />}
+          trend={{ value: 3, positive: true }}
+          color="bg-green-500/10"
         />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Agent Status Chart */}
-        <Card title="Agent Status Distribution" className="lg:col-span-1">
-          <AgentStatusChart agents={agents} isLoading={isLoading} />
-        </Card>
-
-        {/* Event Stream */}
-        <Card 
-          title="Live Event Stream" 
-          className="lg:col-span-2"
-          action={
-            <Badge variant="success">{events.length} events</Badge>
-          }
-        >
-          <EventStream events={events} />
-        </Card>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="Cost Over Time">
-          <CostChart agents={agents} isLoading={isLoading} />
-        </Card>
-
-        <Card title="Swarm Activity">
-          <SwarmActivityChart swarms={swarms} isLoading={isLoading} />
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card title="Quick Actions">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <QuickActionButton
-            icon={<Hexagon className="w-5 h-5" />}
-            label="New Swarm"
-            href="/swarms/new"
-          />
-          <QuickActionButton
-            icon={<Users className="w-5 h-5" />}
-            label="View Agents"
-            href="/agents"
-          />
-          <QuickActionButton
-            icon={<TrendingUp className="w-5 h-5" />}
-            label="Metrics"
-            href="/costs"
-          />
-          <QuickActionButton
-            icon={<Zap className="w-5 h-5" />}
-            label="Live Events"
-            href="/events"
-          />
+      {/* Session Tree */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-100">Session Tree</h3>
+          <button className="text-sm text-blue-400 hover:text-blue-300">
+            View Full Tree →
+          </button>
         </div>
-      </Card>
-    </div>
-  );
-}
+        <SessionTree height={400} />
+      </section>
 
-// ============================================================================
-// Agent Status Chart
-// ============================================================================
-
-function AgentStatusChart({ agents, isLoading }: { agents: Agent[]; isLoading: boolean }): React.ReactElement {
-  if (isLoading) {
-    return <LoadingSpinner className="py-8" />;
-  }
-
-  const statusCounts = agents.reduce((acc, agent) => {
-    acc[agent.status] = (acc[agent.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const data = Object.entries(statusCounts).map(([status, count]) => ({
-    name: status,
-    value: count,
-    color: getStatusColor(status as AgentStatus).split(' ')[0].replace('text-', '')
-  }));
-
-  const COLORS = {
-    'green-500': '#22c55e',
-    'yellow-500': '#eab308',
-    'red-500': '#ef4444',
-    'blue-500': '#3b82f6',
-    'gray-500': '#6b7280',
-    'purple-500': '#a855f7',
-    'orange-500': '#f97316'
-  };
-
-  return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={5}
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[entry.color as keyof typeof COLORS] || '#6b7280'} 
-              />
-            ))}
-          </Pie>
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #334155',
-              borderRadius: '8px'
-            }}
-            itemStyle={{ color: '#e2e8f0' }}
-          />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ============================================================================
-// Event Stream
-// ============================================================================
-
-function EventStream({ events }: { events: AgentEvent[] }): React.ReactElement {
-  const getEventIcon = (type: string) => {
-    if (type.includes('error') || type.includes('failed')) return '❌';
-    if (type.includes('completed')) return '✅';
-    if (type.includes('started')) return '▶️';
-    if (type.includes('created')) return '➕';
-    if (type.includes('killed')) return '💀';
-    return '📌';
-  };
-
-  const getEventColor = (type: string) => {
-    if (type.includes('error') || type.includes('failed')) return 'text-red-400';
-    if (type.includes('completed')) return 'text-emerald-400';
-    if (type.includes('started')) return 'text-blue-400';
-    if (type.includes('created')) return 'text-purple-400';
-    return 'text-slate-400';
-  };
-
-  return (
-    <div className="h-64 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
-      {events.length === 0 ? (
-        <p className="text-center text-slate-500 py-8">No events yet...</p>
-      ) : (
-        events.map((event) => (
-          <div
-            key={event.id}
-            className="flex items-start gap-3 p-2 rounded bg-slate-800/50 text-sm"
-          >
-            <span className="text-lg">{getEventIcon(event.type)}</span>
-            <div className="flex-1 min-w-0">
-              <p className={getEventColor(event.type)}>
-                {event.type}
-              </p>
-              {event.swarmId && (
-                <p className="text-slate-500 text-xs truncate">
-                  Swarm: {event.swarmId.slice(0, 8)}...
-                </p>
-              )}
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Federation Health */}
+        <section className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-100">Federation Health</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-gray-400">{activeAgents} online</span>
             </div>
-            <time className="text-xs text-slate-500 whitespace-nowrap">
-              {new Date(event.timestamp).toLocaleTimeString()}
-            </time>
           </div>
-        ))
-      )}
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <AgentGrid />
+          </div>
+        </section>
+
+        {/* Alerts */}
+        <section>
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Active Alerts</h3>
+          <AlertPanel maxAlerts={10} />
+        </section>
+      </div>
+
+      {/* Metrics Charts */}
+      <section>
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">Performance Metrics</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TaskRateChart />
+          <AgentUtilizationChart />
+          <QueueDepthChart />
+          <ErrorRateChart />
+        </div>
+      </section>
+
+      {/* Event Stream */}
+      <section>
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">Live Events</h3>
+        <EventStream height={400} />
+      </section>
+
+      {/* Cost Metrics */}
+      <section>
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">Cost Analysis</h3>
+        <CostChart />
+      </section>
     </div>
   );
-}
+};
 
-// ============================================================================
-// Cost Chart
-// ============================================================================
-
-function CostChart({ agents, isLoading }: { agents: Agent[]; isLoading: boolean }): React.ReactElement {
-  if (isLoading) {
-    return <LoadingSpinner className="py-8" />;
-  }
-
-  // Generate mock cost data based on agents
-  const data = useMemo(() => {
-    const hours = 24;
-    const now = Date.now();
-    const points = [];
-    
-    for (let i = hours; i >= 0; i--) {
-      const time = now - i * 3600000;
-      const hourAgents = agents.filter(a => 
-        new Date(a.spawnedAt).getTime() <= time
-      );
-      const cost = hourAgents.reduce((sum, a) => sum + (a.cost || 0), 0);
-      points.push({
-        time: new Date(time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        cost: cost * (1 - i / hours * 0.5) // Simulate increasing cost over time
-      });
-    }
-    
-    return points;
-  }, [agents]);
-
-  return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis 
-            dataKey="time" 
-            stroke="#64748b"
-            tick={{ fill: '#64748b', fontSize: 12 }}
-          />
-          <YAxis 
-            stroke="#64748b"
-            tick={{ fill: '#64748b', fontSize: 12 }}
-            tickFormatter={(value) => `$${value.toFixed(2)}`}
-          />
-          <Tooltip
-            contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #334155',
-              borderRadius: '8px'
-            }}
-            itemStyle={{ color: '#e2e8f0' }}
-            formatter={(value: number) => [`$${value.toFixed(4)}`, 'Cost']}
-          />
-          <Area
-            type="monotone"
-            dataKey="cost"
-            stroke="#8b5cf6"
-            strokeWidth={2}
-            fillOpacity={1}
-            fill="url(#costGradient)"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ============================================================================
-// Swarm Activity Chart
-// ============================================================================
-
-function SwarmActivityChart({ swarms, isLoading }: { swarms: Swarm[]; isLoading: boolean }): React.ReactElement {
-  if (isLoading) {
-    return <LoadingSpinner className="py-8" />;
-  }
-
-  const data = swarms.map(swarm => ({
-    name: swarm.name.slice(0, 15),
-    agents: swarm.agents.length,
-    completed: swarm.metrics.completedAgents,
-    failed: swarm.metrics.failedAgents
-  }));
-
-  return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-          <XAxis 
-            dataKey="name" 
-            stroke="#64748b"
-            tick={{ fill: '#64748b', fontSize: 12 }}
-          />
-          <YAxis 
-            stroke="#64748b"
-            tick={{ fill: '#64748b', fontSize: 12 }}
-          />
-          <Tooltip
-            contentStyle={{ 
-              backgroundColor: '#1e293b', 
-              border: '1px solid #334155',
-              borderRadius: '8px'
-            }}
-            itemStyle={{ color: '#e2e8f0' }}
-          />
-          <Legend />
-          <Bar dataKey="agents" name="Total Agents" fill="#3b82f6" />
-          <Bar dataKey="completed" name="Completed" fill="#22c55e" />
-          <Bar dataKey="failed" name="Failed" fill="#ef4444" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-// ============================================================================
-// Quick Action Button
-// ============================================================================
-
-function QuickActionButton({
-  icon,
-  label,
-  href
-}: {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-}): React.ReactElement {
-  return (
-    <a
-      href={href}
-      className="flex flex-col items-center gap-2 p-4 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-center"
-    >
-      <div className="p-2 rounded-full bg-emerald-500/10 text-emerald-400">{icon}</div>
-      <span className="text-sm text-slate-300">{label}</span>
-    </a>
-  );
-}
-
-export default DashboardPage;
+export default Dashboard;

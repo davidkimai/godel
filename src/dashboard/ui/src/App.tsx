@@ -2,7 +2,6 @@
  * App Entry Point
  * 
  * Main application with routing and providers
- * Uses httpOnly cookies for authentication.
  */
 
 import React, { Suspense, useEffect } from 'react';
@@ -10,15 +9,15 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './contexts/store';
 import { getWebSocketService } from './services/websocket';
-import { Layout } from './components/Layout';
-import { LoadingSpinner } from './components/Layout';
+import { DashboardLayout } from './components/Layout/DashboardLayout';
 
 // Lazy load pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const Swarms = React.lazy(() => import('./pages/Swarms'));
+const Sessions = React.lazy(() => import('./pages/Sessions'));
 const Agents = React.lazy(() => import('./pages/Agents'));
-const Events = React.lazy(() => import('./pages/Events'));
-const Costs = React.lazy(() => import('./pages/Costs'));
+const Metrics = React.lazy(() => import('./pages/Metrics'));
+const Workflows = React.lazy(() => import('./pages/Workflows'));
+const Alerts = React.lazy(() => import('./pages/Alerts'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const LoginPage = React.lazy(() => import('./pages/Login'));
 
@@ -37,7 +36,7 @@ const queryClient = new QueryClient({
 function PageLoader(): React.ReactElement {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <LoadingSpinner className="w-8 h-8" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
     </div>
   );
 }
@@ -73,7 +72,7 @@ function AppRoutes(): React.ReactElement {
         path="/"
         element={
           <ProtectedRoute>
-            <Layout />
+            <DashboardLayout />
           </ProtectedRoute>
         }
       >
@@ -86,18 +85,10 @@ function AppRoutes(): React.ReactElement {
           }
         />
         <Route
-          path="swarms"
+          path="sessions"
           element={
             <Suspense fallback={<PageLoader />}>
-              <Swarms />
-            </Suspense>
-          }
-        />
-        <Route
-          path="swarms/:id"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <Swarms />
+              <Sessions />
             </Suspense>
           }
         />
@@ -110,26 +101,26 @@ function AppRoutes(): React.ReactElement {
           }
         />
         <Route
-          path="agents/:id"
+          path="metrics"
           element={
             <Suspense fallback={<PageLoader />}>
-              <Agents />
+              <Metrics />
             </Suspense>
           }
         />
         <Route
-          path="events"
+          path="workflows"
           element={
             <Suspense fallback={<PageLoader />}>
-              <Events />
+              <Workflows />
             </Suspense>
           }
         />
         <Route
-          path="costs"
+          path="alerts"
           element={
             <Suspense fallback={<PageLoader />}>
-              <Costs />
+              <Alerts />
             </Suspense>
           }
         />

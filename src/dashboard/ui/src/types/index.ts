@@ -86,6 +86,8 @@ export interface SwarmConfig {
   model?: string;
   budget?: BudgetConfig;
   metadata?: Record<string, unknown>;
+  enableEventStreaming?: boolean;
+  enableBranching?: boolean;
 }
 
 export interface Swarm {
