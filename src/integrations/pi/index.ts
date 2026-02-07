@@ -280,5 +280,111 @@ export type {
   StorageAdapter as TreeStorageAdapter,
 } from './tree';
 
+// Export ProviderManager and provider management
+export {
+  ProviderManager,
+  getGlobalProviderManager,
+  resetGlobalProviderManager,
+  PROVIDER_CONFIGS,
+  DEFAULT_PROVIDER_CHAIN,
+  getProviderConfig,
+  getAllProviderConfigs,
+  isValidProvider,
+  getProvidersByCapability,
+  getProvidersByPriority,
+  providerRequiresAuth,
+  getProviderApiKeyEnvVar,
+  createProviderInstance,
+  getProviderLatency,
+  getProviderQualityScore,
+  getProviderContextWindow,
+} from './provider';
+
+// Export provider types
+export type {
+  ProviderConfig,
+} from './provider';
+
+// Export FallbackChainManager
+export {
+  FallbackChainManager,
+  getGlobalFallbackManager,
+  resetGlobalFallbackManager,
+  buildPriorityChain,
+  buildCapabilityChain,
+  buildLatencyChain,
+  buildHybridChain,
+  buildFallbackChain,
+  executeWithFallback,
+  DEFAULT_FALLBACK_CONFIG,
+} from './fallback';
+
+// Export fallback types
+export type {
+  FallbackStrategy,
+  FallbackChainConfig,
+  FallbackAttempt,
+  FallbackChainResult,
+  FallbackChainEntry,
+} from './fallback';
+
+// Export CostRouter
+export {
+  CostRouter,
+  getGlobalCostRouter,
+  resetGlobalCostRouter,
+  MODEL_PRICING,
+  getCheapestModel,
+  calculateCostScore as calculateRouterCostScore,
+  calculateQualityScore as calculateRouterQualityScore,
+  DEFAULT_BUDGET_CONFIG,
+} from './cost-router';
+
+// Export cost router types (CostEstimate and CostRecord are exported from router.ts)
+export type {
+  BudgetConfig,
+  CostRoutingRequest,
+  CostRoutingResult,
+} from './cost-router';
+
+// Export LatencyRouter
+export {
+  LatencyRouter,
+  getGlobalLatencyRouter,
+  resetGlobalLatencyRouter,
+  DEFAULT_PROVIDER_LATENCY,
+  calculateLatencyScore,
+  calculateLatencyStats,
+  predictLatency,
+  getExpectedLatency,
+  DEFAULT_LATENCY_CONFIG,
+} from './latency-router';
+
+// Export latency router types
+export type {
+  LatencyRecord,
+  LatencyStats,
+  LatencyRoutingRequest,
+  LatencyRoutingResult,
+  LatencyRouterConfig,
+} from './latency-router';
+
+// Note: ExtendedHealthStatus and HealthCheckResult are exported from router.ts and health-monitor.ts
+// The router.ts versions are the canonical ones for backwards compatibility
+
+// Export HealthMonitor
+export {
+  HealthMonitor,
+  getGlobalHealthMonitor,
+  resetGlobalHealthMonitor,
+  DEFAULT_HEALTH_CONFIG,
+} from './health-monitor';
+
+// Export health monitor types (ExtendedHealthStatus is from router.ts for compatibility)
+export type {
+  HealthCheckConfig,
+  HealthCheckResult as ProviderHealthCheckResult,
+} from './health-monitor';
+
 // Default export
 export { PiRegistry as default } from './registry';

@@ -1,0 +1,270 @@
+syntax = "proto3";
+
+package godel.federation;
+
+option go_package = "github.com/davidkimai/godel/proto/federation";
+
+// Federation service for inter-cluster communication
+service FederationService {
+  // Health check for clusters
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+  
+  // Register a cluster with the federation
+  rpc RegisterCluster (RegisterClusterRequest) returns (RegisterClusterResponse);
+  
+  // Unregister a cluster from the federation
+  rpc UnregisterCluster (UnregisterClusterRequest) returns (UnregisterClusterResponse);
+  
+  // Get cluster capacity information
+  rpc GetCapacity (CapacityRequest) returns (CapacityResponse);
+  
+  // Report cluster load and metrics
+  rpc ReportLoad (LoadReportRequest) returns (LoadReportResponse);
+  
+  // Migrate an agent to another cluster
+  rpc MigrateAgent (MigrateAgentRequest) returns (MigrateAgentResponse);
+  
+  // Stream cluster events (bidirectional)
+  rpc StreamEvents (stream ClusterEvent) returns (stream ClusterEvent);
+  
+  // Get cluster list
+  rpc ListClusters (ListClustersRequest) returns (ListClustersResponse);
+  
+  // Route task to appropriate cluster
+  rpc RouteTask (RouteTaskRequest) returns (RouteTaskResponse);
+}
+
+// Health check messages
+message HealthCheckRequest {
+  string cluster_id = 1;
+  bool include_metrics = 2;
+}
+
+message HealthCheckResponse {
+  string cluster_id = 1;
+  HealthStatus status = 2;
+  int64 timestamp = 3;
+  ClusterMetrics metrics = 4;
+  string version = 5;
+  int32 uptime_seconds = 6;
+}
+
+enum HealthStatus {
+  HEALTHY = 0;
+  DEGRADED = 1;
+  UNHEALTHY = 2;
+  UNKNOWN = 3;
+}
+
+// Cluster registration
+message RegisterClusterRequest {
+  string endpoint = 1;
+  string region = 2;
+  string zone = 3;
+  int32 max_agents = 4;
+  repeated string capabilities = 5;
+  map<string, string> metadata = 6;
+}
+
+message RegisterClusterResponse {
+  string cluster_id = 1;
+  bool success = 2;
+  string message = 3;
+  int64 registered_at = 4;
+}
+
+message UnregisterClusterRequest {
+  string cluster_id = 1;
+  string reason = 2;
+}
+
+message UnregisterClusterResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Capacity reporting
+message CapacityRequest {
+  string cluster_id = 1;
+}
+
+message CapacityResponse {
+  string cluster_id = 1;
+  int32 total_agents = 2;
+  int32 active_agents = 3;
+  int32 available_slots = 4;
+  int32 queue_depth = 5;
+  double utilization_percent = 6;
+  repeated RegionCapacity regions = 7;
+}
+
+message RegionCapacity {
+  string region = 1;
+  int32 instances = 2;
+  int32 healthy = 3;
+  int32 capacity = 4;
+  int32 available = 5;
+  double utilization_percent = 6;
+}
+
+// Load reporting
+message LoadReportRequest {
+  string cluster_id = 1;
+  ClusterMetrics metrics = 2;
+  repeated AgentMetrics agents = 3;
+}
+
+message LoadReportResponse {
+  bool accepted = 1;
+  int64 timestamp = 2;
+  LoadRecommendation recommendation = 3;
+}
+
+message LoadRecommendation {
+  RecommendationAction action = 1;
+  int32 suggested_agents = 2;
+  string reason = 3;
+}
+
+enum RecommendationAction {
+  NONE = 0;
+  SCALE_UP = 1;
+  SCALE_DOWN = 2;
+  MIGRATE = 3;
+  FAILOVER = 4;
+}
+
+// Metrics
+message ClusterMetrics {
+  double cpu_percent = 1;
+  double memory_percent = 2;
+  int32 active_agents = 3;
+  int32 max_agents = 4;
+  int32 queue_depth = 5;
+  double tasks_per_second = 6;
+  double avg_task_latency_ms = 7;
+  int32 failed_tasks = 8;
+  int32 completed_tasks = 9;
+}
+
+message AgentMetrics {
+  string agent_id = 1;
+  double cpu_percent = 2;
+  double memory_percent = 3;
+  int32 current_load = 4;
+  int32 capacity = 5;
+  string status = 6;
+  int64 last_heartbeat = 7;
+}
+
+// Agent migration
+message MigrateAgentRequest {
+  string agent_id = 1;
+  string source_cluster_id = 2;
+  string target_cluster_id = 3;
+  MigrationOptions options = 4;
+  bytes agent_state = 5;
+}
+
+message MigrationOptions {
+  bool preserve_state = 1;
+  bool graceful_shutdown = 2;
+  int32 timeout_seconds = 3;
+  bool force = 4;
+}
+
+message MigrateAgentResponse {
+  bool success = 1;
+  string migration_id = 2;
+  string message = 3;
+  int64 started_at = 4;
+  int64 completed_at = 5;
+  int32 duration_ms = 6;
+  MigrationStatus status = 7;
+}
+
+enum MigrationStatus {
+  PENDING = 0;
+  IN_PROGRESS = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  ROLLED_BACK = 4;
+}
+
+// Cluster events
+message ClusterEvent {
+  string event_id = 1;
+  EventType type = 2;
+  string cluster_id = 3;
+  int64 timestamp = 4;
+  bytes payload = 5;
+}
+
+enum EventType {
+  AGENT_JOINED = 0;
+  AGENT_LEFT = 1;
+  AGENT_MIGRATED = 2;
+  CLUSTER_HEALTH_CHANGED = 3;
+  CAPACITY_CHANGED = 4;
+  TASK_ASSIGNED = 5;
+  TASK_COMPLETED = 6;
+  HEARTBEAT = 7;
+}
+
+// List clusters
+message ListClustersRequest {
+  bool include_unhealthy = 1;
+  string region_filter = 2;
+}
+
+message ListClustersResponse {
+  repeated ClusterInfo clusters = 1;
+  int32 total_count = 2;
+  int32 healthy_count = 3;
+}
+
+message ClusterInfo {
+  string cluster_id = 1;
+  string endpoint = 2;
+  string region = 3;
+  string zone = 4;
+  HealthStatus status = 5;
+  int32 active_agents = 6;
+  int32 max_agents = 7;
+  double utilization_percent = 8;
+  int64 last_heartbeat = 9;
+  repeated string capabilities = 10;
+}
+
+// Task routing
+message RouteTaskRequest {
+  string task_id = 1;
+  string task_type = 2;
+  bytes task_payload = 3;
+  RoutingHints hints = 4;
+}
+
+message RoutingHints {
+  string preferred_region = 1;
+  repeated string required_capabilities = 2;
+  int32 min_capacity = 3;
+  bool require_healthy = 4;
+  string session_affinity = 5;
+}
+
+message RouteTaskResponse {
+  bool success = 1;
+  string assigned_cluster_id = 2;
+  string assigned_agent_id = 3;
+  string message = 4;
+  RoutingStrategy strategy = 5;
+}
+
+enum RoutingStrategy {
+  LEAST_LOADED = 0;
+  ROUND_ROBIN = 1;
+  SESSION_AFFINITY = 2;
+  CAPABILITY_MATCH = 3;
+  WEIGHTED = 4;
+  REGIONAL = 5;
+}

@@ -1,0 +1,74 @@
+{{- if .Values.godelApi.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "godel.fullname" . }}-api
+  labels:
+    {{- include "godel.apiLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.godelApi.autoscaling.enabled }}
+  replicas: {{ .Values.godelApi.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "godel.apiSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.godelApi.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "godel.apiSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "godel.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.godelApi.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-api
+          securityContext:
+            {{- toYaml .Values.godelApi.securityContext | nindent 12 }}
+          image: "{{ .Values.godelApi.image.repository }}:{{ .Values.godelApi.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.godelApi.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.godelApi.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.godelApi.service.metricsPort }}
+              protocol: TCP
+          env:
+            - name: DATABASE_HOST
+              value: {{ include "godel.fullname" . }}-postgresql
+            - name: REDIS_HOST
+              value: {{ include "godel.fullname" . }}-redis-master
+            {{- range $key, $value := .Values.godelApi.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ include "godel.fullname" . }}-secrets
+          livenessProbe:
+            {{- toYaml .Values.godelApi.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.godelApi.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.godelApi.resources | nindent 12 }}
+      {{- with .Values.godelApi.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.godelApi.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.godelApi.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

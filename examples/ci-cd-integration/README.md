@@ -1,479 +1,344 @@
-# CI/CD Integration Examples
+# CI/CD Integration Example
 
-Integrate Godel into your CI/CD pipelines with GitHub Actions, GitLab CI, and other platforms.
+This example demonstrates integrating Godel into CI/CD pipelines.
 
 ## Overview
 
-This example shows how to integrate Godel agent orchestration into your continuous integration and deployment workflows.
-
-## Files
-
-- `.github/workflows/godel-ci.yml` - GitHub Actions workflow
-- `.gitlab-ci.yml` - GitLab CI configuration
-- `jenkins/Jenkinsfile` - Jenkins pipeline
-- `azure-pipelines.yml` - Azure DevOps pipeline
-- `drone.yml` - Drone CI configuration
-- `scripts/` - Helper scripts for CI/CD
+Godel can enhance CI/CD with:
+- Automated code review
+- Test generation and execution
+- Documentation updates
+- Security scanning
+- Deployment orchestration
 
 ## GitHub Actions
 
-### Basic Setup
-
-Create `.github/workflows/godel-ci.yml`:
+### 1. Basic Workflow
 
 ```yaml
+# .github/workflows/godel.yml
 name: Godel CI
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+on: [push, pull_request]
 
 jobs:
-  code-review:
+  godel-review:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Setup Godel
-        uses: godel-ai/setup-godel@v1
+        uses: godel/setup-action@v1
         with:
-          version: '2.0.0'
           api-key: ${{ secrets.GODEL_API_KEY }}
-
-      - name: Create Review Swarm
-        run: |
-          godel swarm create \
-            --name "pr-review-${{ github.event.pull_request.number }}" \
-            --task "Review PR changes for bugs, security issues, and best practices" \
-            --initial-agents 3 \
-            --strategy parallel
-
-      - name: Wait for Completion
-        run: |
-          # Wait for swarm to complete (with timeout)
-          timeout 300 godel swarm wait "pr-review-${{ github.event.pull_request.number }}" || true
-
-      - name: Generate Report
-        run: |
-          godel swarm report "pr-review-${{ github.event.pull_request.number }}" --format markdown > review-report.md
-
-      - name: Comment PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('review-report.md', 'utf8');
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: report
-            });
-```
-
-### Advanced Workflow with Workflow Engine
-
-```yaml
-name: Godel Advanced CI
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  full-pipeline:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Godel
-        uses: godel-ai/setup-godel@v1
-        with:
-          version: '2.0.0'
-
-      - name: Run CI Workflow
-        run: godel workflow run .godel/workflows/ci-pipeline.yaml
+          server: ${{ secrets.GODEL_SERVER }}
+      
+      - name: Code Review
+        run: godel do "Review this PR for issues"
         env:
-          GODEL_API_KEY: ${{ secrets.GODEL_API_KEY }}
-          GIT_REF: ${{ github.sha }}
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: dist/
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Security Scanning Workflow
+### 2. Comprehensive Pipeline
 
 ```yaml
-name: Security Scan
+# .github/workflows/comprehensive.yml
+name: Godel Comprehensive CI
 
 on:
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
-  security-scan:
+  analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
+      
       - name: Setup Godel
-        uses: godel-ai/setup-godel@v1
-
-      - name: Create Security Swarm
+        uses: godel/setup-action@v1
+        with:
+          api-key: ${{ secrets.GODEL_API_KEY }}
+      
+      - name: Get changed files
+        id: changed
         run: |
-          godel swarm create \
-            --name "security-scan-${{ github.run_id }}" \
-            --task "Perform comprehensive security audit: check for vulnerabilities, secrets, and compliance issues" \
-            --initial-agents 5 \
-            --budget 25.00
-
-      - name: Check Results
+          echo "files=$(git diff --name-only HEAD^ HEAD | tr '\n' ' ')" >> $GITHUB_OUTPUT
+      
+      - name: Analyze Changes
         run: |
-          if godel swarm has-issues "security-scan-${{ github.run_id }}"; then
-            echo "::error::Security issues found!"
-            exit 1
-          fi
+          godel do "Analyze changes in ${{ steps.changed.outputs.files }} for impact"
+
+  review:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Godel
+        uses: godel/setup-action@v1
+        with:
+          api-key: ${{ secrets.GODEL_API_KEY }}
+      
+      - name: Code Review
+        run: |
+          godel review \
+            --pr ${{ github.event.pull_request.number }} \
+            --comment-on-pr \
+            --check-security \
+            --check-performance
+
+  test:
+    needs: review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Godel
+        uses: godel/setup-action@v1
+      
+      - name: Generate Tests
+        run: |
+          godel do "Generate unit tests for modified files"
+      
+      - name: Run Tests
+        run: |
+          godel test run --coverage --report
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Security Scan
+        run: |
+          godel security scan --report-format sarif
+      
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: godel-security-report.sarif
+```
+
+### 3. Auto-Merge Workflow
+
+```yaml
+# .github/workflows/auto-merge.yml
+name: Godel Auto-Merge
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  auto-merge:
+    if: contains(github.event.pull_request.labels.*.name, 'godel-approved')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Godel
+        uses: godel/setup-action@v1
+      
+      - name: Final Review
+        run: |
+          godel do "Final verification before merge" \
+            --strategy careful \
+            --timeout 10
+      
+      - name: Merge PR
+        uses: pascalgn/automerge-action@v0.15.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## GitLab CI
 
-Create `.gitlab-ci.yml`:
-
 ```yaml
+# .gitlab-ci.yml
 stages:
   - review
   - test
+  - security
   - deploy
 
-variables:
-  GODEL_API_KEY: $GODEL_API_KEY
-
-.godel_setup: &godel_setup
-  - apk add --no-cache curl
-  - curl -sSL https://get.godel-ai.io | sh
-
-code_review:
+godel:review:
   stage: review
-  image: alpine:latest
-  before_script:
-    - *godel_setup
+  image: node:20
   script:
-    - godel swarm create
-        --name "review-$CI_MERGE_REQUEST_IID"
-        --task "Review merge request changes"
-        --initial-agents 3
-    - godel swarm wait "review-$CI_MERGE_REQUEST_IID"
-    - godel swarm report "review-$CI_MERGE_REQUEST_IID" --format markdown > review.md
-  artifacts:
-    reports:
-      dotenv: review.md
+    - npm install -g @jtan15010/godel
+    - godel do "Review merge request for code quality"
   only:
     - merge_requests
 
-automated_tests:
+godel:test:
   stage: test
   image: node:20
-  before_script:
-    - *godel_setup
   script:
-    - godel workflow run .godel/workflows/test-pipeline.yaml
+    - godel test generate --for-changes
+    - godel test run --coverage
   artifacts:
     reports:
-      junit: test-results.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+
+godel:security:
+  stage: security
+  image: node:20
+  script:
+    - godel security scan --format gitlab
+  artifacts:
+    reports:
+      sast: gl-security-report.json
 ```
 
-## Jenkins
-
-Create `Jenkinsfile`:
-
-```groovy
-pipeline {
-    agent any
-
-    environment {
-        GODEL_API_KEY = credentials('godel-api-key')
-    }
-
-    stages {
-        stage('Code Review') {
-            when {
-                changeRequest()
-            }
-            steps {
-                sh '''
-                    godel swarm create \
-                        --name "jenkins-review-${CHANGE_ID}" \
-                        --task "Review pull request ${CHANGE_ID}" \
-                        --initial-agents 3
-                    
-                    godel swarm wait "jenkins-review-${CHANGE_ID}"
-                '''
-            }
-        }
-
-        stage('Build & Test') {
-            steps {
-                sh 'godel workflow run .godel/workflows/build-test.yaml'
-            }
-        }
-
-        stage('Deploy') {
-            when {
-                branch 'main'
-            }
-            steps {
-                sh 'godel workflow run .godel/workflows/deploy.yaml --var environment=production'
-            }
-        }
-    }
-
-    post {
-        always {
-            sh 'godel logs export --since 1h > build-logs.json'
-            archiveArtifacts artifacts: 'build-logs.json'
-        }
-    }
-}
-```
-
-## Azure DevOps
-
-Create `azure-pipelines.yml`:
+## CircleCI
 
 ```yaml
-trigger:
-  - main
+# .circleci/config.yml
+version: 2.1
 
-pr:
-  - main
+orbs:
+  godel: godel/godel@1.0
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+  review:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - godel/setup
+      - run:
+          name: Code Review
+          command: godel do "Review this commit"
 
-steps:
-  - task: UseNode@2
-    inputs:
-      versionSpec: '20.x'
+  test:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - godel/setup
+      - run:
+          name: Generate and Run Tests
+          command: |
+            godel test generate
+            godel test run
 
-  - script: |
-      npm install -g @jtan15010/godel
-    displayName: 'Install Godel'
+workflows:
+  godel-ci:
+    jobs:
+      - review
+      - test:
+          requires:
+            - review
+```
 
-  - script: |
-      godel swarm create \
-        --name "azdo-review-$(Build.BuildId)" \
-        --task "Review build $(Build.BuildId)" \
-        --initial-agents 3
-    displayName: 'Create Review Swarm'
-    env:
-      GODEL_API_KEY: $(GODEL_API_KEY)
+## SDK Integration
 
-  - script: |
-      godel swarm wait "azdo-review-$(Build.BuildId)"
-      godel swarm report "azdo-review-$(Build.BuildId)" > $(Build.ArtifactStagingDirectory)/review-report.md
-    displayName: 'Wait and Generate Report'
+```typescript
+// scripts/ci-pipeline.ts
+import { GodelClient } from '@jtan15010/godel';
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      pathToPublish: '$(Build.ArtifactStagingDirectory)'
-      artifactName: 'review-report'
+const client = new GodelClient({
+  baseUrl: process.env.GODEL_SERVER,
+  apiKey: process.env.GODEL_API_KEY
+});
+
+async function runPipeline() {
+  // 1. Analyze changes
+  const analysis = await client.intent.execute({
+    description: `Analyze changes in ${process.env.CHANGED_FILES}`,
+    constraints: { timeout: 5 }
+  });
+
+  // 2. Code review
+  const review = await client.skills.invoke('code-review', {
+    target: '.',
+    focus: ['security', 'performance']
+  });
+
+  if (review.output.issues.length > 0) {
+    console.log('Issues found:', review.output.issues);
+    process.exit(1);
+  }
+
+  // 3. Generate tests
+  await client.intent.execute({
+    description: 'Generate tests for modified files',
+    constraints: { timeout: 10 }
+  });
+
+  // 4. Security scan
+  const scan = await client.security.scan({
+    rules: ['secrets', 'vulnerabilities']
+  });
+
+  if (scan.issues.some(i => i.severity === 'critical')) {
+    console.log('Critical security issues found!');
+    process.exit(1);
+  }
+
+  console.log('✓ Pipeline completed successfully');
+}
+
+runPipeline();
+```
+
+## Deployment Integration
+
+```typescript
+// scripts/deploy.ts
+import { GodelClient } from '@jtan15010/godel';
+
+const client = new GodelClient({
+  baseUrl: process.env.GODEL_SERVER,
+  apiKey: process.env.GODEL_API_KEY
+});
+
+async function deploy() {
+  // Pre-deployment checks
+  await client.intent.execute({
+    description: `
+      Pre-deployment verification:
+      1. Run all tests
+      2. Check for breaking changes
+      3. Verify environment variables
+      4. Validate configuration
+    `,
+    constraints: { strategy: 'careful', timeout: 15 }
+  });
+
+  // Execute deployment
+  const deployment = await client.skills.invoke('deployment', {
+    environment: process.env.DEPLOY_ENV,
+    dryRun: process.env.DRY_RUN === 'true'
+  });
+
+  if (!deployment.success) {
+    console.error('Deployment failed:', deployment.output.error);
+    process.exit(1);
+  }
+
+  // Post-deployment verification
+  await client.intent.execute({
+    description: 'Verify deployment health and run smoke tests',
+    constraints: { timeout: 10 }
+  });
+
+  console.log('✓ Deployment successful');
+}
+
+deploy();
 ```
 
 ## Best Practices
 
-### 1. Use Workflow Files
-
-Define your CI/CD logic in reusable workflow files:
-
-```yaml
-# .godel/workflows/ci-pipeline.yaml
-name: ci-pipeline
-variables:
-  nodeVersion: '20'
-  testTimeout: 300000
-
-steps:
-  - id: lint
-    name: Lint Code
-    agent: node-agent
-    task: Run ESLint and Prettier checks
-
-  - id: test
-    name: Run Tests
-    agent: node-agent
-    task: Run test suite with coverage
-    dependsOn: [lint]
-
-  - id: build
-    name: Build Project
-    agent: node-agent
-    task: Build production bundle
-    dependsOn: [test]
-
-  - id: security-scan
-    name: Security Scan
-    agent: security-agent
-    task: Scan for vulnerabilities
-    dependsOn: [build]
-    parallel: true
-
-  - id: deploy-staging
-    name: Deploy to Staging
-    agent: deploy-agent
-    task: Deploy to staging environment
-    dependsOn: [security-scan]
-```
-
-### 2. Budget Control
-
-Set budgets to control costs:
-
-```yaml
-- name: Setup Godel
-  uses: godel-ai/setup-godel@v1
-  with:
-    budget-limit: 50.00
-    budget-warning: 75
-    budget-critical: 90
-```
-
-### 3. Timeouts
-
-Always set timeouts to prevent runaway jobs:
-
-```yaml
-- name: Run Godel Workflow
-  run: timeout 600 godel workflow run ci.yaml
-```
-
-### 4. Artifact Collection
-
-Collect logs and reports for debugging:
-
-```yaml
-- name: Collect Artifacts
-  if: always()
-  run: |
-    godel logs export --since 1h > logs.json
-    godel swarm report <swarm-id> > report.md
-
-- uses: actions/upload-artifact@v4
-  if: always()
-  with:
-    name: godel-artifacts
-    path: |
-      logs.json
-      report.md
-```
-
-### 5. Conditional Execution
-
-Only run Godel for relevant changes:
-
-```yaml
-on:
-  pull_request:
-    paths:
-      - 'src/**'
-      - 'tests/**'
-```
-
-## Scripts
-
-### Wait for Swarm Completion
-
-```bash
-#!/bin/bash
-# scripts/wait-for-swarm.sh
-
-SWARM_ID=$1
-TIMEOUT=${2:-300}
-
-start_time=$(date +%s)
-
-while true; do
-  status=$(godel swarm status "$SWARM_ID" --format json | jq -r '.status')
-  
-  if [ "$status" = "completed" ]; then
-    echo "Swarm completed successfully"
-    exit 0
-  fi
-  
-  if [ "$status" = "failed" ]; then
-    echo "Swarm failed"
-    exit 1
-  fi
-  
-  current_time=$(date +%s)
-  elapsed=$((current_time - start_time))
-  
-  if [ $elapsed -gt $TIMEOUT ]; then
-    echo "Timeout waiting for swarm"
-    exit 1
-  fi
-  
-  sleep 5
-done
-```
-
-### Generate PR Comment
-
-```bash
-#!/bin/bash
-# scripts/generate-comment.sh
-
-SWARM_ID=$1
-OUTPUT_FILE=${2:-comment.md}
-
-cat > "$OUTPUT_FILE" << EOF
-## 🤖 Godel Agent Review
-
-$(godel swarm report "$SWARM_ID" --format markdown)
-
----
-*Generated by Godel Agent Orchestration*
-EOF
-```
-
-## Troubleshooting
-
-### API Key Issues
-
-```bash
-# Verify API key is set
-echo $GODEL_API_KEY
-
-# Test connection
-godel status
-```
-
-### Swarm Creation Failed
-
-```bash
-# Check logs
-godel logs tail
-
-# Verify configuration
-godel config validate
-```
-
-### Timeouts
-
-Increase timeout for large repositories:
-
-```yaml
-- name: Run Review
-  run: timeout 1800 godel swarm wait <swarm-id>
-```
-
-## Next Steps
-
-- Learn about [Workflow DAGs](../workflow-dag/)
-- Build [Custom Agents](../custom-agent/)
-- Explore [Webhooks](../webhook-integration/)
+1. **Use dedicated API keys** for CI/CD
+2. **Set timeouts** to prevent hanging builds
+3. **Cache dependencies** between runs
+4. **Report results** back to PR/MR
+5. **Fail fast** on critical issues
+6. **Parallelize** independent checks

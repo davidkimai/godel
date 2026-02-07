@@ -105,6 +105,25 @@ export {
 } from './registry';
 
 // ============================================================================
+// Multi-Runtime Adapter
+// ============================================================================
+
+export {
+  MultiRuntime,
+  getGlobalMultiRuntime,
+  resetGlobalMultiRuntime,
+  DEFAULT_MULTI_RUNTIME_CONFIG,
+  DEFAULT_PROVIDER_CHAIN,
+} from './multi-runtime';
+
+export type {
+  MultiRuntimeConfig,
+  MultiRuntimeAgent,
+  RoutingStrategyType,
+  ProviderStatus,
+} from './multi-runtime';
+
+// ============================================================================
 // Version
 // ============================================================================
 

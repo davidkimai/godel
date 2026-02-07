@@ -1,0 +1,102 @@
+# Enterprise Template
+# Production-ready setup with all enterprise features
+
+name: enterprise-setup
+description: Enterprise-grade configuration with federation, security, and compliance
+
+template:
+  version: "1.0"
+  
+  infrastructure:
+    # High availability setup
+    ha:
+      enabled: true
+      replicas: 3
+      
+    # Monitoring and observability
+    monitoring:
+      enabled: true
+      prometheus: true
+      grafana: true
+      jaeger: true
+      alerting: true
+      
+    # Security
+    security:
+      tls:
+        enabled: true
+        certManager: true
+      networkPolicy:
+        enabled: true
+        defaultDeny: true
+        
+  federation:
+    enabled: true
+    instances:
+      - id: primary
+        region: us-west
+        capacity: { maxAgents: 100 }
+      - id: secondary
+        region: us-east
+        capacity: { maxAgents: 50 }
+        
+  teams:
+    - name: platform-team
+      strategy: parallel
+      composition:
+        coordinator: { role: coordinator, model: claude-opus-4, count: 2 }
+        workers: { role: worker, model: claude-sonnet-4-5, count: 10 }
+        reviewers: { role: reviewer, model: claude-opus-4, count: 2 }
+        
+    - name: product-team-1
+      strategy: pipeline
+      composition:
+        coordinator: { role: coordinator, model: claude-opus-4, count: 1 }
+        workers: { role: worker, model: claude-sonnet-4-5, count: 5 }
+        
+  security:
+    authentication:
+      method: jwt
+      provider: oidc
+      
+    authorization:
+      rbac:
+        enabled: true
+        roles:
+          - admin
+          - developer
+          - viewer
+          
+    audit:
+      enabled: true
+      retention: 90d
+      
+    secrets:
+      provider: vault
+      rotation: 30d
+      
+  compliance:
+    gdpr:
+      enabled: true
+      dataRetention: 30d
+      
+    soc2:
+      enabled: true
+      controls:
+        - access-control
+        - audit-logging
+        - encryption
+        
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"
+    retention: 30
+    
+  postSetup:
+    - echo "✓ Enterprise setup complete"
+    - echo ""
+    - echo "Important:"
+    - echo "  1. Review security policies"
+    - echo "  2. Configure backup storage"
+    - echo "  3. Set up alerting channels"
+    - echo "  4. Schedule compliance audits"

@@ -1,0 +1,180 @@
+# =============================================================================
+# Godel Production Docker Compose
+# For small-scale production deployments or on-premise installations
+# =============================================================================
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# With custom env file:
+#   docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Godel API Server (Production)
+  # ==========================================================================
+  godel:
+    image: ${GODEL_IMAGE:-ghcr.io/davidkimai/godel/api:latest}
+    container_name: godel-api
+    restart: always
+    
+    ports:
+      - "${GODEL_PORT:-7373}:7373"
+    
+    environment:
+      NODE_ENV: production
+      PORT: 7373
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+      
+      # Database
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      
+      # Security
+      GODEL_API_KEY: ${GODEL_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      
+      # Features
+      METRICS_ENABLED: "true"
+      METRICS_PORT: "9090"
+      TRACING_ENABLED: "${TRACING_ENABLED:-false}"
+      JAEGER_ENDPOINT: ${JAEGER_ENDPOINT:-}
+      
+      # Circuit breaker & self-healing
+      ENABLE_SELF_HEALING: "true"
+      ENABLE_CIRCUIT_BREAKER: "true"
+      MAX_CONCURRENT_AGENTS: "${MAX_CONCURRENT_AGENTS:-50}"
+      
+      # Rate limiting
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_REQUESTS_PER_MINUTE: "${RATE_LIMIT_REQUESTS_PER_MINUTE:-1000}"
+      
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    
+    volumes:
+      - godel-logs:/app/logs
+    
+    networks:
+      - godel-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7373/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      replicas: ${GODEL_REPLICAS:-2}
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '${GODEL_CPU_LIMIT:-2.0}'
+          memory: ${GODEL_MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: '${GODEL_CPU_RESERVATION:-0.5}'
+          memory: ${GODEL_MEMORY_RESERVATION:-512M}
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+        labels: "service"
+
+  # ==========================================================================
+  # Nginx Load Balancer
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: godel-nginx
+    restart: always
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx-cache:/var/cache/nginx
+    
+    depends_on:
+      - godel
+    
+    networks:
+      - godel-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ==========================================================================
+  # Certbot (Let's Encrypt) - Optional
+  # ==========================================================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: godel-certbot
+    restart: "no"
+    
+    volumes:
+      - ./nginx/ssl:/etc/letsencrypt
+      - ./nginx/www:/var/www/certbot
+    
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    
+    networks:
+      - godel-network
+    
+    profiles:
+      - ssl
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  godel-network:
+    driver: overlay
+    attachable: true
+    driver_opts:
+      encrypted: "true"
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+
+volumes:
+  godel-logs:
+    driver: local
+  nginx-cache:
+    driver: local

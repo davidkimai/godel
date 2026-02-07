@@ -1,0 +1,219 @@
+{
+  "name": "godel-vscode",
+  "displayName": "Godel Agent Orchestration",
+  "description": "VS Code extension for Godel agent orchestration platform",
+  "version": "0.1.0",
+  "publisher": "godel",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Debuggers"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "orchestration",
+    "godel",
+    "automation"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "godel.spawnAgent",
+        "title": "Spawn Agent",
+        "category": "Godel",
+        "icon": "$(add)"
+      },
+      {
+        "command": "godel.createTeam",
+        "title": "Create Team",
+        "category": "Godel",
+        "icon": "$(organization)"
+      },
+      {
+        "command": "godel.executeIntent",
+        "title": "Execute Intent",
+        "category": "Godel",
+        "icon": "$(play)"
+      },
+      {
+        "command": "godel.showDashboard",
+        "title": "Open Dashboard",
+        "category": "Godel",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "godel.refreshTree",
+        "title": "Refresh",
+        "category": "Godel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "godel.viewLogs",
+        "title": "View Logs",
+        "category": "Godel",
+        "icon": "$(output)"
+      },
+      {
+        "command": "godel.killAgent",
+        "title": "Kill Agent",
+        "category": "Godel",
+        "icon": "$(stop)"
+      },
+      {
+        "command": "godel.configure",
+        "title": "Configure",
+        "category": "Godel",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "godel.quickPick",
+        "title": "Quick Action",
+        "category": "Godel",
+        "icon": "$(zap)"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "godelAgents",
+          "name": "Godel Agents",
+          "when": "godel.enabled",
+          "icon": "resources/godel-icon.svg"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "godel",
+          "title": "Godel",
+          "icon": "resources/godel-icon.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "godelAgents",
+        "contents": "No Godel server configured.\n[Configure](command:godel.configure)\n\nStart the Godel server to see your agents and teams."
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "godel.spawnAgent",
+          "when": "godel.connected"
+        },
+        {
+          "command": "godel.createTeam",
+          "when": "godel.connected"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "godel.spawnAgent",
+          "when": "view == godelAgents",
+          "group": "navigation"
+        },
+        {
+          "command": "godel.refreshTree",
+          "when": "view == godelAgents",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "godel.viewLogs",
+          "when": "view == godelAgents && viewItem == agent",
+          "group": "inline"
+        },
+        {
+          "command": "godel.killAgent",
+          "when": "view == godelAgents && viewItem == agent",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Godel",
+      "properties": {
+        "godel.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:7373",
+          "description": "Godel server URL"
+        },
+        "godel.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for authentication"
+        },
+        "godel.defaultModel": {
+          "type": "string",
+          "default": "claude-sonnet-4-5",
+          "enum": [
+            "claude-opus-4",
+            "claude-sonnet-4-5",
+            "gpt-4o",
+            "gemini-1.5-pro"
+          ],
+          "description": "Default model for new agents"
+        },
+        "godel.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh agent list"
+        },
+        "godel.refreshInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "Refresh interval in seconds"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "godel.quickPick",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "godel.executeIntent",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "ws": "^8.16.0"
+  }
+}

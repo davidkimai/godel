@@ -1,0 +1,133 @@
+# =============================================================================
+# Local Development Values for Godel
+# Minimized resources for local development with minikube/kind
+# =============================================================================
+
+global:
+  imageRegistry: ""
+
+# Local API Configuration
+godelApi:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: godel/godel-api
+    pullPolicy: Never  # Use local image
+    tag: "local"
+  
+  service:
+    type: NodePort
+    port: 3001
+    nodePort: 30001
+  
+  ingress:
+    enabled: false  # Use port-forward for local dev
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  autoscaling:
+    enabled: false
+  
+  env:
+    NODE_ENV: "development"
+    LOG_LEVEL: "debug"
+    LOG_FORMAT: "pretty"
+    PORT: "3001"
+    METRICS_ENABLED: "true"
+    METRICS_PORT: "9090"
+    TRACING_ENABLED: "false"
+    ENABLE_SELF_HEALING: "false"
+    ENABLE_CIRCUIT_BREAKER: "false"
+    MAX_CONCURRENT_AGENTS: "10"
+
+# Local Dashboard Configuration
+godelDashboard:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: godel/godel-dashboard
+    pullPolicy: Never
+    tag: "local"
+  
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30000
+  
+  ingress:
+    enabled: false
+  
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  autoscaling:
+    enabled: false
+  
+  env:
+    DASHBOARD_TITLE: "Godel Local Dev"
+    DASHBOARD_REFRESH_INTERVAL: "3000"
+
+# Local PostgreSQL Configuration
+postgresql:
+  enabled: true
+  auth:
+    username: godel
+    database: godel
+    password: godel_local
+  
+  primary:
+    persistence:
+      enabled: false  # Use emptyDir for local dev
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: 250m
+      requests:
+        memory: 128Mi
+        cpu: 50m
+
+# Local Redis Configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false  # No auth for local dev
+  
+  master:
+    persistence:
+      enabled: false  # Use emptyDir for local dev
+    resources:
+      limits:
+        memory: 256Mi
+        cpu: 100m
+      requests:
+        memory: 64Mi
+        cpu: 25m
+
+# Local Config
+config:
+  logLevel: "debug"
+  maxConcurrentAgents: 10
+  maxSwarmSize: 5
+  defaultAgentTimeout: 300000
+  defaultBudgetLimit: 1.00
+
+# Disable monitoring in local
+monitoring:
+  enabled: false
+
+# Disable network policies in local
+networkPolicy:
+  enabled: false

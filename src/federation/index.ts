@@ -1,143 +1,94 @@
 /**
- * Federation Engine - Dependency Resolution and Distributed Execution
+ * Federation Module - Multi-Cluster Orchestration
  * 
- * This module provides tools for:
- * - DAG-based dependency modeling
- * - Topological sorting and cycle detection
- * - Parallel execution planning
- * - Visual progress tracking
- * - Multi-region cluster federation
+ * Provides cross-cluster federation capabilities:
+ * - Cluster registry with health monitoring
+ * - Agent migration between clusters
+ * - Multi-cluster load balancing
+ * - Inter-cluster gRPC protocol
  * 
- * @example
- * ```typescript
- * import { 
- *   DependencyResolver, 
- *   ExecutionEngine, 
- *   ExecutionTracker,
- *   DAG,
- *   ClusterRegistry,
- *   MultiClusterLoadBalancer,
- *   TransparentClusterProxy
- * } from './federation';
- * 
- * // Create tasks with dependencies
- * const tasks = [
- *   { id: 'A', task: { name: 'Setup', requiredSkills: ['devops'] }, dependencies: [] },
- *   { id: 'B', task: { name: 'Build', requiredSkills: ['build'] }, dependencies: ['A'] },
- *   { id: 'C', task: { name: 'Test', requiredSkills: ['testing'] }, dependencies: ['B'] },
- * ];
- * 
- * // Resolve dependencies
- * const resolver = new DependencyResolver();
- * resolver.buildGraph(tasks);
- * const plan = resolver.getExecutionPlan();
- * 
- * // Execute the plan
- * const engine = new ExecutionEngine(selector, executor);
- * const result = await engine.executePlan(plan);
- * 
- * // Or use multi-cluster federation
- * const registry = new ClusterRegistry();
- * registry.register({ id: 'cloud', name: 'Cloud GPU', endpoint: '...' });
- * 
- * const proxy = new TransparentClusterProxy(registry, balancer, localRuntime);
- * const agent = await proxy.spawn({ model: 'claude', labels: {} });
- * ```
+ * @module federation
  */
 
-// Core DAG implementation
-export { DAG, createDAGFromItems, validateDAG, type DAGValidationResult } from './dag';
-
-// Dependency resolution
-export { DependencyResolver } from './dependency-resolver';
-
-// Execution engine
+// Cluster Registry
 export {
-  ExecutionEngine,
-  InMemoryTaskExecutor,
-  InMemoryAgentSelector,
-  type ExecuteOptions,
-} from './execution-engine';
-
-// Progress tracking
-export {
-  ExecutionTracker,
-  createConsoleReporter,
-  type ExecutionTrackerOptions,
-} from './execution-tracker';
-
-// Type definitions
-export type {
-  // Subtask types
-  Subtask,
-  TaskWithDependencies,
-  
-  // Execution plan types
-  ExecutionPlan,
-  ExecutionLevel,
-  ExecutionConfig,
-  
-  // Result types
-  TaskResult,
-  ExecutionResult,
-  ExecutionError,
-  TaskExecutionStatus,
-  
-  // Progress types
-  ProgressReport,
-  TaskStartedEvent,
-  TaskCompletedEvent,
-  TaskFailedEvent,
-  LevelCompletedEvent,
-  
-  // Agent types
-  AgentSelectionCriteria,
-  AgentSelectionStrategy,
-  SelectedAgent,
-  AgentSelector,
-  TaskExecutor,
-  
-  // Resolution types
-  ResolutionResult,
-  ResolutionOptions,
-  
-  // Event types
-  ExecutionEventType,
-  ExecutionEvent,
-  ExecutionStartedEvent,
-  ExecutionCompletedEvent,
-  ExecutionFailedEvent,
-  LevelStartedEvent,
-  TaskRetryEvent,
-  ProgressUpdatedEvent,
-} from './types';
-
-// Constants
-export { DefaultExecutionConfig, DefaultResolutionOptions } from './types';
-
-// Task Decomposition Engine (Phase 3)
-export {
-  TaskDecomposer,
-  FileBasedStrategy,
-  ComponentBasedStrategy,
-  DomainBasedStrategy,
-  LLMAssistedStrategy,
-  buildDependencyGraph,
-  detectCycle,
-  getExecutionOrder,
-  calculateParallelizationRatio,
-  quickDecompose,
-  validateDecomposition,
-  DEFAULT_DECOMPOSITION_OPTIONS,
-} from './task-decomposer';
+  ClusterRegistry,
+  getGlobalClusterRegistry,
+  resetGlobalClusterRegistry,
+  DEFAULT_REGISTRY_CONFIG,
+} from './cluster-registry';
 
 export type {
-  ComplexityLevel,
-  DecompositionStrategy,
-  DecompositionOptions,
-  TaskContext,
-  DecompositionResult,
-} from './task-decomposer';
+  ClusterInfo,
+  ClusterHealth,
+  ClusterHealthStatus,
+  ClusterLoad,
+  ClusterMetrics,
+  ClusterCapabilities,
+  ClusterRole,
+  ClusterRegistrationInput,
+  ClusterRegistryConfig,
+  FederationStatus,
+  RegionInfo,
+} from './cluster-registry';
 
-// Cluster Federation (Multi-Region)
-export * from './cluster';
+// Agent Migration
+export {
+  AgentMigrator,
+  DEFAULT_MIGRATION_CONFIG,
+} from './migration';
+
+export type {
+  MigrationStatus,
+  MigrationMode,
+  AgentState,
+  MigrationOptions,
+  MigrationRequest,
+  MigrationResult,
+  MigrationPlan,
+  MigrationStep,
+  MigrationConfig,
+  MigrationStats,
+} from './migration';
+
+// Load Balancer
+export {
+  MultiClusterLoadBalancer,
+  DEFAULT_LB_CONFIG,
+} from './load-balancer';
+
+export type {
+  RoutingStrategy,
+  RoutingRequest,
+  RoutingResult,
+  LoadBalancerConfig,
+  CircuitBreakerState,
+  LoadDistribution,
+  RebalancePlan,
+  LoadBalancerStats,
+} from './load-balancer';
+
+// Existing federation exports
+export {
+  FederationRegistry,
+} from '../core/federation/registry';
+
+export type {
+  OpenClawInstance,
+  OpenClawInstanceInput,
+  FederationRegistryConfig,
+  FederationCapacityReport,
+  RegionCapacity as FederationRegionCapacity,
+  RoutingContext,
+  InstanceSelection,
+  RoutingStrategyType,
+  HealthStatus,
+  HealthCheckResult,
+  HealthCheckHistory,
+  BackpressureStatus,
+  StorageAdapter,
+  NoAvailableInstanceError,
+  FederationCapacityError,
+  InstanceNotFoundError,
+  InstanceRegistrationError,
+} from '../core/federation/types';

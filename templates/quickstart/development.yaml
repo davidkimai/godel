@@ -1,0 +1,65 @@
+# Development Environment Template
+# Full setup for development workflows
+
+name: dev-environment
+description: Complete development environment with CI/CD integration
+
+template:
+  version: "1.0"
+  
+  infrastructure:
+    # Configure monitoring stack
+    monitoring:
+      enabled: true
+      prometheus: true
+      grafana: true
+      loki: true
+      
+  team:
+    name: dev-team
+    strategy: parallel
+    composition:
+      coordinator:
+        role: coordinator
+        model: claude-opus-4
+        count: 1
+      workers:
+        role: worker
+        model: claude-sonnet-4-5
+        count: 5
+      reviewer:
+        role: reviewer
+        model: claude-opus-4
+        count: 1
+        
+  skills:
+    # Install common development skills
+    install:
+      - code-review
+      - test-generation
+      - documentation
+      
+  configuration:
+    gitIntegration:
+      enabled: true
+      autoCommit: false
+      
+    codeReview:
+      autoReview: true
+      onPullRequest: true
+      
+    testing:
+      autoGenerate: true
+      coverageThreshold: 80
+      
+    security:
+      scanOnCommit: true
+      blockOnCritical: true
+      
+  postSetup:
+    - echo "✓ Development environment ready"
+    - echo ""
+    - echo "Next steps:"
+    - echo "  1. Configure your API keys in .env"
+    - echo "  2. Run: godel interactive setup"
+    - echo "  3. Start coding with: godel do 'your task'"

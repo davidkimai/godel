@@ -1,0 +1,207 @@
+name: Godel CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  GODEL_API_KEY: ${{ secrets.GODEL_API_KEY }}
+  GODEL_SERVER: ${{ secrets.GODEL_SERVER }}
+
+jobs:
+  # Job 1: Code Analysis
+  analyze:
+    runs-on: ubuntu-latest
+    outputs:
+      impact: ${{ steps.analysis.outputs.impact }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Godel CLI
+        run: npm install -g @jtan15010/godel
+
+      - name: Get changed files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "files=$(git diff --name-only HEAD^ HEAD | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          else
+            echo "files=$(git diff --name-only HEAD~1 HEAD | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Analyze impact
+        id: analysis
+        run: |
+          IMPACT=$(godel do "Analyze impact of changes in ${{ steps.changed.outputs.files }}" --format json)
+          echo "impact=$IMPACT" >> $GITHUB_OUTPUT
+
+  # Job 2: Automated Code Review
+  review:
+    needs: analyze
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Code Review
+        run: |
+          godel do "Perform comprehensive code review" \
+            --strategy careful \
+            --timeout 10 > review-results.md
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('review-results.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## 🤖 Godel Code Review\n\n' + review
+            });
+
+  # Job 3: Security Scan
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Security Scan
+        run: |
+          godel security scan \
+            --rules secrets,vulnerabilities,compliance \
+            --format sarif \
+            --output security-report.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: security-report.sarif
+
+  # Job 4: Test Generation and Execution
+  test:
+    needs: [analyze, review]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate tests
+        run: |
+          godel do "Generate unit tests for changed code" \
+            --timeout 15
+
+      - name: Run tests
+        run: |
+          godel test run \
+            --coverage \
+            --report-junit \
+            --output test-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-node-${{ matrix.node-version }}
+          path: test-results.xml
+
+  # Job 5: Documentation
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Update documentation
+        run: |
+          godel do "Update API documentation and README" \
+            --timeout 10
+
+      - name: Check for doc changes
+        run: |
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            git config user.name "Godel Bot"
+            git config user.email "godel@example.com"
+            git add docs/
+            git commit -m "docs: update auto-generated documentation"
+            git push
+          fi
+
+  # Job 6: Performance Check
+  performance:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Performance analysis
+        run: |
+          godel do "Analyze performance impact of changes" \
+            --timeout 10
+
+  # Job 7: Deployment (main branch only)
+  deploy:
+    needs: [test, security, docs]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Godel
+        run: npm install -g @jtan15010/godel
+
+      - name: Pre-deployment checks
+        run: |
+          godel do "Run pre-deployment verification checks" \
+            --strategy careful \
+            --timeout 15
+
+      - name: Deploy
+        run: |
+          godel skills invoke deployment --input '{"environment": "production"}'
+
+      - name: Post-deployment verification
+        run: |
+          godel do "Verify deployment and run smoke tests" \
+            --timeout 10
+
+      - name: Notify
+        run: |
+          echo "Deployment completed successfully"

@@ -1,751 +1,675 @@
 /**
- * Health-Aware Load Balancer
- *
- * Routes requests only to healthy agents with circuit breaker protection.
- * Supports multiple selection strategies (round-robin, least-connections, weighted)
- * and automatic failover to healthy agents.
- *
+ * Multi-Cluster Load Balancer - Intelligent Traffic Distribution
+ * 
+ * Distributes agents and tasks across clusters using:
+ * - Least-loaded routing
+ * - Round-robin distribution
+ * - Session affinity
+ * - Regional affinity
+ * - Capability-based routing
+ * - Weighted distribution
+ * 
  * @module federation/load-balancer
  */
 
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
-import { AgentRegistry, RegisteredAgent } from './agent-registry';
-import {
-  HealthChecker,
-  HealthCheckerConfig,
-  HealthStatus,
-  DEFAULT_HEALTH_CHECKER_CONFIG,
-} from './health-checker';
-import {
-  AgentCircuitBreakerRegistry,
-  AgentCircuitBreakerConfig,
-  DEFAULT_AGENT_CIRCUIT_BREAKER_CONFIG,
-} from './circuit-breaker';
+import type { ClusterInfo, ClusterRegistry } from './cluster-registry';
 
 // ============================================================================
-// Types
+// TYPES
 // ============================================================================
 
-/**
- * Load balancing strategy
- */
-export type LoadBalancingStrategy =
+export type RoutingStrategy = 
+  | 'least-loaded'
   | 'round-robin'
-  | 'least-connections'
+  | 'session-affinity'
+  | 'capability-match'
   | 'weighted'
-  | 'random'
-  | 'first-available';
+  | 'regional';
 
-/**
- * Configuration for load balancer
- */
-export interface LoadBalancerConfig {
-  /** Load balancing strategy (default: 'least-connections') */
-  strategy: LoadBalancingStrategy;
-  /** Health checker configuration */
-  healthCheck: Partial<HealthCheckerConfig>;
-  /** Circuit breaker configuration */
-  circuitBreaker: Partial<AgentCircuitBreakerConfig>;
-  /** Enable automatic failover (default: true) */
-  autoFailover: boolean;
-  /** Maximum failover attempts (default: 5) */
-  maxFailoverAttempts: number;
-  /** Timeout for agent selection in milliseconds (default: 10000) */
-  selectionTimeout: number;
-}
-
-/**
- * Criteria for selecting an agent
- */
-export interface SelectionCriteria {
-  /** Required skills the agent must have */
-  requiredSkills?: string[];
-  /** Preferred skills for scoring */
-  preferredSkills?: string[];
-  /** Required capabilities */
-  requiredCapabilities?: string[];
-  /** Maximum cost per hour */
-  maxCostPerHour?: number;
-  /** Minimum reliability score (0-1) */
-  minReliability?: number;
-  /** Preferred region for latency */
+export interface RoutingRequest {
+  taskType?: string;
+  sessionId?: string;
   preferredRegion?: string;
-  /** Specific agent IDs to exclude */
-  excludeAgents?: string[];
-  /** Strategy override */
-  strategy?: LoadBalancingStrategy;
-  /** Task priority (higher = more likely to get resources) */
+  requiredCapabilities?: string[];
+  minCapacity?: number;
   priority?: number;
+  metadata?: Record<string, unknown>;
 }
 
-/**
- * Selection result with metadata
- */
-export interface AgentSelection {
-  /** The selected agent */
-  agent: RegisteredAgent;
-  /** Human-readable reason for selection */
+export interface RoutingResult {
+  success: boolean;
+  cluster?: ClusterInfo;
+  strategy: RoutingStrategy;
   reason: string;
-  /** Strategy used for selection */
-  strategy: LoadBalancingStrategy;
-  /** Number of attempts made */
-  attempts: number;
-  /** Alternative agents available */
-  alternatives: string[];
-  /** Time taken to select in milliseconds */
-  selectionTimeMs: number;
+  alternatives: ClusterInfo[];
+  latencyMs: number;
+  error?: string;
 }
 
-/**
- * Load balancer statistics
- */
+export interface LoadBalancerConfig {
+  defaultStrategy: RoutingStrategy;
+  healthCheckWeight: number;
+  utilizationWeight: number;
+  latencyWeight: number;
+  regionAffinityWeight: number;
+  sessionAffinityTTLMs: number;
+  enableCircuitBreaker: boolean;
+  circuitBreakerThreshold: number;
+  circuitBreakerResetMs: number;
+  maxAlternatives: number;
+  stickySessionsEnabled: boolean;
+}
+
+export interface CircuitBreakerState {
+  clusterId: string;
+  failures: number;
+  lastFailureAt?: Date;
+  isOpen: boolean;
+  openedAt?: Date;
+}
+
+export interface LoadDistribution {
+  clusterId: string;
+  currentAgents: number;
+  targetAgents: number;
+  delta: number;
+  reason: string;
+}
+
+export interface RebalancePlan {
+  timestamp: Date;
+  moves: LoadDistribution[];
+  totalMoves: number;
+  estimatedImpact: {
+    maxUtilizationBefore: number;
+    maxUtilizationAfter: number;
+    avgUtilizationBefore: number;
+    avgUtilizationAfter: number;
+  };
+}
+
 export interface LoadBalancerStats {
-  /** Total requests processed */
   totalRequests: number;
-  /** Successful selections */
-  successfulSelections: number;
-  /** Failed selections (no agents available) */
-  failedSelections: number;
-  /** Failover events */
-  failoverCount: number;
-  /** Average selection time in milliseconds */
-  avgSelectionTimeMs: number;
-  /** Current healthy agent count */
-  healthyAgents: number;
-  /** Current unhealthy agent count */
-  unhealthyAgents: number;
+  successfulRoutes: number;
+  failedRoutes: number;
+  circuitBreakerTrips: number;
+  avgRoutingLatencyMs: number;
+  strategyDistribution: Record<RoutingStrategy, number>;
 }
 
 // ============================================================================
-// Default Configuration
+// DEFAULT CONFIGURATION
 // ============================================================================
 
-export const DEFAULT_LOAD_BALANCER_CONFIG: LoadBalancerConfig = {
-  strategy: 'least-connections',
-  healthCheck: {},
-  circuitBreaker: {},
-  autoFailover: true,
-  maxFailoverAttempts: 5,
-  selectionTimeout: 10000,
+export const DEFAULT_LB_CONFIG: LoadBalancerConfig = {
+  defaultStrategy: 'least-loaded',
+  healthCheckWeight: 0.4,
+  utilizationWeight: 0.3,
+  latencyWeight: 0.2,
+  regionAffinityWeight: 0.1,
+  sessionAffinityTTLMs: 3600000, // 1 hour
+  enableCircuitBreaker: true,
+  circuitBreakerThreshold: 5,
+  circuitBreakerResetMs: 30000,  // 30 seconds
+  maxAlternatives: 3,
+  stickySessionsEnabled: true,
 };
 
 // ============================================================================
-// Load Balancer
+// MULTI-CLUSTER LOAD BALANCER
 // ============================================================================
 
-/**
- * Health-aware load balancer for agent federation
- *
- * Routes requests to healthy agents using configurable strategies
- * with automatic failover and circuit breaker protection.
- *
- * @example
- * ```typescript
- * const lb = new LoadBalancer(agentRegistry, {
- *   strategy: 'least-connections',
- *   healthCheck: { interval: 5000 },
- *   circuitBreaker: { failureThreshold: 3 }
- * });
- *
- * lb.start();
- *
- * const selection = await lb.selectAgent({
- *   requiredSkills: ['typescript', 'testing']
- * });
- *
- * await lb.executeWithFailover(selection.agent.id, async (agent) => {
- *   return await runTask(agent);
- * });
- * ```
- */
-export class LoadBalancer extends EventEmitter {
+export class MultiClusterLoadBalancer extends EventEmitter {
+  private registry: ClusterRegistry;
   private config: LoadBalancerConfig;
-  private registry: AgentRegistry;
-  private healthChecker: HealthChecker;
-  private circuitBreakers: AgentCircuitBreakerRegistry;
-
-  // Selection state
+  private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
+  private sessionAffinity: Map<string, { clusterId: string; timestamp: Date }> = new Map();
   private roundRobinIndex = 0;
-  private connectionCounts: Map<string, number> = new Map();
+  private stats: LoadBalancerStats;
+  private initialized = false;
 
-  // Statistics
-  private stats = {
-    totalRequests: 0,
-    successfulSelections: 0,
-    failedSelections: 0,
-    failoverCount: 0,
-    totalSelectionTimeMs: 0,
-  };
-
-  constructor(registry: AgentRegistry, config?: Partial<LoadBalancerConfig>) {
+  constructor(registry: ClusterRegistry, config: Partial<LoadBalancerConfig> = {}) {
     super();
-
-    this.config = {
-      ...DEFAULT_LOAD_BALANCER_CONFIG,
-      ...config,
-      healthCheck: { ...DEFAULT_HEALTH_CHECKER_CONFIG, ...config?.healthCheck },
-      circuitBreaker: { ...DEFAULT_AGENT_CIRCUIT_BREAKER_CONFIG, ...config?.circuitBreaker },
-    };
-
     this.registry = registry;
+    this.config = { ...DEFAULT_LB_CONFIG, ...config };
+    this.stats = {
+      totalRequests: 0,
+      successfulRoutes: 0,
+      failedRoutes: 0,
+      circuitBreakerTrips: 0,
+      avgRoutingLatencyMs: 0,
+      strategyDistribution: {
+        'least-loaded': 0,
+        'round-robin': 0,
+        'session-affinity': 0,
+        'capability-match': 0,
+        'weighted': 0,
+        'regional': 0,
+      },
+    };
+  }
 
-    // Initialize health checker
-    this.healthChecker = new HealthChecker(this.config.healthCheck);
-    this.setupHealthCheckerEvents();
-
-    // Initialize circuit breaker registry
-    this.circuitBreakers = new AgentCircuitBreakerRegistry(this.config.circuitBreaker);
-    this.setupCircuitBreakerEvents();
-
-    // Sync circuit breakers with existing agents
-    this.syncCircuitBreakers();
-
-    // Listen for registry changes
-    this.registry.on('agent.registered', (agent) => {
-      this.healthChecker.registerAgent(agent.id);
-      this.circuitBreakers.getOrCreate(agent.id);
-      this.connectionCounts.set(agent.id, 0);
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+    
+    this.initialized = true;
+    
+    // Listen to registry events
+    this.registry.on('cluster:health_changed', ({ clusterId, newStatus }) => {
+      if (newStatus === 'healthy') {
+        this.resetCircuitBreaker(clusterId);
+      }
     });
 
-    this.registry.on('agent.unregistered', (agentId) => {
-      this.healthChecker.unregisterAgent(agentId);
-      this.circuitBreakers.remove(agentId);
-      this.connectionCounts.delete(agentId);
-    });
+    logger.info('[LoadBalancer] Initialized', { config: this.config });
+    this.emit('initialized');
+  }
 
-    logger.info('[LoadBalancer] Initialized with strategy:', this.config.strategy);
+  async dispose(): Promise<void> {
+    this.sessionAffinity.clear();
+    this.circuitBreakers.clear();
+    this.initialized = false;
+    this.removeAllListeners();
+    logger.info('[LoadBalancer] Disposed');
+  }
+
+  private ensureInitialized(): void {
+    if (!this.initialized) {
+      throw new Error('LoadBalancer not initialized. Call initialize() first.');
+    }
   }
 
   // ============================================================================
-  // Lifecycle
+  // ROUTING
   // ============================================================================
 
-  /**
-   * Start the load balancer (health checking)
-   */
-  start(): void {
-    this.healthChecker.start();
-    logger.info('[LoadBalancer] Started health monitoring');
-    this.emit('started', { timestamp: new Date() });
-  }
-
-  /**
-   * Stop the load balancer
-   */
-  stop(): void {
-    this.healthChecker.stop();
-    logger.info('[LoadBalancer] Stopped health monitoring');
-    this.emit('stopped', { timestamp: new Date() });
-  }
-
-  /**
-   * Check if load balancer is running
-   */
-  isRunning(): boolean {
-    return this.healthChecker.isActive();
-  }
-
-  // ============================================================================
-  // Agent Selection
-  // ============================================================================
-
-  /**
-   * Select a healthy agent based on criteria
-   *
-   * @param criteria - Selection criteria
-   * @returns Agent selection result
-   * @throws Error if no healthy agents available
-   */
-  async selectAgent(criteria?: SelectionCriteria): Promise<AgentSelection> {
+  async route(request: RoutingRequest, strategy?: RoutingStrategy): Promise<RoutingResult> {
+    this.ensureInitialized();
+    
     const startTime = Date.now();
     this.stats.totalRequests++;
 
-    const strategy = criteria?.strategy || this.config.strategy;
-
+    const useStrategy = strategy || this.config.defaultStrategy;
+    
     try {
-      // Get healthy agents matching criteria
-      const candidates = this.getCandidateAgents(criteria);
+      // Clean up old session affinity entries
+      this.cleanupSessionAffinity();
 
-      if (candidates.length === 0) {
-        this.stats.failedSelections++;
-        throw new Error('No healthy agents available matching criteria');
+      // Check for existing session affinity
+      let selectedCluster: ClusterInfo | null = null;
+      let actualStrategy = useStrategy;
+
+      if (this.config.stickySessionsEnabled && request.sessionId) {
+        const affinity = this.sessionAffinity.get(request.sessionId);
+        if (affinity) {
+          const cluster = this.registry.getCluster(affinity.clusterId);
+          if (cluster && cluster.health.status === 'healthy' && cluster.isAcceptingTraffic) {
+            selectedCluster = cluster;
+            actualStrategy = 'session-affinity';
+          }
+        }
       }
 
-      // Filter out agents with open circuits
-      const availableAgents = candidates.filter(agent => {
-        const breaker = this.circuitBreakers.getOrCreate(agent.id);
-        return !breaker.isOpen();
-      });
-
-      if (availableAgents.length === 0) {
-        this.stats.failedSelections++;
-        throw new Error('All agents are circuit-open or unavailable');
+      // Route if no session affinity found
+      if (!selectedCluster) {
+        selectedCluster = this.selectCluster(request, useStrategy);
       }
 
-      // Apply selection strategy
-      const selected = this.applyStrategy(availableAgents, strategy, criteria);
-
-      if (!selected) {
-        this.stats.failedSelections++;
-        throw new Error('Strategy failed to select an agent');
-      }
-
-      // Track connection count
-      this.incrementConnections(selected.id);
-
-      // Build result
-      const selectionTimeMs = Date.now() - startTime;
-      this.stats.successfulSelections++;
-      this.stats.totalSelectionTimeMs += selectionTimeMs;
-
-      const result: AgentSelection = {
-        agent: selected,
-        reason: `Selected using ${strategy} strategy from ${availableAgents.length} available agents`,
-        strategy,
-        attempts: 1,
-        alternatives: availableAgents
-          .filter(a => a.id !== selected.id)
-          .map(a => a.id),
-        selectionTimeMs,
-      };
-
-      this.emit('agent.selected', result);
-
-      return result;
-    } catch (error) {
-      const selectionTimeMs = Date.now() - startTime;
-      this.stats.totalSelectionTimeMs += selectionTimeMs;
-
-      this.emit('selection.failed', {
-        criteria,
-        strategy,
-        error: (error as Error).message,
-        timestamp: new Date(),
-      });
-
-      throw error;
-    }
-  }
-
-  /**
-   * Select an agent with automatic failover
-   *
-   * Tries multiple agents until one succeeds or max attempts reached.
-   *
-   * @param criteria - Selection criteria
-   * @param operation - Operation to execute
-   * @returns Result of the operation
-   */
-  async executeWithFailover<T>(
-    criteria: SelectionCriteria | undefined,
-    operation: (agent: RegisteredAgent) => Promise<T>
-  ): Promise<T> {
-    const maxAttempts = this.config.maxFailoverAttempts;
-    const errors: { agentId: string; error: Error }[] = [];
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const selection = await this.selectAgent(criteria);
-      const agent = selection.agent;
-
-      try {
-        const result = await operation(agent);
-
-        // Record success
-        this.recordSuccess(agent.id);
-
-        return result;
-      } catch (error) {
-        const err = error as Error;
-
-        // Record failure
-        this.recordFailure(agent.id, err);
-        errors.push({ agentId: agent.id, error: err });
-
-        this.stats.failoverCount++;
-        this.emit('failover', {
-          fromAgent: agent.id,
-          attempt: attempt + 1,
-          maxAttempts,
-          error: err.message,
-          timestamp: new Date(),
-        });
-
-        // Exclude failed agent from next attempt
-        criteria = {
-          ...criteria,
-          excludeAgents: [...(criteria?.excludeAgents || []), agent.id],
+      if (!selectedCluster) {
+        this.stats.failedRoutes++;
+        return {
+          success: false,
+          strategy: actualStrategy,
+          reason: 'No healthy clusters available',
+          alternatives: [],
+          latencyMs: Date.now() - startTime,
+          error: 'All clusters are unhealthy or at capacity',
         };
       }
-    }
 
-    // All attempts failed
-    throw new LoadBalancerFailoverError(
-      `All ${maxAttempts} failover attempts failed`,
-      errors
-    );
+      // Check circuit breaker
+      if (this.config.enableCircuitBreaker && this.isCircuitBreakerOpen(selectedCluster.id)) {
+        // Try alternatives
+        const alternatives = this.getAlternativeClusters(request, selectedCluster.id);
+        if (alternatives.length > 0) {
+          selectedCluster = alternatives[0];
+          actualStrategy = 'weighted'; // Fallback strategy
+        } else {
+          this.stats.failedRoutes++;
+          return {
+            success: false,
+            strategy: actualStrategy,
+            reason: 'Circuit breaker open for all clusters',
+            alternatives: [],
+            latencyMs: Date.now() - startTime,
+            error: `Circuit breaker open for cluster ${selectedCluster.id}`,
+          };
+        }
+      }
+
+      // Update session affinity
+      if (this.config.stickySessionsEnabled && request.sessionId) {
+        this.sessionAffinity.set(request.sessionId, {
+          clusterId: selectedCluster.id,
+          timestamp: new Date(),
+        });
+      }
+
+      this.stats.successfulRoutes++;
+      this.stats.strategyDistribution[actualStrategy]++;
+
+      const latencyMs = Date.now() - startTime;
+      this.updateAvgLatency(latencyMs);
+
+      const alternatives = this.getAlternativeClusters(request, selectedCluster.id);
+
+      return {
+        success: true,
+        cluster: selectedCluster,
+        strategy: actualStrategy,
+        reason: `Selected by ${actualStrategy} strategy`,
+        alternatives,
+        latencyMs,
+      };
+
+    } catch (error) {
+      this.stats.failedRoutes++;
+      return {
+        success: false,
+        strategy: useStrategy,
+        reason: 'Routing error',
+        alternatives: [],
+        latencyMs: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 
-  /**
-   * Record a successful operation on an agent
-   */
-  recordSuccess(agentId: string): void {
-    const breaker = this.circuitBreakers.get(agentId);
-    if (breaker) {
-      breaker.recordSuccess();
+  private selectCluster(request: RoutingRequest, strategy: RoutingStrategy): ClusterInfo | null {
+    const healthyClusters = this.registry.getHealthyClusters();
+    
+    if (healthyClusters.length === 0) {
+      return null;
     }
 
-    this.decrementConnections(agentId);
-
-    this.emit('agent.success', { agentId, timestamp: new Date() });
-  }
-
-  /**
-   * Record a failed operation on an agent
-   */
-  recordFailure(agentId: string, error: Error): void {
-    const breaker = this.circuitBreakers.get(agentId);
-    if (breaker) {
-      breaker.recordFailure(error);
-    }
-
-    this.decrementConnections(agentId);
-
-    this.emit('agent.failure', { agentId, error, timestamp: new Date() });
-
-    // Check if circuit breaker opened
-    if (breaker?.isOpen()) {
-      this.emit('agent.circuit_open', { agentId, timestamp: new Date() });
-    }
-  }
-
-  // ============================================================================
-  // Private Methods - Selection
-  // ============================================================================
-
-  /**
-   * Get candidate agents matching criteria
-   */
-  private getCandidateAgents(criteria?: SelectionCriteria): RegisteredAgent[] {
-    // Get healthy agents from registry
-    let agents = this.registry.getHealthyAgents();
-
-    // Filter by criteria
-    if (criteria?.requiredSkills && criteria.requiredSkills.length > 0) {
-      agents = agents.filter(agent =>
-        criteria.requiredSkills!.every(skill =>
-          agent.capabilities.skills.some(s =>
-            s.toLowerCase() === skill.toLowerCase()
-          )
+    // Filter by capabilities if specified
+    let candidates = healthyClusters;
+    if (request.requiredCapabilities && request.requiredCapabilities.length > 0) {
+      candidates = healthyClusters.filter(cluster => 
+        request.requiredCapabilities!.every(cap => 
+          cluster.capabilities[cap as keyof typeof cluster.capabilities]
         )
       );
+      
+      if (candidates.length === 0) {
+        return null;
+      }
     }
 
-    if (criteria?.requiredCapabilities && criteria.requiredCapabilities.length > 0) {
-      // Check metadata for capabilities
-      agents = agents.filter(agent => {
-        const caps = (agent.metadata?.['capabilities'] as string[]) || [];
-        return criteria.requiredCapabilities!.every(cap => caps.includes(cap));
-      });
+    // Filter by minimum capacity if specified
+    if (request.minCapacity && request.minCapacity > 0) {
+      candidates = candidates.filter(c => c.availableSlots >= request.minCapacity!);
+      
+      if (candidates.length === 0) {
+        return null;
+      }
     }
-
-    if (criteria?.maxCostPerHour !== undefined) {
-      agents = agents.filter(agent =>
-        (agent.capabilities as { costPerHour: number }).costPerHour <= criteria.maxCostPerHour!
-      );
-    }
-
-    if (criteria?.minReliability !== undefined) {
-      agents = agents.filter(agent =>
-        agent.capabilities.reliability >= criteria.minReliability!
-      );
-    }
-
-    if (criteria?.excludeAgents && criteria.excludeAgents.length > 0) {
-      agents = agents.filter(agent =>
-        !criteria.excludeAgents!.includes(agent.id)
-      );
-    }
-
-    // Filter by health checker health status
-    agents = agents.filter(agent => {
-      const health = this.healthChecker.getAgentHealth(agent.id);
-      return !health || health.status !== 'unhealthy';
-    });
-
-    return agents;
-  }
-
-  /**
-   * Apply selection strategy
-   */
-  private applyStrategy(
-    agents: RegisteredAgent[],
-    strategy: LoadBalancingStrategy,
-    criteria?: SelectionCriteria
-  ): RegisteredAgent | null {
-    if (agents.length === 0) return null;
 
     switch (strategy) {
+      case 'least-loaded':
+        return this.selectLeastLoaded(candidates);
+      
       case 'round-robin':
-        return this.roundRobinSelect(agents);
-
-      case 'least-connections':
-        return this.leastConnectionsSelect(agents);
-
+        return this.selectRoundRobin(candidates);
+      
       case 'weighted':
-        return this.weightedSelect(agents);
-
-      case 'random':
-        return this.randomSelect(agents);
-
-      case 'first-available':
-        return agents[0];
-
+        return this.selectWeighted(candidates);
+      
+      case 'regional':
+        return this.selectRegional(candidates, request.preferredRegion);
+      
+      case 'capability-match':
+        return this.selectByCapabilityScore(candidates, request.requiredCapabilities);
+      
       default:
-        return this.leastConnectionsSelect(agents);
+        return this.selectLeastLoaded(candidates);
     }
   }
 
-  /**
-   * Round-robin selection
-   */
-  private roundRobinSelect(agents: RegisteredAgent[]): RegisteredAgent {
-    const index = this.roundRobinIndex % agents.length;
-    this.roundRobinIndex = (this.roundRobinIndex + 1) % agents.length;
-    return agents[index];
+  private selectLeastLoaded(clusters: ClusterInfo[]): ClusterInfo | null {
+    if (clusters.length === 0) return null;
+    
+    // Calculate score for each cluster
+    let bestCluster = clusters[0];
+    let bestScore = this.calculateClusterScore(bestCluster);
+    
+    for (let i = 1; i < clusters.length; i++) {
+      const score = this.calculateClusterScore(clusters[i]);
+      if (score > bestScore) {
+        bestScore = score;
+        bestCluster = clusters[i];
+      }
+    }
+    
+    return bestCluster;
   }
 
-  /**
-   * Least connections selection
-   */
-  private leastConnectionsSelect(agents: RegisteredAgent[]): RegisteredAgent {
-    return agents.reduce((best, agent) => {
-      const bestConnections = this.connectionCounts.get(best.id) || 0;
-      const agentConnections = this.connectionCounts.get(agent.id) || 0;
-      return agentConnections < bestConnections ? agent : best;
-    });
+  private calculateClusterScore(cluster: ClusterInfo): number {
+    // Higher score = better choice
+    const utilizationScore = (100 - cluster.load.utilizationPercent) / 100 * this.config.utilizationWeight;
+    const healthScore = cluster.health.status === 'healthy' ? 1 : 0.5;
+    const healthWeight = this.config.healthCheckWeight;
+    const latencyScore = Math.max(0, 1 - cluster.health.latencyMs / 1000) * this.config.latencyWeight;
+    const weightScore = (cluster.routingWeight / 10) * 0.1; // Normalize weight
+    
+    return (utilizationScore * healthWeight) + 
+           (healthScore * healthWeight) + 
+           latencyScore + 
+           weightScore;
   }
 
-  /**
-   * Weighted selection based on capabilities
-   */
-  private weightedSelect(agents: RegisteredAgent[]): RegisteredAgent {
-    // Calculate weights based on reliability and speed
-    const weights = agents.map(agent => {
-      const reliability = agent.capabilities.reliability;
-      const speed = Math.min(agent.capabilities.avgSpeed / 20, 1); // Normalize
-      return (reliability + speed) / 2;
-    });
+  private selectRoundRobin(clusters: ClusterInfo[]): ClusterInfo | null {
+    if (clusters.length === 0) return null;
+    
+    this.roundRobinIndex = (this.roundRobinIndex + 1) % clusters.length;
+    return clusters[this.roundRobinIndex];
+  }
 
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  private selectWeighted(clusters: ClusterInfo[]): ClusterInfo | null {
+    if (clusters.length === 0) return null;
+    
+    const totalWeight = clusters.reduce((sum, c) => sum + c.routingWeight, 0);
     let random = Math.random() * totalWeight;
-
-    for (let i = 0; i < agents.length; i++) {
-      random -= weights[i];
+    
+    for (const cluster of clusters) {
+      random -= cluster.routingWeight;
       if (random <= 0) {
-        return agents[i];
+        return cluster;
+      }
+    }
+    
+    return clusters[clusters.length - 1];
+  }
+
+  private selectRegional(clusters: ClusterInfo[], preferredRegion?: string): ClusterInfo | null {
+    if (!preferredRegion) {
+      return this.selectLeastLoaded(clusters);
+    }
+    
+    // Prefer clusters in the same region
+    const regionalClusters = clusters.filter(c => c.region === preferredRegion);
+    
+    if (regionalClusters.length > 0) {
+      return this.selectLeastLoaded(regionalClusters);
+    }
+    
+    // Fall back to all clusters
+    return this.selectLeastLoaded(clusters);
+  }
+
+  private selectByCapabilityScore(
+    clusters: ClusterInfo[], 
+    requiredCapabilities?: string[]
+  ): ClusterInfo | null {
+    if (clusters.length === 0) return null;
+    if (!requiredCapabilities || requiredCapabilities.length === 0) {
+      return this.selectLeastLoaded(clusters);
+    }
+    
+    // Score clusters by capability match
+    const scored = clusters.map(cluster => {
+      let score = 0;
+      for (const cap of requiredCapabilities) {
+        if (cluster.capabilities[cap as keyof typeof cluster.capabilities]) {
+          score++;
+        }
+      }
+      return { cluster, score };
+    });
+    
+    // Sort by score (descending) and utilization (ascending)
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.cluster.load.utilizationPercent - b.cluster.load.utilizationPercent;
+    });
+    
+    return scored[0]?.cluster || null;
+  }
+
+  private getAlternativeClusters(request: RoutingRequest, excludeClusterId: string): ClusterInfo[] {
+    const allHealthy = this.registry.getHealthyClusters();
+    const alternatives = allHealthy.filter(c => c.id !== excludeClusterId);
+    
+    // Score and sort alternatives
+    const scored = alternatives.map(cluster => ({
+      cluster,
+      score: this.calculateClusterScore(cluster),
+    }));
+    
+    scored.sort((a, b) => b.score - a.score);
+    
+    return scored.slice(0, this.config.maxAlternatives).map(s => s.cluster);
+  }
+
+  // ============================================================================
+  // CIRCUIT BREAKER
+  // ============================================================================
+
+  private isCircuitBreakerOpen(clusterId: string): boolean {
+    const cb = this.circuitBreakers.get(clusterId);
+    if (!cb) return false;
+    
+    if (!cb.isOpen) return false;
+    
+    // Check if we should try to close the circuit
+    if (cb.openedAt) {
+      const elapsed = Date.now() - cb.openedAt.getTime();
+      if (elapsed > this.config.circuitBreakerResetMs) {
+        // Half-open: allow one request through
+        cb.isOpen = false;
+        cb.failures = 0;
+        logger.info('[LoadBalancer] Circuit breaker half-open', { clusterId });
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  recordFailure(clusterId: string): void {
+    if (!this.config.enableCircuitBreaker) return;
+    
+    let cb = this.circuitBreakers.get(clusterId);
+    if (!cb) {
+      cb = { clusterId, failures: 0, isOpen: false };
+      this.circuitBreakers.set(clusterId, cb);
+    }
+    
+    cb.failures++;
+    cb.lastFailureAt = new Date();
+    
+    if (cb.failures >= this.config.circuitBreakerThreshold) {
+      cb.isOpen = true;
+      cb.openedAt = new Date();
+      this.stats.circuitBreakerTrips++;
+      
+      logger.warn('[LoadBalancer] Circuit breaker opened', {
+        clusterId,
+        failures: cb.failures,
+      });
+      
+      this.emit('circuit_breaker:opened', { clusterId, failures: cb.failures });
+    }
+  }
+
+  recordSuccess(clusterId: string): void {
+    const cb = this.circuitBreakers.get(clusterId);
+    if (cb) {
+      cb.failures = 0;
+      if (cb.isOpen) {
+        cb.isOpen = false;
+        logger.info('[LoadBalancer] Circuit breaker closed', { clusterId });
+        this.emit('circuit_breaker:closed', { clusterId });
+      }
+    }
+  }
+
+  private resetCircuitBreaker(clusterId: string): void {
+    this.circuitBreakers.delete(clusterId);
+  }
+
+  // ============================================================================
+  // LOAD REBALANCING
+  // ============================================================================
+
+  async generateRebalancePlan(): Promise<RebalancePlan> {
+    this.ensureInitialized();
+    
+    const clusters = this.registry.getAllClusters();
+    const healthyClusters = clusters.filter(c => c.health.status === 'healthy');
+    
+    if (healthyClusters.length < 2) {
+      return {
+        timestamp: new Date(),
+        moves: [],
+        totalMoves: 0,
+        estimatedImpact: {
+          maxUtilizationBefore: 0,
+          maxUtilizationAfter: 0,
+          avgUtilizationBefore: 0,
+          avgUtilizationAfter: 0,
+        },
+      };
+    }
+
+    // Calculate current utilization
+    const utilizations = healthyClusters.map(c => c.load.utilizationPercent);
+    const avgUtilization = utilizations.reduce((a, b) => a + b, 0) / utilizations.length;
+    const maxUtilization = Math.max(...utilizations);
+
+    // Find overloaded and underloaded clusters
+    const overloaded = healthyClusters.filter(c => c.load.utilizationPercent > avgUtilization + 20);
+    const underloaded = healthyClusters.filter(c => c.load.utilizationPercent < avgUtilization - 10);
+
+    const moves: LoadDistribution[] = [];
+
+    for (const source of overloaded) {
+      const agentsToMove = Math.floor(
+        (source.load.utilizationPercent - avgUtilization) / 100 * source.maxAgents
+      );
+      
+      if (agentsToMove <= 0) continue;
+      
+      // Find best target
+      const target = underloaded
+        .filter(t => t.id !== source.id && t.availableSlots > 0)
+        .sort((a, b) => a.load.utilizationPercent - b.load.utilizationPercent)[0];
+      
+      if (target) {
+        moves.push({
+          clusterId: target.id,
+          currentAgents: target.currentAgents,
+          targetAgents: target.currentAgents + agentsToMove,
+          delta: agentsToMove,
+          reason: `Rebalance from ${source.id} (${source.load.utilizationPercent.toFixed(1)}%)`,
+        });
       }
     }
 
-    return agents[agents.length - 1];
-  }
-
-  /**
-   * Random selection
-   */
-  private randomSelect(agents: RegisteredAgent[]): RegisteredAgent {
-    const index = Math.floor(Math.random() * agents.length);
-    return agents[index];
-  }
-
-  // ============================================================================
-  // Private Methods - Connection Tracking
-  // ============================================================================
-
-  private incrementConnections(agentId: string): void {
-    const current = this.connectionCounts.get(agentId) || 0;
-    this.connectionCounts.set(agentId, current + 1);
-  }
-
-  private decrementConnections(agentId: string): void {
-    const current = this.connectionCounts.get(agentId) || 0;
-    if (current > 0) {
-      this.connectionCounts.set(agentId, current - 1);
-    }
-  }
-
-  // ============================================================================
-  // Private Methods - Event Handlers
-  // ============================================================================
-
-  private setupHealthCheckerEvents(): void {
-    this.healthChecker.on('unhealthy', (event) => {
-      logger.warn(`[LoadBalancer] Agent ${event.agentId} marked unhealthy`);
-
-      // Open circuit breaker for unhealthy agent
-      const breaker = this.circuitBreakers.get(event.agentId);
-      if (breaker) {
-        breaker.forceOpen();
+    // Calculate estimated impact
+    const estimatedUtilizations = healthyClusters.map(cluster => {
+      const move = moves.find(m => m.clusterId === cluster.id);
+      if (move) {
+        return (move.targetAgents / cluster.maxAgents) * 100;
       }
-
-      this.emit('agent.unhealthy', event);
+      return cluster.load.utilizationPercent;
     });
-
-    this.healthChecker.on('recovered', (event) => {
-      logger.info(`[LoadBalancer] Agent ${event.agentId} recovered`);
-
-      // Close circuit breaker for recovered agent
-      const breaker = this.circuitBreakers.get(event.agentId);
-      if (breaker) {
-        breaker.forceClose();
-      }
-
-      this.emit('agent.recovered', event);
-    });
-
-    this.healthChecker.on('checked', (result) => {
-      this.emit('health.checked', result);
-    });
-
-    this.healthChecker.on('cycle.completed', (event) => {
-      this.emit('health.cycle_completed', event);
-    });
-  }
-
-  private setupCircuitBreakerEvents(): void {
-    this.circuitBreakers.on('opened', (event) => {
-      logger.warn(`[LoadBalancer] Circuit opened for agent ${event.agentId}`);
-      this.emit('circuit.opened', event);
-    });
-
-    this.circuitBreakers.on('closed', (event) => {
-      logger.info(`[LoadBalancer] Circuit closed for agent ${event.agentId}`);
-      this.emit('circuit.closed', event);
-    });
-  }
-
-  private syncCircuitBreakers(): void {
-    const agentIds = this.registry.listIds();
-    this.circuitBreakers.syncWithAgentIds(agentIds);
-
-    // Register agents with health checker
-    for (const agentId of agentIds) {
-      this.healthChecker.registerAgent(agentId);
-    }
-  }
-
-  // ============================================================================
-  // Queries
-  // ============================================================================
-
-  /**
-   * Get load balancer statistics
-   */
-  getStats(): LoadBalancerStats {
-    const healthStats = this.healthChecker.getStats();
 
     return {
-      totalRequests: this.stats.totalRequests,
-      successfulSelections: this.stats.successfulSelections,
-      failedSelections: this.stats.failedSelections,
-      failoverCount: this.stats.failoverCount,
-      avgSelectionTimeMs: this.stats.successfulSelections > 0
-        ? this.stats.totalSelectionTimeMs / this.stats.successfulSelections
-        : 0,
-      healthyAgents: healthStats.healthy,
-      unhealthyAgents: healthStats.unhealthy,
+      timestamp: new Date(),
+      moves,
+      totalMoves: moves.reduce((sum, m) => sum + m.delta, 0),
+      estimatedImpact: {
+        maxUtilizationBefore: maxUtilization,
+        maxUtilizationAfter: Math.max(...estimatedUtilizations),
+        avgUtilizationBefore: avgUtilization,
+        avgUtilizationAfter: estimatedUtilizations.reduce((a, b) => a + b, 0) / estimatedUtilizations.length,
+      },
     };
   }
 
-  /**
-   * Get health status for an agent
-   */
-  getAgentHealth(agentId: string): HealthStatus {
-    const health = this.healthChecker.getAgentHealth(agentId);
-    return health?.status || 'unknown';
+  // ============================================================================
+  // SESSION AFFINITY
+  // ============================================================================
+
+  private cleanupSessionAffinity(): void {
+    const now = Date.now();
+    const expired: string[] = [];
+    
+    for (const [sessionId, affinity] of this.sessionAffinity) {
+      if (now - affinity.timestamp.getTime() > this.config.sessionAffinityTTLMs) {
+        expired.push(sessionId);
+      }
+    }
+    
+    for (const sessionId of expired) {
+      this.sessionAffinity.delete(sessionId);
+    }
   }
 
-  /**
-   * Get all healthy agents
-   */
-  getHealthyAgents(): RegisteredAgent[] {
-    return this.registry.getHealthyAgents().filter(agent => {
-      const breaker = this.circuitBreakers.get(agent.id);
-      return !breaker || breaker.isClosed();
-    });
+  clearSessionAffinity(sessionId?: string): void {
+    if (sessionId) {
+      this.sessionAffinity.delete(sessionId);
+    } else {
+      this.sessionAffinity.clear();
+    }
   }
 
-  /**
-   * Get circuit breaker state for an agent
-   */
-  getCircuitState(agentId: string): string {
-    const breaker = this.circuitBreakers.get(agentId);
-    return breaker?.getState() || 'unknown';
+  getSessionAffinity(sessionId: string): string | undefined {
+    const affinity = this.sessionAffinity.get(sessionId);
+    return affinity?.clusterId;
   }
 
-  /**
-   * Get configuration
-   */
-  getConfig(): LoadBalancerConfig {
-    return { ...this.config };
+  // ============================================================================
+  // STATISTICS
+  // ============================================================================
+
+  private updateAvgLatency(latencyMs: number): void {
+    const total = this.stats.totalRequests;
+    this.stats.avgRoutingLatencyMs = 
+      (this.stats.avgRoutingLatencyMs * (total - 1) + latencyMs) / total;
   }
 
-  /**
-   * Update configuration
-   */
-  updateConfig(config: Partial<LoadBalancerConfig>): void {
-    this.config = { ...this.config, ...config };
-    logger.info('[LoadBalancer] Configuration updated');
+  getStats(): LoadBalancerStats {
+    return { ...this.stats };
   }
 
-  /**
-   * Dispose of the load balancer
-   */
-  dispose(): void {
-    this.stop();
-    this.healthChecker.dispose();
-    this.circuitBreakers.clear();
-    this.removeAllListeners();
+  getCircuitBreakerState(clusterId?: string): CircuitBreakerState | Map<string, CircuitBreakerState> {
+    if (clusterId) {
+      return this.circuitBreakers.get(clusterId)!;
+    }
+    return new Map(this.circuitBreakers);
+  }
+
+  resetStats(): void {
+    this.stats = {
+      totalRequests: 0,
+      successfulRoutes: 0,
+      failedRoutes: 0,
+      circuitBreakerTrips: 0,
+      avgRoutingLatencyMs: 0,
+      strategyDistribution: {
+        'least-loaded': 0,
+        'round-robin': 0,
+        'session-affinity': 0,
+        'capability-match': 0,
+        'weighted': 0,
+        'regional': 0,
+      },
+    };
   }
 }
 
-// ============================================================================
-// Errors
-// ============================================================================
-
-/**
- * Error thrown when all failover attempts fail
- */
-export class LoadBalancerFailoverError extends Error {
-  public errors: { agentId: string; error: Error }[];
-
-  constructor(message: string, errors: { agentId: string; error: Error }[]) {
-    super(message);
-    this.name = 'LoadBalancerFailoverError';
-    this.errors = errors;
-  }
-}
-
-// ============================================================================
-// Singleton
-// ============================================================================
-
-let globalLoadBalancer: LoadBalancer | null = null;
-
-export function getLoadBalancer(
-  registry?: AgentRegistry,
-  config?: Partial<LoadBalancerConfig>
-): LoadBalancer {
-  if (!globalLoadBalancer && registry) {
-    globalLoadBalancer = new LoadBalancer(registry, config);
-  }
-  return globalLoadBalancer!;
-}
-
-export function resetLoadBalancer(): void {
-  globalLoadBalancer = null;
-}
-
-// Re-exports
-export { HealthStatus };
+export default MultiClusterLoadBalancer;

@@ -1,0 +1,151 @@
+# =============================================================================
+# Staging Environment Values for Godel
+# =============================================================================
+
+global:
+  imageRegistry: "ghcr.io"
+
+# Staging API Configuration
+godelApi:
+  replicaCount: 2
+  
+  image:
+    repository: davidkimai/godel/api
+    pullPolicy: Always
+    tag: "latest"
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    hosts:
+      - host: api.staging.godel.dev
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: godel-staging-tls
+        hosts:
+          - api.staging.godel.dev
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  env:
+    NODE_ENV: "staging"
+    LOG_LEVEL: "debug"
+    LOG_FORMAT: "json"
+    PORT: "3001"
+    METRICS_ENABLED: "true"
+    METRICS_PORT: "9090"
+    TRACING_ENABLED: "true"
+    ENABLE_SELF_HEALING: "true"
+    ENABLE_CIRCUIT_BREAKER: "true"
+    MAX_CONCURRENT_AGENTS: "20"
+
+# Staging Dashboard Configuration
+godelDashboard:
+  replicaCount: 1
+  
+  image:
+    repository: davidkimai/godel/dashboard
+    pullPolicy: Always
+    tag: "latest"
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    hosts:
+      - host: dashboard.staging.godel.dev
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: godel-staging-tls
+        hosts:
+          - dashboard.staging.godel.dev
+  
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+  
+  autoscaling:
+    enabled: false
+  
+  env:
+    DASHBOARD_TITLE: "Godel Staging"
+    DASHBOARD_REFRESH_INTERVAL: "3000"
+
+# Staging PostgreSQL Configuration
+postgresql:
+  enabled: true
+  auth:
+    username: godel_staging
+    database: godel_staging
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 500m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+# Staging Redis Configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+  
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: 250m
+      requests:
+        memory: 128Mi
+        cpu: 50m
+
+# Staging Config
+config:
+  logLevel: "debug"
+  maxConcurrentAgents: 20
+  maxSwarmSize: 10
+  defaultAgentTimeout: 300000
+  defaultBudgetLimit: 5.00
+
+# Enable monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: "monitoring"
+    interval: 30s

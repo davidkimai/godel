@@ -1,821 +1,261 @@
-# Godel API Endpoint Reference
+# Godel API Documentation
 
-**Version:** v3.0  
-**Base URL:** `http://localhost:7373`  
-**WebSocket:** `ws://localhost:7373/events`  
-**Last Updated:** 2026-02-02
+## Overview
 
----
+Godel provides a comprehensive REST API for agent orchestration.
+
+**Base URL**: `http://localhost:7373/api/v1`
 
 ## Authentication
 
-All API endpoints require authentication via the `X-API-Key` header.
+All API requests require authentication using an API key:
 
 ```bash
-curl -H "X-API-Key: your-api-key" http://localhost:7373/api/agents
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:7373/api/v1/agents
 ```
 
-**Environment Variable:** `GODEL_API_KEY` (defaults to `godel-api-key`)
+## Endpoints
 
----
+### Agents
 
-## Response Format
-
-All responses are JSON with the following structure:
-
-**Success:**
-```json
-{
-  "data": { ... }
-}
+#### List Agents
+```http
+GET /agents
 ```
 
-**Error:**
-```json
-{
-  "error": "Error message",
-  "code": "ERROR_CODE"
-}
-```
+Query Parameters:
+- `status` - Filter by status (running, idle, failed)
+- `role` - Filter by role
+- `team` - Filter by team ID
 
----
-
-## Health Check
-
-### GET /health
-
-Check API server health. No authentication required.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "version": "3.0.0"
-}
-```
-
----
-
-## Agents API
-
-### GET /api/agents
-
-List all agents.
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `swarmId` | string (UUID) | Filter by team ID |
-| `status` | string[] | Filter by status |
-| `page` | integer | Page number (default: 1) |
-| `perPage` | integer | Items per page (default: 20, max: 100) |
-
-**Response:**
+Response:
 ```json
 {
   "agents": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "id": "agent-001",
+      "role": "worker",
       "status": "running",
-      "model": "kimi-k2.5",
-      "task": "Analyze user feedback",
-      "swarm_id": "550e8400-e29b-41d4-a716-446655440001",
-      "parent_id": null,
-      "label": "analyzer-1",
-      "spawned_at": "2026-02-02T10:00:00Z",
-      "completed_at": null,
-      "runtime": 3600000,
-      "retry_count": 0,
-      "max_retries": 3,
-      "metadata": {}
+      "model": "claude-sonnet-4-5",
+      "createdAt": "2026-02-07T10:00:00Z"
     }
   ]
 }
 ```
 
-**cURL Example:**
-```bash
-curl -H "X-API-Key: godel-api-key" \
-  "http://localhost:7373/api/agents?status=running&page=1"
+#### Spawn Agent
+```http
+POST /agents
 ```
 
----
-
-### POST /api/agents
-
-Spawn a new agent.
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `task` | string | Yes | Task description (1-1000 chars) |
-| `model` | enum | Yes | `kimi-k2.5`, `claude-sonnet-4-5`, `gpt-4`, `gpt-4o` |
-| `priority` | enum | No | `low`, `medium`, `high`, `critical` (default: `medium`) |
-| `parentId` | UUID | No | Parent agent ID for hierarchical spawning |
-| `swarmId` | UUID | No | Team ID to add agent to |
-| `metadata` | object | No | Additional metadata |
-
-**Example Request:**
+Request Body:
 ```json
 {
-  "task": "Analyze user feedback from Q4",
-  "model": "kimi-k2.5",
-  "priority": "high",
-  "swarmId": "550e8400-e29b-41d4-a716-446655440001"
+  "role": "worker",
+  "runtime": "pi",
+  "pi_config": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5"
+  },
+  "label": "my-agent"
 }
 ```
 
-**Response (201 Created):**
+#### Get Agent
+```http
+GET /agents/:id
+```
+
+#### Kill Agent
+```http
+DELETE /agents/:id
+```
+
+### Teams
+
+#### List Teams
+```http
+GET /teams
+```
+
+#### Create Team
+```http
+POST /teams
+```
+
+Request Body:
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "spawning",
-  "model": "kimi-k2.5",
-  "task": "Analyze user feedback from Q4",
-  "swarm_id": "550e8400-e29b-41d4-a716-446655440001",
-  "parent_id": null,
-  "spawned_at": "2026-02-02T10:00:00Z",
-  "retry_count": 0,
-  "max_retries": 3
-}
-```
-
-**Error Responses:**
-- `400 Bad Request` - Invalid input
-- `404 Not Found` - Team not found
-
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "task": "Analyze user feedback",
-    "model": "kimi-k2.5",
-    "priority": "high"
-  }' \
-  http://localhost:7373/api/agents
-```
-
----
-
-### GET /api/agents/:id
-
-Get agent by ID.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Agent ID |
-
-**Response:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "running",
-  "model": "kimi-k2.5",
-  "task": "Analyze user feedback",
-  "swarm_id": "550e8400-e29b-41d4-a716-446655440001",
-  "parent_id": null,
-  "label": "analyzer-1",
-  "spawned_at": "2026-02-02T10:00:00Z",
-  "completed_at": null,
-  "runtime": 3600000,
-  "retry_count": 0,
-  "max_retries": 3,
-  "metadata": {}
-}
-```
-
-**Error Responses:**
-- `404 Not Found` - Agent not found
-
-**cURL Example:**
-```bash
-curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
-```
-
----
-
-### PATCH /api/agents/:id
-
-Update agent.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Agent ID |
-
-**Request Body:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | enum | `idle`, `spawning`, `running`, `paused`, `completed`, `failed`, `killing` |
-| `progress` | number | Progress percentage (0-100) |
-| `result` | string | Task result |
-| `error` | string | Error message |
-| `metadata` | object | Additional metadata |
-
-**Constraints:**
-- Cannot have both `result` and `error`
-- `completed` status requires 100% progress
-
-**Example Request:**
-```json
-{
-  "status": "running",
-  "progress": 50
-}
-```
-
-**Response:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "running",
-  "progress": 50,
-  ...
-}
-```
-
-**cURL Example:**
-```bash
-curl -X PATCH \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "paused"}' \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
-```
-
----
-
-### DELETE /api/agents/:id
-
-Kill an agent.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Agent ID |
-
-**Response:** `204 No Content`
-
-**cURL Example:**
-```bash
-curl -X DELETE \
-  -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000
-```
-
----
-
-### POST /api/agents/:id/action
-
-Perform action on an agent.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Agent ID |
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `action` | enum | Yes | `kill`, `pause`, `resume`, `retry`, `scale` |
-| `reason` | string | No | Reason for action (required for kill/pause unless force=true) |
-| `force` | boolean | No | Force action without reason (default: false) |
-| `delay` | integer | No | Delay in seconds (only for retry/scale) |
-
-**Example Requests:**
-
-Pause agent:
-```json
-{
-  "action": "pause",
-  "reason": "High load on system"
-}
-```
-
-Kill agent (force):
-```json
-{
-  "action": "kill",
-  "force": true
-}
-```
-
-**Response:**
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "action": "pause",
-  "status": "paused"
-}
-```
-
-**cURL Examples:**
-```bash
-# Pause agent
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "pause", "reason": "Maintenance"}' \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/action
-
-# Resume agent
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "resume"}' \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/action
-```
-
----
-
-### POST /api/agents/:id/pause
-
-Pause agent (shortcut endpoint).
-
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/pause
-```
-
----
-
-### POST /api/agents/:id/resume
-
-Resume agent (shortcut endpoint).
-
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/agents/550e8400-e29b-41d4-a716-446655440000/resume
-```
-
----
-
-## Team API
-
-### GET /api/team
-
-List all teams.
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `status` | string[] | Filter by status |
-| `page` | integer | Page number |
-| `perPage` | integer | Items per page |
-
-**Response:**
-```json
-{
-  "teams": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "analysis-team",
-      "status": "running",
-      "config": {
-        "strategy": "parallel",
-        "agentCount": 5
-      },
-      "created_at": "2026-02-02T10:00:00Z",
-      "updated_at": "2026-02-02T10:00:00Z"
-    }
-  ]
-}
-```
-
-**cURL Example:**
-```bash
-curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/team
-```
-
----
-
-### POST /api/team
-
-Create a new team.
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Team name (1-100 chars, alphanumeric + -_) |
-| `description` | string | No | Description (max 500 chars) |
-| `agents` | integer | Yes | Number of agents (1-100) |
-| `strategy` | enum | No | `parallel`, `map-reduce`, `pipeline`, `race` (default: `parallel`) |
-| `budget` | number | No | Budget limit (max 10000) |
-| `config` | object | No | Additional configuration |
-
-**Constraints:**
-- `race` strategy requires at least 2 agents
-- `map-reduce` requires at least 3 agents
-
-**Example Request:**
-```json
-{
-  "name": "analysis-team",
-  "description": "Analyze Q4 feedback data",
-  "agents": 5,
+  "name": "my-team",
   "strategy": "parallel",
-  "budget": 100.00
+  "composition": {
+    "coordinator": { "role": "coordinator", "model": "claude-opus-4" },
+    "workers": [{ "role": "worker", "count": 3, "model": "claude-sonnet-4-5" }]
+  }
 }
 ```
 
-**Response (201 Created):**
+#### Get Team
+```http
+GET /teams/:id
+```
+
+#### Scale Team
+```http
+POST /teams/:id/scale
+```
+
+Request Body:
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440001",
-  "name": "analysis-team",
-  "status": "running",
-  "config": {
-    "strategy": "parallel",
-    "agentCount": 5
-  },
-  "created_at": "2026-02-02T10:00:00Z",
-  "updated_at": "2026-02-02T10:00:00Z"
+  "workers": 5
 }
 ```
 
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "analysis-team",
-    "agents": 5,
-    "strategy": "parallel"
-  }' \
-  http://localhost:7373/api/team
+#### Destroy Team
+```http
+DELETE /teams/:id
 ```
 
----
+### Tasks
 
-### GET /api/team/:id
+#### List Tasks
+```http
+GET /tasks
+```
 
-Get team by ID.
+Query Parameters:
+- `status` - pending, in_progress, completed, failed
+- `assignee` - Agent ID
+- `priority` - low, medium, high, critical
 
-**Path Parameters:**
+#### Create Task
+```http
+POST /tasks
+```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Team ID |
-
-**Response:**
+Request Body:
 ```json
 {
-  "id": "550e8400-e29b-41d4-a716-446655440001",
-  "name": "analysis-team",
-  "status": "running",
-  "config": {
-    "strategy": "parallel",
-    "agentCount": 5
-  },
-  "agentCount": 5,
-  "agents": [
-    { "id": "550e8400-e29b-41d4-a716-446655440000", "status": "running" }
-  ],
-  "created_at": "2026-02-02T10:00:00Z",
-  "updated_at": "2026-02-02T10:00:00Z"
+  "title": "Implement feature",
+  "description": "Detailed description",
+  "priority": "high",
+  "assigneeId": "agent-001"
 }
 ```
 
-**cURL Example:**
-```bash
-curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
+### Intent
+
+#### Execute Intent
+```http
+POST /intent
 ```
 
----
-
-### PATCH /api/team/:id
-
-Update team.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Team ID |
-
-**Request Body:**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Team name |
-| `description` | string | Description |
-| `status` | enum | `running`, `paused`, `completed`, `failed` |
-| `config` | object | Configuration updates |
-
-**Constraints:**
-- At least one field must be provided
-
-**Example Request:**
+Request Body:
 ```json
 {
-  "status": "paused"
+  "description": "Refactor authentication to use JWT",
+  "constraints": {
+    "strategy": "careful",
+    "maxAgents": 5,
+    "timeout": 30
+  }
 }
 ```
 
-**cURL Example:**
-```bash
-curl -X PATCH \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "paused"}' \
-  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
+### Worktrees
+
+#### Create Worktree
+```http
+POST /worktrees
 ```
 
----
-
-### DELETE /api/team/:id
-
-Destroy team and all its agents.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Team ID |
-
-**Response:** `204 No Content`
-
-**cURL Example:**
-```bash
-curl -X DELETE \
-  -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
-```
-
----
-
-### POST /api/team/:id/scale
-
-Scale team to target number of agents.
-
-**Path Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | UUID | Team ID |
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `targetAgents` | integer | Yes | Target number of agents (1-100) |
-
-**Example Request:**
+Request Body:
 ```json
 {
-  "targetAgents": 10
+  "repository": "/path/to/repo",
+  "base_branch": "main",
+  "dependencies": {
+    "shared": ["node_modules"],
+    "isolated": [".env"]
+  }
 }
 ```
 
-**Response:**
+### Health
+
+#### Check Health
+```http
+GET /health
+```
+
+Response:
 ```json
 {
-  "swarmId": "550e8400-e29b-41d4-a716-446655440001",
-  "previousCount": 5,
-  "newCount": 10,
-  "agents": [...]
+  "status": "healthy",
+  "components": {
+    "api": "healthy",
+    "database": "healthy",
+    "redis": "healthy"
+  }
 }
 ```
 
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{"targetAgents": 10}' \
-  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001/scale
+### Metrics
+
+#### Get Metrics
+```http
+GET /metrics
 ```
 
----
+Returns Prometheus-formatted metrics.
 
-## Events API
+## Error Responses
 
-### GET /api/events
+All errors follow this format:
 
-Stream events via Server-Sent Events (SSE).
-
-**Response:** `text/event-stream`
-
-**Event Format:**
-```
-data: {"type": "agent.spawned", "timestamp": "2026-02-02T10:00:00Z", ...}
-
-data: {"type": "agent.completed", "timestamp": "2026-02-02T10:05:00Z", ...}
-
-:heartbeat
-```
-
-**cURL Example:**
-```bash
-curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/events
-```
-
----
-
-### POST /api/events
-
-Create a new event.
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `eventType` | string | Yes | Event type |
-| `payload` | object | Yes | Event payload |
-| `agentId` | UUID | No | Associated agent ID |
-| `swarmId` | UUID | No | Associated team ID |
-
-**Example Request:**
 ```json
 {
-  "eventType": "custom.event",
-  "payload": {
-    "message": "Custom event occurred",
-    "severity": "info"
-  },
-  "agentId": "550e8400-e29b-41d4-a716-446655440000"
+  "error": {
+    "code": "AGENT_NOT_FOUND",
+    "message": "Agent agent-999 does not exist",
+    "suggestion": "Use GET /agents to list available agents"
+  }
 }
 ```
-
-**Response (201 Created):**
-```json
-{
-  "id": 123,
-  "type": "custom.event",
-  "source": "self-improvement",
-  "payload": "{\"message\":\"...\",\"severity\":\"info\"}",
-  "agent_id": "550e8400-e29b-41d4-a716-446655440000",
-  "swarm_id": null,
-  "created_at": "2026-02-02T10:00:00Z"
-}
-```
-
-**cURL Example:**
-```bash
-curl -X POST \
-  -H "X-API-Key: godel-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "eventType": "custom.event",
-    "payload": {"message": "Hello"}
-  }' \
-  http://localhost:7373/api/events
-```
-
----
-
-## WebSocket API
-
-Connect to WebSocket for real-time events.
-
-**URL:** `ws://localhost:7373/events`
-
-**Authentication:** Pass API key as query parameter or header.
-
-### Connection
-
-```javascript
-const ws = new WebSocket('ws://localhost:7373/events?apiKey=godel-api-key');
-
-ws.onopen = () => {
-  console.log('Connected to Godel WebSocket');
-};
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('Event:', data);
-};
-
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
-};
-```
-
-### Event Types
-
-| Event Type | Description | Payload |
-|------------|-------------|---------|
-| `agent.spawned` | Agent was spawned | `{ agentId, swarmId, task }` |
-| `agent.started` | Agent started execution | `{ agentId, timestamp }` |
-| `agent.paused` | Agent was paused | `{ agentId, reason }` |
-| `agent.resumed` | Agent was resumed | `{ agentId }` |
-| `agent.completed` | Agent completed task | `{ agentId, result }` |
-| `agent.failed` | Agent failed | `{ agentId, error }` |
-| `agent.killed` | Agent was killed | `{ agentId, reason }` |
-| `team.created` | Team was created | `{ swarmId, name, config }` |
-| `team.destroyed` | Team was destroyed | `{ swarmId }` |
-| `team.scaled` | Team was scaled | `{ swarmId, previousCount, newCount }` |
-| `budget.warning` | Budget warning threshold reached | `{ budgetId, threshold, current }` |
-| `budget.critical` | Budget critical threshold reached | `{ budgetId, threshold, current }` |
-
----
-
-## Data Models
-
-### Agent
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique identifier |
-| `status` | enum | Current status |
-| `model` | string | AI model used |
-| `task` | string | Task description |
-| `swarm_id` | UUID | Parent team (optional) |
-| `parent_id` | UUID | Parent agent (optional) |
-| `label` | string | Display label |
-| `spawned_at` | datetime | Creation timestamp |
-| `completed_at` | datetime | Completion timestamp (optional) |
-| `runtime` | integer | Runtime in milliseconds |
-| `retry_count` | integer | Number of retries |
-| `max_retries` | integer | Maximum retry attempts |
-| `metadata` | object | Additional data |
-
-### Agent Status Values
-
-| Status | Description |
-|--------|-------------|
-| `idle` | Agent is idle |
-| `spawning` | Agent is being spawned |
-| `running` | Agent is executing |
-| `paused` | Agent is paused |
-| `completed` | Agent completed successfully |
-| `failed` | Agent failed |
-| `killing` | Agent is being killed |
-
-### Team
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | UUID | Unique identifier |
-| `name` | string | Team name |
-| `status` | enum | Current status |
-| `config` | object | Configuration |
-| `created_at` | datetime | Creation timestamp |
-| `updated_at` | datetime | Last update timestamp |
-
-### Team Status Values
-
-| Status | Description |
-|--------|-------------|
-| `running` | Team is active |
-| `paused` | Team is paused |
-| `completed` | Team completed |
-| `failed` | Team failed |
-
----
-
-## Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `INVALID_INPUT` | 400 | Request validation failed |
-| `NOT_FOUND` | 404 | Resource not found |
-| `UNAUTHORIZED` | 401 | Authentication failed |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Server error |
-
----
 
 ## Rate Limiting
 
-- Default: 100 requests per minute
-- Configurable via `rateLimit` server config
-- Rate limit headers included in responses:
-  - `X-RateLimit-Limit`: Maximum requests
-  - `X-RateLimit-Remaining`: Remaining requests
-  - `X-RateLimit-Reset`: Reset timestamp
+API requests are rate-limited:
+- 100 requests per minute for default users
+- 1000 requests per minute for admin users
 
----
+Rate limit headers are included in responses:
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1644153600
+```
 
-## CORS
+## SDK
 
-CORS is enabled with configurable origins. Default allows `http://localhost:3000`.
+Use the official SDK for easier integration:
 
-Configure via server config:
-```javascript
-{
-  corsOrigins: ['https://yourdomain.com']
-}
+```typescript
+import { GodelClient } from '@jtan15010/godel';
+
+const client = new GodelClient({
+  baseUrl: 'http://localhost:7373',
+  apiKey: 'your-api-key'
+});
+
+// List agents
+const agents = await client.agents.list();
+
+// Create team
+const team = await client.teams.create({
+  name: 'my-team',
+  strategy: 'parallel',
+  workers: 3
+});
 ```

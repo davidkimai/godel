@@ -50,6 +50,8 @@ import { registerStateCommands } from './commands/state';
 import { registerWorkflowCommand } from './commands/workflow';
 import { registerAutonomicCommand } from './commands/autonomic';
 import { registerClusterCommands } from './commands/cluster';
+import { registerInteractiveCommands } from './enhanced';
+import { showError } from './interactive';
 
 // Get version from package.json
 function getVersion(): string {
@@ -152,6 +154,18 @@ if (require.main === module) {
   if (process.argv.length <= 2) {
     program.help();
   }
+  
+  // Handle errors gracefully
+  process.on('unhandledRejection', (error) => {
+    showError(error instanceof Error ? error : String(error), 'Unhandled Promise Rejection');
+    process.exit(1);
+  });
+  
+  process.on('uncaughtException', (error) => {
+    showError(error, 'Uncaught Exception');
+    process.exit(1);
+  });
+  
   // Parse arguments
   program.parse();
 }

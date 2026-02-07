@@ -1,0 +1,178 @@
+# =============================================================================
+# Godel Staging Deployment
+# Automated deployment to staging environment on every push to main
+# =============================================================================
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Rollback to previous version?'
+        required: false
+        type: boolean
+        default: false
+      rollback_version:
+        description: 'Version to rollback to (if rollback is true)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NAMESPACE: godel-staging
+  HELM_RELEASE: godel-staging
+
+jobs:
+  # ==========================================================================
+  # Deploy to Staging
+  # ==========================================================================
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://api.staging.godel.dev
+    if: ${{ !github.event.inputs.rollback }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name godel-staging --region us-east-1
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy to staging
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy with Helm
+          helm upgrade --install ${{ env.HELM_RELEASE }} deploy/helm/godel \
+            --namespace ${{ env.NAMESPACE }} \
+            --values deploy/helm/godel/values-staging.yaml \
+            --set global.imageRegistry=${{ env.REGISTRY }} \
+            --set godelApi.image.repository=${{ env.IMAGE_NAME }}/api \
+            --set godelApi.image.tag=${{ github.sha }} \
+            --set godelDashboard.image.repository=${{ env.IMAGE_NAME }}/dashboard \
+            --set godelDashboard.image.tag=${{ github.sha }} \
+            --set secrets.apiSecretKey=${{ secrets.STAGING_API_SECRET_KEY }} \
+            --set secrets.jwtSecret=${{ secrets.STAGING_JWT_SECRET }} \
+            --set secrets.databasePassword=${{ secrets.STAGING_DB_PASSWORD }} \
+            --set secrets.redisPassword=${{ secrets.STAGING_REDIS_PASSWORD }} \
+            --wait \
+            --timeout 10m
+
+      - name: Run smoke tests
+        run: |
+          # Wait for deployment to be ready
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-api -n ${{ env.NAMESPACE }} --timeout=5m
+          
+          # Port forward for testing
+          kubectl port-forward svc/${{ env.HELM_RELEASE }}-api 7373:3001 -n ${{ env.NAMESPACE }} &
+          sleep 5
+          
+          # Run smoke tests
+          curl -f http://localhost:7373/health || exit 1
+          curl -f http://localhost:7373/ready || exit 1
+          
+          # Kill port forward
+          pkill kubectl
+
+      - name: Notify deployment status
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Staging deployment ${{ job.status }}: ${{ github.sha }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Staging Deployment* ${{ job.status == 'success' && '✅' || '❌' }}\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ==========================================================================
+  # Rollback Staging
+  # ==========================================================================
+  rollback:
+    name: Rollback Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    if: ${{ github.event.inputs.rollback }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name godel-staging --region us-east-1
+
+      - name: Rollback deployment
+        run: |
+          if [ -n "${{ github.event.inputs.rollback_version }}" ]; then
+            # Rollback to specific version
+            helm upgrade --install ${{ env.HELM_RELEASE }} deploy/helm/godel \
+              --namespace ${{ env.NAMESPACE }} \
+              --values deploy/helm/godel/values-staging.yaml \
+              --set godelApi.image.tag=${{ github.event.inputs.rollback_version }} \
+              --set godelDashboard.image.tag=${{ github.event.inputs.rollback_version }} \
+              --wait \
+              --timeout 10m
+          else
+            # Rollback to previous revision
+            helm rollback ${{ env.HELM_RELEASE }} -n ${{ env.NAMESPACE }}
+          fi
+
+      - name: Verify rollback
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-api -n ${{ env.NAMESPACE }} --timeout=5m
+
+      - name: Notify rollback status
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Staging rollback completed: ${{ github.event.inputs.rollback_version || 'previous version' }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

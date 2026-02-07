@@ -1,0 +1,23 @@
+# Basic Quick Start Template
+# Creates a simple worker agent for general tasks
+
+name: basic-setup
+description: Single worker agent for general tasks
+
+template:
+  version: "1.0"
+  
+  agents:
+    - role: worker
+      model: claude-sonnet-4-5
+      runtime: pi
+      count: 1
+      
+  configuration:
+    defaultModel: claude-sonnet-4-5
+    autoCleanup: true
+    
+  postSetup:
+    - echo "✓ Basic setup complete"
+    - echo "  Use: godel agent list"
+    - echo "  Or:  godel interactive quick"

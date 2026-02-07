@@ -1,0 +1,244 @@
+# =============================================================================
+# Production Environment Values for Godel
+# =============================================================================
+
+global:
+  imageRegistry: "ghcr.io"
+
+# Production API Configuration
+godelApi:
+  replicaCount: 5
+  
+  image:
+    repository: davidkimai/godel/api
+    pullPolicy: IfNotPresent
+    tag: ""  # Set at deployment time
+  
+  service:
+    type: ClusterIP
+    port: 3001
+    metricsPort: 9090
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+      nginx.ingress.kubernetes.io/rate-limit: "1000"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      # Enable CORS for API
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "https://dashboard.godel.dev,https://app.godel.dev"
+    hosts:
+      - host: api.godel.dev
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: godel-prod-tls
+        hosts:
+          - api.godel.dev
+  
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
+    metrics:
+      - type: Pods
+        pods:
+          metric:
+            name: godel_active_agents
+          target:
+            averageValue: "10"
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 60
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  # Pod disruption budget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 3
+  
+  env:
+    NODE_ENV: "production"
+    LOG_LEVEL: "info"
+    LOG_FORMAT: "json"
+    PORT: "3001"
+    METRICS_ENABLED: "true"
+    METRICS_PORT: "9090"
+    TRACING_ENABLED: "true"
+    ENABLE_SELF_HEALING: "true"
+    ENABLE_CIRCUIT_BREAKER: "true"
+    MAX_CONCURRENT_AGENTS: "100"
+    RATE_LIMIT_ENABLED: "true"
+    RATE_LIMIT_REQUESTS_PER_MINUTE: "1000"
+
+# Production Dashboard Configuration
+godelDashboard:
+  replicaCount: 3
+  
+  image:
+    repository: davidkimai/godel/dashboard
+    pullPolicy: IfNotPresent
+    tag: ""  # Set at deployment time
+  
+  service:
+    type: ClusterIP
+    port: 3000
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: dashboard.godel.dev
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: godel-prod-tls
+        hosts:
+          - dashboard.godel.dev
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  env:
+    DASHBOARD_TITLE: "Godel Operations Center"
+    DASHBOARD_REFRESH_INTERVAL: "5000"
+
+# Production PostgreSQL Configuration
+# Recommendation: Use managed PostgreSQL (RDS, Cloud SQL, etc.) in production
+postgresql:
+  enabled: false  # Use external managed database
+  
+  # Connection details for external database
+  external:
+    host: ""  # Set via --set or external secret
+    port: 5432
+    database: godel
+    username: godel
+    existingSecret: godel-db-credentials
+    secretKeys:
+      passwordKey: password
+
+# Production Redis Configuration
+# Recommendation: Use managed Redis (ElastiCache, Memorystore, etc.) in production
+redis:
+  enabled: false  # Use external managed Redis
+  
+  external:
+    host: ""  # Set via --set or external secret
+    port: 6379
+    existingSecret: godel-redis-credentials
+    secretKeys:
+      passwordKey: password
+
+# Production Config
+config:
+  logLevel: "info"
+  maxConcurrentAgents: 100
+  maxSwarmSize: 50
+  defaultAgentTimeout: 600000
+  defaultBudgetLimit: 100.00
+
+# Production Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: "monitoring"
+    interval: 15s
+    scrapeTimeout: 10s
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+
+# Pod Security Standards
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000

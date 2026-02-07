@@ -1,0 +1,32 @@
+{{- if .Values.godelDashboard.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "godel.fullname" . }}-godelboard
+  labels:
+    {{- include "godel.godelboardLabels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "godel.fullname" . }}-godelboard
+  minReplicas: {{ .Values.godelDashboard.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.godelDashboard.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.godelDashboard.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.godelDashboard.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.godelDashboard.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.godelDashboard.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

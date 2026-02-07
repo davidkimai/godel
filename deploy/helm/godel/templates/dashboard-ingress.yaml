@@ -1,0 +1,41 @@
+{{- if .Values.godelDashboard.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "godel.fullname" . }}-godelboard
+  labels:
+    {{- include "godel.godelboardLabels" . | nindent 4 }}
+  {{- with .Values.godelDashboard.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.godelDashboard.ingress.className }}
+  ingressClassName: {{ .Values.godelDashboard.ingress.className }}
+  {{- end }}
+  {{- if .Values.godelDashboard.ingress.tls }}
+  tls:
+    {{- range .Values.godelDashboard.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.godelDashboard.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "godel.fullname" $ }}-godelboard
+                port:
+                  number: {{ $.Values.godelDashboard.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

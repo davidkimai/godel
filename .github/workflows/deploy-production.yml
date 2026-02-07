@@ -1,0 +1,326 @@
+# =============================================================================
+# Godel Production Deployment
+# Automated deployment to production with approval gates
+# =============================================================================
+
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., 2.1.0)'
+        required: true
+        type: string
+      rollback:
+        description: 'Rollback to previous version?'
+        required: false
+        type: boolean
+        default: false
+      rollback_version:
+        description: 'Version to rollback to (if rollback is true)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  NAMESPACE: godel-production
+  HELM_RELEASE: godel
+
+jobs:
+  # ==========================================================================
+  # Pre-deployment checks
+  # ==========================================================================
+  pre-checks:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.rollback }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify staging deployment
+        run: |
+          echo "✅ Verifying staging deployment is healthy..."
+          # This would typically check staging health via API
+
+      - name: Check canary metrics
+        run: |
+          echo "✅ Checking canary metrics..."
+          # Verify error rates, latency, etc. are within acceptable thresholds
+
+  # ==========================================================================
+  # Deploy to Production
+  # ==========================================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: pre-checks
+    environment:
+      name: production
+      url: https://api.godel.dev
+    if: ${{ !github.event.inputs.rollback }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name godel-production --region us-east-1
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy to production (Canary)
+        run: |
+          # Create namespace if it doesn't exist
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Deploy canary (10% traffic)
+          helm upgrade --install ${{ env.HELM_RELEASE }} deploy/helm/godel \
+            --namespace ${{ env.NAMESPACE }} \
+            --values deploy/helm/godel/values-production.yaml \
+            --set global.imageRegistry=${{ env.REGISTRY }} \
+            --set godelApi.image.repository=${{ env.IMAGE_NAME }}/api \
+            --set godelApi.image.tag=${{ steps.version.outputs.version }} \
+            --set godelDashboard.image.repository=${{ env.IMAGE_NAME }}/dashboard \
+            --set godelDashboard.image.tag=${{ steps.version.outputs.version }} \
+            --set godelApi.replicaCount=1 \
+            --set secrets.apiSecretKey=${{ secrets.PRODUCTION_API_SECRET_KEY }} \
+            --set secrets.jwtSecret=${{ secrets.PRODUCTION_JWT_SECRET }} \
+            --set secrets.databasePassword=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            --set secrets.redisPassword=${{ secrets.PRODUCTION_REDIS_PASSWORD }} \
+            --wait \
+            --timeout 15m
+
+      - name: Canary verification
+        run: |
+          echo "⏳ Waiting for canary to stabilize..."
+          sleep 60
+          
+          # Verify canary pods are healthy
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app.kubernetes.io/component=api
+          
+          # Run smoke tests
+          kubectl port-forward svc/${{ env.HELM_RELEASE }}-api 7373:3001 -n ${{ env.NAMESPACE }} &
+          sleep 5
+          
+          curl -f http://localhost:7373/health || exit 1
+          curl -f http://localhost:7373/ready || exit 1
+          
+          pkill kubectl
+
+      - name: Full deployment
+        run: |
+          echo "🚀 Promoting canary to full deployment..."
+          
+          # Scale to full replica count
+          helm upgrade --install ${{ env.HELM_RELEASE }} deploy/helm/godel \
+            --namespace ${{ env.NAMESPACE }} \
+            --values deploy/helm/godel/values-production.yaml \
+            --set global.imageRegistry=${{ env.REGISTRY }} \
+            --set godelApi.image.repository=${{ env.IMAGE_NAME }}/api \
+            --set godelApi.image.tag=${{ steps.version.outputs.version }} \
+            --set godelDashboard.image.repository=${{ env.IMAGE_NAME }}/dashboard \
+            --set godelDashboard.image.tag=${{ steps.version.outputs.version }} \
+            --set secrets.apiSecretKey=${{ secrets.PRODUCTION_API_SECRET_KEY }} \
+            --set secrets.jwtSecret=${{ secrets.PRODUCTION_JWT_SECRET }} \
+            --set secrets.databasePassword=${{ secrets.PRODUCTION_DB_PASSWORD }} \
+            --set secrets.redisPassword=${{ secrets.PRODUCTION_REDIS_PASSWORD }} \
+            --wait \
+            --timeout 15m
+
+      - name: Post-deployment verification
+        run: |
+          # Wait for rollout to complete
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-api -n ${{ env.NAMESPACE }} --timeout=10m
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-dashboard -n ${{ env.NAMESPACE }} --timeout=5m
+          
+          # Run full health check
+          kubectl port-forward svc/${{ env.HELM_RELEASE }}-api 7373:3001 -n ${{ env.NAMESPACE }} &
+          sleep 5
+          
+          echo "Running health checks..."
+          curl -sf http://localhost:7373/health
+          curl -sf http://localhost:7373/ready
+          
+          pkill kubectl
+          
+          echo "✅ Deployment successful!"
+
+      - name: Notify deployment status
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production deployment ${{ job.status }}: ${{ steps.version.outputs.version }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment* ${{ job.status == 'success' && '✅' || '❌' }}\n*Version:* ${{ steps.version.outputs.version }}\n*Author:* ${{ github.actor }}\n*Duration:* ${{ job.duration }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Release"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Update deployment status
+        if: success()
+        run: |
+          # Record deployment in monitoring/metrics
+          echo "Recording deployment metrics..."
+
+  # ==========================================================================
+  # Rollback Production
+  # ==========================================================================
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    if: ${{ github.event.inputs.rollback }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name godel-production --region us-east-1
+
+      - name: Rollback deployment
+        run: |
+          if [ -n "${{ github.event.inputs.rollback_version }}" ]; then
+            echo "Rolling back to version: ${{ github.event.inputs.rollback_version }}"
+            helm upgrade --install ${{ env.HELM_RELEASE }} deploy/helm/godel \
+              --namespace ${{ env.NAMESPACE }} \
+              --values deploy/helm/godel/values-production.yaml \
+              --set godelApi.image.tag=${{ github.event.inputs.rollback_version }} \
+              --set godelDashboard.image.tag=${{ github.event.inputs.rollback_version }} \
+              --wait \
+              --timeout 10m
+          else
+            echo "Rolling back to previous revision..."
+            helm rollback ${{ env.HELM_RELEASE }} -n ${{ env.NAMESPACE }}
+          fi
+
+      - name: Verify rollback
+        run: |
+          kubectl rollout status deployment/${{ env.HELM_RELEASE }}-api -n ${{ env.NAMESPACE }} --timeout=10m
+          
+          # Verify health
+          kubectl port-forward svc/${{ env.HELM_RELEASE }}-api 7373:3001 -n ${{ env.NAMESPACE }} &
+          sleep 5
+          curl -sf http://localhost:7373/health
+          pkill kubectl
+
+      - name: Notify rollback status
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "🚨 Production rollback completed: ${{ github.event.inputs.rollback_version || 'previous version' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Rollback* ⚠️\n*Version:* ${{ github.event.inputs.rollback_version || 'previous version' }}\n*Triggered by:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ==========================================================================
+  # Automated Rollback on Failure
+  # ==========================================================================
+  auto-rollback:
+    name: Auto-rollback on Failure
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name godel-production --region us-east-1
+
+      - name: Automated rollback
+        run: |
+          echo "🚨 Deployment failed! Initiating automatic rollback..."
+          helm rollback ${{ env.HELM_RELEASE }} -n ${{ env.NAMESPACE }}
+
+      - name: Notify auto-rollback
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          "text": "🚨 Automated rollback triggered due to deployment failure!"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

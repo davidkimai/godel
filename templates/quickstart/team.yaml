@@ -1,0 +1,35 @@
+# Team Quick Start Template
+# Creates a complete team with coordinator and workers
+
+name: team-setup
+description: Full team with coordinator and multiple workers
+
+template:
+  version: "1.0"
+  
+  team:
+    name: quickstart-team
+    strategy: parallel
+    composition:
+      coordinator:
+        role: coordinator
+        model: claude-opus-4
+        count: 1
+      workers:
+        role: worker
+        model: claude-sonnet-4-5
+        count: 3
+      reviewer:
+        role: reviewer
+        model: claude-sonnet-4-5
+        count: 1
+        
+  configuration:
+    defaultBudget:
+      maxCost: 10.00
+      maxTokens: 100000
+    
+  postSetup:
+    - echo "✓ Team setup complete"
+    - echo "  Team ID will be displayed above"
+    - echo "  Use: godel team status <team-id>"

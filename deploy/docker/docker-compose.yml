@@ -1,0 +1,275 @@
+# =============================================================================
+# Godel Local Development Environment
+# =============================================================================
+# Quick start:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f godel
+#
+# Stop:
+#   docker-compose down
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Godel API Server
+  # ==========================================================================
+  godel:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.production
+      target: production
+    image: godel/godel-api:local
+    container_name: godel-api
+    restart: unless-stopped
+    
+    ports:
+      - "7373:7373"
+    
+    environment:
+      NODE_ENV: development
+      PORT: 7373
+      LOG_LEVEL: debug
+      LOG_FORMAT: pretty
+      
+      # Database
+      DATABASE_URL: postgresql://godel:godel_local@postgres:5432/godel
+      REDIS_URL: redis://redis:6379
+      
+      # API Security
+      GODEL_API_KEY: ${GODEL_API_KEY:-godel_local_development_key}
+      JWT_SECRET: ${JWT_SECRET:-local_jwt_secret_not_for_production}
+      
+      # Feature flags
+      METRICS_ENABLED: "true"
+      METRICS_PORT: "9090"
+      TRACING_ENABLED: "false"
+      ENABLE_SELF_HEALING: "false"
+      ENABLE_CIRCUIT_BREAKER: "false"
+      MAX_CONCURRENT_AGENTS: "10"
+    
+    volumes:
+      # Mount local source for hot reload in dev
+      - ../../src:/app/src:ro
+      # Persist logs
+      - godel-logs:/app/logs
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - godel-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7373/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: godel-postgres
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_USER: godel
+      POSTGRES_PASSWORD: godel_local
+      POSTGRES_DB: godel
+      PGDATA: /var/lib/postgresql/data/pgdata
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../../migrations:/docker-entrypoint-initdb.d:ro
+    
+    ports:
+      - "5432:5432"
+    
+    networks:
+      - godel-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U godel -d godel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: godel-redis
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    
+    volumes:
+      - redis-data:/data
+    
+    ports:
+      - "6379:6379"
+    
+    networks:
+      - godel-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ==========================================================================
+  # Prometheus (Metrics)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: godel-prometheus
+    restart: unless-stopped
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
+    volumes:
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    ports:
+      - "9090:9090"
+    
+    networks:
+      - godel-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================================================
+  # Grafana (Dashboards)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: godel-grafana
+    restart: unless-stopped
+    
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    
+    volumes:
+      - ../../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
+    
+    ports:
+      - "3000:3000"
+    
+    networks:
+      - godel-network
+    
+    depends_on:
+      - prometheus
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # ==========================================================================
+  # Jaeger (Tracing) - Optional
+  # ==========================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: godel-jaeger
+    restart: unless-stopped
+    
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    
+    ports:
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    
+    networks:
+      - godel-network
+    
+    profiles:
+      - tracing
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  godel-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  godel-logs:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
