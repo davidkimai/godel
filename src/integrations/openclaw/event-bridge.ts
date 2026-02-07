@@ -52,7 +52,7 @@ export interface BridgedEvent {
   /** Event metadata */
   metadata: {
     godelAgentId?: string;
-    godelSwarmId?: string;
+    godelTeamId?: string;
     topic?: string;
     [key: string]: unknown;
   };
@@ -143,8 +143,8 @@ export class OpenClawEventBridge extends EventEmitter {
       // Subscribe to agent events
       this.subscribeToTopic('agent.*.events');
       
-      // Subscribe to swarm events
-      this.subscribeToTopic('swarm.*.events');
+      // Subscribe to team events
+      this.subscribeToTopic('team.*.events');
       
       // Subscribe to system events
       this.subscribeToTopic('system.events');
@@ -302,10 +302,10 @@ export class OpenClawEventBridge extends EventEmitter {
   private transformEvent(message: Message): BridgedEvent {
     const payload = message.payload as Record<string, unknown> || {};
     
-    // Extract agent/swarm IDs from topic
+    // Extract agent/team IDs from topic
     const topicParts = message.topic.split('.');
     const godelAgentId = topicParts[0] === 'agent' ? topicParts[1] : undefined;
-    const godelSwarmId = topicParts[0] === 'swarm' ? topicParts[1] : undefined;
+    const godelTeamId = topicParts[0] === 'team' ? topicParts[1] : undefined;
 
     return {
       source: 'godel',
@@ -314,7 +314,7 @@ export class OpenClawEventBridge extends EventEmitter {
       data: payload,
       metadata: {
         godelAgentId,
-        godelSwarmId,
+        godelTeamId,
         topic: message.topic,
         messageId: message.id,
         source: message.metadata?.source,
@@ -453,13 +453,13 @@ export class OpenClawEventBridge extends EventEmitter {
   }
 
   /**
-   * Subscribe to events for a specific swarm
+   * Subscribe to events for a specific team
    * 
    * Returns an unsubscribe function.
    */
-  subscribeToSwarm(swarmId: string, callback: (event: BridgedEvent) => void): () => void {
+  subscribeToTeam(teamId: string, callback: (event: BridgedEvent) => void): () => void {
     const handler = (event: BridgedEvent) => {
-      if (event.metadata?.godelSwarmId === swarmId) {
+      if (event.metadata?.godelTeamId === teamId) {
         callback(event);
       }
     };

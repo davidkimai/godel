@@ -1,7 +1,7 @@
 /**
  * Testing Module
  * 
- * Test execution and coverage reporting for Dash
+ * Test execution and coverage reporting for Godel
  */
 
 // Re-export types

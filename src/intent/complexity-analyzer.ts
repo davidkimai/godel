@@ -1,7 +1,7 @@
 /**
  * @fileoverview Complexity Analyzer - Code metrics analysis for intent targets
  * 
- * This module analyzes code complexity to inform swarm sizing and configuration.
+ * This module analyzes code complexity to inform team sizing and configuration.
  * 
  * @module @godel/intent/complexity-analyzer
  */
@@ -11,11 +11,17 @@ import * as path from 'path';
 import { glob } from 'glob';
 import {
   ComplexityMetrics,
-  SwarmComplexity,
+  TeamComplexity,
   FileMetrics,
   CodeAnalyzer,
   GitAnalyzer,
 } from './types';
+import { createLogger } from '../utils/logger';
+
+/**
+ * Module logger
+ */
+const log = createLogger('complexity-analyzer');
 
 // ============================================================================
 // AST UTILITIES
@@ -132,9 +138,9 @@ export class ComplexityAnalyzer {
    * 
    * @param target - Target path or identifier
    * @param targetType - Type of target
-   * @returns Swarm complexity assessment
+   * @returns Team complexity assessment
    */
-  async analyze(target: string, targetType: string): Promise<SwarmComplexity> {
+  async analyze(target: string, targetType: string): Promise<TeamComplexity> {
     const files = await this.resolveTarget(target, targetType);
     
     const metrics: ComplexityMetrics = {
@@ -158,7 +164,7 @@ export class ComplexityAnalyzer {
         metrics.dependencies += fileMetrics.dependencies;
       } catch (error) {
         // Skip files that can't be analyzed
-        console.warn(`Failed to analyze ${file}:`, error);
+        log.warn('Failed to analyze file', { file, error: (error as Error).message });
       }
     }
 
@@ -413,7 +419,7 @@ export class ComplexityAnalyzer {
   /**
    * Convert score to complexity level.
    */
-  private scoreToLevel(score: number): SwarmComplexity['level'] {
+  private scoreToLevel(score: number): TeamComplexity['level'] {
     if (score < 25) return 'low';
     if (score < 50) return 'medium';
     if (score < 75) return 'high';
@@ -449,7 +455,7 @@ class DefaultCodeAnalyzer implements CodeAnalyzer {
 export async function analyzeComplexity(
   target: string, 
   targetType: string
-): Promise<SwarmComplexity> {
+): Promise<TeamComplexity> {
   const analyzer = new ComplexityAnalyzer();
   return analyzer.analyze(target, targetType);
 }

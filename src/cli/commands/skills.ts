@@ -2,13 +2,13 @@
  * Skills CLI Command
  * 
  * Unified skill management commands:
- * - dash skills list [--source <source>] [--json]
- * - dash skills search <query> [--limit N] [--sort type] [--source <source>]
- * - dash skills install <skill> [--version V] [--force] [--source <source>]
- * - dash skills remove <skill>
- * - dash skills update [skill] [--all]
- * - dash skills info <skill>
- * - dash skills sources
+ * - godel skills list [--source <source>] [--json]
+ * - godel skills search <query> [--limit N] [--sort type] [--source <source>]
+ * - godel skills install <skill> [--version V] [--force] [--source <source>]
+ * - godel skills remove <skill>
+ * - godel skills update [skill] [--all]
+ * - godel skills info <skill>
+ * - godel skills sources
  */
 
 import { logger } from '../../utils/logger';
@@ -129,9 +129,9 @@ export function registerSkillsCommand(program: Command): void {
         if (displaySkills.length === 0) {
           logger.info(chalk.yellow('No skills installed.'));
           logger.info(chalk.gray('\nInstall skills with:'));
-          logger.info(chalk.gray('  dash skills install <skill>'));
+          logger.info(chalk.gray('  godel skills install <skill>'));
           logger.info(chalk.gray('\nSearch for skills with:'));
-          logger.info(chalk.gray('  dash skills search <query>'));
+          logger.info(chalk.gray('  godel skills search <query>'));
           logger.info(chalk.gray('\nAvailable sources:'));
           const sources = registry.getSources();
           for (const source of sources) {
@@ -344,12 +344,12 @@ export function registerSkillsCommand(program: Command): void {
           logger.error(chalk.yellow('⚠️  Multiple sources have this skill:'));
           logger.error(chalk.gray(`   ${error.sources.map(s => `${s}:${skillId}`).join(', ')}`));
           logger.error(chalk.gray('\n   Specify source with:'));
-          logger.error(chalk.gray(`   dash skills install clawhub:${skillId}`));
-          logger.error(chalk.gray(`   dash skills install vercel:${skillId}`));
+          logger.error(chalk.gray(`   godel skills install clawhub:${skillId}`));
+          logger.error(chalk.gray(`   godel skills install vercel:${skillId}`));
         } else if (error instanceof SkillNotFoundError) {
           logger.error(chalk.red(`❌ Skill not found: ${skillId}`));
           logger.error(chalk.gray('\n   Try searching first:'));
-          logger.error(chalk.gray(`   dash skills search ${skillId}`));
+          logger.error(chalk.gray(`   godel skills search ${skillId}`));
         } else if (error instanceof SourceNotAvailableError) {
           logger.error(chalk.red(`❌ Source not available: ${error.source}`));
         } else {
@@ -383,7 +383,7 @@ export function registerSkillsCommand(program: Command): void {
           logger.info(chalk.yellow(`\n⚠️  This will remove ${skillId}@${existing.version} from ${existing.source}`));
           logger.info(chalk.gray('Use --yes to skip this confirmation\n'));
           logger.info(chalk.gray('Re-run with --yes to confirm:'));
-          logger.info(chalk.gray(`  dash skills remove ${skillId} --yes`));
+          logger.info(chalk.gray(`  godel skills remove ${skillId} --yes`));
           return;
         }
 
@@ -412,8 +412,8 @@ export function registerSkillsCommand(program: Command): void {
 
         if (!skillId && !options.all) {
           logger.info(chalk.yellow('Please specify a skill or use --all to update all skills'));
-          logger.info(chalk.gray('  dash skills update <skill>'));
-          logger.info(chalk.gray('  dash skills update --all'));
+          logger.info(chalk.gray('  godel skills update <skill>'));
+          logger.info(chalk.gray('  godel skills update --all'));
           return;
         }
 
@@ -543,7 +543,7 @@ export function registerSkillsCommand(program: Command): void {
           logger.info(`  Source: ${formatSourceBadge(installed.source!)}`);
         } else {
           logger.info(chalk.gray('  Not installed'));
-          logger.info(chalk.gray(`  Install: dash skills install ${skillId}`));
+          logger.info(chalk.gray(`  Install: godel skills install ${skillId}`));
         }
         logger.info('');
 
@@ -560,7 +560,7 @@ export function registerSkillsCommand(program: Command): void {
         if (error instanceof SkillNotFoundError) {
           logger.error(chalk.red(`❌ Skill not found: ${skillId}`));
           logger.error(chalk.gray('\nTry searching for it:'));
-          logger.error(chalk.gray(`  dash skills search ${skillId}`));
+          logger.error(chalk.gray(`  godel skills search ${skillId}`));
         } else {
           logger.error(chalk.red('❌ Failed to fetch skill info'));
           logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));

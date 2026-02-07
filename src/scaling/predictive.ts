@@ -345,7 +345,7 @@ export function makePredictiveDecision(
       if (action !== 'maintain') {
         return {
           timestamp,
-          swarmId: metrics.swarmId,
+          teamId: metrics.teamId,
           action,
           targetAgentCount: Math.max(minAgents, Math.min(maxAgents, scheduledTarget)),
           currentAgentCount: metrics.currentAgentCount,
@@ -369,7 +369,7 @@ export function makePredictiveDecision(
         if (targetCount > metrics.currentAgentCount) {
           return {
             timestamp,
-            swarmId: metrics.swarmId,
+            teamId: metrics.teamId,
             action: 'scale_up',
             targetAgentCount: targetCount,
             currentAgentCount: metrics.currentAgentCount,
@@ -384,7 +384,7 @@ export function makePredictiveDecision(
         
         return {
           timestamp,
-          swarmId: metrics.swarmId,
+          teamId: metrics.teamId,
           action: 'scale_down',
           targetAgentCount: targetCount,
           currentAgentCount: metrics.currentAgentCount,
@@ -407,7 +407,7 @@ export function makePredictiveDecision(
       if (targetCount > metrics.currentAgentCount) {
         return {
           timestamp,
-          swarmId: metrics.swarmId,
+          teamId: metrics.teamId,
           action: 'scale_up',
           targetAgentCount: targetCount,
           currentAgentCount: metrics.currentAgentCount,

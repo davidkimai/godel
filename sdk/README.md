@@ -1,6 +1,6 @@
 # @godel/client
 
-Official JavaScript/TypeScript SDK for the Godel platform - manage swarms, agents, and events with a simple, type-safe API.
+Official JavaScript/TypeScript SDK for the Godel platform - manage teams, agents, and events with a simple, type-safe API.
 
 ## Installation
 
@@ -28,13 +28,13 @@ const client = new GodelClient({
   apiKey: process.env.GODEL_API_KEY!,
 });
 
-// List all swarms
-const swarms = await client.swarms.list();
-console.log(`You have ${swarms.total} swarms`);
+// List all teams
+const teams = await client.teams.list();
+console.log(`You have ${teams.total} teams`);
 
-// Create a new swarm
-const swarm = await client.swarms.create({
-  name: 'my-processing-swarm',
+// Create a new team
+const team = await client.teams.create({
+  name: 'my-processing-team',
   config: {
     agentImage: 'godel/agent:latest',
     scalingPolicy: {
@@ -44,11 +44,11 @@ const swarm = await client.swarms.create({
   },
 });
 
-// Scale the swarm
-await client.swarms.scale(swarm.id, { targetAgentCount: 5 });
+// Scale the team
+await client.teams.scale(team.id, { targetAgentCount: 5 });
 
 // Clean up
-await client.swarms.delete(swarm.id);
+await client.teams.delete(team.id);
 ```
 
 ## Configuration
@@ -86,15 +86,15 @@ const client = new GodelClient({
 
 ## API Documentation
 
-### Swarms
+### Teams
 
-Swarms are groups of agents that work together. They can auto-scale based on load.
+Teams are groups of agents that work together. They can auto-scale based on load.
 
-#### Create a Swarm
+#### Create a Team
 
 ```typescript
-const swarm = await client.swarms.create({
-  name: 'processing-swarm',
+const team = await client.teams.create({
+  name: 'processing-team',
   description: 'Handles data processing tasks',
   config: {
     agentImage: 'godel/agent:v1.0.0',
@@ -119,34 +119,34 @@ const swarm = await client.swarms.create({
 });
 ```
 
-#### List Swarms
+#### List Teams
 
 ```typescript
-// All swarms (paginated)
-const swarms = await client.swarms.list();
+// All teams (paginated)
+const teams = await client.teams.list();
 
 // With pagination
-const page2 = await client.swarms.list({ page: 2, limit: 20 });
+const page2 = await client.teams.list({ page: 2, limit: 20 });
 
 // Sorted
-const sorted = await client.swarms.list({
+const sorted = await client.teams.list({
   sortBy: 'createdAt',
   sortOrder: 'desc',
 });
 ```
 
-#### Get a Swarm
+#### Get a Team
 
 ```typescript
-const swarm = await client.swarms.get('swarm-123');
-console.log(`Status: ${swarm.status}`);
-console.log(`Running agents: ${swarm.metrics.runningAgents}`);
+const team = await client.teams.get('team-123');
+console.log(`Status: ${team.status}`);
+console.log(`Running agents: ${team.metrics.runningAgents}`);
 ```
 
-#### Update a Swarm
+#### Update a Team
 
 ```typescript
-const updated = await client.swarms.update('swarm-123', {
+const updated = await client.teams.update('team-123', {
   name: 'new-name',
   description: 'Updated description',
   config: {
@@ -158,30 +158,30 @@ const updated = await client.swarms.update('swarm-123', {
 });
 ```
 
-#### Scale a Swarm
+#### Scale a Team
 
 ```typescript
 // Scale to specific count
-await client.swarms.scale('swarm-123', {
+await client.teams.scale('team-123', {
   targetAgentCount: 10,
 });
 
 // Scale and wait for completion
-await client.swarms.scale('swarm-123', {
+await client.teams.scale('team-123', {
   targetAgentCount: 20,
   wait: true,
   timeout: 120,
 });
 ```
 
-#### Delete a Swarm
+#### Delete a Team
 
 ```typescript
 // Normal delete
-await client.swarms.delete('swarm-123');
+await client.teams.delete('team-123');
 
 // Force delete (kills all agents)
-await client.swarms.delete('swarm-123', { force: true });
+await client.teams.delete('team-123', { force: true });
 ```
 
 ### Agents
@@ -207,9 +207,9 @@ const agent = await client.agents.spawn({
   },
 });
 
-// Agent in a swarm
+// Agent in a team
 const agent = await client.agents.spawn({
-  swarmId: 'swarm-123',
+  swarmId: 'team-123',
   config: {
     image: 'godel/agent:v1.0.0',
   },
@@ -224,8 +224,8 @@ const agent = await client.agents.spawn({
 // All agents
 const agents = await client.agents.list();
 
-// Filter by swarm
-const swarmAgents = await client.agents.list({ swarmId: 'swarm-123' });
+// Filter by team
+const swarmAgents = await client.agents.list({ swarmId: 'team-123' });
 
 // Filter by status
 const running = await client.agents.list({ status: 'running' });
@@ -261,9 +261,9 @@ const task = await client.agents.assignTask('agent-123', {
   },
 });
 
-// Auto-assign to any available agent in swarm
+// Auto-assign to any available agent in team
 const task = await client.agents.assignTask(undefined, {
-  swarmId: 'swarm-123',
+  swarmId: 'team-123',
   config: { type: 'distributed-task', payload: data },
 });
 
@@ -312,8 +312,8 @@ const recent = await client.events.list({
 
 // Filter by source
 const swarmEvents = await client.events.list({
-  sourceType: 'swarm',
-  sourceId: 'swarm-123',
+  sourceType: 'team',
+  sourceId: 'team-123',
 });
 ```
 
@@ -372,10 +372,10 @@ import {
 } from '@godel/client';
 
 try {
-  const swarm = await client.swarms.get('non-existent');
+  const team = await client.teams.get('non-existent');
 } catch (error) {
   if (error instanceof NotFoundError) {
-    console.log('Swarm not found');
+    console.log('Team not found');
   } else if (error instanceof ValidationError) {
     console.log('Invalid request:', error.validationErrors);
   } else if (error instanceof RateLimitError) {

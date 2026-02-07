@@ -283,3 +283,90 @@ export const logger = new Logger();
 
 // Export LogLevel enum values for convenience
 export { LogLevel as LogLevelEnum };
+
+/**
+ * Create a module-specific logger with the module name preset
+ * 
+ * Usage:
+ *   const log = createLogger('federation');
+ *   log.info('Agent registered', { agentId: '123' });
+ *   // Output: [INFO] [federation] Agent registered {"agentId":"123"}
+ */
+export function createLogger(module: string) {
+  return {
+    debug: (message: string, metadata?: Record<string, unknown>) => 
+      logger.debug(module, message, metadata),
+    info: (message: string, metadata?: Record<string, unknown>) => 
+      logger.info(module, message, metadata),
+    warn: (message: string, metadata?: Record<string, unknown>) => 
+      logger.warn(module, message, metadata),
+    error: (message: string, metadata?: Record<string, unknown>) => 
+      logger.error(module, message, metadata),
+    
+    /**
+     * Log an error with proper error object handling
+     */
+    logError: (message: string, error: unknown, additionalContext?: Record<string, unknown>) => {
+      const errorContext: Record<string, unknown> = {
+        ...additionalContext,
+      };
+      
+      if (error instanceof Error) {
+        errorContext['errorName'] = error.name;
+        errorContext['errorMessage'] = error.message;
+        if (process.env['NODE_ENV'] === 'development') {
+          errorContext['stack'] = error.stack;
+        }
+        
+        // Handle custom Godel errors with codes
+        if ('code' in error && typeof error.code === 'string') {
+          errorContext['errorCode'] = error.code;
+        }
+        
+        // Handle errors with context
+        if ('context' in error && typeof error.context === 'object') {
+          errorContext['errorContext'] = error.context;
+        }
+      } else {
+        errorContext['error'] = String(error);
+      }
+      
+      logger.error(module, message, errorContext);
+    },
+  };
+}
+
+/**
+ * Sanitize metadata to remove sensitive data before logging
+ * 
+ * Removes or redacts: passwords, tokens, secrets, keys, etc.
+ */
+export function sanitizeForLogging(data: Record<string, unknown>): Record<string, unknown> {
+  const sensitivePatterns = [
+    /password/i,
+    /secret/i,
+    /token/i,
+    /key/i,
+    /auth/i,
+    /credential/i,
+    /session/i,
+    /cookie/i,
+    /private/i,
+    /apikey/i,
+    /api[_-]?key/i,
+  ];
+  
+  const sanitized: Record<string, unknown> = {};
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (sensitivePatterns.some(pattern => pattern.test(key))) {
+      sanitized[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      sanitized[key] = sanitizeForLogging(value as Record<string, unknown>);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  
+  return sanitized;
+}

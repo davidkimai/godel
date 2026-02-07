@@ -16,6 +16,12 @@ import type {
   SelectionContext, 
   ExecutionStats 
 } from './types';
+import { createLogger } from '../../utils/logger';
+
+/**
+ * Module logger
+ */
+const log = createLogger('consistent-hash-strategy');
 
 /**
  * Consistent hashing strategy implementation
@@ -179,7 +185,7 @@ export class ConsistentHashStrategy implements LoadBalancingStrategy {
     if (!agent) {
       // Fallback to first available agent if hash points to removed agent
       // This shouldn't happen if ring is properly maintained
-      console.warn(`Consistent hash returned unknown agent ${agentId}, using fallback`);
+      log.warn('Consistent hash returned unknown agent, using fallback', { agentId });
       return agents[0];
     }
     

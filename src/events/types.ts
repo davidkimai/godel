@@ -97,7 +97,7 @@ export interface AgentSpawnedPayload {
   label?: string;
   model: string;
   task: string;
-  swarmId?: string;
+  teamId?: string;
   parentId?: string;
 }
 

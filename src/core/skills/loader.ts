@@ -691,8 +691,8 @@ export interface LoadAllSkillsOptions {
 export function loadAllSkills(options: LoadAllSkillsOptions = {}): LoadSkillsResult {
   const {
     cwd = process.cwd(),
-    userSkillsDir = join(homedir(), '.dash', 'skills'),
-    projectSkillsDir = resolve(cwd, '.dash', 'skills'),
+    userSkillsDir = join(homedir(), '.godel', 'skills'),
+    projectSkillsDir = resolve(cwd, '.godel', 'skills'),
     builtinSkillsDir = resolve(cwd, 'skills'),
     skillPaths = [],
     includeDefaults = true,

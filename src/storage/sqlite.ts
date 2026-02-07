@@ -1,7 +1,7 @@
 /**
  * SQLite Storage with Transaction Support - SPEC_v2.md Section 2.3
  * 
- * Persistent storage for agents, swarms, and events using SQLite.
+ * Persistent storage for agents, teams, and events using SQLite.
  * 
  * RACE CONDITION FIXES v3:
  * - Transaction support for multi-step operations
@@ -162,7 +162,7 @@ export class SQLiteStorage {
         runtime INTEGER DEFAULT 0,
         pause_time TEXT,
         paused_by TEXT,
-        swarm_id TEXT,
+        team_id TEXT,
         parent_id TEXT,
         child_ids TEXT, -- JSON array
         context TEXT, -- JSON
@@ -177,9 +177,9 @@ export class SQLiteStorage {
       )
     `);
 
-    // Swarms table
+    // Teams table
     this.getDb().exec(`
-      CREATE TABLE IF NOT EXISTS swarms (
+      CREATE TABLE IF NOT EXISTS teams (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -203,22 +203,22 @@ export class SQLiteStorage {
         source TEXT, -- JSON
         payload TEXT, -- JSON
         agent_id TEXT,
-        swarm_id TEXT
+        team_id TEXT
       )
     `);
 
     // PERFORMANCE ROUND 2: Optimized indexes for common query patterns
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
-    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(swarm_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(team_id)`);
     // PERFORMANCE: Composite index for status-based counting (used by status command)
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status_id ON agents(status, id)`);
     // PERFORMANCE: Index for sorting agents by spawn time (list commands)
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_spawned ON agents(spawned_at DESC)`);
     // PERFORMANCE: Covering index for lightweight status queries
-    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_lightweight ON agents(status, model, swarm_id, spawned_at)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_lightweight ON agents(status, model, team_id, spawned_at)`);
     
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent_id)`);
-    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(swarm_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(team_id)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_time ON events(timestamp)`);
   }
@@ -296,7 +296,7 @@ export class SQLiteStorage {
     const stmt = this.getDb().prepare(`
       INSERT INTO agents (
         id, label, status, model, task, spawned_at, completed_at, runtime,
-        pause_time, paused_by, swarm_id, parent_id, child_ids, context,
+        pause_time, paused_by, team_id, parent_id, child_ids, context,
         code, reasoning, retry_count, max_retries, last_error, budget_limit,
         safety_boundaries, metadata
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -313,7 +313,7 @@ export class SQLiteStorage {
       agent.runtime,
       agent.pauseTime?.toISOString() || null,
       agent.pausedBy || null,
-      agent.swarmId || null,
+      agent.teamId || null,
       agent.parentId || null,
       JSON.stringify(agent.childIds),
       JSON.stringify(agent.context),
@@ -428,13 +428,13 @@ export class SQLiteStorage {
     model: string;
     task: string;
     spawnedAt: string;
-    swarmId: string | null;
+    teamId: string | null;
     runtime: number | null;
     retryCount: number;
     maxRetries: number;
   }> {
     let query = `
-      SELECT id, label, status, model, task, spawned_at, swarm_id, runtime, retry_count, max_retries
+      SELECT id, label, status, model, task, spawned_at, team_id, runtime, retry_count, max_retries
       FROM agents 
       ORDER BY spawned_at DESC
     `;
@@ -453,7 +453,7 @@ export class SQLiteStorage {
       model: row['model'] as string,
       task: row['task'] as string,
       spawnedAt: row['spawned_at'] as string,
-      swarmId: row['swarm_id'] as string | null,
+      teamId: row['team_id'] as string | null,
       runtime: row['runtime'] as number | null,
       retryCount: (row['retry_count'] as number) || 0,
       maxRetries: (row['max_retries'] as number) || 3,
@@ -480,11 +480,11 @@ export class SQLiteStorage {
   }
 
   /**
-   * Get agents by swarm
+   * Get agents by team
    */
-  getAgentsBySwarm(swarmId: string): Agent[] {
-    const stmt = this.getDb().prepare('SELECT * FROM agents WHERE swarm_id = ?');
-    const rows = stmt.all(swarmId) as QueryResult[];
+  getAgentsByTeam(teamId: string): Agent[] {
+    const stmt = this.getDb().prepare('SELECT * FROM agents WHERE team_id = ?');
+    const rows = stmt.all(teamId) as QueryResult[];
     return rows.map(row => this.rowToAgent(row));
   }
 
@@ -521,13 +521,13 @@ export class SQLiteStorage {
   }
 
   // ============================================================================
-  // Swarm Operations with Transaction Support
+  // Team Operations with Transaction Support
   // ============================================================================
 
   /**
-   * Create a swarm
+   * Create a team
    */
-  createSwarm(swarm: {
+  createTeam(team: {
     id: string;
     name: string;
     status: string;
@@ -538,30 +538,30 @@ export class SQLiteStorage {
     metrics: Record<string, unknown>;
   }): void {
     const stmt = this.getDb().prepare(`
-      INSERT INTO swarms (
+      INSERT INTO teams (
         id, name, status, config, agents, created_at,
         budget_allocated, budget_consumed, budget_remaining, metrics
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
-      swarm.id,
-      swarm.name,
-      swarm.status,
-      JSON.stringify(swarm.config),
-      JSON.stringify(swarm.agents),
-      swarm.createdAt.toISOString(),
-      swarm.budget.allocated,
-      swarm.budget.consumed,
-      swarm.budget.remaining,
-      JSON.stringify(swarm.metrics)
+      team.id,
+      team.name,
+      team.status,
+      JSON.stringify(team.config),
+      JSON.stringify(team.agents),
+      team.createdAt.toISOString(),
+      team.budget.allocated,
+      team.budget.consumed,
+      team.budget.remaining,
+      JSON.stringify(team.metrics)
     );
   }
 
   /**
-   * Update a swarm
+   * Update a team
    */
-  updateSwarm(id: string, updates: Record<string, unknown>): void {
+  updateTeam(id: string, updates: Record<string, unknown>): void {
     const setClauses: string[] = [];
     const values: unknown[] = [];
 
@@ -582,44 +582,44 @@ export class SQLiteStorage {
 
     values.push(id);
 
-    const query = `UPDATE swarms SET ${setClauses.join(', ')} WHERE id = ?`;
+    const query = `UPDATE teams SET ${setClauses.join(', ')} WHERE id = ?`;
     const stmt = this.getDb().prepare(query);
     stmt.run(...values);
   }
 
   /**
-   * Get a swarm by ID
+   * Get a team by ID
    */
-  getSwarm(id: string): Record<string, unknown> | null {
-    const stmt = this.getDb().prepare('SELECT * FROM swarms WHERE id = ?');
+  getTeam(id: string): Record<string, unknown> | null {
+    const stmt = this.getDb().prepare('SELECT * FROM teams WHERE id = ?');
     const row = stmt.get(id) as QueryResult | undefined;
     
     if (!row) return null;
-    return this.rowToSwarm(row);
+    return this.rowToTeam(row);
   }
 
   /**
-   * Get all swarms
+   * Get all teams
    */
-  getAllSwarms(): Array<Record<string, unknown>> {
-    const stmt = this.getDb().prepare('SELECT * FROM swarms ORDER BY created_at DESC');
+  getAllTeams(): Array<Record<string, unknown>> {
+    const stmt = this.getDb().prepare('SELECT * FROM teams ORDER BY created_at DESC');
     const rows = stmt.all() as QueryResult[];
-    return rows.map(row => this.rowToSwarm(row));
+    return rows.map(row => this.rowToTeam(row));
   }
 
   /**
-   * Delete a swarm (transactional with agent cleanup)
-   * RACE CONDITION FIX: Ensures swarm and agents are deleted together
+   * Delete a team (transactional with agent cleanup)
+   * RACE CONDITION FIX: Ensures team and agents are deleted together
    */
-  deleteSwarm(id: string): void {
+  deleteTeam(id: string): void {
     this.withTransaction(() => {
       // Delete associated agents first
-      const deleteAgents = this.getDb().prepare('DELETE FROM agents WHERE swarm_id = ?');
+      const deleteAgents = this.getDb().prepare('DELETE FROM agents WHERE team_id = ?');
       deleteAgents.run(id);
 
-      // Delete the swarm
-      const deleteSwarm = this.getDb().prepare('DELETE FROM swarms WHERE id = ?');
-      deleteSwarm.run(id);
+      // Delete the team
+      const deleteTeam = this.getDb().prepare('DELETE FROM teams WHERE id = ?');
+      deleteTeam.run(id);
     });
   }
 
@@ -637,10 +637,10 @@ export class SQLiteStorage {
     source?: Record<string, unknown>;
     payload?: Record<string, unknown>;
     agentId?: string;
-    swarmId?: string;
+    teamId?: string;
   }): void {
     const stmt = this.getDb().prepare(`
-      INSERT INTO events (id, timestamp, event_type, source, payload, agent_id, swarm_id)
+      INSERT INTO events (id, timestamp, event_type, source, payload, agent_id, team_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
@@ -651,7 +651,7 @@ export class SQLiteStorage {
       event.source ? JSON.stringify(event.source) : null,
       event.payload ? JSON.stringify(event.payload) : null,
       event.agentId || null,
-      event.swarmId || null
+      event.teamId || null
     );
   }
 
@@ -667,13 +667,13 @@ export class SQLiteStorage {
   }
 
   /**
-   * Get events by swarm
+   * Get events by team
    */
-  getEventsBySwarm(swarmId: string, limit: number = 100): Array<Record<string, unknown>> {
+  getEventsByTeam(teamId: string, limit: number = 100): Array<Record<string, unknown>> {
     const stmt = this.getDb().prepare(
-      'SELECT * FROM events WHERE swarm_id = ? ORDER BY timestamp DESC LIMIT ?'
+      'SELECT * FROM events WHERE team_id = ? ORDER BY timestamp DESC LIMIT ?'
     );
-    const rows = stmt.all(swarmId, limit) as QueryResult[];
+    const rows = stmt.all(teamId, limit) as QueryResult[];
     return rows.map(row => this.rowToEvent(row));
   }
 
@@ -713,7 +713,7 @@ export class SQLiteStorage {
       runtime: (row['runtime'] as number) || 0,
       pauseTime: row['pause_time'] ? new Date(row['pause_time'] as string) : undefined,
       pausedBy: row['paused_by'] as string | undefined,
-      swarmId: row['swarm_id'] as string | undefined,
+      teamId: row['team_id'] as string | undefined,
       parentId: row['parent_id'] as string | undefined,
       childIds: row['child_ids'] ? JSON.parse(row['child_ids'] as string) : [],
       context: row['context'] ? JSON.parse(row['context'] as string) : {
@@ -740,9 +740,9 @@ export class SQLiteStorage {
   }
 
   /**
-   * Convert database row to Swarm object
+   * Convert database row to Team object
    */
-  private rowToSwarm(row: QueryResult): Record<string, unknown> {
+  private rowToTeam(row: QueryResult): Record<string, unknown> {
     return {
       id: row['id'],
       name: row['name'],
@@ -771,7 +771,7 @@ export class SQLiteStorage {
       source: row['source'] ? JSON.parse(row['source'] as string) : undefined,
       payload: row['payload'] ? JSON.parse(row['payload'] as string) : undefined,
       agentId: row['agent_id'],
-      swarmId: row['swarm_id'],
+      teamId: row['team_id'],
     };
   }
 }

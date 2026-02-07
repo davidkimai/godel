@@ -688,7 +688,7 @@ class FederationDashboard {
         <div class="empty-state">
           <div class="empty-state-icon">🤖</div>
           <p>No agents registered</p>
-          <p style="font-size: 13px; margin-top: 8px;">Use "swarmctl federation agents" to see registered agents</p>
+          <p style="font-size: 13px; margin-top: 8px;">Use "godel federation agents" to see registered agents</p>
         </div>
       ` : `
         <div class="agent-list">
@@ -729,7 +729,7 @@ class FederationDashboard {
         <div class="empty-state">
           <div class="empty-state-icon">⚡</div>
           <p>No recent executions</p>
-          <p style="font-size: 13px; margin-top: 8px;">Use "swarmctl federation execute" to run tasks</p>
+          <p style="font-size: 13px; margin-top: 8px;">Use "godel federation execute" to run tasks</p>
         </div>
       ` : `
         <div class="execution-list">

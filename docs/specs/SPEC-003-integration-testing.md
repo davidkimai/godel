@@ -1,4 +1,4 @@
-# SPEC: Dash Integration Testing Suite
+# SPEC: Godel Integration Testing Suite
 
 **Version:** 1.0  
 **Date:** February 3, 2026  
@@ -10,10 +10,10 @@
 
 ## Overview
 
-Execute comprehensive integration test suite to validate Dash-OpenClaw integration and production readiness.
+Execute comprehensive integration test suite to validate Godel-OpenClaw integration and production readiness.
 
 **PRD Success Criteria:**
-1. ✅ Full OpenClaw → Dash → OpenClaw flow works
+1. ✅ Full OpenClaw → Godel → OpenClaw flow works
 2. ✅ 100 agents spawned concurrently without errors
 3. ✅ Event latency < 500ms
 4. ✅ API handles 1000 concurrent requests
@@ -27,8 +27,8 @@ Execute comprehensive integration test suite to validate Dash-OpenClaw integrati
 ### Prerequisites
 
 ```bash
-# Start Dash services
-cd /Users/jasontang/clawd/projects/dash
+# Start Godel services
+cd /Users/jasontang/clawd/projects/godel
 docker compose up -d
 
 # Verify services
@@ -64,7 +64,7 @@ export const testConfig = {
 
 **File:** `tests/integration/scenarios/agent-spawn.test.ts`
 
-**Purpose:** Verify OpenClaw can spawn Dash agents
+**Purpose:** Verify OpenClaw can spawn Godel agents
 
 ```typescript
 describe('Scenario 1: OpenClaw Agent Spawn', () => {
@@ -76,14 +76,14 @@ describe('Scenario 1: OpenClaw Agent Spawn', () => {
       model: 'claude-sonnet-4-5'
     };
     
-    // 2. Adapter creates agent in Dash
+    // 2. Adapter creates agent in Godel
     const result = await openclawAdapter.spawnAgent('session-1', spawnRequest);
     
     // 3. Verify agent created
     expect(result.dashAgentId).toBeDefined();
     expect(result.status).toBe('spawning');
     
-    // 4. Verify agent appears in Dash
+    // 4. Verify agent appears in Godel
     const agent = await swarmctl.getAgent(result.dashAgentId);
     expect(agent).toBeDefined();
     expect(agent.status).toBe('spawning');
@@ -103,7 +103,7 @@ describe('Scenario 1: OpenClaw Agent Spawn', () => {
     expect(results).toHaveLength(100);
     expect(results.every(r => r.dashAgentId)).toBe(true);
     
-    // Verify in Dash
+    // Verify in Godel
     const agents = await swarmctl.listAgents();
     expect(agents.length).toBeGreaterThanOrEqual(100);
   }, 120000);  // 2 minutes
@@ -116,7 +116,7 @@ describe('Scenario 1: OpenClaw Agent Spawn', () => {
 
 **File:** `tests/integration/scenarios/event-streaming.test.ts`
 
-**Purpose:** Verify real-time event streaming from Dash to OpenClaw
+**Purpose:** Verify real-time event streaming from Godel to OpenClaw
 
 ```typescript
 describe('Scenario 2: Event Streaming', () => {
@@ -288,14 +288,14 @@ describe('Scenario 4: API Load Testing', () => {
 
 **File:** `tests/integration/scenarios/cli-integration.test.ts`
 
-**Purpose:** Verify CLI works with real Dash instance
+**Purpose:** Verify CLI works with real Godel instance
 
 ```typescript
 describe('Scenario 5: CLI Integration', () => {
   it('should spawn agent via CLI', async () => {
     // Execute CLI command
     const { stdout } = await execAsync(
-      'swarmctl agent spawn --swarm test-swarm --type code-review'
+      'swarmctl agent spawn --team test-team --type code-review'
     );
     
     // Verify output
@@ -310,7 +310,7 @@ describe('Scenario 5: CLI Integration', () => {
   it('should show status via CLI', async () => {
     // Spawn agent first
     const { stdout: spawnOutput } = await execAsync(
-      'swarmctl agent spawn --swarm test-swarm --type test'
+      'swarmctl agent spawn --team test-team --type test'
     );
     const agentId = spawnOutput.match(/(agent-[a-z0-9]+)/)?.[1];
     
@@ -628,7 +628,7 @@ npm run test:integration -- --coverage
 
 ### Common Issues
 
-1. **Connection refused:** Ensure Dash services are running
+1. **Connection refused:** Ensure Godel services are running
 2. **Timeout errors:** Increase test timeout
 3. **Event latency high:** Check network, Redis performance
 4. **Database errors:** Verify PostgreSQL is running

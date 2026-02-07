@@ -689,7 +689,7 @@ export class VercelSkillsClient {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'Dash-VercelSkills-Client/1.0',
+          'User-Agent': 'Godel-VercelSkills-Client/1.0',
           ...options.headers,
         },
       });

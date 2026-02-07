@@ -1,13 +1,13 @@
-# Dash Query Examples
+# Godel Query Examples
 
-This document provides useful PromQL queries for monitoring and debugging the Dash orchestration platform.
+This document provides useful PromQL queries for monitoring and debugging the Godel orchestration platform.
 
 ## Basic Queries
 
 ### System Health
 
 ```promql
-# Is Dash up?
+# Is Godel up?
 up{job="dash"}
 
 # Current active swarms

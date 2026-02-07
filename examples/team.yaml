@@ -1,12 +1,12 @@
-# Example Godel Swarm Configuration
-# This is a declarative configuration file for defining agent swarms
+# Example Godel Team Configuration
+# This is a declarative configuration file for defining agent teams
 
 apiVersion: godel.io/v1
-kind: Swarm
+kind: Team
 
 metadata:
-  name: code-review-swarm
-  description: A swarm of agents for code review and quality checks
+  name: code-review-team
+  description: A team of agents for code review and quality checks
   labels:
     environment: production
     team: platform
@@ -16,10 +16,10 @@ metadata:
     cost-center: engineering
 
 spec:
-  # The main task for the swarm
+  # The main task for the team
   task: Review the codebase for security vulnerabilities, code smells, and performance issues
   
-  # Swarm execution strategy
+  # Team execution strategy
   # Options: parallel, map-reduce, pipeline, tree
   strategy: parallel
   

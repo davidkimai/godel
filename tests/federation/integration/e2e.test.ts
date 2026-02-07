@@ -18,10 +18,10 @@ import { ExecutionEngine } from '../../../src/federation/execution-engine';
 import type { ExecutionResult } from '../../../src/federation/types';
 import {
   AgentRegistry,
-  AgentSelector,
   resetAgentRegistry,
   getAgentRegistry,
 } from '../../../src/federation/agent-registry';
+import { AgentSelector } from '../../../src/federation/agent-selector';
 import { LoadBalancer } from '../../../src/federation/load-balancer';
 import { AutoScaler } from '../../../src/scaling/auto-scaler';
 import type {

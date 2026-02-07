@@ -3,11 +3,11 @@ apiVersion: 1
 groups:
   - orgId: 1
     name: dash_logs_alerts
-    folder: Dash Alerts
+    folder: Godel Alerts
     interval: 30s
     rules:
       # High Error Rate Alert
-      - uid: dash-error-rate
+      - uid: godel-error-rate
         title: High Error Rate
         condition: C
         data:
@@ -18,7 +18,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(rate({job="dash"} |= "ERROR" [5m]))'
+              expr: 'sum(rate({job="godel"} |= "ERROR" [5m]))'
               queryType: "range"
               refId: A
           - refId: C
@@ -44,7 +44,7 @@ groups:
           category: error_rate
 
       # Agent Crash Alert
-      - uid: dash-agent-crash
+      - uid: godel-agent-crash
         title: Agent Crash Detected
         condition: C
         data:
@@ -55,7 +55,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(count_over_time({job="dash"} |= "agent.*crash" [1m]))'
+              expr: 'sum(count_over_time({job="godel"} |= "agent.*crash" [1m]))'
               queryType: "range"
               refId: A
           - refId: C
@@ -78,7 +78,7 @@ groups:
           category: agent_health
 
       # Workflow Failure Alert
-      - uid: dash-workflow-fail
+      - uid: godel-workflow-fail
         title: Workflow Failure
         condition: C
         data:
@@ -89,7 +89,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum by(workflow_id) (count_over_time({job="dash"} |= "workflow.*failed" [5m]))'
+              expr: 'sum by(workflow_id) (count_over_time({job="godel"} |= "workflow.*failed" [5m]))'
               queryType: "range"
               refId: A
           - refId: C
@@ -112,7 +112,7 @@ groups:
           category: workflow
 
       # Database Error Alert
-      - uid: dash-db-error
+      - uid: godel-db-error
         title: Database Error
         condition: C
         data:
@@ -123,7 +123,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(count_over_time({job="dash"} |= "database.*error" or "ECONNREFUSED" [5m]))'
+              expr: 'sum(count_over_time({job="godel"} |= "database.*error" or "ECONNREFUSED" [5m]))'
               queryType: "range"
               refId: A
           - refId: C
@@ -146,7 +146,7 @@ groups:
           category: database
 
       # Log Volume Spike Alert
-      - uid: dash-log-spike
+      - uid: godel-log-spike
         title: Log Volume Spike
         condition: C
         data:
@@ -157,7 +157,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(rate({job="dash"} [5m]))'
+              expr: 'sum(rate({job="godel"} [5m]))'
               queryType: "range"
               refId: A
           - refId: B
@@ -187,7 +187,7 @@ groups:
           category: log_volume
 
       # Memory Error Alert
-      - uid: dash-memory-error
+      - uid: godel-memory-error
         title: Out of Memory Error
         condition: C
         data:
@@ -198,7 +198,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(count_over_time({job="dash"} |= "out of memory" or "ENOMEM" [1m]))'
+              expr: 'sum(count_over_time({job="godel"} |= "out of memory" or "ENOMEM" [1m]))'
               queryType: "range"
               refId: A
           - refId: C
@@ -221,7 +221,7 @@ groups:
           category: resource
 
       # Connection Timeout Alert
-      - uid: dash-timeout
+      - uid: godel-timeout
         title: Connection Timeout
         condition: C
         data:
@@ -232,7 +232,7 @@ groups:
             datasourceUid: Loki
             model:
               editorMode: "builder"
-              expr: 'sum(rate({job="dash"} |= "timeout" or "ETIMEDOUT" [5m]))'
+              expr: 'sum(rate({job="godel"} |= "timeout" or "ETIMEDOUT" [5m]))'
               queryType: "range"
               refId: A
           - refId: C

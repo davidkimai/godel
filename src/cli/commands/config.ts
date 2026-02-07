@@ -1,9 +1,9 @@
 /**
  * Config CLI Commands
  * 
- * Provides CLI commands for managing Dash configuration:
- * - dash config get <key>
- * - dash config list
+ * Provides CLI commands for managing Godel configuration:
+ * - godel config get <key>
+ * - godel config list
  */
 
 import { logger } from '../../utils/logger';
@@ -25,7 +25,7 @@ export interface ConfigData {
     enabled?: boolean;
     gatewayUrl?: string;
   };
-  swarm?: {
+  team?: {
     defaultAgents?: number;
     maxAgents?: number;
   };
@@ -33,8 +33,8 @@ export interface ConfigData {
 
 function loadConfig(): ConfigData {
   const configPaths = [
-    'dash.config.yaml',
-    'dash.config.yml',
+    'godel.config.yaml',
+    'godel.config.yml',
     '.dashrc',
     path.join(process.env['HOME'] || '', '.dashrc')
   ];
@@ -69,7 +69,7 @@ export function configCommand(): Command {
       
       if (value === undefined) {
         logger.error(`❌  Config key not found: ${key}`);
-        logger.info('💡  Use "dash config list" to see all available keys');
+        logger.info('💡  Use "godel config list" to see all available keys');
         process.exit(1);
       }
       
@@ -90,11 +90,11 @@ export function configCommand(): Command {
       
       if (Object.keys(config).length === 0) {
         logger.info('⚠️  No configuration found');
-        logger.info('💡  Create dash.config.yaml in the current directory');
+        logger.info('💡  Create godel.config.yaml in the current directory');
         process.exit(0);
       }
       
-      logger.info('=== Dash Configuration ===');
+      logger.info('=== Godel Configuration ===');
       logger.info(JSON.stringify(config, null, 2));
       
       process.exit(0);
@@ -105,7 +105,7 @@ export function configCommand(): Command {
     .description('Set a configuration value')
     .action(async (key, value) => {
       logger.info(`⚠️  config set not implemented yet`);
-      logger.info('💡  Edit dash.config.yaml directly');
+      logger.info('💡  Edit godel.config.yaml directly');
       process.exit(1);
     });
   

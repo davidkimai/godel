@@ -31,7 +31,7 @@ export interface ImprovementRecord {
     documentationCoverage?: number;
   };
   context: {
-    swarmId: string;
+    teamId: string;
     agentCount: number;
     modelUsed: string;
     toolsUsed: string[];
@@ -160,7 +160,7 @@ export class LearningEngine {
         performance_improvement REAL,
         code_quality_score REAL,
         documentation_coverage REAL,
-        swarm_id TEXT,
+        team_id TEXT,
         agent_count INTEGER,
         model_used TEXT,
         tools_used TEXT,
@@ -305,7 +305,7 @@ export class LearningEngine {
       INSERT INTO learning_improvements (
         id, timestamp, area, strategy, success, confidence, budget_used, duration_ms, changes,
         test_coverage_delta, bugs_fixed, performance_improvement, code_quality_score, documentation_coverage,
-        swarm_id, agent_count, model_used, tools_used, error_details
+        team_id, agent_count, model_used, tools_used, error_details
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       id,
@@ -322,7 +322,7 @@ export class LearningEngine {
       record.metrics.performanceImprovement ?? null,
       record.metrics.codeQualityScore ?? null,
       record.metrics.documentationCoverage ?? null,
-      record.context.swarmId,
+      record.context.teamId,
       record.context.agentCount,
       record.context.modelUsed,
       JSON.stringify(record.context.toolsUsed),
@@ -947,7 +947,7 @@ export class LearningEngine {
         documentationCoverage: row.documentation_coverage,
       },
       context: {
-        swarmId: row.swarm_id,
+        teamId: row.team_id,
         agentCount: row.agent_count,
         modelUsed: row.model_used,
         toolsUsed: JSON.parse(row.tools_used || '[]'),

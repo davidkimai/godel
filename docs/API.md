@@ -66,7 +66,7 @@ List all agents.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `swarmId` | string (UUID) | Filter by swarm ID |
+| `swarmId` | string (UUID) | Filter by team ID |
 | `status` | string[] | Filter by status |
 | `page` | integer | Page number (default: 1) |
 | `perPage` | integer | Items per page (default: 20, max: 100) |
@@ -114,7 +114,7 @@ Spawn a new agent.
 | `model` | enum | Yes | `kimi-k2.5`, `claude-sonnet-4-5`, `gpt-4`, `gpt-4o` |
 | `priority` | enum | No | `low`, `medium`, `high`, `critical` (default: `medium`) |
 | `parentId` | UUID | No | Parent agent ID for hierarchical spawning |
-| `swarmId` | UUID | No | Swarm ID to add agent to |
+| `swarmId` | UUID | No | Team ID to add agent to |
 | `metadata` | object | No | Additional metadata |
 
 **Example Request:**
@@ -144,7 +144,7 @@ Spawn a new agent.
 
 **Error Responses:**
 - `400 Bad Request` - Invalid input
-- `404 Not Found` - Swarm not found
+- `404 Not Found` - Team not found
 
 **cURL Example:**
 ```bash
@@ -366,11 +366,11 @@ curl -X POST \
 
 ---
 
-## Swarm API
+## Team API
 
-### GET /api/swarm
+### GET /api/team
 
-List all swarms.
+List all teams.
 
 **Query Parameters:**
 
@@ -383,10 +383,10 @@ List all swarms.
 **Response:**
 ```json
 {
-  "swarms": [
+  "teams": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
-      "name": "analysis-swarm",
+      "name": "analysis-team",
       "status": "running",
       "config": {
         "strategy": "parallel",
@@ -402,20 +402,20 @@ List all swarms.
 **cURL Example:**
 ```bash
 curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/swarm
+  http://localhost:7373/api/team
 ```
 
 ---
 
-### POST /api/swarm
+### POST /api/team
 
-Create a new swarm.
+Create a new team.
 
 **Request Body:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | Yes | Swarm name (1-100 chars, alphanumeric + -_) |
+| `name` | string | Yes | Team name (1-100 chars, alphanumeric + -_) |
 | `description` | string | No | Description (max 500 chars) |
 | `agents` | integer | Yes | Number of agents (1-100) |
 | `strategy` | enum | No | `parallel`, `map-reduce`, `pipeline`, `race` (default: `parallel`) |
@@ -429,7 +429,7 @@ Create a new swarm.
 **Example Request:**
 ```json
 {
-  "name": "analysis-swarm",
+  "name": "analysis-team",
   "description": "Analyze Q4 feedback data",
   "agents": 5,
   "strategy": "parallel",
@@ -441,7 +441,7 @@ Create a new swarm.
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
-  "name": "analysis-swarm",
+  "name": "analysis-team",
   "status": "running",
   "config": {
     "strategy": "parallel",
@@ -458,30 +458,30 @@ curl -X POST \
   -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "analysis-swarm",
+    "name": "analysis-team",
     "agents": 5,
     "strategy": "parallel"
   }' \
-  http://localhost:7373/api/swarm
+  http://localhost:7373/api/team
 ```
 
 ---
 
-### GET /api/swarm/:id
+### GET /api/team/:id
 
-Get swarm by ID.
+Get team by ID.
 
 **Path Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `id` | UUID | Swarm ID |
+| `id` | UUID | Team ID |
 
 **Response:**
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
-  "name": "analysis-swarm",
+  "name": "analysis-team",
   "status": "running",
   "config": {
     "strategy": "parallel",
@@ -499,26 +499,26 @@ Get swarm by ID.
 **cURL Example:**
 ```bash
 curl -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
+  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ---
 
-### PATCH /api/swarm/:id
+### PATCH /api/team/:id
 
-Update swarm.
+Update team.
 
 **Path Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `id` | UUID | Swarm ID |
+| `id` | UUID | Team ID |
 
 **Request Body:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Swarm name |
+| `name` | string | Team name |
 | `description` | string | Description |
 | `status` | enum | `running`, `paused`, `completed`, `failed` |
 | `config` | object | Configuration updates |
@@ -539,20 +539,20 @@ curl -X PATCH \
   -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"status": "paused"}' \
-  http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
+  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ---
 
-### DELETE /api/swarm/:id
+### DELETE /api/team/:id
 
-Destroy swarm and all its agents.
+Destroy team and all its agents.
 
 **Path Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `id` | UUID | Swarm ID |
+| `id` | UUID | Team ID |
 
 **Response:** `204 No Content`
 
@@ -560,20 +560,20 @@ Destroy swarm and all its agents.
 ```bash
 curl -X DELETE \
   -H "X-API-Key: godel-api-key" \
-  http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001
+  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001
 ```
 
 ---
 
-### POST /api/swarm/:id/scale
+### POST /api/team/:id/scale
 
-Scale swarm to target number of agents.
+Scale team to target number of agents.
 
 **Path Parameters:**
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `id` | UUID | Swarm ID |
+| `id` | UUID | Team ID |
 
 **Request Body:**
 
@@ -604,7 +604,7 @@ curl -X POST \
   -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{"targetAgents": 10}' \
-  http://localhost:7373/api/swarm/550e8400-e29b-41d4-a716-446655440001/scale
+  http://localhost:7373/api/team/550e8400-e29b-41d4-a716-446655440001/scale
 ```
 
 ---
@@ -645,7 +645,7 @@ Create a new event.
 | `eventType` | string | Yes | Event type |
 | `payload` | object | Yes | Event payload |
 | `agentId` | UUID | No | Associated agent ID |
-| `swarmId` | UUID | No | Associated swarm ID |
+| `swarmId` | UUID | No | Associated team ID |
 
 **Example Request:**
 ```json
@@ -724,9 +724,9 @@ ws.onerror = (error) => {
 | `agent.completed` | Agent completed task | `{ agentId, result }` |
 | `agent.failed` | Agent failed | `{ agentId, error }` |
 | `agent.killed` | Agent was killed | `{ agentId, reason }` |
-| `swarm.created` | Swarm was created | `{ swarmId, name, config }` |
-| `swarm.destroyed` | Swarm was destroyed | `{ swarmId }` |
-| `swarm.scaled` | Swarm was scaled | `{ swarmId, previousCount, newCount }` |
+| `team.created` | Team was created | `{ swarmId, name, config }` |
+| `team.destroyed` | Team was destroyed | `{ swarmId }` |
+| `team.scaled` | Team was scaled | `{ swarmId, previousCount, newCount }` |
 | `budget.warning` | Budget warning threshold reached | `{ budgetId, threshold, current }` |
 | `budget.critical` | Budget critical threshold reached | `{ budgetId, threshold, current }` |
 
@@ -742,7 +742,7 @@ ws.onerror = (error) => {
 | `status` | enum | Current status |
 | `model` | string | AI model used |
 | `task` | string | Task description |
-| `swarm_id` | UUID | Parent swarm (optional) |
+| `swarm_id` | UUID | Parent team (optional) |
 | `parent_id` | UUID | Parent agent (optional) |
 | `label` | string | Display label |
 | `spawned_at` | datetime | Creation timestamp |
@@ -764,25 +764,25 @@ ws.onerror = (error) => {
 | `failed` | Agent failed |
 | `killing` | Agent is being killed |
 
-### Swarm
+### Team
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID | Unique identifier |
-| `name` | string | Swarm name |
+| `name` | string | Team name |
 | `status` | enum | Current status |
 | `config` | object | Configuration |
 | `created_at` | datetime | Creation timestamp |
 | `updated_at` | datetime | Last update timestamp |
 
-### Swarm Status Values
+### Team Status Values
 
 | Status | Description |
 |--------|-------------|
-| `running` | Swarm is active |
-| `paused` | Swarm is paused |
-| `completed` | Swarm completed |
-| `failed` | Swarm failed |
+| `running` | Team is active |
+| `paused` | Team is paused |
+| `completed` | Team completed |
+| `failed` | Team failed |
 
 ---
 

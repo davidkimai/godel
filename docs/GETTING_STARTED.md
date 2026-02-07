@@ -6,7 +6,7 @@ Complete guide to setting up and using Godel for agent orchestration.
 
 1. [Prerequisites](#prerequisites)
 2. [Installation](#installation)
-3. [First Swarm Creation](#first-swarm-creation)
+3. [First Team Creation](#first-team-creation)
 4. [First Agent Spawn](#first-agent-spawn)
 5. [Viewing Logs](#viewing-logs)
 6. [Monitoring](#monitoring)
@@ -72,8 +72,8 @@ godel --help     # Show available commands
 # Run without installing
 npx @jtan15010/godel --help
 
-# Example: Create a swarm
-npx @jtan15010/godel swarm create --name test --task "hello world"
+# Example: Create a team
+npx @jtan15010/godel team create --name test --task "hello world"
 ```
 
 ### Method 3: From Source
@@ -195,23 +195,23 @@ godel status
 
 ---
 
-## First Swarm Creation
+## First Team Creation
 
-A **swarm** is a group of agents working together on a common task.
+A **team** is a group of agents working together on a common task.
 
-### Step 1: Create a Swarm
+### Step 1: Create a Team
 
 ```bash
-# Basic swarm creation
-godel swarm create --name "my-first-swarm" --task "Review codebase for bugs"
+# Basic team creation
+godel team create --name "my-first-team" --task "Review codebase for bugs"
 ```
 
 ### Step 2: Create with Options
 
 ```bash
-# Advanced swarm creation
-godel swarm create \
-  --name "code-review-swarm" \
+# Advanced team creation
+godel team create \
+  --name "code-review-team" \
   --task "Review all TypeScript files for security issues" \
   --initial-agents 5 \
   --max-agents 20 \
@@ -220,14 +220,14 @@ godel swarm create \
   --budget 50.00
 ```
 
-### Step 3: Monitor the Swarm
+### Step 3: Monitor the Team
 
 ```bash
-# List all swarms
-godel swarm list
+# List all teams
+godel team list
 
-# Check swarm status
-godel swarm status <swarm-id>
+# Check team status
+godel team status <team-id>
 
 # Launch the TUI dashboard
 godel dashboard
@@ -235,14 +235,14 @@ godel dashboard
 
 ### Using a YAML Configuration File
 
-Create `swarm.yaml`:
+Create `team.yaml`:
 
 ```yaml
 apiVersion: godel.io/v1
-kind: Swarm
+kind: Team
 
 metadata:
-  name: code-review-swarm
+  name: code-review-team
   description: Review codebase for issues
 
 spec:
@@ -269,7 +269,7 @@ spec:
 
 Apply it:
 ```bash
-godel swarm create --file swarm.yaml
+godel team create --file team.yaml
 ```
 
 ---
@@ -339,8 +339,8 @@ godel logs tail
 # View logs for specific agent
 godel logs tail --agent <agent-id>
 
-# View logs for specific swarm
-godel logs tail --swarm <swarm-id>
+# View logs for specific team
+godel logs tail --team <team-id>
 
 # Follow logs (like tail -f)
 godel logs tail --follow
@@ -366,7 +366,7 @@ Logs are stored in:
 .godel/logs/
 ├── orchestrator.log      # Main orchestrator logs
 ├── monitor.log          # Build monitor logs
-├── watchdog.log         # Swarm watchdog logs
+├── watchdog.log         # Team watchdog logs
 ├── reports.log          # Progress reports
 └── agents/              # Individual agent logs
     ├── agent-1.log
@@ -404,7 +404,7 @@ Launch the interactive dashboard:
 godel dashboard
 
 # Godelboard shows:
-# - Active swarms
+# - Active teams
 # - Running agents
 # - Recent events
 # - Budget usage
@@ -429,7 +429,7 @@ open http://localhost:3000
 
 | Metric | Description | Location |
 |--------|-------------|----------|
-| Active Swarms | Number of running swarms | Godelboard |
+| Active Teams | Number of running teams | Godelboard |
 | Active Agents | Number of running agents | Godelboard |
 | Budget Usage | Current budget consumption | Godelboard |
 | Task Queue | Pending tasks | Godelboard |
@@ -537,7 +537,7 @@ godel --log-level debug <command>
 ```bash
 # Show help for any command
 godel --help
-godel swarm --help
+godel team --help
 godel agents spawn --help
 
 # Check version

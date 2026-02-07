@@ -93,10 +93,10 @@ export class AgentNotFoundError extends NotFoundError {
   }
 }
 
-export class SwarmNotFoundError extends NotFoundError {
-  constructor(swarmId: string, context?: ErrorContext) {
-    super('Swarm', swarmId, context);
-    this.name = 'SwarmNotFoundError';
+export class TeamNotFoundError extends NotFoundError {
+  constructor(teamId: string, context?: ErrorContext) {
+    super('Team', teamId, context);
+    this.name = 'TeamNotFoundError';
   }
 }
 
@@ -171,13 +171,13 @@ export class AgentTimeoutError extends ApplicationError {
   }
 }
 
-export class SwarmExecutionError extends ApplicationError {
+export class TeamExecutionError extends ApplicationError {
   constructor(
-    public readonly swarmId: string,
+    public readonly teamId: string,
     message: string,
     context?: ErrorContext
   ) {
-    super(message, 'SWARM_EXECUTION_FAILED', 500, { ...context, swarmId }, false);
+    super(message, 'TEAM_EXECUTION_FAILED', 500, { ...context, teamId }, false);
   }
 }
 
@@ -455,7 +455,7 @@ export const ErrorCode = {
   // Execution Errors
   AGENT_EXECUTION_FAILED: 'AGENT_EXECUTION_FAILED',
   AGENT_TIMEOUT: 'AGENT_TIMEOUT',
-  SWARM_EXECUTION_FAILED: 'SWARM_EXECUTION_FAILED',
+  TEAM_EXECUTION_FAILED: 'TEAM_EXECUTION_FAILED',
   
   // Resource Errors
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',

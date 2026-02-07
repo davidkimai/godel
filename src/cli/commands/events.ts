@@ -2,9 +2,9 @@
  * Events Commands
  * 
  * Commands:
- * - swarmctl events list [--format json|jsonl|table] [--since <duration>] [--agent <id>]
- * - swarmctl events stream [--follow] [--agent <id>] [--type <type>]
- * - swarmctl events get <event-id>
+ * - godel events list [--format json|jsonl|table] [--since <duration>] [--agent <id>]
+ * - godel events stream [--follow] [--agent <id>] [--type <type>]
+ * - godel events get <event-id>
  */
 
 import { logger } from '../../utils/logger';

@@ -55,7 +55,7 @@ const BaseEventSchema = z.object({
   ]),
   timestamp: z.number(),
   agentId: z.string(),
-  swarmId: z.string().optional(),
+  teamId: z.string().optional(),
   sessionId: z.string().optional(),
   correlationId: z.string().optional(),
   parentEventId: z.string().optional(),
@@ -158,7 +158,7 @@ export interface RedisEventBusConfig extends BaseEventBusConfig {
   redisUrl?: string;
   /** Redis connection options */
   redisOptions?: RedisOptions;
-  /** Stream key for event persistence (default: dash:events) */
+  /** Stream key for event persistence (default: godel:events) */
   streamKey?: string;
   /** Consumer group name for multi-node support */
   consumerGroup?: string;
@@ -297,8 +297,8 @@ export class RedisEventBus extends EventEmitter {
       syncDelivery: false,
       redisUrl: config.redisUrl || process.env['REDIS_URL'] || 'redis://localhost:6379/0',
       redisOptions: config.redisOptions || {},
-      streamKey: config.streamKey || 'dash:events',
-      consumerGroup: config.consumerGroup || 'dash:consumers',
+      streamKey: config.streamKey || 'godel:events',
+      consumerGroup: config.consumerGroup || 'godel:consumers',
       nodeId: this.nodeId,
       compressionThreshold: config.compressionThreshold || 1024,
       maxStreamLength: config.maxStreamLength || 100000,
@@ -322,7 +322,7 @@ export class RedisEventBus extends EventEmitter {
       ...config,
     };
 
-    this.setMaxListeners(this.config.maxListeners);
+    this.setMaxListeners(this.config.maxListeners ?? 1000);
     
     // Initialize fallback bus
     this.fallbackBus = new AgentEventBus({
@@ -344,31 +344,31 @@ export class RedisEventBus extends EventEmitter {
       // Create separate connections for pub/sub and streams
       this.publisher = new Redis(this.config.redisUrl, {
         ...this.config.redisOptions,
-        retryStrategy: (times) => {
-          if (times > this.config.retryConfig.maxRetries) {
+        retryStrategy: (times: number): number | null => {
+          if (times > (this.config.retryConfig?.maxRetries ?? 3)) {
             return null; // Stop retrying
           }
-          return Math.min(times * this.config.retryConfig.retryDelayMs, 10000);
+          return Math.min(times * (this.config.retryConfig?.retryDelayMs ?? 1000), 10000);
         },
       });
 
       this.subscriber = new Redis(this.config.redisUrl, {
         ...this.config.redisOptions,
-        retryStrategy: (times) => {
-          if (times > this.config.retryConfig.maxRetries) {
+        retryStrategy: (times: number): number | null => {
+          if (times > (this.config.retryConfig?.maxRetries ?? 3)) {
             return null;
           }
-          return Math.min(times * this.config.retryConfig.retryDelayMs, 10000);
+          return Math.min(times * (this.config.retryConfig?.retryDelayMs ?? 1000), 10000);
         },
       });
 
       this.streamClient = new Redis(this.config.redisUrl, {
         ...this.config.redisOptions,
-        retryStrategy: (times) => {
-          if (times > this.config.retryConfig.maxRetries) {
+        retryStrategy: (times: number): number | null => {
+          if (times > (this.config.retryConfig?.maxRetries ?? 3)) {
             return null;
           }
-          return Math.min(times * this.config.retryConfig.retryDelayMs, 10000);
+          return Math.min(times * (this.config.retryConfig?.retryDelayMs ?? 1000), 10000);
         },
       });
 
@@ -439,7 +439,7 @@ export class RedisEventBus extends EventEmitter {
     if (!this.subscriber) return;
 
     // Subscribe to real-time events channel
-    await this.subscriber.subscribe('dash:events:realtime');
+    await this.subscriber.subscribe('godel:events:realtime');
 
     this.subscriber.on('message', async (channel, message) => {
       try {
@@ -603,7 +603,7 @@ export class RedisEventBus extends EventEmitter {
   // ============================================================================
 
   private startHeartbeat(): void {
-    const heartbeatKey = `dash:nodes:${this.nodeId}`;
+    const heartbeatKey = `godel:nodes:${this.nodeId}`;
     
     this.heartbeatInterval = setInterval(async () => {
       if (!this.streamClient || !this.isRedisConnected) return;
@@ -633,12 +633,12 @@ export class RedisEventBus extends EventEmitter {
     if (!this.streamClient) return;
 
     try {
-      const keys = await this.streamClient.keys('dash:nodes:*');
+      const keys = await this.streamClient.keys('godel:nodes:*');
       const now = Date.now();
       const ttl = 30000; // 30 seconds
 
       for (const key of keys) {
-        const nodeId = key.replace('dash:nodes:', '');
+        const nodeId = key.replace('godel:nodes:', '');
         if (nodeId === this.nodeId) continue;
 
         const data = await this.streamClient.get(key);
@@ -739,7 +739,7 @@ export class RedisEventBus extends EventEmitter {
     }
 
     const serialized = await this.serializeEvent(event);
-    await this.publisher.publish('dash:events:realtime', JSON.stringify(serialized));
+    await this.publisher.publish('godel:events:realtime', JSON.stringify(serialized));
     this.metrics.eventsPublished++;
   }
 
@@ -817,7 +817,7 @@ export class RedisEventBus extends EventEmitter {
 
     // If in fallback mode, queue to fallback bus
     if (this.isInFallbackMode) {
-      if (this.fallbackQueue.length < this.config.fallbackConfig.maxQueuedEvents) {
+      if (this.fallbackQueue.length < (this.config.fallbackConfig?.maxQueuedEvents ?? 10000)) {
         this.fallbackQueue.push(event);
       } else {
         logger.warn("event-bus-redis", "Fallback queue full, dropping event");
@@ -904,10 +904,10 @@ export class RedisEventBus extends EventEmitter {
   }
 
   /**
-   * Create a scoped event bus for a specific agent/swarm
+   * Create a scoped event bus for a specific agent/team
    */
-  createScopedBus(agentId: string, swarmId?: string, sessionId?: string): ScopedEventBus {
-    return new ScopedEventBus(this as any, agentId, swarmId, sessionId);
+  createScopedBus(agentId: string, teamId?: string, sessionId?: string): ScopedEventBus {
+    return new ScopedEventBus(this as any, agentId, teamId, sessionId);
   }
 
   /**
@@ -966,7 +966,7 @@ export class RedisEventBus extends EventEmitter {
   async getEvents(filter: {
     types?: AgentEventType[];
     agentId?: string;
-    swarmId?: string;
+    teamId?: string;
     sessionId?: string;
     since?: number;
     until?: number;
@@ -977,7 +977,7 @@ export class RedisEventBus extends EventEmitter {
     return events.filter(event => {
       if (filter.types && !filter.types.includes(event.type)) return false;
       if (filter.agentId && event.agentId !== filter.agentId) return false;
-      if (filter.swarmId && event.swarmId !== filter.swarmId) return false;
+      if (filter.teamId && event.teamId !== filter.teamId) return false;
       if (filter.sessionId && event.sessionId !== filter.sessionId) return false;
       if (filter.since && event.timestamp < filter.since) return false;
       if (filter.until && event.timestamp > filter.until) return false;

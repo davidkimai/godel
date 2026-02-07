@@ -1,13 +1,13 @@
 /**
  * API Service
  * 
- * HTTP API client for the Dash Dashboard
+ * HTTP API client for the Godel Dashboard
  * Updated to use the Fastify REST API endpoints
  */
 
 import type {
   Agent,
-  Swarm,
+  Team,
   Task,
   AgentEvent,
   LogEntry,
@@ -113,97 +113,97 @@ export const capabilitiesApi = {
 };
 
 // ============================================================================
-// Swarm API
+// Team API
 // ============================================================================
 
 export const swarmApi = {
-  async list(): Promise<Swarm[]> {
-    const response = await fetchApi<ApiResponse<{ swarms: Swarm[]; hasMore: boolean; nextCursor?: string }>>('/api/swarms');
-    return response.data?.swarms || [];
+  async list(): Promise<Team[]> {
+    const response = await fetchApi<ApiResponse<{ teams: Team[]; hasMore: boolean; nextCursor?: string }>>('/api/teams');
+    return response.data?.teams || [];
   },
 
-  async get(id: string): Promise<Swarm> {
-    const response = await fetchApi<ApiResponse<Swarm>>(`/api/swarms/${id}`);
-    if (!response.data) throw new Error('Swarm not found');
+  async get(id: string): Promise<Team> {
+    const response = await fetchApi<ApiResponse<Team>>(`/api/teams/${id}`);
+    if (!response.data) throw new Error('Team not found');
     return response.data;
   },
 
-  async create(name: string, config?: Partial<Swarm['config']>): Promise<Swarm> {
-    const response = await fetchApi<ApiResponse<Swarm>>('/api/swarms', {
+  async create(name: string, config?: Partial<Team['config']>): Promise<Team> {
+    const response = await fetchApi<ApiResponse<Team>>('/api/teams', {
       method: 'POST',
       body: JSON.stringify({ name, config })
     });
-    if (!response.data) throw new Error('Failed to create swarm');
+    if (!response.data) throw new Error('Failed to create team');
     return response.data;
   },
 
-  async update(id: string, updates: Partial<Swarm>): Promise<Swarm> {
-    const response = await fetchApi<ApiResponse<Swarm>>(`/api/swarms/${id}`, {
+  async update(id: string, updates: Partial<Team>): Promise<Team> {
+    const response = await fetchApi<ApiResponse<Team>>(`/api/teams/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
     });
-    if (!response.data) throw new Error('Failed to update swarm');
+    if (!response.data) throw new Error('Failed to update team');
     return response.data;
   },
 
   async start(id: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/start`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/start`, {
       method: 'POST'
     });
   },
 
   async stop(id: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/stop`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/stop`, {
       method: 'POST'
     });
   },
 
   async scale(id: string, targetSize: number): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/scale`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/scale`, {
       method: 'POST',
       body: JSON.stringify({ targetSize })
     });
   },
 
   async pause(id: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/pause`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/pause`, {
       method: 'POST'
     });
   },
 
   async resume(id: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/resume`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/resume`, {
       method: 'POST'
     });
   },
 
   async destroy(id: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}`, {
       method: 'DELETE'
     });
   },
 
   async getEvents(id: string, limit = 100): Promise<AgentEvent[]> {
     const response = await fetchApi<ApiResponse<{ events: AgentEvent[] }>>(
-      `/api/swarms/${id}/events?limit=${limit}`
+      `/api/teams/${id}/events?limit=${limit}`
     );
     return response.data?.events || [];
   },
 
   async getTree(id: string): Promise<unknown> {
-    const response = await fetchApi<ApiResponse<unknown>>(`/api/swarms/${id}/tree`);
+    const response = await fetchApi<ApiResponse<unknown>>(`/api/teams/${id}/tree`);
     return response.data;
   },
 
   async getBranches(id: string): Promise<{ branches: string[]; currentBranch: string }> {
     const response = await fetchApi<ApiResponse<{ branches: string[]; currentBranch: string }>>(
-      `/api/swarms/${id}/branches`
+      `/api/teams/${id}/branches`
     );
     return response.data || { branches: [], currentBranch: 'main' };
   },
 
   async createBranch(id: string, name: string, description?: string): Promise<{ entryId: string; name: string }> {
-    const response = await fetchApi<ApiResponse<{ entryId: string; name: string }>>(`/api/swarms/${id}/branches`, {
+    const response = await fetchApi<ApiResponse<{ entryId: string; name: string }>>(`/api/teams/${id}/branches`, {
       method: 'POST',
       body: JSON.stringify({ name, description })
     });
@@ -212,7 +212,7 @@ export const swarmApi = {
   },
 
   async switchBranch(id: string, branchName: string): Promise<void> {
-    await fetchApi<ApiResponse<void>>(`/api/swarms/${id}/switch-branch`, {
+    await fetchApi<ApiResponse<void>>(`/api/teams/${id}/switch-branch`, {
       method: 'POST',
       body: JSON.stringify({ branchName })
     });
@@ -239,7 +239,7 @@ export const agentApi = {
     model: string;
     task: string;
     label?: string;
-    swarmId?: string;
+    teamId?: string;
     parentId?: string;
     maxRetries?: number;
     budgetLimit?: number;
@@ -306,8 +306,8 @@ export const agentApi = {
 // ============================================================================
 
 export const taskApi = {
-  async list(swarmId?: string): Promise<Task[]> {
-    const query = swarmId ? `?swarmId=${swarmId}` : '';
+  async list(teamId?: string): Promise<Task[]> {
+    const query = teamId ? `?teamId=${teamId}` : '';
     const response = await fetchApi<ApiResponse<{ tasks: Task[]; hasMore: boolean; nextCursor?: string }>>(`/api/tasks${query}`);
     return response.data?.tasks || [];
   },
@@ -363,13 +363,13 @@ export const taskApi = {
 export const eventApi = {
   async list(options: {
     limit?: number;
-    swarmId?: string;
+    teamId?: string;
     agentId?: string;
     type?: string;
   } = {}): Promise<PaginatedResponse<AgentEvent>> {
     const params = new URLSearchParams();
     if (options.limit) params.append('limit', options.limit.toString());
-    if (options.swarmId) params.append('swarmId', options.swarmId);
+    if (options.teamId) params.append('teamId', options.teamId);
     if (options.agentId) params.append('agentId', options.agentId);
     if (options.type) params.append('type', options.type);
 
@@ -586,7 +586,7 @@ export const healthApi = {
 
 export const api = {
   capabilities: capabilitiesApi,
-  swarms: swarmApi,
+  teams: swarmApi,
   agents: agentApi,
   tasks: taskApi,
   events: eventApi,

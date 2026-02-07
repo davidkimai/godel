@@ -3,7 +3,7 @@
  * 
  * This module provides the "godel do" command functionality, allowing users
  * to express tasks in natural language that get parsed into structured intents
- * and executed by agent swarms.
+ * and executed by agent teams.
  * 
  * Usage:
  *   godel do "Implement user authentication with JWT"
@@ -22,7 +22,7 @@ export {
   IntentType,
   ComplexityLevel,
   Intent,
-  SwarmConfiguration,
+  TeamConfiguration,
   AgentRoleConfig,
   ExecutionPlan,
   
@@ -40,7 +40,7 @@ export {
   
   // Constants
   INTENT_TYPES,
-  SWARM_CONFIGS,
+  TEAM_CONFIGS,
   ESTIMATED_DURATIONS,
 } from './types';
 
@@ -154,11 +154,11 @@ export function registerDoCommand(program: Command): void {
               intent,
               confidence,
               plan: {
-                swarmConfig: {
-                  name: plan.swarmConfig.name,
-                  strategy: plan.swarmConfig.strategy,
-                  initialAgents: plan.swarmConfig.initialAgents,
-                  roles: plan.swarmConfig.roles,
+                teamConfig: {
+                  name: plan.teamConfig.name,
+                  strategy: plan.teamConfig.strategy,
+                  initialAgents: plan.teamConfig.initialAgents,
+                  roles: plan.teamConfig.roles,
                 },
                 estimatedDuration: plan.estimatedDuration,
               },
@@ -166,14 +166,14 @@ export function registerDoCommand(program: Command): void {
             }, null, 2));
           } else {
             logger.info('\n📊 Execution Plan (Dry Run):');
-            logger.info(`   Swarm: ${plan.swarmConfig.name}`);
-            logger.info(`   Strategy: ${plan.swarmConfig.strategy}`);
-            logger.info(`   Agents: ${plan.swarmConfig.initialAgents}`);
+            logger.info(`   Team: ${plan.teamConfig.name}`);
+            logger.info(`   Strategy: ${plan.teamConfig.strategy}`);
+            logger.info(`   Agents: ${plan.teamConfig.initialAgents}`);
             logger.info(`   Estimated Duration: ${plan.estimatedDuration} minutes`);
             logger.info(`   Estimated Cost: $${estimateCost(intent).toFixed(2)}`);
             
             logger.info('\n   Agent Roles:');
-            plan.swarmConfig.roles.forEach(role => {
+            plan.teamConfig.roles.forEach(role => {
               logger.info(`      - ${role.role}: ${role.count} agent(s)`);
               logger.info(`        Task: ${role.task}`);
             });
@@ -205,7 +205,7 @@ export function registerDoCommand(program: Command): void {
           logger.info(JSON.stringify({
             success: result.success,
             intent,
-            swarmId: result.swarmId,
+            teamId: result.teamId,
             worktreeId: result.worktreeId,
             output: result.output,
             error: result.error,

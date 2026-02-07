@@ -1,5 +1,5 @@
 /**
- * Dash Concurrency Manager - Race Condition Handling
+ * Godel Concurrency Manager - Race Condition Handling
  * 
  * PRD Section 2.7: Race Condition Handling
  * 
@@ -30,8 +30,8 @@ export interface LockConfig {
 export interface LockScope {
   /** Global lock - blocks all operations */
   GLOBAL: 'global';
-  /** Swarm lock - blocks operations within swarm */
-  SWARM: 'swarm';
+  /** Team lock - blocks operations within team */
+  TEAM: 'team';
   /** Agent lock - blocks operations on specific agent */
   AGENT: 'agent';
   /** Resource lock - blocks access to specific resource */
@@ -75,7 +75,7 @@ export interface ConcurrencyMetrics {
 
 export const LOCK_SCOPES: LockScope = {
   GLOBAL: 'global',
-  SWARM: 'swarm',
+  TEAM: 'team',
   AGENT: 'agent',
   RESOURCE: 'resource'
 };

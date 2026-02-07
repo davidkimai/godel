@@ -249,21 +249,21 @@ export function useEventStream(maxEvents: number = 100) {
 }
 
 /**
- * Hook for swarm status
+ * Hook for team status
  */
-export function useSwarmStatus(initialSwarm: any = null) {
-  const [swarm, setSwarm] = useState(initialSwarm);
+export function useTeamStatus(initialTeam: any = null) {
+  const [team, setTeam] = useState(initialTeam);
   const { connected, subscribe } = useWebSocket();
 
   useEffect(() => {
     if (!connected) return undefined;
 
     const unsubscribe = subscribe('swarm_status', (data: any) => {
-      setSwarm(data.swarm);
+      setTeam(data.team);
     });
 
     return unsubscribe;
   }, [connected, subscribe]);
 
-  return { swarm, setSwarm };
+  return { team, setTeam };
 }

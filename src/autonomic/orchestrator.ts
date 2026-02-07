@@ -1,7 +1,7 @@
 /**
- * Maintenance Swarm Orchestrator
+ * Maintenance Team Orchestrator
  * 
- * Coordinates the autonomic maintenance swarm:
+ * Coordinates the autonomic maintenance team:
  * - Error Listener: Monitors for errors
  * - Test Writer: Creates reproduction tests
  * - Patch Agent: Generates fixes
@@ -47,10 +47,10 @@ interface ProcessingJob {
 }
 
 // ============================================================================
-// Maintenance Swarm Orchestrator
+// Maintenance Team Orchestrator
 // ============================================================================
 
-export class MaintenanceSwarmOrchestrator {
+export class MaintenanceTeamOrchestrator {
   private eventBus: AgentEventBus;
   private errorListener: ErrorListenerService;
   private testWriter: TestWriterAgent;
@@ -91,7 +91,7 @@ export class MaintenanceSwarmOrchestrator {
       return;
     }
 
-    logger.info('autonomic-orchestrator', '🤖 Starting Godel-on-Godel Maintenance Swarm...');
+    logger.info('autonomic-orchestrator', '🤖 Starting Godel-on-Godel Maintenance Team...');
     this.state = 'running';
 
     // Subscribe to error detection events
@@ -103,13 +103,13 @@ export class MaintenanceSwarmOrchestrator {
     // Process any existing errors
     await this.processExistingErrors();
 
-    logger.info('autonomic-orchestrator', '✅ Maintenance swarm started and listening for errors');
+    logger.info('autonomic-orchestrator', '✅ Maintenance team started and listening for errors');
   }
 
   pause(): void {
     if (this.state !== 'running') return;
     
-    logger.info('autonomic-orchestrator', '⏸️ Pausing maintenance swarm');
+    logger.info('autonomic-orchestrator', '⏸️ Pausing maintenance team');
     this.state = 'paused';
     
     if (this.processingInterval) {
@@ -121,13 +121,13 @@ export class MaintenanceSwarmOrchestrator {
   resume(): void {
     if (this.state !== 'paused') return;
     
-    logger.info('autonomic-orchestrator', '▶️ Resuming maintenance swarm');
+    logger.info('autonomic-orchestrator', '▶️ Resuming maintenance team');
     this.state = 'running';
     this.startPolling();
   }
 
   stop(): void {
-    logger.info('autonomic-orchestrator', '🛑 Stopping maintenance swarm');
+    logger.info('autonomic-orchestrator', '🛑 Stopping maintenance team');
     this.state = 'idle';
     
     if (this.processingInterval) {
@@ -383,4 +383,4 @@ export class MaintenanceSwarmOrchestrator {
   }
 }
 
-export default MaintenanceSwarmOrchestrator;
+export default MaintenanceTeamOrchestrator;

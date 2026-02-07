@@ -60,8 +60,8 @@
 | Invalid Option | ✅ | Option validation |
 | Agent Help | ✅ | Agent subcommand help |
 | Agent List | ⚠️ | May fail (Gateway) |
-| Swarm Help | ✅ | Swarm subcommand help |
-| Swarm List | ⚠️ | May fail (Gateway) |
+| Team Help | ✅ | Team subcommand help |
+| Team List | ⚠️ | May fail (Gateway) |
 | Workflow Help | ✅ | Workflow subcommand help |
 | Status Help | ✅ | Status subcommand help |
 | Config Help | ✅ | Config subcommand help |
@@ -78,7 +78,7 @@
 ### Coverage Gaps
 
 - Agent spawn (needs storage)
-- Swarm create (needs task)
+- Team create (needs task)
 - Config get (not implemented)
 
 ## API Test Coverage

@@ -1,48 +1,86 @@
-# Multi-stage production Docker build for godel application
+# =============================================================================
+# Production Docker Build for Godel Agent Orchestration Platform
+# =============================================================================
+# Multi-stage build with security hardening:
+# - Stage 1: Build the TypeScript application
+# - Stage 2: Production runtime with minimal dependencies
+# 
+# Security features:
+# - Non-root user execution
+# - Minimal Alpine Linux base
+# - No build tools in final image
+# - Health check endpoint
+# - Read-only root filesystem support
+# =============================================================================
 
-# Stage 1: Build stage
+# -----------------------------------------------------------------------------
+# Stage 1: Build Stage
+# -----------------------------------------------------------------------------
 FROM node:20-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the TypeScript application
+RUN npm run build
+
+# -----------------------------------------------------------------------------
+# Stage 2: Production Stage
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS production
+
+# Set to production environment
+ENV NODE_ENV=production
+
+# Security: Create non-root user and group
+RUN addgroup -g 1001 -S godel && \
+    adduser -S godel -u 1001 -G godel
+
+# Install production dependencies only (for health checks)
+RUN apk add --no-cache curl ca-certificates
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY package-lock.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install only production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
 
-# Copy source code
-COPY . .
+# Copy built application from builder stage
+COPY --from=builder --chown=godel:godel /app/dist ./dist
 
-# Build the application
-RUN npm run build
-
-# Stage 2: Production stage
-FROM node:20-alpine AS production
-
-# Set NODE_ENV to production
-ENV NODE_ENV=production
-
-WORKDIR /app
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Copy built artifacts from builder stage
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static/
-COPY --from=builder /app/public ./public
-
-# Change ownership to non-root user
-RUN chown -R nextjs:nodejs /app
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/data && \
+    chown -R godel:godel /app
 
 # Switch to non-root user
-USER nextjs
+USER godel
 
-# Expose the application port
-EXPOSE 3000
+# Expose application port
+EXPOSE 7373
 
-# Set start command
-CMD ["node", "server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:7373/health || exit 1
+
+# Set security labels
+LABEL maintainer="Godel Team"
+LABEL description="Godel Agent Orchestration Platform"
+LABEL version="2.0.0"
+
+# Run the application
+CMD ["node", "dist/src/index.js"]

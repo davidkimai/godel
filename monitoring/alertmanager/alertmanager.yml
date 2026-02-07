@@ -1,4 +1,4 @@
-# Alertmanager Configuration for Dash
+# Alertmanager Configuration for Godel
 # 
 # This configuration routes alerts based on severity and service type.
 # Replace placeholder values with your actual endpoints.
@@ -9,7 +9,7 @@ global:
   
   # SMTP settings (for email notifications)
   smtp_smarthost: 'localhost:587'
-  smtp_from: 'alertmanager@dash.local'
+  smtp_from: 'alertmanager@godel.local'
   smtp_auth_username: ''
   smtp_auth_password: ''
   smtp_require_tls: true
@@ -86,8 +86,8 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#alerts-critical'
-        title: '🔴 Dash Critical Alert'
-        title_link: 'http://grafana.dash.local/alerts'
+        title: '🔴 Godel Critical Alert'
+        title_link: 'http://grafana.godel.local/alerts'
         text: |
           {{ range .Alerts }}
           *Alert:* {{ .Annotations.summary }}
@@ -101,7 +101,7 @@ receivers:
   - name: 'dba-critical'
     email_configs:
       - to: 'dba-oncall@company.com'
-        subject: '[CRITICAL] Dash Database Alert'
+        subject: '[CRITICAL] Godel Database Alert'
         body: |
           {{ range .Alerts }}
           Alert: {{ .Annotations.summary }}
@@ -111,7 +111,7 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#dba-alerts'
-        title: '🚨 Dash Database Critical'
+        title: '🚨 Godel Database Critical'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
 
   # Infrastructure Critical
@@ -119,7 +119,7 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#infrastructure'
-        title: '⚠️ Dash Infrastructure Alert'
+        title: '⚠️ Godel Infrastructure Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
     opsgenie_configs:
       - api_key: 'YOUR_OPSGENIE_API_KEY'
@@ -131,7 +131,7 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#alerts-warning'
-        title: '⚠️ Dash Warning'
+        title: '⚠️ Godel Warning'
         text: |
           {{ range .Alerts }}
           {{ .Annotations.summary }}
@@ -143,18 +143,18 @@ receivers:
   - name: 'finance'
     email_configs:
       - to: 'finance@company.com'
-        subject: 'Dash Budget Alert'
+        subject: 'Godel Budget Alert'
         body: |
           Budget alert details:
           {{ range .Alerts }}
-          Swarm: {{ .Labels.swarm_id }}
+          Team: {{ .Labels.swarm_id }}
           Consumed: {{ .Annotations.consumed }}
           Allocated: {{ .Annotations.allocated }}
           {{ end }}
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#finance'
-        title: '💰 Dash Budget Alert'
+        title: '💰 Godel Budget Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
 
   # Platform team
@@ -162,7 +162,7 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#platform-team'
-        title: '🤖 Dash Platform Alert'
+        title: '🤖 Godel Platform Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
 
 # Inhibition rules - suppress certain alerts when others fire
@@ -178,7 +178,7 @@ inhibit_rules:
   - source_match:
       alertname: 'DashDatabaseConnectionFailed'
     target_match_re:
-      alertname: 'Dash.*Database.*'
+      alertname: 'Godel.*Database.*'
     equal: ['service']
   
   # If Redis is down, suppress cache-related alerts

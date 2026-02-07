@@ -1,8 +1,8 @@
 /**
- * Maintenance Swarm Orchestrator Tests
+ * Maintenance Team Orchestrator Tests
  */
 
-import { MaintenanceSwarmOrchestrator } from '../orchestrator';
+import { MaintenanceTeamOrchestrator } from '../orchestrator';
 import { AgentEventBus } from '../../core/event-bus';
 import {
   ErrorEvent,
@@ -40,15 +40,15 @@ const mockPRAgent: jest.Mocked<PRAgent> = {
   submitFix: jest.fn(),
 };
 
-describe('MaintenanceSwarmOrchestrator', () => {
+describe('MaintenanceTeamOrchestrator', () => {
   let eventBus: AgentEventBus;
-  let orchestrator: MaintenanceSwarmOrchestrator;
+  let orchestrator: MaintenanceTeamOrchestrator;
 
   beforeEach(() => {
     jest.clearAllMocks();
     eventBus = new AgentEventBus();
     
-    orchestrator = new MaintenanceSwarmOrchestrator({
+    orchestrator = new MaintenanceTeamOrchestrator({
       eventBus,
       errorListener: mockErrorListener,
       testWriter: mockTestWriter,

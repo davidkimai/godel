@@ -389,14 +389,14 @@ These are pre-existing and don't impact Phase 3 (Federation).
 Ready to begin Phase 3 with stable foundation:
 
 ### Week 3-4: Federation Engine
-- [ ] Swarm Router implementation
+- [ ] Team Router implementation
 - [ ] Load balancer with health-aware routing
 - [ ] Auto-scaling based on queue depth
 - [ ] Agent specialization registry
 - [ ] Health monitoring dashboard
 
 **Team Size:** 7 subagents across 3 tracks  
-**Success Metric:** `godel swarm spawn --count 50` works with 0 failures
+**Success Metric:** `godel team spawn --count 50` works with 0 failures
 
 ---
 

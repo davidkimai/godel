@@ -1,9 +1,9 @@
 /**
  * @fileoverview Agent Role Registry
  * 
- * Central registry for managing agent roles, assignments, and swarm compositions.
+ * Central registry for managing agent roles, assignments, and team compositions.
  * Provides CRUD operations for roles, assignment management, validation,
- * and intelligent swarm composition based on task requirements.
+ * and intelligent team composition based on task requirements.
  * 
  * @module core/roles/registry
  * @version 1.0.0
@@ -20,8 +20,8 @@ import {
   RoleStatistics,
   RoleValidationResult,
   StorageAdapter,
-  SwarmComposition,
-  SwarmRequirements
+  TeamComposition,
+  TeamRequirements
 } from './types.js'
 import { BUILTIN_ROLES, BUILTIN_ROLES_MAP, getBuiltinRole } from './definitions.js'
 
@@ -46,7 +46,7 @@ export interface RoleRegistryOptions {
  * - Role assignment tracking
  * - Permission validation
  * - Communication topology validation
- * - Intelligent swarm composition
+ * - Intelligent team composition
  * 
  * @example
  * ```typescript
@@ -55,7 +55,7 @@ export interface RoleRegistryOptions {
  * 
  * // Assign a role to an agent
  * const assignment = await registry.assignRole('agent-123', 'worker', {
- *   swarmId: 'swarm-456'
+ *   teamId: 'team-456'
  * });
  * 
  * // Check permissions
@@ -408,13 +408,13 @@ export class RoleRegistry extends EventEmitter {
    * 
    * @param agentId - The agent to assign the role to
    * @param roleId - The role to assign
-   * @param context - Optional assignment context (swarm, worktree, etc.)
+   * @param context - Optional assignment context (team, worktree, etc.)
    * @returns The role assignment
    * 
    * @example
    * ```typescript
    * const assignment = await registry.assignRole('agent-123', 'worker', {
-   *   swarmId: 'swarm-456',
+   *   teamId: 'team-456',
    *   worktreeId: 'wt-789'
    * });
    * ```
@@ -434,7 +434,7 @@ export class RoleRegistry extends EventEmitter {
     const assignment: RoleAssignment = {
       agentId,
       roleId,
-      swarmId: context?.swarmId,
+      teamId: context?.teamId,
       worktreeId: context?.worktreeId,
       assignedAt: new Date(),
       assignedBy: context?.context ?? 'system',
@@ -710,21 +710,21 @@ export class RoleRegistry extends EventEmitter {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // SWARM COMPOSITION
+  // TEAM COMPOSITION
   // ═══════════════════════════════════════════════════════════════════════════════
 
   /**
-   * Compose an optimal swarm based on task requirements.
+   * Compose an optimal team based on task requirements.
    * 
    * This method analyzes the task requirements and returns a recommended
-   * swarm composition with appropriate roles.
+   * team composition with appropriate roles.
    * 
    * @param requirements - Task requirements
-   * @returns Recommended swarm composition
+   * @returns Recommended team composition
    * 
    * @example
    * ```typescript
-   * const composition = registry.composeSwarm({
+   * const composition = registry.composeTeam({
    *   task: 'Implement user authentication',
    *   complexity: 'high',
    *   estimatedSubtasks: 5,
@@ -733,7 +733,7 @@ export class RoleRegistry extends EventEmitter {
    * });
    * ```
    */
-  composeSwarm(requirements: SwarmRequirements): SwarmComposition {
+  composeTeam(requirements: TeamRequirements): TeamComposition {
     this.ensureInitialized()
 
     // Always include a coordinator
@@ -815,12 +815,12 @@ export class RoleRegistry extends EventEmitter {
   }
 
   /**
-   * Estimate the cost for a swarm composition.
+   * Estimate the cost for a team composition.
    * 
-   * @param composition - The swarm composition
+   * @param composition - The team composition
    * @returns Estimated cost in USD
    */
-  estimateSwarmCost(composition: SwarmComposition): number {
+  estimateTeamCost(composition: TeamComposition): number {
     let total = 0
 
     const addCost = (assignment: RoleAssignment) => {

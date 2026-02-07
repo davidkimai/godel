@@ -172,10 +172,10 @@ export const MetricsSchema = z.object({
     completed: z.number().int().describe('Completed agents'),
     failed: z.number().int().describe('Failed agents'),
   }).describe('Agent metrics'),
-  swarms: z.object({
-    total: z.number().int().describe('Total swarms'),
-    active: z.number().int().describe('Active swarms'),
-  }).describe('Swarm metrics'),
+  teams: z.object({
+    total: z.number().int().describe('Total teams'),
+    active: z.number().int().describe('Active teams'),
+  }).describe('Team metrics'),
   tasks: z.object({
     total: z.number().int().describe('Total tasks'),
     pending: z.number().int().describe('Pending tasks'),
@@ -198,7 +198,7 @@ export const EventPublishSchema = z.object({
   type: z.string().describe('Event type'),
   payload: z.record(z.unknown()).describe('Event payload'),
   source: z.string().optional().describe('Event source'),
-  target: z.string().optional().describe('Target agent/swarm (optional)'),
+  target: z.string().optional().describe('Target agent/team (optional)'),
 });
 
 export const EventSchema = z.object({
@@ -206,7 +206,7 @@ export const EventSchema = z.object({
   type: z.string().describe('Event type'),
   payload: z.record(z.unknown()).describe('Event payload'),
   source: z.string().describe('Event source'),
-  target: z.string().optional().describe('Target agent/swarm'),
+  target: z.string().optional().describe('Target agent/team'),
   timestamp: z.string().datetime().describe('Event timestamp'),
 });
 

@@ -56,7 +56,7 @@ export interface PostgresPoolConfig {
 }
 
 /**
- * Convert Dash database config to pool config
+ * Convert Godel database config to pool config
  */
 function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
   // Parse the connection URL if provided
@@ -88,16 +88,16 @@ function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
       keepAlive: config.keepAlive ?? true,
       keepAliveInitialDelayMs: config.keepAliveInitialDelayMs ?? 0,
       maxUses: config.maxUses ?? 7500,
-      applicationName: config.applicationName ?? 'dash',
+      applicationName: config.applicationName ?? 'godel',
     };
   }
 
   return {
     host: 'localhost',
     port: 5432,
-    database: 'dash',
-    user: 'dash',
-    password: 'dash',
+    database: 'godel',
+    user: 'godel',
+    password: 'godel',
     poolSize: config.poolSize,
     minPoolSize: config.minPoolSize,
     maxPoolSize: config.maxPoolSize,
@@ -112,7 +112,7 @@ function toPoolConfig(config: DatabaseConfig): PostgresPoolConfig {
     keepAlive: config.keepAlive ?? true,
     keepAliveInitialDelayMs: config.keepAliveInitialDelayMs ?? 0,
     maxUses: config.maxUses ?? 7500,
-    applicationName: config.applicationName ?? 'dash',
+    applicationName: config.applicationName ?? 'godel',
   };
 }
 

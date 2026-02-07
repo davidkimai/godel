@@ -4,10 +4,10 @@ const NIGHT_MODE_CONFIG = {
   startHour: 23,
   endHour: 7,
   maxAgents: 5,
-  maxConcurrentSwarms: 2,
+  maxConcurrentTeams: 2,
   maxTotalSpendPerNight: 25.00,
   maxSpendPerHour: 5.00,
-  newSwarmsAllowed: false,
+  newTeamsAllowed: false,
   criticalFixesAllowed: true,
 };
 
@@ -15,10 +15,10 @@ export interface NightModeConfig {
   startHour: number;
   endHour: number;
   maxAgents: number;
-  maxConcurrentSwarms: number;
+  maxConcurrentTeams: number;
   maxTotalSpendPerNight: number;
   maxSpendPerHour: number;
-  newSwarmsAllowed: boolean;
+  newTeamsAllowed: boolean;
   criticalFixesAllowed: boolean;
 }
 
@@ -30,7 +30,7 @@ export interface NightModeStatus {
   nextTransitionType: 'start' | 'end';
   currentLimits: {
     maxAgents: number;
-    maxSwarms: number;
+    maxTeams: number;
     maxSpendNight: number;
   };
 }
@@ -118,8 +118,8 @@ export class NightModeManager {
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
     const currentLimits = this.enabled
-      ? { maxAgents: this.config.maxAgents, maxSwarms: this.config.maxConcurrentSwarms, maxSpendNight: this.config.maxTotalSpendPerNight }
-      : { maxAgents: 50, maxSwarms: 10, maxSpendNight: 100.00 };
+      ? { maxAgents: this.config.maxAgents, maxTeams: this.config.maxConcurrentTeams, maxSpendNight: this.config.maxTotalSpendPerNight }
+      : { maxAgents: 50, maxTeams: 10, maxSpendNight: 100.00 };
 
     return {
       enabled: this.enabled,

@@ -149,7 +149,7 @@ export const commonRules = {
  * Predefined validators for common endpoints
  */
 export const validators = {
-  createSwarm: validateBody([
+  createTeam: validateBody([
     commonRules.name('name'),
     {
       field: 'config',
@@ -159,7 +159,7 @@ export const validators = {
   ]),
   createAgent: validateBody([
     {
-      field: 'swarm_id',
+      field: 'team_id',
       type: 'string',
       required: true,
       pattern: /^[a-zA-Z0-9_-]+$/,

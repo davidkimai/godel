@@ -1,4 +1,4 @@
-# SPEC: Dash Production Testing
+# SPEC: Godel Production Testing
 
 **Version:** 1.0  
 **Date:** February 3, 2026  
@@ -58,16 +58,16 @@ helm version
 
 # Check secrets
 echo "Checking secrets..."
-kubectl get secret dash-api-key -n dash-staging
-kubectl get secret dash-db-credentials -n dash-staging
+kubectl get secret godel-api-key -n godel-staging
+kubectl get secret godel-db-credentials -n godel-staging
 
 # Check database
 echo "Checking database..."
-kubectl exec -n dash-staging deploy/postgres -- pg_isready
+kubectl exec -n godel-staging deploy/postgres -- pg_isready
 
 # Check Redis
 echo "Checking Redis..."
-kubectl exec -n dash-staging deploy/redis -- redis-cli ping
+kubectl exec -n godel-staging deploy/redis -- redis-cli ping
 
 echo "✅ All pre-deployment checks passed"
 ```
@@ -90,15 +90,15 @@ echo "=== Deploying to Staging ==="
 VERSION=$(git describe --tags --always)
 echo "Building version: $VERSION"
 
-docker build -t dash:$VERSION .
-docker tag dash:$VERSION registry.example.com/dash:$VERSION
-docker push registry.example.com/dash:$VERSION
+docker build -t godel:$VERSION .
+docker tag godel:$VERSION registry.example.com/godel:$VERSION
+docker push registry.example.com/godel:$VERSION
 
 # Update Helm values
 echo "Updating Helm values..."
-cat > helm/dash/values-staging.yaml << EOF
+cat > helm/godel/values-staging.yaml << EOF
 image:
-  repository: registry.example.com/dash
+  repository: registry.example.com/godel
   tag: "$VERSION"
   pullPolicy: Always
 
@@ -119,18 +119,18 @@ EOF
 
 # Deploy with Helm
 echo "Deploying with Helm..."
-helm upgrade --install dash-staging ./helm/dash \
-  --namespace dash-staging \
-  --values helm/dash/values-staging.yaml \
+helm upgrade --install godel-staging ./helm/godel \
+  --namespace godel-staging \
+  --values helm/godel/values-staging.yaml \
   --wait \
   --timeout 10m
 
 # Wait for rollout
 echo "Waiting for rollout..."
-kubectl rollout status deployment/dash-api -n dash-staging --timeout=600s
+kubectl rollout status deployment/godel-api -n godel-staging --timeout=600s
 
 echo "✅ Staging deployment complete"
-echo "Dashboard: https://dash-staging.example.com"
+echo "Dashboard: https://godel-staging.example.com"
 ```
 
 ### Verification Tasks
@@ -145,28 +145,28 @@ echo "=== Verifying Staging Deployment ==="
 
 # 1. Health check
 echo "1. Health check..."
-curl -sf https://dash-staging.example.com/api/health || exit 1
+curl -sf https://godel-staging.example.com/api/health || exit 1
 echo "✅ Health check passed"
 
 # 2. API smoke test
 echo "2. API smoke test..."
-curl -sf https://dash-staging.example.com/api/agents \
+curl -sf https://godel-staging.example.com/api/agents \
   -H "X-API-Key: $STAGING_API_KEY" || exit 1
 echo "✅ API smoke test passed"
 
 # 3. Pod status
 echo "3. Checking pod status..."
-kubectl get pods -n dash-staging -l app=dash
+kubectl get pods -n godel-staging -l app=godel
 echo "✅ Pods running"
 
 # 4. Logs check
 echo "4. Checking for errors in logs..."
-kubectl logs -n dash-staging -l app=dash --tail=100 | grep -i error || true
+kubectl logs -n godel-staging -l app=godel --tail=100 | grep -i error || true
 echo "✅ No critical errors"
 
 # 5. Resource usage
 echo "5. Resource usage..."
-kubectl top pods -n dash-staging
+kubectl top pods -n godel-staging
 echo "✅ Resources within limits"
 
 echo "✅ Staging verification complete"
@@ -196,34 +196,34 @@ fi
 
 # Backup current state
 echo "Backing up current state..."
-kubectl get deployment dash-api -n dash-production -o yaml > backup/dash-api-$(date +%Y%m%d-%H%M%S).yaml
+kubectl get deployment godel-api -n godel-production -o yaml > backup/godel-api-$(date +%Y%m%d-%H%M%S).yaml
 
 # Deploy with rolling update
 echo "Deploying with rolling update..."
-helm upgrade --install dash-production ./helm/dash \
-  --namespace dash-production \
-  --values helm/dash/values-production.yaml \
+helm upgrade --install godel-production ./helm/godel \
+  --namespace godel-production \
+  --values helm/godel/values-production.yaml \
   --set image.tag=$(git describe --tags --always) \
   --wait \
   --timeout 15m
 
 # Wait for rollout
 echo "Waiting for rollout..."
-kubectl rollout status deployment/dash-api -n dash-production --timeout=900s
+kubectl rollout status deployment/godel-api -n godel-production --timeout=900s
 
 echo "✅ Production deployment complete"
-echo "Dashboard: https://dash.example.com"
+echo "Dashboard: https://godel.example.com"
 ```
 
 ### Rolling Update Strategy
 
-**File:** `helm/dash/templates/deployment.yaml`
+**File:** `helm/godel/templates/deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "dash.fullname" . }}
+  name: {{ include "godel.fullname" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -234,14 +234,14 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: {{ include "dash.name" . }}
+      app: {{ include "godel.name" . }}
   template:
     metadata:
       labels:
-        app: {{ include "dash.name" . }}
+        app: {{ include "godel.name" . }}
     spec:
       containers:
-      - name: dash
+      - name: godel
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 7373
@@ -272,7 +272,7 @@ import { describe, it, expect } from '@jest/globals';
 import { apiClient } from './utils/api-client';
 
 describe('Production Smoke Tests', () => {
-  const PROD_URL = 'https://dash.example.com';
+  const PROD_URL = 'https://godel.example.com';
   const API_KEY = process.env.DASH_PROD_API_KEY;
   
   it('should respond to health check', async () => {
@@ -347,7 +347,7 @@ describe('Production Smoke Tests', () => {
 import { describe, it, expect } from '@jest/globals';
 
 describe('Production Performance Tests', () => {
-  const PROD_URL = 'https://dash.example.com';
+  const PROD_URL = 'https://godel.example.com';
   const API_KEY = process.env.DASH_PROD_API_KEY;
   
   it('should have P99 latency < 200ms for health endpoint', async () => {
@@ -410,7 +410,7 @@ echo "=== Production Security Scan ==="
 
 # 1. Container scan
 echo "1. Scanning container image..."
-trivy image registry.example.com/dash:$(git describe --tags --always)
+trivy image registry.example.com/godel:$(git describe --tags --always)
 echo "✅ Container scan complete"
 
 # 2. Kubernetes security check
@@ -433,8 +433,8 @@ echo "✅ Dependency audit complete"
 # 5. API security test
 echo "5. Testing API security..."
 # Test for common vulnerabilities
-curl -sf https://dash.example.com/api/agents || true  # Should require auth
-curl -sf https://dash.example.com/api/admin || true    # Should be restricted
+curl -sf https://godel.example.com/api/agents || true  # Should require auth
+curl -sf https://godel.example.com/api/admin || true    # Should be restricted
 echo "✅ API security tests complete"
 
 echo "✅ Security scan complete"
@@ -458,7 +458,7 @@ echo "=== Rolling back to $VERSION ==="
 
 # Get previous revision
 if [ "$VERSION" = "previous" ]; then
-  REVISION=$(helm history dash-production -n dash-production | grep -v "^REVISION" | head -2 | tail -1 | awk '{print $1}')
+  REVISION=$(helm history godel-production -n godel-production | grep -v "^REVISION" | head -2 | tail -1 | awk '{print $1}')
 else
   REVISION=$VERSION
 fi
@@ -466,17 +466,17 @@ fi
 echo "Rolling back to revision $REVISION..."
 
 # Execute rollback
-helm rollback dash-production $REVISION -n dash-production --wait --timeout 10m
+helm rollback godel-production $REVISION -n godel-production --wait --timeout 10m
 
 # Wait for rollout
-kubectl rollout status deployment/dash-api -n dash-production --timeout=600s
+kubectl rollout status deployment/godel-api -n godel-production --timeout=600s
 
 echo "✅ Rollback complete"
 echo "Verifying rollback..."
 
 # Verify rollback
-kubectl get pods -n dash-production
-kubectl logs -n dash-production -l app=dash --tail=20
+kubectl get pods -n godel-production
+kubectl logs -n godel-production -l app=godel --tail=20
 
 echo "✅ Rollback verified"
 ```
@@ -485,25 +485,25 @@ echo "✅ Rollback verified"
 
 ```bash
 # 1. Note current version
-CURRENT_VERSION=$(helm list -n dash-production -o json | jq -r '.[0].app_version')
+CURRENT_VERSION=$(helm list -n godel-production -o json | jq -r '.[0].app_version')
 echo "Current version: $CURRENT_VERSION"
 
 # 2. Deploy a test version (simulating bad deployment)
 echo "Deploying test version..."
-helm upgrade dash-production ./helm/dash \
-  --namespace dash-production \
+helm upgrade godel-production ./helm/godel \
+  --namespace godel-production \
   --set image.tag=test-version \
   --wait
 
 # 3. Verify test version deployed
-kubectl get pods -n dash-production -o jsonpath='{.items[0].spec.containers[0].image}'
+kubectl get pods -n godel-production -o jsonpath='{.items[0].spec.containers[0].image}'
 
 # 4. Execute rollback
 echo "Executing rollback..."
 ./scripts/rollback.sh
 
 # 5. Verify back to original version
-ROLLED_BACK_VERSION=$(helm list -n dash-production -o json | jq -r '.[0].app_version')
+ROLLED_BACK_VERSION=$(helm list -n godel-production -o json | jq -r '.[0].app_version')
 if [ "$ROLLED_BACK_VERSION" = "$CURRENT_VERSION" ]; then
   echo "✅ Rollback successful - back to $CURRENT_VERSION"
 else
@@ -528,22 +528,22 @@ echo "=== Verifying Monitoring ==="
 
 # 1. Check Prometheus targets
 echo "1. Checking Prometheus targets..."
-curl -sf http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health=="up")' | grep dash
-echo "✅ Prometheus scraping Dash"
+curl -sf http://prometheus:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health=="up")' | grep godel
+echo "✅ Prometheus scraping Godel"
 
 # 2. Check Grafana dashboards
 echo "2. Checking Grafana dashboards..."
-curl -sf http://grafana:3000/api/search?query=dash | jq '.[].title'
+curl -sf http://grafana:3000/api/search?query=godel | jq '.[].title'
 echo "✅ Grafana dashboards exist"
 
 # 3. Verify metrics are flowing
 echo "3. Verifying metrics..."
-curl -sf http://prometheus:9090/api/v1/query?query='up{job="dash"}' | jq '.data.result'
+curl -sf http://prometheus:9090/api/v1/query?query='up{job="godel"}' | jq '.data.result'
 echo "✅ Metrics flowing"
 
 # 4. Check alert rules
 echo "4. Checking alert rules..."
-curl -sf http://prometheus:9090/api/v1/rules | jq '.data.groups[] | select(.name | contains("dash"))'
+curl -sf http://prometheus:9090/api/v1/rules | jq '.data.groups[] | select(.name | contains("godel"))'
 echo "✅ Alert rules configured"
 
 echo "✅ Monitoring verification complete"
@@ -561,7 +561,7 @@ echo "=== Testing Alerts ==="
 # 1. Test high error rate alert
 echo "1. Testing high error rate alert..."
 # Simulate errors (in test environment)
-curl -sf http://dash.example.com/api/trigger-test-error || true
+curl -sf http://godel.example.com/api/trigger-test-error || true
 echo "Triggered test error"
 
 # 2. Test high latency alert
@@ -577,7 +577,7 @@ sleep 60
 
 # Check Alertmanager
 echo "Checking Alertmanager..."
-curl -sf http://alertmanager:9093/api/v1/alerts | jq '.data[] | select(.labels.alertname | contains("Dash"))'
+curl -sf http://alertmanager:9093/api/v1/alerts | jq '.data[] | select(.labels.alertname | contains("Godel"))'
 
 echo "✅ Alert testing complete"
 ```
@@ -651,7 +651,7 @@ npm run test:production
 
 ### Manual Verification
 
-- [ ] Access dashboard at https://dash.example.com
+- [ ] Access dashboard at https://godel.example.com
 - [ ] Spawn test agent via OpenClaw
 - [ ] Verify events stream to OpenClaw
 - [ ] Check Grafana dashboards
@@ -665,19 +665,19 @@ npm run test:production
 ### Common Issues
 
 **Issue:** Deployment fails
-- Check: `kubectl describe pod -n dash-production`
+- Check: `kubectl describe pod -n godel-production`
 - Solution: Review logs, fix issues, retry
 
 **Issue:** Health checks failing
-- Check: `kubectl logs -n dash-production -l app=dash`
+- Check: `kubectl logs -n godel-production -l app=godel`
 - Solution: Check database connectivity, Redis
 
 **Issue:** Performance degradation
-- Check: `kubectl top pods -n dash-production`
+- Check: `kubectl top pods -n godel-production`
 - Solution: Scale up resources, investigate bottlenecks
 
 **Issue:** Rollback fails
-- Check: `helm history dash-production -n dash-production`
+- Check: `helm history godel-production -n godel-production`
 - Solution: Manual rollback to specific revision
 
 ---

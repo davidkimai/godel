@@ -1,6 +1,6 @@
-# Dash Extension System
+# Godel Extension System
 
-The Dash Extension System allows you to customize and extend Dash's capabilities with TypeScript plugins. Extensions can add custom tools, commands, event handlers, and integrations.
+The Godel Extension System allows you to customize and extend Godel's capabilities with TypeScript plugins. Extensions can add custom tools, commands, event handlers, and integrations.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ The Dash Extension System allows you to customize and extend Dash's capabilities
 
 ## Overview
 
-Dash extensions are TypeScript modules that can:
+Godel extensions are TypeScript modules that can:
 
 - **Register Tools**: Add new capabilities that agents can use (e.g., deploy to production, query databases)
 - **Register Commands**: Add CLI commands (e.g., `/deploy`, `/notify`)
@@ -29,7 +29,7 @@ Dash extensions are TypeScript modules that can:
 Extensions are loaded from:
 1. `~/.godel/extensions/` (global extensions)
 2. `./.godel/extensions/` (project-local extensions)
-3. Configured paths in your Dash config
+3. Configured paths in your Godel config
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ Create a file in `~/.godel/extensions/my-extension.ts`:
 
 ```typescript
 import { Type } from '@sinclair/typebox';
-import type { ExtensionAPI, ExtensionContext } from '@dash/core/extension-api';
+import type { ExtensionAPI, ExtensionContext } from '@godel/core/extension-api';
 
 export default function myExtension(api: ExtensionAPI, ctx: ExtensionContext) {
   // Register a tool
@@ -74,13 +74,13 @@ export default function myExtension(api: ExtensionAPI, ctx: ExtensionContext) {
 
 ### 2. Extension is Auto-Loaded
 
-Dash automatically discovers and loads extensions from `~/.godel/extensions/` on startup.
+Godel automatically discovers and loads extensions from `~/.godel/extensions/` on startup.
 
 ### 3. Use Your Extension
 
 ```bash
 # Use the registered command
-dash /greet "Everyone"
+godel /greet "Everyone"
 
 # The registered tool is available to agents
 # "Use the hello tool to greet Alice"
@@ -132,11 +132,11 @@ export default async function extensionName(api: ExtensionAPI, ctx: ExtensionCon
 
 ### Extension Context
 
-The `ExtensionContext` provides information about the Dash environment:
+The `ExtensionContext` provides information about the Godel environment:
 
 ```typescript
 interface ExtensionContext {
-  version: string;        // Dash version
+  version: string;        // Godel version
   extensionDir: string;   // Path to extensions directory
   isDev: boolean;        // Development mode
 }
@@ -177,7 +177,7 @@ The `ctx` parameter provides:
 ```typescript
 interface ToolContext {
   agentId?: string;           // ID of calling agent
-  swarmId?: string;          // ID of swarm (if in swarm)
+  swarmId?: string;          // ID of team (if in team)
   cwd: string;               // Current working directory
   signal?: AbortSignal;      // Cancellation signal
   hasPermission: (p: string) => boolean;  // Permission checker
@@ -281,7 +281,7 @@ api.registerCommand('deploy', {
 
 ## Events
 
-Extensions can subscribe to Dash lifecycle events.
+Extensions can subscribe to Godel lifecycle events.
 
 ### Available Events
 
@@ -290,8 +290,8 @@ Extensions can subscribe to Dash lifecycle events.
 | `agent_start` | Agent started working | `{ agentId, task, swarmId? }` |
 | `agent_complete` | Agent completed task | `{ agentId, result, duration, cost? }` |
 | `agent_error` | Agent encountered error | `{ agentId, error }` |
-| `swarm_start` | Swarm started | `{ swarmId, name, task, agentCount }` |
-| `swarm_complete` | Swarm completed | `{ swarmId, results, totalCost? }` |
+| `swarm_start` | Team started | `{ swarmId, name, task, agentCount }` |
+| `swarm_complete` | Team completed | `{ swarmId, results, totalCost? }` |
 | `tool_call` | Tool was called | `{ toolName, toolCallId, input, agentId? }` |
 | `tool_result` | Tool returned result | `{ toolName, toolCallId, result, duration }` |
 | `command_execute` | Command was executed | `{ command, args }` |
@@ -352,7 +352,7 @@ api.registerTool({
 
 ### Sandbox Configuration
 
-Configure sandbox in your Dash config:
+Configure sandbox in your Godel config:
 
 ```json
 {
@@ -368,7 +368,7 @@ Configure sandbox in your Dash config:
 
 ## Hot Reload
 
-Dash automatically reloads extensions when their files change (disabled in production).
+Godel automatically reloads extensions when their files change (disabled in production).
 
 ### How It Works
 
@@ -486,7 +486,7 @@ Type.Union([...])       // Union type
 ### ExtensionLoader
 
 ```typescript
-import { ExtensionLoader } from '@dash/core/extension-loader';
+import { ExtensionLoader } from '@godel/core/extension-loader';
 
 const loader = new ExtensionLoader({
   paths: ['./my-extensions'],
@@ -528,7 +528,7 @@ loader.cleanup();
 
 - Check file extension is `.ts` or `.js`
 - Ensure default export is a function
-- Check Dash logs for compilation errors
+- Check Godel logs for compilation errors
 - Verify file is in `~/.godel/extensions/`
 
 ### Permission Denied
@@ -549,6 +549,6 @@ loader.cleanup();
 To contribute an extension to the community:
 
 1. Create a repository with your extension
-2. Add `dash-extension` keyword to package.json
+2. Add `godel-extension` keyword to package.json
 3. Include README with installation instructions
-4. Share in Dash community discussions
+4. Share in Godel community discussions

@@ -15,7 +15,7 @@ server:
   timeoutMs: 60000
 
 database:
-  url: postgresql://dash:dash@localhost:5432/dash
+  url: postgresql://godel:godel@localhost:5432/godel
   poolSize: 5
   minPoolSize: 1
   maxPoolSize: 10
@@ -71,7 +71,7 @@ budget:
 openclaw:
   gatewayUrl: ws://127.0.0.1:18789
   # gatewayUrls: ["ws://127.0.0.1:18789", "ws://127.0.0.1:18790"]
-  # gatewayToken: ${VAULT:secret/dash/openclaw#token}
+  # gatewayToken: ${VAULT:secret/godel/openclaw#token}
   mode: restricted
   sandboxMode: non-main
   maxConcurrentSessions: 50
@@ -85,8 +85,8 @@ openclaw:
 
 eventBus:
   type: redis
-  streamKey: dash:events
-  consumerGroup: dash:consumers
+  streamKey: godel:events
+  consumerGroup: godel:consumers
   compressionThreshold: 1024
   maxStreamLength: 100000
   maxQueuedEvents: 10000

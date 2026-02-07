@@ -25,9 +25,9 @@ export const OPTIMIZED_INDEXES: IndexDefinition[] = [
   {
     name: 'idx_agents_swarm_id',
     table: 'agents',
-    columns: ['swarm_id'],
+    columns: ['team_id'],
     ifNotExists: true,
-    comment: 'Fast lookup of agents by swarm',
+    comment: 'Fast lookup of agents by team',
   },
   {
     name: 'idx_agents_status',
@@ -46,9 +46,9 @@ export const OPTIMIZED_INDEXES: IndexDefinition[] = [
   {
     name: 'idx_agents_swarm_status',
     table: 'agents',
-    columns: ['swarm_id', 'status'],
+    columns: ['team_id', 'status'],
     ifNotExists: true,
-    comment: 'Composite index for swarm+status queries',
+    comment: 'Composite index for team+status queries',
   },
   {
     name: 'idx_agents_spawned_at',

@@ -1,5 +1,5 @@
 /**
- * Init Command - Initialize Dash configuration
+ * Init Command - Initialize Godel configuration
  * 
  * Sets up:
  * - ~/.godel/ directory structure
@@ -15,7 +15,7 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { randomBytes } from 'crypto';
 
-const DASH_DIR = join(homedir(), '.dash');
+const DASH_DIR = join(homedir(), '.godel');
 const CONFIG_FILE = join(DASH_DIR, 'config.json');
 
 interface DashConfig {
@@ -58,7 +58,7 @@ function saveConfig(config: DashConfig): void {
 export function registerInitCommand(program: Command): void {
   const init = program
     .command('init')
-    .description('Initialize Dash configuration and directory structure');
+    .description('Initialize Godel configuration and directory structure');
 
   init
     .option('-f, --force', 'Overwrite existing configuration')
@@ -69,7 +69,7 @@ export function registerInitCommand(program: Command): void {
     .option('--budget <amount>', 'Set default budget limit (USD)')
     .action(async (options) => {
       try {
-        logger.info('🚀 Initializing Dash...\n');
+        logger.info('🚀 Initializing Godel...\n');
 
         // Validate budget if provided
         if (options.budget) {
@@ -83,7 +83,7 @@ export function registerInitCommand(program: Command): void {
         // Check if already initialized
         const existingConfig = loadConfig();
         if (existingConfig && !options.force) {
-          logger.info('⚠️  Dash is already initialized.');
+          logger.info('⚠️  Godel is already initialized.');
           logger.info(`   Config: ${CONFIG_FILE}`);
           logger.info('   Use --force to reinitialize.\n');
           process.exit(1);
@@ -126,7 +126,7 @@ export function registerInitCommand(program: Command): void {
         }
 
         // Success message
-        logger.info('init', '\n🎉 Dash initialized successfully!\n');
+        logger.info('init', '\n🎉 Godel initialized successfully!\n');
         logger.info('init', 'Configuration:');
         logger.info(`  API URL:    ${config.apiUrl}`);
         logger.info(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
@@ -139,13 +139,13 @@ export function registerInitCommand(program: Command): void {
         logger.info('init', '\nNext steps:');
         logger.info('  1. Set DASH_API_KEY environment variable:');
         logger.info(`     export DASH_API_KEY=${config.apiKey}`);
-        logger.info('  2. Start the Dash API server:');
-        logger.info('     dash api start');
-        logger.info('  3. Create your first swarm:');
-        logger.info('     dash swarm create --name "My Swarm" --task "Hello World"\n');
+        logger.info('  2. Start the Godel API server:');
+        logger.info('     godel api start');
+        logger.info('  3. Create your first team:');
+        logger.info('     godel team create --name "My Team" --task "Hello World"\n');
 
       } catch (error) {
-        logger.error('❌ Failed to initialize Dash:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to initialize Godel:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -159,8 +159,8 @@ export function registerInitCommand(program: Command): void {
         const config = loadConfig();
         
         if (!config) {
-          logger.error('init', '❌ Dash is not initialized.');
-          logger.info('   Run "dash init" first.\n');
+          logger.error('init', '❌ Godel is not initialized.');
+          logger.info('   Run "godel init" first.\n');
           process.exit(1);
         }
 
@@ -169,7 +169,7 @@ export function registerInitCommand(program: Command): void {
           return;
         }
 
-        logger.info('📋 Dash Configuration\n');
+        logger.info('📋 Godel Configuration\n');
         logger.info(`  API URL:    ${config.apiUrl}`);
         logger.info(`  API Key:    ${config.apiKey.slice(0, 4)}***${config.apiKey.slice(-4)} (hidden)`);
         logger.info(`  Model:      ${config.defaultModel}`);
@@ -198,7 +198,7 @@ export function registerInitCommand(program: Command): void {
         }
 
         if (!options.yes) {
-          logger.info('⚠️  This will reset your Dash configuration.');
+          logger.info('⚠️  This will reset your Godel configuration.');
           logger.info('   Use --yes to confirm.\n');
           process.exit(1);
         }

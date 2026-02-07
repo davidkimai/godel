@@ -4,9 +4,9 @@
  * Commands for running and managing tests
  * 
  * Usage:
- *   dash tests run <agent-id> [--pattern <glob>] [--coverage]
- *   dash tests generate <agent-id> --template <name>
- *   dash tests watch <agent-id>
+ *   godel tests run <agent-id> [--pattern <glob>] [--coverage]
+ *   godel tests generate <agent-id> --template <name>
+ *   godel tests watch <agent-id>
  */
 
 import { logger } from '../../../utils/logger';

@@ -1,4 +1,4 @@
-# Recording rules for Dash - Pre-computed aggregations for fast queries
+# Recording rules for Godel - Pre-computed aggregations for fast queries
 
 groups:
   # ============================================================================
@@ -35,7 +35,7 @@ groups:
           / 
           sum(rate(dash_events_total[5m]))
 
-      # Success rate for swarm completions
+      # Success rate for team completions
       - record: slo:dash_swarm_success_rate:ratio_rate5m
         expr: |
           sum(rate(dash_swarm_success_total[5m])) 
@@ -76,7 +76,7 @@ groups:
   - name: dashboard_aggregations
     interval: 15s
     rules:
-      # Total active agents across all swarms
+      # Total active agents across all teams
       - record: agg:dash_agents_active_total
         expr: sum(dash_agents_active)
 
@@ -118,18 +118,18 @@ groups:
           /
           sum by (method, route) (rate(dash_api_request_duration_seconds_count[5m]))
 
-      # Agent execution rate by swarm
+      # Agent execution rate by team
       - record: agg:dash_agent_execution_rate:rate5m
         expr: sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
 
-      # Average agent execution time by swarm
+      # Average agent execution time by team
       - record: agg:dash_agent_execution_avg:rate5m
         expr: |
           sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_sum[5m]))
           /
           sum by (swarm_id) (rate(dash_agent_execution_duration_seconds_count[5m]))
 
-      # Swarm success rate by strategy
+      # Team success rate by strategy
       - record: agg:dash_swarm_success_rate_by_strategy:rate10m
         expr: |
           sum by (strategy) (rate(dash_swarm_success_total[10m]))
@@ -140,7 +140,7 @@ groups:
             sum by (strategy) (rate(dash_swarm_failure_total[10m]))
           )
 
-      # Total cost across all swarms
+      # Total cost across all teams
       - record: agg:dash_total_cost_usd
         expr: sum(dash_swarm_cost_usd)
 
@@ -152,7 +152,7 @@ groups:
       - record: agg:dash_budget_utilization_avg
         expr: avg(dash_budget_utilization_ratio)
 
-      # Budget utilization by swarm (top consumers)
+      # Budget utilization by team (top consumers)
       - record: agg:dash_budget_utilization_by_swarm
         expr: sum by (swarm_id) (dash_budget_utilization_ratio)
 
@@ -181,7 +181,7 @@ groups:
           / 
           sum by (swarm_id) (dash_agents_completed)
 
-      # Cost per successful swarm
+      # Cost per successful team
       - record: cost:dash_per_successful_swarm
         expr: |
           sum by (strategy) (dash_swarm_cost_usd) 

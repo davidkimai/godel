@@ -228,8 +228,8 @@ export interface Agent {
   pauseTime?: Date;
   pausedBy?: string;
   
-  /** Swarm identifier for grouping */
-  swarmId?: string;
+  /** Team identifier for grouping */
+  teamId?: string;
   /** Parent agent ID for hierarchy */
   parentId?: string;
   /** Child agent IDs */
@@ -272,8 +272,8 @@ export interface CreateAgentOptions {
   model: string;
   /** Initial task description */
   task: string;
-  /** Swarm identifier */
-  swarmId?: string;
+  /** Team identifier */
+  teamId?: string;
   /** Parent agent ID */
   parentId?: string;
   /** Maximum retry attempts */
@@ -316,7 +316,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     task: options.task,
     spawnedAt: now,
     runtime: 0,
-    swarmId: options.swarmId,
+    teamId: options.teamId,
     parentId: options.parentId,
     childIds: [],
     context: {

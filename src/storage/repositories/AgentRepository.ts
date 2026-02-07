@@ -12,7 +12,7 @@ export type LifecycleState = 'initializing' | 'spawning' | 'running' | 'pausing'
 
 export interface Agent {
   id: string;
-  swarm_id?: string;
+  team_id?: string;
   label?: string;
   status: AgentStatus;
   lifecycle_state: LifecycleState;
@@ -38,7 +38,7 @@ export interface Agent {
 
 export interface AgentCreateInput {
   id?: string;
-  swarm_id?: string;
+  team_id?: string;
   parent_id?: string;
   label?: string;
   status?: AgentStatus;
@@ -78,7 +78,7 @@ export interface AgentUpdateInput {
 }
 
 export interface AgentFilter {
-  swarm_id?: string;
+  team_id?: string;
   status?: AgentStatus;
   lifecycle_state?: LifecycleState;
   model?: string;
@@ -95,7 +95,7 @@ export interface AgentActivity {
   lifecycle_state: LifecycleState;
   model: string;
   task: string;
-  swarm_id?: string;
+  team_id?: string;
   swarm_name?: string;
   spawned_at: Date;
   completed_at?: Date;
@@ -127,12 +127,12 @@ export class AgentRepository {
     
     const result = await this.pool!.query<AgentRow>(
       `INSERT INTO agents (
-        swarm_id, label, status, lifecycle_state, model, task, config,
+        team_id, label, status, lifecycle_state, model, task, config,
         context, code, reasoning, safety_boundaries, max_retries, budget_limit, metadata
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *`,
       [
-        input.swarm_id || null,
+        input.team_id || null,
         input.label || null,
         input.status || 'pending',
         input.lifecycle_state || 'initializing',
@@ -167,14 +167,14 @@ export class AgentRepository {
   }
 
   /**
-   * Find agents by swarm ID
+   * Find agents by team ID
    */
-  async findBySwarmId(swarmId: string): Promise<Agent[]> {
+  async findByTeamId(teamId: string): Promise<Agent[]> {
     this.ensureInitialized();
     
     const result = await this.pool!.query<AgentRow>(
-      `SELECT * FROM agents WHERE swarm_id = $1 ORDER BY spawned_at DESC`,
-      [swarmId]
+      `SELECT * FROM agents WHERE team_id = $1 ORDER BY spawned_at DESC`,
+      [teamId]
     );
 
     return result.rows.map(row => this.mapRow(row));
@@ -245,9 +245,9 @@ export class AgentRepository {
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter.swarm_id) {
-      conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(filter.swarm_id);
+    if (filter.team_id) {
+      conditions.push(`team_id = $${paramIndex++}`);
+      values.push(filter.team_id);
     }
     if (filter.status) {
       conditions.push(`status = $${paramIndex++}`);
@@ -285,16 +285,16 @@ export class AgentRepository {
   /**
    * Count agents with optional filter
    */
-  async count(filter: { swarm_id?: string; status?: AgentStatus } = {}): Promise<number> {
+  async count(filter: { team_id?: string; status?: AgentStatus } = {}): Promise<number> {
     this.ensureInitialized();
     
     const conditions: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter.swarm_id) {
-      conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(filter.swarm_id);
+    if (filter.team_id) {
+      conditions.push(`team_id = $${paramIndex++}`);
+      values.push(filter.team_id);
     }
     if (filter.status) {
       conditions.push(`status = $${paramIndex++}`);
@@ -434,16 +434,16 @@ export class AgentRepository {
   /**
    * Get agent activity view
    */
-  async getActivity(filter: { swarm_id?: string; limit?: number } = {}): Promise<AgentActivity[]> {
+  async getActivity(filter: { team_id?: string; limit?: number } = {}): Promise<AgentActivity[]> {
     this.ensureInitialized();
     
     const conditions: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter.swarm_id) {
-      conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(filter.swarm_id);
+    if (filter.team_id) {
+      conditions.push(`team_id = $${paramIndex++}`);
+      values.push(filter.team_id);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -460,14 +460,14 @@ export class AgentRepository {
   }
 
   /**
-   * Bulk delete agents by swarm ID
+   * Bulk delete agents by team ID
    */
-  async deleteBySwarmId(swarmId: string): Promise<number> {
+  async deleteByTeamId(teamId: string): Promise<number> {
     this.ensureInitialized();
     
     const result = await this.pool!.query(
-      'DELETE FROM agents WHERE swarm_id = $1',
-      [swarmId]
+      'DELETE FROM agents WHERE team_id = $1',
+      [teamId]
     );
 
     return result.rowCount;
@@ -498,12 +498,12 @@ export class AgentRepository {
         const promises = batch.map(async (input) => {
           const result = await client.query<AgentRow>(
             `INSERT INTO agents (
-              swarm_id, label, status, lifecycle_state, model, task, config,
+              team_id, label, status, lifecycle_state, model, task, config,
               context, code, reasoning, safety_boundaries, max_retries, budget_limit, metadata
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *`,
             [
-              input.swarm_id || null,
+              input.team_id || null,
               input.label || null,
               input.status || 'pending',
               input.lifecycle_state || 'initializing',
@@ -684,7 +684,7 @@ export class AgentRepository {
   private mapRow(row: AgentRow): Agent {
     return {
       id: row.id,
-      swarm_id: row.swarm_id || undefined,
+      team_id: row.team_id || undefined,
       label: row.label || undefined,
       status: row.status as AgentStatus,
       lifecycle_state: row.lifecycle_state as LifecycleState,
@@ -716,7 +716,7 @@ export class AgentRepository {
       lifecycle_state: row.lifecycle_state as LifecycleState,
       model: row.model,
       task: row.task,
-      swarm_id: row.swarm_id || undefined,
+      team_id: row.team_id || undefined,
       swarm_name: row.swarm_name || undefined,
       spawned_at: new Date(row.spawned_at),
       completed_at: row.completed_at ? new Date(row.completed_at) : undefined,
@@ -742,7 +742,7 @@ export class AgentRepository {
 // Database row types
 interface AgentRow {
   id: string;
-  swarm_id?: string;
+  team_id?: string;
   label?: string;
   status: string;
   lifecycle_state: string;
@@ -772,7 +772,7 @@ interface AgentActivityRow {
   lifecycle_state: string;
   model: string;
   task: string;
-  swarm_id?: string;
+  team_id?: string;
   swarm_name?: string;
   spawned_at: string;
   completed_at?: string;

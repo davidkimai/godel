@@ -2,20 +2,20 @@
  * Autonomic CLI Commands
  * 
  * Commands:
- * - swarmctl autonomic status   - Show maintenance swarm status
- * - swarmctl autonomic start    - Start maintenance swarm
- * - swarmctl autonomic stop     - Stop maintenance swarm
- * - swarmctl autonomic pause    - Pause maintenance swarm
- * - swarmctl autonomic resume   - Resume maintenance swarm
- * - swarmctl autonomic fix <id> - Manually trigger fix for error
- * - swarmctl autonomic list     - List all errors
+ * - godel autonomic status   - Show maintenance team status
+ * - godel autonomic start    - Start maintenance team
+ * - godel autonomic stop     - Stop maintenance team
+ * - godel autonomic pause    - Pause maintenance team
+ * - godel autonomic resume   - Resume maintenance team
+ * - godel autonomic fix <id> - Manually trigger fix for error
+ * - godel autonomic list     - List all errors
  */
 
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import chalk from 'chalk';
 import {
-  MaintenanceSwarmOrchestrator,
+  MaintenanceTeamOrchestrator,
   getGlobalOrchestrator,
   setGlobalOrchestrator,
   ErrorListenerService,
@@ -23,12 +23,12 @@ import {
 import { getGlobalEventBus } from '../../core/event-bus';
 
 // Global orchestrator instance
-let orchestrator: MaintenanceSwarmOrchestrator | null = null;
+let orchestrator: MaintenanceTeamOrchestrator | null = null;
 
-function getOrchestrator(): MaintenanceSwarmOrchestrator {
+function getOrchestrator(): MaintenanceTeamOrchestrator {
   if (!orchestrator) {
     const eventBus = getGlobalEventBus();
-    orchestrator = new MaintenanceSwarmOrchestrator({ eventBus });
+    orchestrator = new MaintenanceTeamOrchestrator({ eventBus });
     setGlobalOrchestrator(orchestrator);
   }
   return orchestrator;
@@ -36,13 +36,13 @@ function getOrchestrator(): MaintenanceSwarmOrchestrator {
 
 export function autonomicCommand(): Command {
   const cmd = new Command('autonomic')
-    .description('Self-maintaining maintenance swarm (Godel-on-Godel)')
+    .description('Self-maintaining maintenance team (Godel-on-Godel)')
     .configureHelp({ sortOptions: true });
 
   // autonomic status
   cmd.addCommand(
     new Command('status')
-      .description('Show maintenance swarm status')
+      .description('Show maintenance team status')
       .option('--json', 'Output as JSON')
       .action(async (options) => {
         try {
@@ -53,7 +53,7 @@ export function autonomicCommand(): Command {
           if (options.json) {
             logger.info(JSON.stringify({ status, jobs }, null, 2));
           } else {
-            console.log(chalk.bold('\n🤖 Autonomic Maintenance Swarm Status\n'));
+            console.log(chalk.bold('\n🤖 Autonomic Maintenance Team Status\n'));
             
             // Status
             console.log(chalk.gray('Status:'), status.isRunning 
@@ -102,7 +102,7 @@ export function autonomicCommand(): Command {
   // autonomic start
   cmd.addCommand(
     new Command('start')
-      .description('Start maintenance swarm')
+      .description('Start maintenance team')
       .option('--poll-interval <ms>', 'Polling interval in milliseconds', '5000')
       .option('--max-concurrent <n>', 'Maximum concurrent jobs', '3')
       .action(async (options) => {
@@ -116,11 +116,11 @@ export function autonomicCommand(): Command {
           
           await orch.start();
           
-          console.log(chalk.green('✅ Maintenance swarm started'));
+          console.log(chalk.green('✅ Maintenance team started'));
           console.log(chalk.gray('Listening for errors...'));
           console.log();
-          console.log(chalk.gray('Use "swarmctl autonomic status" to check status'));
-          console.log(chalk.gray('Use "swarmctl autonomic stop" to stop'));
+          console.log(chalk.gray('Use "godel autonomic status" to check status'));
+          console.log(chalk.gray('Use "godel autonomic stop" to stop'));
           
           process.exit(0);
         } catch (error) {
@@ -134,13 +134,13 @@ export function autonomicCommand(): Command {
   // autonomic stop
   cmd.addCommand(
     new Command('stop')
-      .description('Stop maintenance swarm')
+      .description('Stop maintenance team')
       .action(async () => {
         try {
           const orch = getOrchestrator();
           orch.stop();
           
-          console.log(chalk.yellow('🛑 Maintenance swarm stopped'));
+          console.log(chalk.yellow('🛑 Maintenance team stopped'));
           process.exit(0);
         } catch (error) {
           logger.error('autonomic-cli', `Failed to stop: ${error}`);
@@ -153,13 +153,13 @@ export function autonomicCommand(): Command {
   // autonomic pause
   cmd.addCommand(
     new Command('pause')
-      .description('Pause maintenance swarm')
+      .description('Pause maintenance team')
       .action(async () => {
         try {
           const orch = getOrchestrator();
           orch.pause();
           
-          console.log(chalk.yellow('⏸️ Maintenance swarm paused'));
+          console.log(chalk.yellow('⏸️ Maintenance team paused'));
           process.exit(0);
         } catch (error) {
           logger.error('autonomic-cli', `Failed to pause: ${error}`);
@@ -172,13 +172,13 @@ export function autonomicCommand(): Command {
   // autonomic resume
   cmd.addCommand(
     new Command('resume')
-      .description('Resume maintenance swarm')
+      .description('Resume maintenance team')
       .action(async () => {
         try {
           const orch = getOrchestrator();
           orch.resume();
           
-          console.log(chalk.green('▶️ Maintenance swarm resumed'));
+          console.log(chalk.green('▶️ Maintenance team resumed'));
           process.exit(0);
         } catch (error) {
           logger.error('autonomic-cli', `Failed to resume: ${error}`);
@@ -291,7 +291,7 @@ export function autonomicCommand(): Command {
           }
 
           console.log(chalk.green(`✅ Fix job started: ${job.id}`));
-          console.log(chalk.gray('Check status with: swarmctl autonomic status'));
+          console.log(chalk.gray('Check status with: godel autonomic status'));
           
           process.exit(0);
         } catch (error) {
@@ -329,7 +329,7 @@ export function autonomicCommand(): Command {
           });
           
           console.log(chalk.green(`✅ Demo error created: ${errorId}`));
-          console.log(chalk.gray('Check status with: swarmctl autonomic status'));
+          console.log(chalk.gray('Check status with: godel autonomic status'));
           
           // If orchestrator is running, the error will be picked up
           const orch = getGlobalOrchestrator();

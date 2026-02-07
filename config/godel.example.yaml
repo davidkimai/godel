@@ -38,7 +38,7 @@ server:
 database:
   # Connection URL (overrides individual settings)
   # Format: postgresql://user:password@host:port/database
-  url: postgresql://dash:dash@localhost:5432/dash
+  url: postgresql://godel:godel@localhost:5432/godel
   
   # Connection pool settings
   poolSize: 10
@@ -73,7 +73,7 @@ redis:
   url: redis://localhost:6379/0
   
   # Password (if required)
-  # password: ${VAULT:secret/dash/redis#password}
+  # password: ${VAULT:secret/godel/redis#password}
   
   # Database number
   db: 0
@@ -93,7 +93,7 @@ redis:
 auth:
   # API keys for authentication
   apiKeys:
-    - dash-api-key
+    - godel-api-key
   
   # JWT secret for token signing (change in production!)
   jwtSecret: change-me-in-production
@@ -203,7 +203,7 @@ openclaw:
   # Option 2: Environment variable
   # gatewayToken: ${ENV:OPENCLAW_GATEWAY_TOKEN}
   # Option 3: Vault secret (recommended for production)
-  # gatewayToken: ${VAULT:secret/dash/openclaw#token}
+  # gatewayToken: ${VAULT:secret/godel/openclaw#token}
   
   # Mode: restricted or full
   mode: restricted
@@ -211,7 +211,7 @@ openclaw:
   # Sandbox mode: none, non-main, docker
   sandboxMode: non-main
 
-  # Maximum concurrent OpenClaw sessions in Dash
+  # Maximum concurrent OpenClaw sessions in Godel
   maxConcurrentSessions: 50
 
   # Maximum sessions per gateway in a pooled setup
@@ -242,10 +242,10 @@ eventBus:
   type: redis
   
   # Stream key for Redis
-  streamKey: dash:events
+  streamKey: godel:events
   
   # Consumer group name
-  consumerGroup: dash:consumers
+  consumerGroup: godel:consumers
   
   # Compression threshold in bytes
   compressionThreshold: 1024

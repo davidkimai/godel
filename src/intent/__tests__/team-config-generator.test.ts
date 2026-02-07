@@ -1,15 +1,15 @@
 /**
- * @fileoverview Swarm Config Generator Tests
+ * @fileoverview Team Config Generator Tests
  */
 
-import { SwarmConfigGenerator, generateSwarmConfig } from '../swarm-config-generator';
-import { ParsedIntent, SwarmComplexity } from '../types';
+import { TeamConfigGenerator, generateTeamConfig } from '../team-config-generator';
+import { ParsedIntent, TeamComplexity } from '../types';
 
-describe('SwarmConfigGenerator', () => {
-  let generator: SwarmConfigGenerator;
+describe('TeamConfigGenerator', () => {
+  let generator: TeamConfigGenerator;
 
   beforeEach(() => {
-    generator = new SwarmConfigGenerator();
+    generator = new TeamConfigGenerator();
   });
 
   const createMockIntent = (taskType: ParsedIntent['taskType']): ParsedIntent => ({
@@ -19,7 +19,7 @@ describe('SwarmConfigGenerator', () => {
     raw: `Test ${taskType}`,
   });
 
-  const createMockComplexity = (level: SwarmComplexity['level']): SwarmComplexity => ({
+  const createMockComplexity = (level: TeamComplexity['level']): TeamComplexity => ({
     level,
     score: level === 'low' ? 20 : level === 'medium' ? 45 : level === 'high' ? 70 : 85,
     metrics: {
@@ -34,8 +34,8 @@ describe('SwarmConfigGenerator', () => {
     },
   });
 
-  describe('refactor swarm', () => {
-    it('should generate refactor swarm with architect', async () => {
+  describe('refactor team', () => {
+    it('should generate refactor team with architect', async () => {
       const intent = createMockIntent('refactor');
       const complexity = createMockComplexity('medium');
       
@@ -62,8 +62,8 @@ describe('SwarmConfigGenerator', () => {
     });
   });
 
-  describe('implement swarm', () => {
-    it('should generate implementation swarm', async () => {
+  describe('implement team', () => {
+    it('should generate implementation team', async () => {
       const intent = createMockIntent('implement');
       const complexity = createMockComplexity('medium');
       
@@ -76,8 +76,8 @@ describe('SwarmConfigGenerator', () => {
     });
   });
 
-  describe('fix swarm', () => {
-    it('should generate bug fix swarm with specialist', async () => {
+  describe('fix team', () => {
+    it('should generate bug fix team with specialist', async () => {
       const intent = createMockIntent('fix');
       const complexity = createMockComplexity('medium');
       
@@ -90,8 +90,8 @@ describe('SwarmConfigGenerator', () => {
     });
   });
 
-  describe('test swarm', () => {
-    it('should generate test swarm', async () => {
+  describe('test team', () => {
+    it('should generate test team', async () => {
       const intent = createMockIntent('test');
       const complexity = createMockComplexity('medium');
       
@@ -127,7 +127,7 @@ describe('SwarmConfigGenerator', () => {
   });
 });
 
-describe('generateSwarmConfig', () => {
+describe('generateTeamConfig', () => {
   it('should be exported and work', async () => {
     const intent: ParsedIntent = {
       taskType: 'test',
@@ -136,7 +136,7 @@ describe('generateSwarmConfig', () => {
       raw: 'Test the utils',
     };
     
-    const complexity: SwarmComplexity = {
+    const complexity: TeamComplexity = {
       level: 'low',
       score: 20,
       metrics: {
@@ -151,7 +151,7 @@ describe('generateSwarmConfig', () => {
       },
     };
     
-    const config = await generateSwarmConfig(intent, complexity);
+    const config = await generateTeamConfig(intent, complexity);
     
     expect(config.agents.length).toBeGreaterThan(0);
     expect(config.estimatedCost).toBeGreaterThan(0);

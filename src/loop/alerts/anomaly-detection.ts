@@ -9,6 +9,12 @@
 
 import type { TimeSeriesPoint, TimeSeriesStorage, TimeSeriesQuery } from './storage.js';
 import type { EventBus } from '../event-bus.js';
+import { createLogger } from '../../utils/logger.js';
+
+/**
+ * Module logger
+ */
+const log = createLogger('anomaly-detection');
 
 /**
  * Anomaly detection result
@@ -316,7 +322,7 @@ export class CompositeAnomalyDetector implements AnomalyDetector {
         const anomalies = detector.detect(points);
         allAnomalies.push(...anomalies);
       } catch (error) {
-        console.error('Detector failed:', error);
+        log.logError('Detector failed', error);
       }
     }
 
@@ -426,7 +432,7 @@ export class AnomalyDetectionService {
 
         allAnomalies.push(...anomalies);
       } catch (error) {
-        console.error(`Anomaly detection failed for ${pattern}:`, error);
+        log.logError('Anomaly detection failed', error, { pattern });
       }
     }
 

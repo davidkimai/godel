@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS scheduling_history (
     id SERIAL PRIMARY KEY,
     agent_id VARCHAR(255) NOT NULL,
-    swarm_id VARCHAR(255),
+    team_id VARCHAR(255),
     node_id VARCHAR(255),
     success BOOLEAN NOT NULL,
     error_message TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS scheduling_history (
 
 -- Indexes for common queries
 CREATE INDEX idx_scheduling_history_agent_id ON scheduling_history(agent_id);
-CREATE INDEX idx_scheduling_history_swarm_id ON scheduling_history(swarm_id);
+CREATE INDEX idx_scheduling_history_swarm_id ON scheduling_history(team_id);
 CREATE INDEX idx_scheduling_history_node_id ON scheduling_history(node_id);
 CREATE INDEX idx_scheduling_history_scheduled_at ON scheduling_history(scheduled_at);
 CREATE INDEX idx_scheduling_history_success ON scheduling_history(success);

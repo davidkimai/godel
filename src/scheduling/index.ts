@@ -1,7 +1,7 @@
 /**
  * Scheduling Module
  * 
- * Advanced scheduling system for Dash with resource-aware placement,
+ * Advanced scheduling system for Godel with resource-aware placement,
  * affinity/anti-affinity rules, and priority-based preemption.
  * 
  * @example

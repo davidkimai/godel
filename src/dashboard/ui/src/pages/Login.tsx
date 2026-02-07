@@ -65,8 +65,8 @@ export function LoginPage(): React.ReactElement {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 mb-4">
             <Hexagon className="w-8 h-8 text-emerald-500" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Dash Dashboard</h1>
-          <p className="text-slate-400 mt-1">Sign in to manage your agent swarms</p>
+          <h1 className="text-2xl font-bold text-white">Godel Dashboard</h1>
+          <p className="text-slate-400 mt-1">Sign in to manage your agent teams</p>
         </div>
 
         {/* Login Form */}

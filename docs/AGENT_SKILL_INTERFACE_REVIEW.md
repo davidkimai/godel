@@ -1,4 +1,4 @@
-# Dash Agent Skill Interface Review
+# Godel Agent Skill Interface Review
 
 **Date:** February 3, 2026  
 **Reviewer:** Senior Engineer (Skill Interface Review)  
@@ -11,7 +11,7 @@
 
 **Status: 🔴 CRITICAL GAPS - Not Ready for Agent Integration**
 
-Dash has comprehensive human-facing documentation but lacks critical agent-facing interfaces. The platform cannot be easily used by OTHER agents without significant development effort.
+Godel has comprehensive human-facing documentation but lacks critical agent-facing interfaces. The platform cannot be easily used by OTHER agents without significant development effort.
 
 **Overall Grade: C (Major gaps in agent interfaces)**
 
@@ -25,7 +25,7 @@ Dash has comprehensive human-facing documentation but lacks critical agent-facin
 | **NO CLI interface** | 🔴 CRITICAL | ❌ Missing | No programmatic interface |
 | **NO JSON output support** | 🔴 CRITICAL | ❌ Missing | Can't parse CLI output |
 | **NO OpenAPI spec** | 🟡 HIGH | ❌ Missing | Can't generate clients |
-| **NO @dash/client SDK** | 🟡 HIGH | ❌ Missing | No easy integration |
+| **NO @godel/client SDK** | 🟡 HIGH | ❌ Missing | No easy integration |
 | **Missing 11 API endpoints** | 🟡 HIGH | ❌ Missing | Incomplete API coverage |
 | WebSocket lacks auth | 🟡 HIGH | ⚠️ Partial | Security concern |
 | Response wrapper missing | 🟡 HIGH | ❌ Missing | Inconsistent responses |
@@ -44,27 +44,27 @@ Dash has comprehensive human-facing documentation but lacks critical agent-facin
 
 **Created:**
 - `/SKILL.md` - Comprehensive agent-facing documentation
-- Covers: API reference, swarm operations, event streaming, workflows
+- Covers: API reference, team operations, event streaming, workflows
 
 ### 2. CLI Interface Review
 
 **Current State:**
-- ❌ **NO CLI EXISTS** - Dash is API-only
+- ❌ **NO CLI EXISTS** - Godel is API-only
 - ❌ No programmatic interface for shell scripting
 - ❌ No `--json` or `--format` flags
 - ❌ No machine-parseable output
 
 **Required CLI Commands:**
 ```bash
-# Swarm Management
-swarmctl swarm list [--json]
-swarmctl swarm create --name <name> --count <n> [--json]
-swarmctl swarm destroy <id> [--force]
-swarmctl swarm scale <id> --count <n>
+# Team Management
+swarmctl team list [--json]
+swarmctl team create --name <name> --count <n> [--json]
+swarmctl team destroy <id> [--force]
+swarmctl team scale <id> --count <n>
 
 # Agent Management
-swarmctl agent list [--swarm <id>] [--json]
-swarmctl agent spawn --swarm <id> [--config <file>]
+swarmctl agent list [--team <id>] [--json]
+swarmctl agent spawn --team <id> [--config <file>]
 swarmctl agent kill <id> [--force]
 swarmctl agent logs <id> [--follow]
 
@@ -126,28 +126,28 @@ export interface OpenClawTool {
 
 ### 5. SDK Requirements
 
-**Missing:** `@dash/client` SDK
+**Missing:** `@godel/client` SDK
 
 **Required Features:**
 ```typescript
-import { DashClient } from '@dash/client';
+import { DashClient } from '@godel/client';
 
 const client = new DashClient({
   baseUrl: 'http://localhost:7373',
   apiKey: process.env.DASH_API_KEY
 });
 
-// Swarm operations
-const swarm = await client.swarms.create({ name: 'test', count: 5 });
-await swarm.scale(10);
-await swarm.destroy();
+// Team operations
+const team = await client.teams.create({ name: 'test', count: 5 });
+await team.scale(10);
+await team.destroy();
 
 // Agent operations
-const agent = await client.agents.spawn({ swarmId: swarm.id });
+const agent = await client.agents.spawn({ swarmId: team.id });
 await agent.kill();
 
 // Event streaming
-const events = client.events.subscribe({ swarmId: swarm.id });
+const events = client.events.subscribe({ swarmId: team.id });
 events.on('agent:spawned', (e) => console.log(e));
 
 // Task queue
@@ -160,7 +160,7 @@ await task.assignTo(agent.id);
 ## Critical Issues
 
 ### 1. No Agent-Facing Documentation
-**Problem:** Dash has extensive human docs but nothing telling OTHER AGENTS how to use it programmatically.
+**Problem:** Godel has extensive human docs but nothing telling OTHER AGENTS how to use it programmatically.
 
 **Impact:** Agents must reverse-engineer the API from human documentation.
 
@@ -171,11 +171,11 @@ await task.assignTo(agent.id);
 ### 2. No Programmatic Interface
 **Problem:** No CLI with `--json` flags, no SDK.
 
-**Impact:** Agents cannot integrate with Dash from shell scripts or other languages.
+**Impact:** Agents cannot integrate with Godel from shell scripts or other languages.
 
 **Solution:**
 - Build CLI with JSON output (`docs/CLI_IMPROVEMENTS_NEEDED.md`)
-- Create `@dash/client` SDK
+- Create `@godel/client` SDK
 
 ### 3. API Incomplete
 **Problem:** Key endpoints missing (spawn agent, kill agent, create task).
@@ -213,7 +213,7 @@ await task.assignTo(agent.id);
 | # | Action | Owner | Effort |
 |---|--------|-------|--------|
 | 6 | Create OpenAPI 3.0 specification | API | 2 days |
-| 7 | Build @dash/client SDK | SDK | 1 week |
+| 7 | Build @godel/client SDK | SDK | 1 week |
 | 8 | Implement remaining 6 API endpoints | API | 1 week |
 | 9 | Add WebSocket auth | Auth | 2 days |
 | 10 | Standardize response wrapper | API | 1 day |
@@ -239,7 +239,7 @@ await task.assignTo(agent.id);
 | Complete CLI (20+ commands) | 2 weeks |
 | Missing API endpoints (11) | 1 week |
 | OpenAPI spec | 2-3 days |
-| @dash/client SDK | 1 week |
+| @godel/client SDK | 1 week |
 | Integration examples | 2 days |
 | **Total** | **~4-5 weeks** |
 
@@ -247,12 +247,12 @@ await task.assignTo(agent.id);
 
 ## Conclusion
 
-Dash has strong internal architecture but lacks critical agent-facing interfaces. The platform is currently **not ready** for easy integration by other agents in the OpenClaw ecosystem.
+Godel has strong internal architecture but lacks critical agent-facing interfaces. The platform is currently **not ready** for easy integration by other agents in the OpenClaw ecosystem.
 
 **To become "OpenClaw's first platform":**
 1. Create CLI with JSON output
 2. Complete the API (11 missing endpoints)
-3. Build `@dash/client` SDK
+3. Build `@godel/client` SDK
 4. Create OpenAPI specification
 
 **Estimated time:** 4-5 weeks of focused effort

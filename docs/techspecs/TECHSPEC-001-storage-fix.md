@@ -12,7 +12,7 @@ CLI agent spawn fails with `this.storage.create is not a function`.
 ### Test Evidence
 
 ```
-CLI Test: dash agent spawn "Test agent creation"
+CLI Test: godel agent spawn "Test agent creation"
 Error: this.storage.create is not a function
 Status: FAIL
 ```
@@ -149,7 +149,7 @@ export class SQLiteStorage implements Storage {
 ### Phase 1: SQLite Storage
 - [ ] Create SQLiteStorage class
 - [ ] Implement all Storage interface methods
-- [ ] Add initialization for all tables (agents, swarms, workflows, events)
+- [ ] Add initialization for all tables (agents, teams, workflows, events)
 - [ ] Write unit tests
 
 ### Phase 2: CLI Integration
@@ -218,8 +218,8 @@ describe('SQLiteStorage', () => {
 
 ## Success Criteria
 
-- [ ] `dash agent spawn` creates agent successfully
-- [ ] `dash agent list` returns agents
+- [ ] `godel agent spawn` creates agent successfully
+- [ ] `godel agent list` returns agents
 - [ ] API endpoints work without 500 errors
 - [ ] All tests pass (100%)
 

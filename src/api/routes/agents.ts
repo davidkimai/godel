@@ -81,7 +81,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           label: validated.label,
           model: validated.model,
           task: validated.task,
-          swarmId: validated.swarmId,
+          teamId: validated.teamId,
           parentId: validated.parentId,
           maxRetries: validated.maxRetries,
           budgetLimit: validated.budgetLimit,
@@ -98,7 +98,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
             label: agent.label,
             model: agent.model,
             task: agent.task,
-            swarm_id: agent.swarmId,
+            team_id: agent.teamId,
             status: 'pending',
             lifecycle_state: 'initializing',
             max_retries: agent.maxRetries,
@@ -173,7 +173,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
             limit: params.limit,
             status: request.query.status,
             lifecycle_state: request.query.lifecycleState,
-            swarm_id: request.query.swarmId,
+            team_id: request.query.teamId,
             model: request.query.model,
           });
           
@@ -191,7 +191,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
                 spawnedAt: new Date(dbAgent.spawned_at),
                 completedAt: dbAgent.completed_at ? new Date(dbAgent.completed_at) : undefined,
                 runtime: dbAgent.runtime,
-                swarmId: dbAgent.swarm_id,
+                teamId: dbAgent.team_id,
                 parentId: undefined, // Not stored in DB
                 childIds: [],
                 context: dbAgent.context as any || {
@@ -218,8 +218,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
         if (request.query.status) {
           agents = agents.filter(a => a.status === request.query.status);
         }
-        if (request.query.swarmId) {
-          agents = agents.filter(a => a.swarmId === request.query.swarmId);
+        if (request.query.teamId) {
+          agents = agents.filter(a => a.teamId === request.query.teamId);
         }
         if (request.query.model) {
           agents = agents.filter(a => a.model.includes(request.query.model!));
@@ -291,7 +291,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
                 spawnedAt: new Date(dbAgent.spawned_at),
                 completedAt: dbAgent.completed_at ? new Date(dbAgent.completed_at) : undefined,
                 runtime: dbAgent.runtime,
-                swarmId: dbAgent.swarm_id,
+                teamId: dbAgent.team_id,
                 parentId: undefined,
                 childIds: [],
                 context: dbAgent.context as any || {

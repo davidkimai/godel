@@ -1,7 +1,7 @@
 /**
  * Budget Tracker for OpenClaw Agent Cost Management
  * 
- * Tracks costs across agents, swarms, and tool usage.
+ * Tracks costs across agents, teams, and tool usage.
  * Enforces budget limits with automatic agent termination.
  * 
  * SPEC: OPENCLAW_INTEGRATION_SPEC.md Section 4.5
@@ -18,13 +18,13 @@ import { SQLiteStorage } from '../../storage/sqlite';
 export interface BudgetConfig {
   totalBudget: number;        // e.g., $10.00
   perAgentLimit?: number;     // max per agent
-  perSwarmLimit?: number;     // max per swarm
+  perTeamLimit?: number;     // max per team
   warningThreshold: number;   // e.g., 80% (0.8)
 }
 
 export interface BudgetStatus {
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   totalSpent: number;
   budgetLimit: number;
   remaining: number;
@@ -36,7 +36,7 @@ export interface BudgetStatus {
 
 export interface AgentBudgetRecord {
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   budgetLimit: number;
   totalSpent: number;
   warningTriggered: boolean;
@@ -48,15 +48,15 @@ export interface AgentBudgetRecord {
 export interface BudgetAlert {
   type: 'warning' | 'exceeded' | 'killed';
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   message: string;
   currentSpent: number;
   budgetLimit: number;
   timestamp: Date;
 }
 
-export interface SwarmBudgetSummary {
-  swarmId: string;
+export interface TeamBudgetSummary {
+  teamId: string;
   totalBudget: number;
   totalSpent: number;
   remaining: number;
@@ -72,7 +72,7 @@ export interface SwarmBudgetSummary {
 export class BudgetTracker {
   private storage: SQLiteStorage;
   private agentBudgets: Map<string, AgentBudgetRecord> = new Map();
-  private swarmBudgets: Map<string, SwarmBudgetSummary> = new Map();
+  private swarmBudgets: Map<string, TeamBudgetSummary> = new Map();
   private alertHandlers: ((alert: BudgetAlert) => void)[] = [];
   private killHandler?: (agentId: string, reason: string) => Promise<void>;
 
@@ -97,7 +97,7 @@ export class BudgetTracker {
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS openclaw_budgets (
         agent_id TEXT PRIMARY KEY,
-        swarm_id TEXT,
+        team_id TEXT,
         budget_limit REAL NOT NULL,
         total_spent REAL DEFAULT 0,
         warning_triggered INTEGER DEFAULT 0,
@@ -111,7 +111,7 @@ export class BudgetTracker {
       await this.storage.run(createTableSQL);
       
       // Create indexes
-      await this.storage.run(`CREATE INDEX IF NOT EXISTS idx_budgets_swarm ON openclaw_budgets(swarm_id)`);
+      await this.storage.run(`CREATE INDEX IF NOT EXISTS idx_budgets_swarm ON openclaw_budgets(team_id)`);
       await this.storage.run(`CREATE INDEX IF NOT EXISTS idx_budgets_killed ON openclaw_budgets(killed)`);
     } catch (error) {
       logger.error('BudgetTracker', 'Failed to initialize budget tables', { error: String(error) });
@@ -129,13 +129,13 @@ export class BudgetTracker {
   async registerAgent(
     agentId: string,
     config: BudgetConfig,
-    swarmId?: string
+    teamId?: string
   ): Promise<void> {
     const budgetLimit = config.perAgentLimit ?? config.totalBudget;
     
     const record: AgentBudgetRecord = {
       agentId,
-      swarmId,
+      teamId,
       budgetLimit,
       totalSpent: 0,
       warningTriggered: false,
@@ -150,10 +150,10 @@ export class BudgetTracker {
     // Persist to database
     await this.storage.run(
       `INSERT OR REPLACE INTO openclaw_budgets 
-       (agent_id, swarm_id, budget_limit, total_spent, warning_triggered, killed, created_at, updated_at)
+       (agent_id, team_id, budget_limit, total_spent, warning_triggered, killed, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       agentId,
-      swarmId || null,
+      teamId || null,
       budgetLimit,
       0,
       0,
@@ -162,23 +162,23 @@ export class BudgetTracker {
       record.updatedAt.toISOString()
     );
 
-    // Update swarm summary if applicable
-    if (swarmId) {
-      this.updateSwarmSummary(swarmId, config);
+    // Update team summary if applicable
+    if (teamId) {
+      this.updateTeamSummary(teamId, config);
     }
 
     logger.info('BudgetTracker', 'Registered agent with budget', { agentId, budgetLimit });
   }
 
   /**
-   * Register a swarm with aggregate budget
+   * Register a team with aggregate budget
    */
-  async registerSwarm(
-    swarmId: string,
+  async registerTeam(
+    teamId: string,
     config: BudgetConfig
   ): Promise<void> {
-    const summary: SwarmBudgetSummary = {
-      swarmId,
+    const summary: TeamBudgetSummary = {
+      teamId,
       totalBudget: config.totalBudget,
       totalSpent: 0,
       remaining: config.totalBudget,
@@ -187,9 +187,9 @@ export class BudgetTracker {
       agentsWarning: [],
     };
 
-    this.swarmBudgets.set(swarmId, summary);
+    this.swarmBudgets.set(teamId, summary);
 
-    logger.info('BudgetTracker', 'Registered swarm with budget', { swarmId, totalBudget: config.totalBudget });
+    logger.info('BudgetTracker', 'Registered team with budget', { teamId, totalBudget: config.totalBudget });
   }
 
   // ========================================================================
@@ -220,9 +220,9 @@ export class BudgetTracker {
     // Persist to database
     await this.persistAgentRecord(record);
 
-    // Update swarm summary
-    if (record.swarmId) {
-      this.updateSwarmSpent(record.swarmId, usage.totalSpent);
+    // Update team summary
+    if (record.teamId) {
+      this.updateTeamSpent(record.teamId, usage.totalSpent);
     }
 
     // Check budget status
@@ -302,16 +302,16 @@ export class BudgetTracker {
   }
 
   /**
-   * Check budget status for an entire swarm
+   * Check budget status for an entire team
    */
-  async checkSwarm(swarmId: string): Promise<SwarmBudgetSummary> {
-    const summary = this.swarmBudgets.get(swarmId);
+  async checkTeam(teamId: string): Promise<TeamBudgetSummary> {
+    const summary = this.swarmBudgets.get(teamId);
     if (!summary) {
-      throw new BudgetError(`Swarm ${swarmId} not registered`);
+      throw new BudgetError(`Team ${teamId} not registered`);
     }
 
-    // Recalculate from all agents in swarm
-    const agents = Array.from(this.agentBudgets.values()).filter(a => a.swarmId === swarmId);
+    // Recalculate from all agents in team
+    const agents = Array.from(this.agentBudgets.values()).filter(a => a.teamId === teamId);
     
     summary.totalSpent = agents.reduce((sum, a) => sum + a.totalSpent, 0);
     summary.remaining = summary.totalBudget - summary.totalSpent;
@@ -338,7 +338,7 @@ export class BudgetTracker {
     const alert: BudgetAlert = {
       type: 'warning',
       agentId,
-      swarmId: status.swarmId,
+      teamId: status.teamId,
       message: `⚠️ Budget warning: ${(status.percentUsed * 100).toFixed(1)}% used ($${status.totalSpent.toFixed(2)} / $${status.budgetLimit.toFixed(2)})`,
       currentSpent: status.totalSpent,
       budgetLimit: status.budgetLimit,
@@ -370,7 +370,7 @@ export class BudgetTracker {
     const exceededAlert: BudgetAlert = {
       type: 'exceeded',
       agentId,
-      swarmId: status.swarmId,
+      teamId: status.teamId,
       message: `🚫 Budget exceeded: $${status.totalSpent.toFixed(2)} / $${status.budgetLimit.toFixed(2)}`,
       currentSpent: status.totalSpent,
       budgetLimit: status.budgetLimit,
@@ -387,7 +387,7 @@ export class BudgetTracker {
       const killedAlert: BudgetAlert = {
         type: 'killed',
         agentId,
-        swarmId: status.swarmId,
+        teamId: status.teamId,
         message: `☠️ Agent ${agentId} killed due to budget exhaustion`,
         currentSpent: status.totalSpent,
         budgetLimit: status.budgetLimit,
@@ -448,38 +448,38 @@ export class BudgetTracker {
   }
 
   /**
-   * Get budget report for all agents and swarms
+   * Get budget report for all agents and teams
    */
   async getBudgetReport(): Promise<string> {
     const agents = Array.from(this.agentBudgets.values());
-    const swarms = Array.from(this.swarmBudgets.values());
+    const teams = Array.from(this.swarmBudgets.values());
 
     let report = '\n╔══════════════════════════════════════════════════════════════╗\n';
     report += '║           OPENCLAW BUDGET REPORT                             ║\n';
     report += '╠══════════════════════════════════════════════════════════════╣\n';
 
-    // Swarm summary
-    report += '║ SWARMS:\n';
-    for (const swarm of swarms) {
-      const percentUsed = (swarm.totalSpent / swarm.totalBudget) * 100;
-      report += `║   ${swarm.swarmId}\n`;
-      report += `║     Budget: $${swarm.totalSpent.toFixed(2)} / $${swarm.totalBudget.toFixed(2)} (${percentUsed.toFixed(1)}%)\n`;
-      report += `║     Agents: ${swarm.agentCount}, Exceeded: ${swarm.agentsExceeded.length}, Warning: ${swarm.agentsWarning.length}\n`;
+    // Team summary
+    report += '║ TEAMS:\n';
+    for (const team of teams) {
+      const percentUsed = (team.totalSpent / team.totalBudget) * 100;
+      report += `║   ${team.teamId}\n`;
+      report += `║     Budget: $${team.totalSpent.toFixed(2)} / $${team.totalBudget.toFixed(2)} (${percentUsed.toFixed(1)}%)\n`;
+      report += `║     Agents: ${team.agentCount}, Exceeded: ${team.agentsExceeded.length}, Warning: ${team.agentsWarning.length}\n`;
     }
 
     report += '╠══════════════════════════════════════════════════════════════╣\n';
     report += '║ AGENTS:\n';
     
-    // Group by swarm
-    const agentsBySwarm = new Map<string | undefined, AgentBudgetRecord[]>();
+    // Group by team
+    const agentsByTeam = new Map<string | undefined, AgentBudgetRecord[]>();
     for (const agent of agents) {
-      const list = agentsBySwarm.get(agent.swarmId) || [];
+      const list = agentsByTeam.get(agent.teamId) || [];
       list.push(agent);
-      agentsBySwarm.set(agent.swarmId, list);
+      agentsByTeam.set(agent.teamId, list);
     }
 
-    for (const [swarmId, swarmAgents] of Array.from(agentsBySwarm.entries())) {
-      report += `║   ${swarmId || 'no-swarm'}:\n`;
+    for (const [teamId, swarmAgents] of Array.from(agentsByTeam.entries())) {
+      report += `║   ${teamId || 'no-team'}:\n`;
       for (const agent of swarmAgents) {
         const status = agent.killed ? '☠️' : agent.totalSpent > agent.budgetLimit ? '🚫' : agent.warningTriggered ? '⚠️' : '✅';
         const percentUsed = (agent.totalSpent / agent.budgetLimit) * 100;
@@ -530,7 +530,7 @@ export class BudgetTracker {
 
     return {
       agentId,
-      swarmId: record.swarmId,
+      teamId: record.teamId,
       totalSpent: record.totalSpent,
       budgetLimit: record.budgetLimit,
       remaining: record.budgetLimit - record.totalSpent,
@@ -556,11 +556,11 @@ export class BudgetTracker {
     return inputCost + outputCost + toolCost;
   }
 
-  private updateSwarmSummary(swarmId: string, config: BudgetConfig): void {
-    let summary = this.swarmBudgets.get(swarmId);
+  private updateTeamSummary(teamId: string, config: BudgetConfig): void {
+    let summary = this.swarmBudgets.get(teamId);
     if (!summary) {
       summary = {
-        swarmId,
+        teamId,
         totalBudget: config.totalBudget,
         totalSpent: 0,
         remaining: config.totalBudget,
@@ -570,11 +570,11 @@ export class BudgetTracker {
       };
     }
     summary.agentCount++;
-    this.swarmBudgets.set(swarmId, summary);
+    this.swarmBudgets.set(teamId, summary);
   }
 
-  private updateSwarmSpent(swarmId: string, amount: number): void {
-    const summary = this.swarmBudgets.get(swarmId);
+  private updateTeamSpent(teamId: string, amount: number): void {
+    const summary = this.swarmBudgets.get(teamId);
     if (summary) {
       summary.totalSpent += amount;
       summary.remaining = summary.totalBudget - summary.totalSpent;

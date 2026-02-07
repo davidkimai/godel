@@ -270,7 +270,7 @@ describe('CheckpointManager', () => {
     it('should return checkpoint stats', async () => {
       mockQuery
         .mockResolvedValueOnce({ rows: [{ count: '10' }] })
-        .mockResolvedValueOnce({ rows: [{ entity_type: 'agent', count: '8' }, { entity_type: 'swarm', count: '2' }] })
+        .mockResolvedValueOnce({ rows: [{ entity_type: 'agent', count: '8' }, { entity_type: 'team', count: '2' }] })
         .mockResolvedValueOnce({ rows: [{ timestamp: new Date().toISOString() }] })
         .mockResolvedValueOnce({ rows: [{ timestamp: new Date().toISOString() }] })
         .mockResolvedValueOnce({ rows: [{ size: '1024000' }] });
@@ -279,7 +279,7 @@ describe('CheckpointManager', () => {
 
       expect(stats.totalCheckpoints).toBe(10);
       expect(stats.checkpointsByType['agent']).toBe(8);
-      expect(stats.checkpointsByType['swarm']).toBe(2);
+      expect(stats.checkpointsByType['team']).toBe(2);
       expect(stats.storageSizeBytes).toBe(1024000);
     });
   });

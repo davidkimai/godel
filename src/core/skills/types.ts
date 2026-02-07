@@ -283,15 +283,15 @@ export interface ISkillRegistry {
 }
 
 // ============================================================================
-// Swarm Skill Integration Types
+// Team Skill Integration Types
 // ============================================================================
 
 /**
- * Skill context for swarm agents
+ * Skill context for team agents
  */
-export interface SwarmSkillContext {
-  /** Swarm ID */
-  swarmId: string;
+export interface TeamSkillContext {
+  /** Team ID */
+  teamId: string;
   /** Agent ID */
   agentId: string;
   /** Current task */
@@ -319,9 +319,9 @@ export interface SkillAgentRole {
 }
 
 /**
- * Skill sharing configuration for swarms
+ * Skill sharing configuration for teams
  */
-export interface SwarmSkillConfig {
+export interface TeamSkillConfig {
   /** Skills shared across all agents */
   sharedSkills: string[];
   /** Skills per agent role */

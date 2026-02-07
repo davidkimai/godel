@@ -5,8 +5,56 @@
  */
 
 // Logger
-export { logger, Logger, LogLevel, LogLevelEnum } from './logger';
+export { logger, Logger, LogLevel, LogLevelEnum, createLogger, sanitizeForLogging } from './logger';
 export type { LogEntry, LogLevelString } from './logger';
+
+// Errors
+export {
+  GodelError,
+  AgentError,
+  AgentNotFoundError,
+  AgentInitializationError,
+  AgentExecutionError,
+  FederationError,
+  AgentRegistryError,
+  LoadBalancerError,
+  CircuitBreakerError,
+  TaskDecompositionError,
+  ExecutionEngineError,
+  LoopError,
+  EventStoreError,
+  StateMachineError,
+  EventReplayError,
+  WorkflowError,
+  AutonomicError,
+  PatchApplicationError,
+  TestGenerationError,
+  IntentError,
+  IntentParseError,
+  ComplexityAnalysisError,
+  CoreError,
+  EventBusError,
+  SwarmError,
+  ExtensionError,
+  ConfigurationError,
+  ValidationError,
+  ResourceError,
+  ResourceNotFoundError,
+  ResourceConflictError,
+  NetworkError,
+  TimeoutError,
+  isGodelError,
+  isAgentError,
+  isFederationError,
+  isLoopError,
+  isAutonomicError,
+  isIntentError,
+  toGodelError,
+  ErrorCode,
+} from './errors';
+export type {
+  GodelError as GodelErrorType,
+} from './errors';
 
 // Cache
 export { LRUCache, createLRUCache } from './cache';

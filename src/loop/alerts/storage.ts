@@ -1,3 +1,10 @@
+import { createLogger } from '../../utils/logger.js';
+
+/**
+ * Module logger
+ */
+const log = createLogger('time-series-storage');
+
 /**
  * Time Series Storage Interface for Alerting
  * 
@@ -167,7 +174,9 @@ export class MetricsRegistryAdapter implements TimeSeriesStorage {
    * Record a metric value from the metrics registry
    */
   recordFromRegistry(metricName: string, value: number, labels?: Record<string, string>): void {
-    this.write(metricName, value, labels).catch(console.error);
+    this.write(metricName, value, labels).catch((err) => {
+      log.logError('Failed to record metric from registry', err, { metricName, value });
+    });
   }
 
   private getKey(metric: string, labels?: Record<string, string>): string {

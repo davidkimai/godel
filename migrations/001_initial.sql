@@ -7,9 +7,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
 -- Swarms Table
--- Stores swarm configurations and metadata
+-- Stores team configurations and metadata
 -- ============================================
-CREATE TABLE IF NOT EXISTS swarms (
+CREATE TABLE IF NOT EXISTS teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     config JSONB NOT NULL DEFAULT '{}',
@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS swarms (
 );
 
 -- Swarm indexes
-CREATE INDEX idx_swarms_status ON swarms(status);
-CREATE INDEX idx_swarms_created_at ON swarms(created_at DESC);
+CREATE INDEX idx_swarms_status ON teams(status);
+CREATE INDEX idx_swarms_created_at ON teams(created_at DESC);
 
 -- ============================================
 -- Agents Table
@@ -34,7 +34,7 @@ CREATE INDEX idx_swarms_created_at ON swarms(created_at DESC);
 -- ============================================
 CREATE TABLE IF NOT EXISTS agents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    swarm_id UUID REFERENCES swarms(id) ON DELETE SET NULL,
+    team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
     label VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     lifecycle_state VARCHAR(50) NOT NULL DEFAULT 'initializing',
@@ -67,14 +67,14 @@ CREATE TABLE IF NOT EXISTS agents (
 );
 
 -- Agent indexes
-CREATE INDEX idx_agents_swarm_id ON agents(swarm_id);
+CREATE INDEX idx_agents_swarm_id ON agents(team_id);
 CREATE INDEX idx_agents_status ON agents(status);
 CREATE INDEX idx_agents_lifecycle ON agents(lifecycle_state);
 CREATE INDEX idx_agents_spawned_at ON agents(spawned_at DESC);
 CREATE INDEX idx_agents_model ON agents(model);
 
 -- Composite index for common query patterns
-CREATE INDEX idx_agents_swarm_status ON agents(swarm_id, status);
+CREATE INDEX idx_agents_swarm_status ON agents(team_id, status);
 
 -- ============================================
 -- Events Table
@@ -82,7 +82,7 @@ CREATE INDEX idx_agents_swarm_status ON agents(swarm_id, status);
 -- ============================================
 CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    swarm_id UUID REFERENCES swarms(id) ON DELETE CASCADE,
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
     agent_id UUID REFERENCES agents(id) ON DELETE SET NULL,
     type VARCHAR(100) NOT NULL,
     payload JSONB NOT NULL DEFAULT '{}',
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 -- Event indexes - optimized for time-series queries
-CREATE INDEX idx_events_swarm_id ON events(swarm_id);
+CREATE INDEX idx_events_swarm_id ON events(team_id);
 CREATE INDEX idx_events_agent_id ON events(agent_id);
 CREATE INDEX idx_events_type ON events(type);
 CREATE INDEX idx_events_timestamp ON events(timestamp DESC);
@@ -106,7 +106,7 @@ CREATE INDEX idx_events_correlation ON events(correlation_id);
 
 -- Composite indexes for common query patterns
 CREATE INDEX idx_events_agent_time ON events(agent_id, timestamp DESC);
-CREATE INDEX idx_events_swarm_time ON events(swarm_id, timestamp DESC);
+CREATE INDEX idx_events_swarm_time ON events(team_id, timestamp DESC);
 
 -- Partitioning support (for future scaling)
 -- Events table can be partitioned by timestamp for high-volume scenarios
@@ -131,12 +131,12 @@ CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
 
 -- ============================================
 -- Budgets Table
--- Tracks budget allocation and consumption per swarm
+-- Tracks budget allocation and consumption per team
 -- ============================================
 CREATE TABLE IF NOT EXISTS budgets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    swarm_id UUID NOT NULL REFERENCES swarms(id) ON DELETE CASCADE,
-    scope_type VARCHAR(50) NOT NULL DEFAULT 'swarm',
+    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    scope_type VARCHAR(50) NOT NULL DEFAULT 'team',
     scope_id UUID NOT NULL,
     allocated DECIMAL(12, 4) NOT NULL DEFAULT 0,
     consumed DECIMAL(12, 4) NOT NULL DEFAULT 0,
@@ -147,14 +147,14 @@ CREATE TABLE IF NOT EXISTS budgets (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     
     -- Constraints
-    CONSTRAINT budgets_scope_check CHECK (scope_type IN ('swarm', 'agent', 'project')),
+    CONSTRAINT budgets_scope_check CHECK (scope_type IN ('team', 'agent', 'project')),
     CONSTRAINT budgets_currency_check CHECK (currency IN ('USD', 'EUR', 'GBP', 'CAD')),
     CONSTRAINT budgets_positive CHECK (allocated >= 0 AND consumed >= 0),
     CONSTRAINT budgets_unique_scope UNIQUE (scope_type, scope_id)
 );
 
 -- Budget indexes
-CREATE INDEX idx_budgets_swarm_id ON budgets(swarm_id);
+CREATE INDEX idx_budgets_swarm_id ON budgets(team_id);
 CREATE INDEX idx_budgets_scope ON budgets(scope_type, scope_id);
 
 -- ============================================
@@ -183,7 +183,7 @@ $$ language 'plpgsql';
 
 -- Apply update triggers
 CREATE TRIGGER update_swarms_updated_at 
-    BEFORE UPDATE ON swarms 
+    BEFORE UPDATE ON teams 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -222,9 +222,9 @@ SELECT
         WHEN b.allocated > 0 THEN ROUND((b.consumed / b.allocated) * 100, 2)
         ELSE 0 
     END as budget_percentage
-FROM swarms s
-LEFT JOIN agents a ON s.id = a.swarm_id
-LEFT JOIN budgets b ON s.id = b.swarm_id AND b.scope_type = 'swarm'
+FROM teams s
+LEFT JOIN agents a ON s.id = a.team_id
+LEFT JOIN budgets b ON s.id = b.team_id AND b.scope_type = 'team'
 GROUP BY s.id, s.name, s.status, s.created_at, s.config, b.allocated, b.consumed;
 
 -- Agent activity view
@@ -236,7 +236,7 @@ SELECT
     a.lifecycle_state,
     a.model,
     a.task,
-    a.swarm_id,
+    a.team_id,
     s.name as swarm_name,
     a.spawned_at,
     a.completed_at,
@@ -244,7 +244,7 @@ SELECT
     a.retry_count,
     a.runtime
 FROM agents a
-LEFT JOIN swarms s ON a.swarm_id = s.id;
+LEFT JOIN teams s ON a.team_id = s.id;
 
 -- Event statistics view (last 24 hours)
 CREATE OR REPLACE VIEW event_stats_24h AS
@@ -252,7 +252,7 @@ SELECT
     type,
     COUNT(*) as event_count,
     COUNT(DISTINCT agent_id) as unique_agents,
-    COUNT(DISTINCT swarm_id) as unique_swarms,
+    COUNT(DISTINCT team_id) as unique_swarms,
     MIN(timestamp) as first_occurrence,
     MAX(timestamp) as last_occurrence
 FROM events
@@ -263,11 +263,11 @@ GROUP BY type;
 -- Comments for documentation
 -- ============================================
 
-COMMENT ON TABLE swarms IS 'Stores swarm configurations and metadata';
+COMMENT ON TABLE teams IS 'Stores team configurations and metadata';
 COMMENT ON TABLE agents IS 'Stores agent state and configuration';
 COMMENT ON TABLE events IS 'Event log for all system events';
 COMMENT ON TABLE sessions IS 'Stores session tree data and state';
-COMMENT ON TABLE budgets IS 'Tracks budget allocation and consumption per swarm';
+COMMENT ON TABLE budgets IS 'Tracks budget allocation and consumption per team';
 
 COMMENT ON COLUMN agents.lifecycle_state IS 'Detailed lifecycle state for state machine transitions';
 COMMENT ON COLUMN agents.config IS 'JSONB configuration for flexible agent settings';

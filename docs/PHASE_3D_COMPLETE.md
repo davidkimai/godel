@@ -2,7 +2,7 @@
 
 ## Summary
 
-Phase 3D of the Dash 50-Agent Scale Implementation Roadmap has been completed. The enhanced React dashboard provides a production-ready operational UI with real-time monitoring and control capabilities.
+Phase 3D of the Godel 50-Agent Scale Implementation Roadmap has been completed. The enhanced React dashboard provides a production-ready operational UI with real-time monitoring and control capabilities.
 
 ## Deliverables Completed
 
@@ -13,25 +13,25 @@ Phase 3D of the Dash 50-Agent Scale Implementation Roadmap has been completed. T
   - Live agent status (online/offline/busy)
   - Event stream visualization (real-time graph)
   - Cost tracking ($/hour, total spent)
-  - Active swarm count and health indicators
+  - Active team count and health indicators
 
 **Charts Implemented:**
 - Agent status pie chart (Recharts)
 - Cost over time area chart
-- Swarm activity bar chart
+- Team activity bar chart
 - Event distribution by type
 
 ### 2. Hierarchical Views
 
-**Swarms Page (`/swarms`):**
+**Teams Page (`/teams`):**
 - Expand/collapse for agent details
-- Swarm → Agent drill-down navigation
+- Team → Agent drill-down navigation
 - Aggregate metrics (total agents, budget)
 - Filter by status, search by name
 
 **Agents Page (`/agents`):**
 - Filterable agent grid
-- Swarm grouping
+- Team grouping
 - Agent detail panel with tabs:
   - Overview (status, model, cost, tokens)
   - Logs (terminal-style)
@@ -41,9 +41,9 @@ Phase 3D of the Dash 50-Agent Scale Implementation Roadmap has been completed. T
 
 | Control | Endpoint | Description |
 |---------|----------|-------------|
-| Start swarm | `POST /api/swarms/:id/start` | Resume paused swarm |
-| Stop swarm | `POST /api/swarms/:id/stop` | Pause active swarm |
-| Scale swarm | `POST /api/swarms/:id/scale` | Manual scaling |
+| Start team | `POST /api/teams/:id/start` | Resume paused team |
+| Stop team | `POST /api/teams/:id/stop` | Pause active team |
+| Scale team | `POST /api/teams/:id/scale` | Manual scaling |
 | Kill agent | `POST /api/agents/:id/kill` | Terminate agent |
 | Restart agent | `POST /api/agents/:id/restart` | Restart agent |
 | View logs | `GET /api/agents/:id/logs` | Agent log output |
@@ -74,7 +74,7 @@ Phase 3D of the Dash 50-Agent Scale Implementation Roadmap has been completed. T
 - `connected` - Connection established
 - `event` - New system event
 - `agent_update` - Agent status changed
-- `swarm_update` - Swarm status changed
+- `swarm_update` - Team status changed
 - `budget_update` - Cost metrics updated
 - `heartbeat` - Keep-alive ping
 
@@ -92,10 +92,10 @@ Phase 3D of the Dash 50-Agent Scale Implementation Roadmap has been completed. T
 |---------|-----------|-------|
 | View dashboard | ✅ | ✅ |
 | View agents | ✅ | ✅ |
-| Start/stop swarms | ❌ | ✅ |
-| Scale swarms | ❌ | ✅ |
+| Start/stop teams | ❌ | ✅ |
+| Scale teams | ❌ | ✅ |
 | Kill/restart agents | ❌ | ✅ |
-| Create swarms | ❌ | ✅ |
+| Create teams | ❌ | ✅ |
 | Settings | ✅ (own) | ✅ (all) |
 
 ## File Structure
@@ -109,7 +109,7 @@ src/dashboard/ui/
 │   │   └── store.ts             # Zustand state management
 │   ├── pages/
 │   │   ├── Dashboard.tsx        # Main dashboard
-│   │   ├── Swarms.tsx           # Swarm management
+│   │   ├── Teams.tsx           # Team management
 │   │   ├── Agents.tsx           # Agent management
 │   │   ├── Events.tsx           # Event stream
 │   │   ├── Costs.tsx            # Cost tracking
@@ -138,15 +138,15 @@ src/dashboard/ui/
 |----------|-------------|
 | `GET /api/metrics/dashboard` | Dashboard overview stats |
 | `GET /api/metrics/cost` | Cost metrics & burn rate |
-| `GET /api/metrics/cost/breakdown` | Cost by model/swarm |
+| `GET /api/metrics/cost/breakdown` | Cost by model/team |
 | `GET /api/metrics/agents` | Agent-level metrics |
-| `GET /api/metrics/swarms` | Swarm-level metrics |
+| `GET /api/metrics/teams` | Team-level metrics |
 | `GET /api/metrics/events` | Event stream metrics |
 
 ## Verification Checklist
 
 - [x] Dashboard shows agents live
-- [x] Can scale swarm from UI
+- [x] Can scale team from UI
 - [x] Mobile view works
 - [x] WebSocket real-time updates
 - [x] Drill-down navigation works
@@ -164,7 +164,7 @@ npm run dev
 # Access at http://localhost:3000
 
 # Start the API server (in another terminal)
-cd /Users/jasontang/clawd/projects/dash
+cd /Users/jasontang/clawd/projects/godel
 npm run dev
 ```
 

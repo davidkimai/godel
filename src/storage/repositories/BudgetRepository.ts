@@ -8,12 +8,12 @@
 import { PostgresPool, getPool } from '../postgres/pool';
 import type { PostgresConfig } from '../postgres/config';
 
-export type ScopeType = 'swarm' | 'agent' | 'project';
+export type ScopeType = 'team' | 'agent' | 'project';
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD';
 
 export interface Budget {
   id: string;
-  swarm_id: string;
+  team_id: string;
   scope_type: ScopeType;
   scope_id: string;
   allocated: number;
@@ -26,7 +26,7 @@ export interface Budget {
 }
 
 export interface BudgetCreateInput {
-  swarm_id: string;
+  team_id: string;
   scope_type?: ScopeType;
   scope_id: string;
   allocated: number;
@@ -51,7 +51,7 @@ export interface BudgetUsage {
 }
 
 export interface BudgetFilter {
-  swarm_id?: string;
+  team_id?: string;
   scope_type?: ScopeType;
   currency?: Currency;
   limit?: number;
@@ -81,12 +81,12 @@ export class BudgetRepository {
     
     const result = await this.pool!.query<BudgetRow>(
       `INSERT INTO budgets (
-        swarm_id, scope_type, scope_id, allocated, consumed, currency, max_tokens, used_tokens
+        team_id, scope_type, scope_id, allocated, consumed, currency, max_tokens, used_tokens
       ) VALUES ($1, $2, $3, $4, 0, $5, $6, 0)
       RETURNING *`,
       [
-        input.swarm_id,
-        input.scope_type || 'swarm',
+        input.team_id,
+        input.scope_type || 'team',
         input.scope_id,
         input.allocated,
         input.currency || 'USD',
@@ -126,14 +126,14 @@ export class BudgetRepository {
   }
 
   /**
-   * Find budgets by swarm ID
+   * Find budgets by team ID
    */
-  async findBySwarmId(swarmId: string): Promise<Budget[]> {
+  async findByTeamId(teamId: string): Promise<Budget[]> {
     this.ensureInitialized();
     
     const result = await this.pool!.query<BudgetRow>(
-      `SELECT * FROM budgets WHERE swarm_id = $1 ORDER BY created_at DESC`,
-      [swarmId]
+      `SELECT * FROM budgets WHERE team_id = $1 ORDER BY created_at DESC`,
+      [teamId]
     );
 
     return result.rows.map(row => this.mapRow(row));
@@ -202,9 +202,9 @@ export class BudgetRepository {
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    if (filter.swarm_id) {
-      conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(filter.swarm_id);
+    if (filter.team_id) {
+      conditions.push(`team_id = $${paramIndex++}`);
+      values.push(filter.team_id);
     }
     if (filter.scope_type) {
       conditions.push(`scope_type = $${paramIndex++}`);
@@ -322,9 +322,9 @@ export class BudgetRepository {
   }
 
   /**
-   * Get total budget summary for a swarm
+   * Get total budget summary for a team
    */
-  async getSwarmBudgetSummary(swarmId: string): Promise<{
+  async getTeamBudgetSummary(teamId: string): Promise<{
     totalAllocated: number;
     totalConsumed: number;
     totalRemaining: number;
@@ -333,7 +333,7 @@ export class BudgetRepository {
   }> {
     this.ensureInitialized();
     
-    const budgets = await this.findBySwarmId(swarmId);
+    const budgets = await this.findByTeamId(teamId);
     
     const totalAllocated = budgets.reduce((sum, b) => sum + b.allocated, 0);
     const totalConsumed = budgets.reduce((sum, b) => sum + b.consumed, 0);
@@ -367,14 +367,14 @@ export class BudgetRepository {
   }
 
   /**
-   * Delete all budgets for a swarm
+   * Delete all budgets for a team
    */
-  async deleteBySwarmId(swarmId: string): Promise<number> {
+  async deleteByTeamId(teamId: string): Promise<number> {
     this.ensureInitialized();
     
     const result = await this.pool!.query(
-      'DELETE FROM budgets WHERE swarm_id = $1',
-      [swarmId]
+      'DELETE FROM budgets WHERE team_id = $1',
+      [teamId]
     );
 
     return result.rowCount;
@@ -421,7 +421,7 @@ export class BudgetRepository {
   private mapRow(row: BudgetRow): Budget {
     return {
       id: row.id,
-      swarm_id: row.swarm_id,
+      team_id: row.team_id,
       scope_type: row.scope_type as ScopeType,
       scope_id: row.scope_id,
       allocated: parseFloat(String(row.allocated)),
@@ -438,7 +438,7 @@ export class BudgetRepository {
 // Database row types
 interface BudgetRow {
   id: string;
-  swarm_id: string;
+  team_id: string;
   scope_type: string;
   scope_id: string;
   allocated: number | string;

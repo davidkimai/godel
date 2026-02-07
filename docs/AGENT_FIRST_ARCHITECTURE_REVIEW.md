@@ -1,15 +1,15 @@
-# Dash Agent-First Architecture Review
+# Godel Agent-First Architecture Review
 
 **Date:** February 3, 2026  
 **Reviewer:** Senior Engineer (Code Review Subagent)  
 **Scope:** Full codebase review for agent-first architecture patterns  
-**Goal:** Assess Dash's readiness for agent-to-agent orchestration as OpenClaw's first platform
+**Goal:** Assess Godel's readiness for agent-to-agent orchestration as OpenClaw's first platform
 
 ---
 
 ## Executive Summary
 
-Dash is a well-architected agent orchestration platform with strong foundations for programmatic/agent consumption. The codebase demonstrates good separation of concerns, comprehensive API design, and thoughtful abstractions for agent lifecycle management. However, there are several gaps that need addressing to fully achieve "agent-first" status where agents can discover, onboard, and operate Dash without human intervention.
+Godel is a well-architected agent orchestration platform with strong foundations for programmatic/agent consumption. The codebase demonstrates good separation of concerns, comprehensive API design, and thoughtful abstractions for agent lifecycle management. However, there are several gaps that need addressing to fully achieve "agent-first" status where agents can discover, onboard, and operate Godel without human intervention.
 
 **Overall Grade: B+ (Good agent foundations, needs improvements for full agent autonomy)**
 
@@ -22,7 +22,7 @@ Dash is a well-architected agent orchestration platform with strong foundations 
 **Strengths:**
 - ✅ **RESTful API** (`src/api/server.ts`, `src/api/routes/`) with clear resource-oriented endpoints
 - ✅ **WebSocket support** for real-time event streaming (`src/api/websocket.ts`)
-- ✅ **Comprehensive endpoints** for agents, swarms, events, and tasks
+- ✅ **Comprehensive endpoints** for agents, teams, events, and tasks
 - ✅ **Zod validation schemas** (`src/validation/schemas.ts`) with strict input validation
 - ✅ **SSE (Server-Sent Events)** endpoint for event streaming (`/api/events/stream`)
 - ✅ **Structured error responses** with error codes
@@ -32,7 +32,7 @@ Dash is a well-architected agent orchestration platform with strong foundations 
 | Resource | CRUD | Actions | Events | Grade |
 |----------|------|---------|--------|-------|
 | Agents | ✅ Full | ✅ kill/pause/resume/retry | ✅ WebSocket | A |
-| Swarms | ✅ Full | ✅ scale/destroy | ✅ WebSocket | A |
+| Teams | ✅ Full | ✅ scale/destroy | ✅ WebSocket | A |
 | Events | ✅ Create/Read | ✅ Stream | ✅ SSE/WS | A |
 | Tasks | ✅ Full | - | ⚠️ Limited | B |
 | Budget | ✅ Read | ⚠️ Limited API | ❌ No events | C |
@@ -40,7 +40,7 @@ Dash is a well-architected agent orchestration platform with strong foundations 
 ### 1.2 Gaps for Agent-First Usage
 
 **Critical Issues:**
-1. **No agent discovery endpoint** - Agents cannot programmatically discover Dash's capabilities
+1. **No agent discovery endpoint** - Agents cannot programmatically discover Godel's capabilities
 2. **No OpenAPI/Swagger spec** - Agents must parse markdown docs to understand the API
 3. **Missing hypermedia/HATEOAS** - Responses don't include discoverable next actions
 4. **No agent capability negotiation** - No way for agents to advertise/request capabilities
@@ -78,7 +78,7 @@ router.get('/agents/:id', async (req, res) => {
 **SKILL.md Assessment:**
 The `SKILL.md` file is well-structured for agent consumption:
 - Clear quick start section for agents
-- Swarm protocol documentation
+- Team protocol documentation
 - Cron job patterns for autonomous operation
 - Health check commands
 - State management examples
@@ -86,23 +86,23 @@ The `SKILL.md` file is well-structured for agent consumption:
 
 ```markdown
 ## Quick Start (For Agents)
-cd /Users/jasontang/clawd/projects/dash
+cd /Users/jasontang/clawd/projects/godel
 ./orchestrator.sh
 ```
 
 ### 2.2 Gaps for Agent-First Onboarding
 
 **Critical Issues:**
-1. **No automated discovery mechanism** - Agents must be pre-configured with Dash location
-2. **No capability advertisement** - Dash doesn't broadcast its presence or capabilities
+1. **No automated discovery mechanism** - Agents must be pre-configured with Godel location
+2. **No capability advertisement** - Godel doesn't broadcast its presence or capabilities
 3. **No standardized skill manifest** - SKILL.md is prose, not machine-readable
 4. **Missing agent registration flow** - No formal onboarding handshake
-5. **No environment introspection** - Agents can't query "what can Dash do for me?"
+5. **No environment introspection** - Agents can't query "what can Godel do for me?"
 
 **Code Evidence:**
 ```typescript
 // SKILL.md - Good for humans, not machine-parseable
-## Swarm Protocol (v3)
+## Team Protocol (v3)
 ### Launch Parallel Sprints
 ```bash
 ./sprint-launcher.sh
@@ -114,7 +114,7 @@ cd /Users/jasontang/clawd/projects/dash
 | Priority | Action | Effort |
 |----------|--------|--------|
 | 🔴 High | Create `skill.json` manifest (machine-readable version of SKILL.md) | 1 day |
-| 🔴 High | Add mDNS/Bonjour discovery for Dash instances on local network | 2 days |
+| 🔴 High | Add mDNS/Bonjour discovery for Godel instances on local network | 2 days |
 | 🟡 Medium | Implement agent handshake endpoint (`POST /api/agents/register`) | 2 days |
 | 🟡 Medium | Add capability query endpoint (`GET /api/capabilities?for=agent`) | 1 day |
 | 🟢 Low | Create agent SDK with auto-discovery | 3 days |
@@ -122,14 +122,14 @@ cd /Users/jasontang/clawd/projects/dash
 **Suggested `skill.json` structure:**
 ```json
 {
-  "name": "dash-agent-skill",
+  "name": "godel-agent-skill",
   "version": "2.0.0",
   "api": {
     "baseUrl": "http://localhost:7373",
     "websocket": "ws://localhost:7373/events",
     "openapi": "/api/openapi.json"
   },
-  "capabilities": ["swarm", "agent-lifecycle", "events", "budget"],
+  "capabilities": ["team", "agent-lifecycle", "events", "budget"],
   "authentication": { "type": "api-key", "header": "X-API-Key" },
   "entrypoints": {
     "cli": "./dist/index.js",
@@ -168,7 +168,7 @@ src/
 | Spawn agent | ✅ | ⚠️ Read-only | Gap |
 | Kill agent | ✅ | ⚠️ Read-only | Gap |
 | View events | ✅ | ✅ | Good |
-| Scale swarm | ✅ | ❌ | Gap |
+| Scale team | ✅ | ❌ | Gap |
 | Set budget | ✅ | ⚠️ View only | Gap |
 
 ### 3.2 Gaps in Separation
@@ -248,7 +248,7 @@ export function addApiKey(key: string): void {
 | Priority | Action | Effort |
 |----------|--------|--------|
 | 🔴 High | Implement JWT tokens with agent identity claims | 3 days |
-| 🔴 High | Add RBAC permission system (`agent:spawn`, `swarm:destroy`, etc.) | 3 days |
+| 🔴 High | Add RBAC permission system (`agent:spawn`, `team:destroy`, etc.) | 3 days |
 | 🟡 Medium | Separate human SSO (OAuth) from agent API keys | 2 days |
 | 🟡 Medium | Add token expiration and refresh mechanism | 2 days |
 | 🟢 Low | Implement audit logging for auth events | 1 day |
@@ -258,8 +258,8 @@ export function addApiKey(key: string): void {
 {
   "sub": "agent-uuid",
   "type": "agent",
-  "permissions": ["swarm:create", "agent:spawn", "events:read"],
-  "swarms": ["swarm-1", "swarm-2"],
+  "permissions": ["team:create", "agent:spawn", "events:read"],
+  "teams": ["team-1", "team-2"],
   "exp": 1704067200
 }
 ```
@@ -280,7 +280,7 @@ src/
 ```
 
 **Strengths:**
-- ✅ **Prometheus metrics** (`src/metrics/prometheus.ts`) - 20+ metrics for agents/swarms
+- ✅ **Prometheus metrics** (`src/metrics/prometheus.ts`) - 20+ metrics for agents/teams
 - ✅ **Health checks** (`src/metrics/health.ts`) - Comprehensive system health
 - ✅ **OpenTelemetry tracing** (`src/tracing/`) - Distributed tracing support
 - ✅ **Structured logging** (`src/logging/structured.ts`) - JSON logs with context
@@ -291,7 +291,7 @@ src/
 | Category | Metrics | API Accessible |
 |----------|---------|----------------|
 | Agents | active, pending, failed, completed, total | ✅ Yes |
-| Swarms | active, total, agents count, duration | ✅ Yes |
+| Teams | active, total, agents count, duration | ✅ Yes |
 | Events | total, dropped, processing latency | ✅ Yes |
 | Budget | utilization, cost | ⚠️ Limited |
 | System | memory, CPU, WebSocket connections | ✅ Yes |
@@ -344,7 +344,7 @@ private output(entry: LogEntry): void {
    - No agent-specific permissions
 
 2. **No Programmatic Discovery**
-   - Agents must be pre-configured with Dash location and API schema
+   - Agents must be pre-configured with Godel location and API schema
    - No capability advertisement or negotiation
 
 3. **Limited Dashboard Actions**
@@ -398,7 +398,7 @@ private output(entry: LogEntry): void {
 | # | Action | Owner | Effort | Impact |
 |---|--------|-------|--------|-------|
 | 11 | Implement agent handshake/registration | API | 2 days | 🟢 Medium |
-| 12 | Add mDNS discovery for Dash instances | Discovery | 2 days | 🟢 Medium |
+| 12 | Add mDNS discovery for Godel instances | Discovery | 2 days | 🟢 Medium |
 | 13 | Create agent-optimized API responses | API | 2 days | 🟢 Medium |
 | 14 | Add agent self-introspection endpoints | API | 1 day | 🟢 Medium |
 | 15 | Enhance event API with query capabilities | Events | 2 days | 🟢 Medium |
@@ -419,9 +419,9 @@ private output(entry: LogEntry): void {
 
 ## 9. Conclusion
 
-Dash has a solid foundation for agent-first architecture with its clean API design, comprehensive event system, and thoughtful separation of concerns. The platform is already usable by agents with pre-configuration, but requires enhancements for true "agent-first" status where agents can:
+Godel has a solid foundation for agent-first architecture with its clean API design, comprehensive event system, and thoughtful separation of concerns. The platform is already usable by agents with pre-configuration, but requires enhancements for true "agent-first" status where agents can:
 
-1. **Discover** Dash automatically without human configuration
+1. **Discover** Godel automatically without human configuration
 2. **Onboard** themselves with proper identity and permissions
 3. **Operate** autonomously with appropriate observability
 4. **Interact** with both APIs and UIs seamlessly
@@ -433,7 +433,7 @@ Dash has a solid foundation for agent-first architecture with its clean API desi
 2. Create `skill.json` manifest (Phase 1, #4)
 3. Add discovery endpoint (Phase 1, #3)
 
-These three changes would elevate Dash from "B+" to "A-" agent-first readiness.
+These three changes would elevate Godel from "B+" to "A-" agent-first readiness.
 
 ---
 
@@ -442,7 +442,7 @@ These three changes would elevate Dash from "B+" to "A-" agent-first readiness.
 | Category | Files |
 |----------|-------|
 | API | `src/api/server.ts`, `src/api/routes/*.ts`, `src/api/middleware/auth.ts` |
-| Core | `src/core/index.ts`, `src/core/swarm.ts`, `src/core/openclaw.ts`, `src/core/extension-api.ts` |
+| Core | `src/core/index.ts`, `src/core/team.ts`, `src/core/openclaw.ts`, `src/core/extension-api.ts` |
 | CLI | `src/cli/index.ts`, `src/cli/commands/agents.ts` |
 | Dashboard | `src/dashboard/index.ts`, `src/dashboard/ui/src/services/api.ts` |
 | Storage | `src/storage/repositories/AgentRepository.ts`, `src/storage/repositories/EventRepository.ts` |

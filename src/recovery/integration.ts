@@ -70,7 +70,7 @@ export interface RecoveryEvent {
   type: 'failure' | 'recovery_start' | 'recovery_success' | 'recovery_failed' | 'escalation';
   timestamp: Date;
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   details: Record<string, unknown>;
 }
 
@@ -295,7 +295,7 @@ export class RecoverySystem extends EventEmitter {
    * Manually trigger a checkpoint for an entity
    */
   async createCheckpoint(
-    entityType: 'agent' | 'swarm' | 'session' | 'service',
+    entityType: 'agent' | 'team' | 'session' | 'service',
     entityId: string,
     data: Record<string, unknown>,
     metadata?: Record<string, unknown>
@@ -408,7 +408,7 @@ export class RecoverySystem extends EventEmitter {
 
   private emitRecoveryEvent(
     type: RecoveryEvent['type'],
-    data: { agentId: string; swarmId?: string; [key: string]: unknown }
+    data: { agentId: string; teamId?: string; [key: string]: unknown }
   ): void {
     if (!this.eventBus) return;
 
@@ -416,7 +416,7 @@ export class RecoverySystem extends EventEmitter {
       type,
       timestamp: new Date(),
       agentId: data.agentId,
-      swarmId: data.swarmId,
+      teamId: data.teamId,
       details: data,
     };
 

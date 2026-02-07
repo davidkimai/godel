@@ -83,7 +83,7 @@ export function listPending(options: ListOptions = {}): ApprovalRequest[] {
   if (options.agentId) {
     requests = requests.filter(r => 
       r.requestingAgent.agentId === options.agentId ||
-      r.requestingAgent.swarmId === options.agentId
+      r.requestingAgent.teamId === options.agentId
     );
   }
   
@@ -300,8 +300,8 @@ export function formatDetailsForDisplay(request: ApprovalRequest): string {
   if (request.requestingAgent.agentLabel) {
     lines.push(`Label:       ${request.requestingAgent.agentLabel}`);
   }
-  if (request.requestingAgent.swarmId) {
-    lines.push(`Swarm:       ${request.requestingAgent.swarmId}`);
+  if (request.requestingAgent.teamId) {
+    lines.push(`Team:       ${request.requestingAgent.teamId}`);
   }
   if (request.requestingAgent.parentAgentId) {
     lines.push(`Parent:      ${request.requestingAgent.parentAgentId}`);

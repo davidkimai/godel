@@ -50,7 +50,7 @@ interface EventItemProps {
 interface EventFilters {
   types: EventType[];
   search: string;
-  swarmId?: string;
+  teamId?: string;
   agentId?: string;
 }
 
@@ -84,12 +84,12 @@ export function EventFeed({
       const search = filters.search.toLowerCase();
       const matchesSearch = 
         event.type.toLowerCase().includes(search) ||
-        event.swarmId?.toLowerCase().includes(search) ||
+        event.teamId?.toLowerCase().includes(search) ||
         event.agentId?.toLowerCase().includes(search) ||
         JSON.stringify(event.payload).toLowerCase().includes(search);
       if (!matchesSearch) return false;
     }
-    if (filters.swarmId && event.swarmId !== filters.swarmId) return false;
+    if (filters.teamId && event.teamId !== filters.teamId) return false;
     if (filters.agentId && event.agentId !== filters.agentId) return false;
     return true;
   });
@@ -326,8 +326,8 @@ function EventItem({ event, onClick, expanded }: EventItemProps): React.ReactEle
 
           {/* Event Details */}
           <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-            {event.swarmId && (
-              <span className="font-mono">Swarm: {event.swarmId.slice(0, 8)}</span>
+            {event.teamId && (
+              <span className="font-mono">Team: {event.teamId.slice(0, 8)}</span>
             )}
             {event.agentId && (
               <span className="font-mono">Agent: {event.agentId.slice(0, 8)}</span>

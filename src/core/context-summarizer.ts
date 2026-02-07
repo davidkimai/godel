@@ -5,7 +5,7 @@ import { join } from 'path';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-const SUMMARIES_DIR = '~/.config/dash/summaries';
+const SUMMARIES_DIR = '~/.config/godel/summaries';
 const MAX_CONTEXT_AGE_DAYS = 7; // Keep summaries for 7 days
 const MAX_DECISIONS = 50; // Max decisions to keep
 const MAX_PATTERNS = 100; // Max patterns to keep

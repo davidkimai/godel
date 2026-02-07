@@ -1,10 +1,10 @@
-# Dash Logging System
+# Godel Logging System
 
-Centralized log aggregation and analysis for the Dash orchestration platform using Loki, Promtail, and Grafana.
+Centralized log aggregation and analysis for the Godel orchestration platform using Loki, Promtail, and Grafana.
 
 ## Overview
 
-The Dash logging system provides:
+The Godel logging system provides:
 
 - **Structured JSON logging** with correlation IDs for request tracing
 - **Centralized log aggregation** using Grafana Loki
@@ -17,7 +17,7 @@ The Dash logging system provides:
 
 ```
 ┌─────────────────┐    ┌──────────┐    ┌─────────────┐    ┌──────────┐
-│  Dash Services  │───▶│ Promtail │───▶│    Loki     │───▶│  Grafana │
+│  Godel Services  │───▶│ Promtail │───▶│    Loki     │───▶│  Grafana │
 │  (JSON Logs)    │    │(Shipping)│    │ (Storage)   │    │ (UI/API) │
 └─────────────────┘    └──────────┘    └─────────────┘    └──────────┘
         │                                                        │
@@ -40,18 +40,18 @@ docker-compose up -d loki promtail grafana
 
 - URL: http://localhost:3000
 - Default credentials: admin/admin
-- Navigate to **Dashboards > Dash Logs**
+- Navigate to **Dashboards > Godel Logs**
 
 ### 3. View Logs
 
 ```bash
 # Search logs by agent
 curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode 'query={job="dash",agent_id="agent-123"}'
+  --data-urlencode 'query={job="godel",agent_id="agent-123"}'
 
 # Search logs by trace ID
 curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode 'query={job="dash"} |= "trace-abc-123"'
+  --data-urlencode 'query={job="godel"} |= "trace-abc-123"'
 ```
 
 ## Configuration
@@ -62,7 +62,7 @@ curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
 |----------|---------|-------------|
 | `LOG_LEVEL` | `info` | Minimum log level (debug, info, warn, error, fatal) |
 | `DASH_LOG_LEVEL` | `info` | Alternative log level variable |
-| `DASH_SERVICE_NAME` | `dash` | Service name for log entries |
+| `DASH_SERVICE_NAME` | `godel` | Service name for log entries |
 
 ### Log Levels
 
@@ -93,7 +93,7 @@ logger.fatal('System error', error);
 ```typescript
 import { createAgentLogger } from './logging';
 
-const agentLogger = createAgentLogger('agent-123', 'swarm-456');
+const agentLogger = createAgentLogger('agent-123', 'team-456');
 
 agentLogger.info('Agent started', { task: 'data-processing' });
 agentLogger.error('Task failed', error, { taskId: 'task-789' });
@@ -152,12 +152,12 @@ All logs are output as JSON with the following structure:
   "timestamp": "2026-02-03T19:18:33.123Z",
   "level": "ERROR",
   "levelCode": 3,
-  "service": "dash",
+  "service": "godel",
   "message": "Agent execution failed",
   "trace_id": "abc123",
   "span_id": "def456",
   "agent_id": "agent-789",
-  "swarm_id": "swarm-abc",
+  "swarm_id": "team-abc",
   "workflow_id": "wf-123",
   "error": {
     "name": "AgentError",
@@ -183,26 +183,26 @@ All logs are output as JSON with the following structure:
 ### Common Queries
 
 ```logql
-# All logs from Dash
-{job="dash"}
+# All logs from Godel
+{job="godel"}
 
 # Logs from specific agent
-{job="dash", agent_id="agent-123"}
+{job="godel", agent_id="agent-123"}
 
 # Error logs only
-{job="dash"} |= "ERROR"
+{job="godel"} |= "ERROR"
 
 # Logs with trace ID
-{job="dash"} |= "trace-abc-123"
+{job="godel"} |= "trace-abc-123"
 
-# Logs from specific swarm
-{job="dash"} | json | swarm_id="swarm-456"
+# Logs from specific team
+{job="godel"} | json | swarm_id="team-456"
 
 # Count errors by agent
-sum by (agent_id) (rate({job="dash"} |= "ERROR" [5m]))
+sum by (agent_id) (rate({job="godel"} |= "ERROR" [5m]))
 
 # Log volume over time
-sum(rate({job="dash"} [1m]))
+sum(rate({job="godel"} [1m]))
 ```
 
 ## Alerting
@@ -231,7 +231,7 @@ Add custom alerts in `monitoring/grafana/provisioning/alerting/`:
     - refId: A
       datasourceUid: Loki
       model:
-        expr: 'sum(count_over_time({job="dash"} |= "custom-pattern" [5m]))'
+        expr: 'sum(count_over_time({job="godel"} |= "custom-pattern" [5m]))'
   for: 2m
   annotations:
     summary: "Custom error detected"

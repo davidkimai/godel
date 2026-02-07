@@ -1,22 +1,22 @@
 /**
- * Swarm Service
+ * Team Service
  * Minimal in-memory implementation used by tests and lightweight usage.
  */
 
-export interface SwarmAgentRecord {
+export interface TeamAgentRecord {
   id: string;
   name: string;
 }
 
-export interface SwarmTaskRecord {
+export interface TeamTaskRecord {
   id: string;
   title: string;
   status: 'distributed' | 'completed';
 }
 
-export class SwarmService {
-  private agents = new Map<string, SwarmAgentRecord>();
-  private tasks = new Map<string, SwarmTaskRecord>();
+export class TeamService {
+  private agents = new Map<string, TeamAgentRecord>();
+  private tasks = new Map<string, TeamTaskRecord>();
   private initialized = false;
 
   async initialize(): Promise<boolean> {
@@ -24,8 +24,8 @@ export class SwarmService {
     return this.initialized;
   }
 
-  async registerAgent(agentId: string, name: string): Promise<SwarmAgentRecord> {
-    const agent: SwarmAgentRecord = { id: agentId, name };
+  async registerAgent(agentId: string, name: string): Promise<TeamAgentRecord> {
+    const agent: TeamAgentRecord = { id: agentId, name };
     this.agents.set(agentId, agent);
     return agent;
   }
@@ -40,7 +40,7 @@ export class SwarmService {
     return { taskId, status: 'distributed' };
   }
 
-  async getSwarmStatus(): Promise<{ agents: number; activeTasks: number }> {
+  async getTeamStatus(): Promise<{ agents: number; activeTasks: number }> {
     const activeTasks = [...this.tasks.values()].filter(task => task.status !== 'completed').length;
     return { agents: this.agents.size, activeTasks };
   }

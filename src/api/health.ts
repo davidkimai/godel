@@ -50,9 +50,9 @@ function resolveDatabaseUrl(): string | undefined {
 
   const host = process.env['POSTGRES_HOST'];
   const port = process.env['POSTGRES_PORT'] || '5432';
-  const db = process.env['POSTGRES_DB'] || 'dash';
-  const user = process.env['POSTGRES_USER'] || 'dash';
-  const password = process.env['POSTGRES_PASSWORD'] || 'dash';
+  const db = process.env['POSTGRES_DB'] || 'godel';
+  const user = process.env['POSTGRES_USER'] || 'godel';
+  const password = process.env['POSTGRES_PASSWORD'] || 'godel';
 
   if (host && host.trim().length > 0) {
     return `postgresql://${user}:${password}@${host}:${port}/${db}`;
@@ -91,7 +91,7 @@ async function checkDatabase(): Promise<DependencyCheck> {
 
   // SQLite fallback for local/dev environments.
   try {
-    const dbPath = process.env['DASH_SQLITE_PATH'] || './dash.db';
+    const dbPath = process.env['DASH_SQLITE_PATH'] || './godel.db';
     const db = await withTimeout(getDb({ dbPath }), DEFAULT_TIMEOUT_MS, 'sqlite init timeout');
     const result = await withTimeout(db.get('SELECT 1 as ok'), DEFAULT_TIMEOUT_MS, 'sqlite query timeout');
     if (result?.ok === 1) {

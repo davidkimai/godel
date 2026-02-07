@@ -2,11 +2,11 @@
  * Quality CLI Commands
  * 
  * Usage:
- *   dash quality lint
- *   dash quality types
- *   dash quality security
- *   dash quality gate
- *   dash quality status
+ *   godel quality lint
+ *   godel quality types
+ *   godel quality security
+ *   godel quality gate
+ *   godel quality status
  */
 
 import { logger } from '../../utils/logger';
@@ -423,12 +423,12 @@ function setupQualityCommandImpl(program: Command): void {
     .description('Code Quality checks')
     .addHelpText('after', `
 Examples:
-  $ dash quality lint
-  $ dash quality lint --fix
-  $ dash quality types
-  $ dash quality security
-  $ dash quality gate
-  $ dash quality status
+  $ godel quality lint
+  $ godel quality lint --fix
+  $ godel quality types
+  $ godel quality security
+  $ godel quality gate
+  $ godel quality status
     `);
 
   qualityCmd
@@ -505,11 +505,11 @@ export function qualityCommand(): Command {
     .description('Code Quality checks')
     .addHelpText('after', `
 Examples:
-  $ dash quality lint
-  $ dash quality lint --fix
-  $ dash quality types
-  $ dash quality security
-  $ dash quality gate
+  $ godel quality lint
+  $ godel quality lint --fix
+  $ godel quality types
+  $ godel quality security
+  $ godel quality gate
     `);
 
   qualityCmd

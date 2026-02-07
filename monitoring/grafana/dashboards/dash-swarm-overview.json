@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "dash-overview",
-    "title": "Dash - Swarm Overview",
-    "tags": ["dash", "orchestrator", "overview"],
+    "uid": "godel-overview",
+    "title": "Godel - Team Overview",
+    "tags": ["godel", "orchestrator", "overview"],
     "timezone": "browser",
     "schemaVersion": 38,
     "refresh": "15s",
@@ -29,12 +29,12 @@
     "panels": [
       {
         "id": 1,
-        "title": "Active Swarms",
+        "title": "Active Teams",
         "type": "stat",
         "targets": [
           {
             "expr": "dash_swarms_active",
-            "legendFormat": "Active Swarms"
+            "legendFormat": "Active Teams"
           }
         ],
         "fieldConfig": {
@@ -166,7 +166,7 @@
       },
       {
         "id": 7,
-        "title": "Agent Status by Swarm",
+        "title": "Agent Status by Team",
         "type": "timeseries",
         "targets": [
           {
@@ -218,7 +218,7 @@
       },
       {
         "id": 9,
-        "title": "Swarm Status Distribution",
+        "title": "Team Status Distribution",
         "type": "piechart",
         "targets": [
           {
@@ -248,7 +248,7 @@
       },
       {
         "id": 11,
-        "title": "Budget Utilization by Swarm",
+        "title": "Budget Utilization by Team",
         "type": "bargauge",
         "targets": [
           {
@@ -278,7 +278,7 @@
       },
       {
         "id": 12,
-        "title": "Swarm Success vs Failure (Rate)",
+        "title": "Team Success vs Failure (Rate)",
         "type": "timeseries",
         "targets": [
           {
@@ -320,7 +320,7 @@
       },
       {
         "id": 14,
-        "title": "Active Swarms List",
+        "title": "Active Teams List",
         "type": "table",
         "targets": [
           {
@@ -353,7 +353,7 @@
             "id": "organize",
             "options": {
               "renameByName": {
-                "swarm_id": "Swarm ID",
+                "swarm_id": "Team ID",
                 "strategy": "Strategy",
                 "Value #A": "Active",
                 "Value #B": "Agents",
@@ -361,7 +361,7 @@
                 "Value #D": "Budget Used"
               },
               "indexByName": {
-                "Swarm ID": 0,
+                "Team ID": 0,
                 "Strategy": 1,
                 "Active": 2,
                 "Agents": 3,

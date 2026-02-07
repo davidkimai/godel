@@ -1,12 +1,12 @@
-# Simple Swarm Configuration
-# Basic example of Godel swarm creation
+# Simple Team Configuration
+# Basic example of Godel team creation
 
 apiVersion: godel.io/v1
-kind: Swarm
+kind: Team
 
 metadata:
-  name: simple-analysis-swarm
-  description: A simple swarm for basic code analysis
+  name: simple-analysis-team
+  description: A simple team for basic code analysis
 
 spec:
   # The main task for all agents

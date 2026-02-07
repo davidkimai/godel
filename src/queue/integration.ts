@@ -1,7 +1,7 @@
 /**
  * Task Queue Integration
  * 
- * Integrates the task queue system with other Dash components:
+ * Integrates the task queue system with other Godel components:
  * - Event bus for queue events
  * - PostgreSQL for task results persistence
  * - Auto-scaler for queue depth metrics
@@ -217,7 +217,7 @@ export class TaskQueueIntegration {
 
     try {
       await this.eventRepository.create({
-        swarm_id: undefined,
+        team_id: undefined,
         agent_id: event.agentId,
         type: event.type,
         payload: {
@@ -319,7 +319,7 @@ export class TaskQueueIntegration {
     try {
       // Store result as a completion event
       await this.eventRepository.create({
-        swarm_id: undefined,
+        team_id: undefined,
         agent_id: task.assigneeId,
         type: 'task.result_stored',
         payload: {

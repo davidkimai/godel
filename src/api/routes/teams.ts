@@ -1,59 +1,59 @@
 /**
- * Swarm Routes
+ * Team Routes
  * 
- * Fastify routes for swarm management:
- * - GET /api/swarms - List swarms
- * - POST /api/swarms - Create swarm
- * - GET /api/swarms/:id - Get swarm details
- * - PUT /api/swarms/:id - Update swarm
- * - DELETE /api/swarms/:id - Delete swarm
- * - POST /api/swarms/:id/start - Start swarm
- * - POST /api/swarms/:id/stop - Stop swarm
- * - POST /api/swarms/:id/pause - Pause swarm
- * - POST /api/swarms/:id/resume - Resume swarm
- * - POST /api/swarms/:id/scale - Scale swarm
- * - GET /api/swarms/:id/events - Get swarm events
- * - GET /api/swarms/:id/tree - Get session tree
- * - GET /api/swarms/:id/branches - List branches
- * - POST /api/swarms/:id/branches - Create branch
- * - POST /api/swarms/:id/switch-branch - Switch branch
- * - POST /api/swarms/:id/compare - Compare branches
+ * Fastify routes for team management:
+ * - GET /api/teams - List teams
+ * - POST /api/teams - Create team
+ * - GET /api/teams/:id - Get team details
+ * - PUT /api/teams/:id - Update team
+ * - DELETE /api/teams/:id - Delete team
+ * - POST /api/teams/:id/start - Start team
+ * - POST /api/teams/:id/stop - Stop team
+ * - POST /api/teams/:id/pause - Pause team
+ * - POST /api/teams/:id/resume - Resume team
+ * - POST /api/teams/:id/scale - Scale team
+ * - GET /api/teams/:id/events - Get team events
+ * - GET /api/teams/:id/tree - Get session tree
+ * - GET /api/teams/:id/branches - List branches
+ * - POST /api/teams/:id/branches - Create branch
+ * - POST /api/teams/:id/switch-branch - Switch branch
+ * - POST /api/teams/:id/compare - Compare branches
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { SwarmRepository } from '../../storage/repositories/SwarmRepository';
+import { TeamRepository } from '../../storage/repositories/TeamRepository';
 import { createSuccessResponse, createErrorResponse, ErrorCodes } from '../lib/response';
 import { paginateArray, parsePaginationParams, createPaginationLinks } from '../lib/pagination';
 import {
-  CreateSwarmSchema,
-  UpdateSwarmSchema,
-  ScaleSwarmSchema,
+  CreateTeamSchema,
+  UpdateTeamSchema,
+  ScaleTeamSchema,
   CreateBranchSchema,
   SwitchBranchSchema,
   CompareBranchesSchema,
-  ListSwarmsQuerySchema,
-  SwarmSchema,
-  SwarmSummarySchema,
-  SwarmListResponseSchema,
-  SwarmEventSchema,
-  SwarmEventListResponseSchema,
-  type CreateSwarm,
-  type UpdateSwarm,
-  type ScaleSwarm,
+  ListTeamsQuerySchema,
+  TeamSchema,
+  TeamSummarySchema,
+  TeamListResponseSchema,
+  TeamEventSchema,
+  TeamEventListResponseSchema,
+  type CreateTeam,
+  type UpdateTeam,
+  type ScaleTeam,
   type CreateBranch,
   type SwitchBranch,
   type CompareBranches,
-  type ListSwarmsQuery,
-} from '../schemas/swarm';
+  type ListTeamsQuery,
+} from '../schemas/team';
 
 // Re-export CompareBranches to fix import resolution
-export type { CompareBranches } from '../schemas/swarm';
+export type { CompareBranches } from '../schemas/team';
 import { IdParamSchema } from '../schemas/common';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-// In-memory store for swarms
-const swarms = new Map<string, {
+// In-memory store for teams
+const teams = new Map<string, {
   id: string;
   name: string;
   status: string;
@@ -70,73 +70,73 @@ const swarms = new Map<string, {
 // In-memory events
 const swarmEvents = new Map<string, Array<{
   id: string;
-  swarmId: string;
+  teamId: string;
   type: string;
   payload: Record<string, unknown>;
   timestamp: string;
   agentId?: string;
 }>>();
 
-export async function swarmRoutes(fastify: FastifyInstance) {
-  const swarmRepo = new SwarmRepository();
+export async function teamRoutes(fastify: FastifyInstance) {
+  const swarmRepo = new TeamRepository();
   
   try {
     await swarmRepo.initialize();
   } catch (error) {
-    fastify.log.warn('Failed to initialize SwarmRepository, using in-memory store');
+    fastify.log.warn('Failed to initialize TeamRepository, using in-memory store');
   }
 
   // ============================================================================
-  // GET /api/swarms - List swarms
+  // GET /api/teams - List teams
   // ============================================================================
   fastify.get(
     '/',
     {
       schema: {
-        summary: 'List swarms',
-        description: 'List all swarms with optional filtering and pagination',
-        tags: ['swarms'],
-        querystring: zodToJsonSchema(ListSwarmsQuerySchema) as Record<string, unknown>,
+        summary: 'List teams',
+        description: 'List all teams with optional filtering and pagination',
+        tags: ['teams'],
+        querystring: zodToJsonSchema(ListTeamsQuerySchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmListResponseSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamListResponseSchema) as Record<string, unknown>,
         },
       },
     },
-    async (request: FastifyRequest<{ Querystring: ListSwarmsQuery }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: ListTeamsQuery }>, reply: FastifyReply) => {
       try {
         const params = parsePaginationParams(request.query);
         
-        // Get swarms from memory and database
-        let swarmList = Array.from(swarms.values());
+        // Get teams from memory and database
+        let swarmList = Array.from(teams.values());
         
         try {
-          const dbSwarms = await swarmRepo.listSummaries({
+          const dbTeams = await swarmRepo.listSummaries({
             limit: params.limit,
             status: request.query.status,
           });
           
-          // Merge with memory swarms
+          // Merge with memory teams
           const existingIds = new Set(swarmList.map(s => s.id));
-          for (const dbSwarm of dbSwarms) {
-            if (!existingIds.has(dbSwarm.id)) {
+          for (const dbTeam of dbTeams) {
+            if (!existingIds.has(dbTeam.id)) {
               swarmList.push({
-                id: dbSwarm.id,
-                name: dbSwarm.name,
-                status: dbSwarm.status,
+                id: dbTeam.id,
+                name: dbTeam.name,
+                status: dbTeam.status,
                 config: {
-                  maxAgents: dbSwarm.config['maxAgents'],
-                  enableScaling: dbSwarm.config['enableScaling'],
-                  enableBranching: dbSwarm.config['enableBranching'],
+                  maxAgents: dbTeam.config['maxAgents'],
+                  enableScaling: dbTeam.config['enableScaling'],
+                  enableBranching: dbTeam.config['enableBranching'],
                 },
                 metrics: {
-                  runningAgents: dbSwarm.running_agents,
-                  totalAgents: dbSwarm.total_agents,
-                  budgetAllocated: dbSwarm.budget_allocated,
-                  budgetConsumed: dbSwarm.budget_consumed,
-                  budgetPercentage: dbSwarm.budget_percentage,
+                  runningAgents: dbTeam.running_agents,
+                  totalAgents: dbTeam.total_agents,
+                  budgetAllocated: dbTeam.budget_allocated,
+                  budgetConsumed: dbTeam.budget_consumed,
+                  budgetPercentage: dbTeam.budget_percentage,
                 },
-                createdAt: dbSwarm.created_at.toISOString(),
-                updatedAt: dbSwarm.created_at.toISOString(),
+                createdAt: dbTeam.created_at.toISOString(),
+                updatedAt: dbTeam.created_at.toISOString(),
                 currentBranch: 'main',
                 branches: ['main'],
                 metadata: {},
@@ -144,7 +144,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
             }
           }
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to fetch swarms from database');
+          fastify.log.warn({ err: dbError }, 'Failed to fetch teams from database');
         }
         
         // Apply filters
@@ -154,7 +154,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         
         // Apply pagination
         const paginated = paginateArray(swarmList, request.query);
-        const links = createPaginationLinks('/api/v1/swarms', request.query, paginated);
+        const links = createPaginationLinks('/api/v1/teams', request.query, paginated);
         
         // Transform to summary format
         const summaries = paginated.items.map(s => ({
@@ -177,7 +177,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         return reply.send(
           createSuccessResponse(
             {
-              swarms: summaries,
+              teams: summaries,
               hasMore: paginated.hasMore,
               nextCursor: paginated.nextCursor,
             },
@@ -188,39 +188,39 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           )
         );
       } catch (error) {
-        fastify.log.error({ err: error }, 'Failed to list swarms');
+        fastify.log.error({ err: error }, 'Failed to list teams');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to list swarms')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to list teams')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms - Create swarm
+  // POST /api/teams - Create team
   // ============================================================================
   fastify.post(
     '/',
     {
       schema: {
-        summary: 'Create swarm',
-        description: 'Create a new swarm with the specified configuration',
-        tags: ['swarms'],
-        body: zodToJsonSchema(CreateSwarmSchema) as Record<string, unknown>,
+        summary: 'Create team',
+        description: 'Create a new team with the specified configuration',
+        tags: ['teams'],
+        body: zodToJsonSchema(CreateTeamSchema) as Record<string, unknown>,
         response: {
-          201: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          201: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           400: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
     },
-    async (request: FastifyRequest<{ Body: CreateSwarm }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Body: CreateTeam }>, reply: FastifyReply) => {
       try {
-        const validated = CreateSwarmSchema.parse(request.body);
+        const validated = CreateTeamSchema.parse(request.body);
         
-        const id = `swarm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const id = `team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const now = new Date().toISOString();
         
-        const swarm = {
+        const team = {
           id,
           name: validated.name,
           status: 'creating',
@@ -254,21 +254,21 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           metadata: validated.metadata || {},
         };
         
-        swarms.set(id, swarm);
+        teams.set(id, team);
         
         // Persist to database
         try {
           await swarmRepo.create({
-            name: swarm.name,
-            config: swarm.config,
+            name: team.name,
+            config: team.config,
             status: 'creating',
           });
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to persist swarm to database');
+          fastify.log.warn({ err: dbError }, 'Failed to persist team to database');
         }
         
         return reply.status(201).send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -279,27 +279,27 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to create swarm');
+        fastify.log.error({ err: error }, 'Failed to create team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to create swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to create team')
         );
       }
     }
   );
 
   // ============================================================================
-  // GET /api/swarms/:id - Get swarm details
+  // GET /api/teams/:id - Get team details
   // ============================================================================
   fastify.get(
     '/:id',
     {
       schema: {
-        summary: 'Get swarm details',
-        description: 'Get detailed information about a specific swarm',
-        tags: ['swarms'],
+        summary: 'Get team details',
+        description: 'Get detailed information about a specific team',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -308,20 +308,20 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        let swarm = swarms.get(id);
+        let team = teams.get(id);
         
-        if (!swarm) {
+        if (!team) {
           try {
-            const dbSwarm = await swarmRepo.findById(id);
-            if (dbSwarm) {
-              swarm = {
-                id: dbSwarm.id,
-                name: dbSwarm.name,
-                status: dbSwarm.status,
-                config: dbSwarm.config,
+            const dbTeam = await swarmRepo.findById(id);
+            if (dbTeam) {
+              team = {
+                id: dbTeam.id,
+                name: dbTeam.name,
+                status: dbTeam.status,
+                config: dbTeam.config,
                 metrics: {},
-                createdAt: dbSwarm.created_at.toISOString(),
-                updatedAt: dbSwarm.updated_at.toISOString(),
+                createdAt: dbTeam.created_at.toISOString(),
+                updatedAt: dbTeam.updated_at.toISOString(),
                 currentBranch: 'main',
                 branches: ['main'],
                 sessionTreeId: undefined,
@@ -329,18 +329,18 @@ export async function swarmRoutes(fastify: FastifyInstance) {
               };
             }
           } catch (dbError) {
-            fastify.log.warn({ err: dbError }, 'Failed to fetch swarm from database');
+            fastify.log.warn({ err: dbError }, 'Failed to fetch team from database');
           }
         }
         
-        if (!swarm) {
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -349,45 +349,45 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to get swarm');
+        fastify.log.error({ err: error }, 'Failed to get team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to get swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to get team')
         );
       }
     }
   );
 
   // ============================================================================
-  // PUT /api/swarms/:id - Update swarm
+  // PUT /api/teams/:id - Update team
   // ============================================================================
   fastify.put(
     '/:id',
     {
       schema: {
-        summary: 'Update swarm',
-        description: 'Update swarm configuration',
-        tags: ['swarms'],
+        summary: 'Update team',
+        description: 'Update team configuration',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
-        body: zodToJsonSchema(UpdateSwarmSchema) as Record<string, unknown>,
+        body: zodToJsonSchema(UpdateTeamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
     },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateSwarm }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string }; Body: UpdateTeam }>, reply: FastifyReply) => {
       try {
         const { id } = IdParamSchema.parse(request.params);
-        const validated = UpdateSwarmSchema.parse(request.body);
+        const validated = UpdateTeamSchema.parse(request.body);
         
-        let swarm = swarms.get(id);
+        let team = teams.get(id);
         
-        if (swarm) {
-          if (validated.name) swarm.name = validated.name;
-          if (validated.config) swarm.config = { ...swarm.config, ...validated.config };
-          if (validated.status) swarm.status = validated.status;
-          if (validated.metadata) swarm.metadata = { ...swarm.metadata, ...validated.metadata };
-          swarm.updatedAt = new Date().toISOString();
+        if (team) {
+          if (validated.name) team.name = validated.name;
+          if (validated.config) team.config = { ...team.config, ...validated.config };
+          if (validated.status) team.status = validated.status;
+          if (validated.metadata) team.metadata = { ...team.metadata, ...validated.metadata };
+          team.updatedAt = new Date().toISOString();
         }
         
         // Update in database
@@ -398,17 +398,17 @@ export async function swarmRoutes(fastify: FastifyInstance) {
             status: validated.status as any,
           });
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to update swarm in database');
+          fastify.log.warn({ err: dbError }, 'Failed to update team in database');
         }
         
-        if (!swarm) {
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -417,24 +417,24 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to update swarm');
+        fastify.log.error({ err: error }, 'Failed to update team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to update swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to update team')
         );
       }
     }
   );
 
   // ============================================================================
-  // DELETE /api/swarms/:id - Delete swarm
+  // DELETE /api/teams/:id - Delete team
   // ============================================================================
   fastify.delete(
     '/:id',
     {
       schema: {
-        summary: 'Delete swarm',
-        description: 'Delete a swarm and all its agents',
-        tags: ['swarms'],
+        summary: 'Delete team',
+        description: 'Delete a team and all its agents',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
           204: { type: 'null' },
@@ -446,14 +446,14 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        swarms.delete(id);
+        teams.delete(id);
         swarmEvents.delete(id);
         
         // Delete from database
         try {
           await swarmRepo.delete(id);
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to delete swarm from database');
+          fastify.log.warn({ err: dbError }, 'Failed to delete team from database');
         }
         
         return reply.status(204).send();
@@ -464,27 +464,27 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to delete swarm');
+        fastify.log.error({ err: error }, 'Failed to delete team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to delete swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to delete team')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/start - Start swarm
+  // POST /api/teams/:id/start - Start team
   // ============================================================================
   fastify.post(
     '/:id/start',
     {
       schema: {
-        summary: 'Start swarm',
-        description: 'Start a swarm and begin agent execution',
-        tags: ['swarms'],
+        summary: 'Start team',
+        description: 'Start a team and begin agent execution',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -493,25 +493,25 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        swarm.status = 'active';
-        swarm.updatedAt = new Date().toISOString();
+        team.status = 'active';
+        team.updatedAt = new Date().toISOString();
         
         // Update in database
         try {
           await swarmRepo.updateStatus(id, 'active');
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to update swarm status');
+          fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -520,27 +520,27 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to start swarm');
+        fastify.log.error({ err: error }, 'Failed to start team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to start swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to start team')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/stop - Stop swarm
+  // POST /api/teams/:id/stop - Stop team
   // ============================================================================
   fastify.post(
     '/:id/stop',
     {
       schema: {
-        summary: 'Stop swarm',
-        description: 'Stop a swarm and terminate all agents',
-        tags: ['swarms'],
+        summary: 'Stop team',
+        description: 'Stop a team and terminate all agents',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -549,25 +549,25 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        swarm.status = 'completed';
-        swarm.updatedAt = new Date().toISOString();
+        team.status = 'completed';
+        team.updatedAt = new Date().toISOString();
         
         // Update in database
         try {
           await swarmRepo.updateStatus(id, 'completed');
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to update swarm status');
+          fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -576,27 +576,27 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to stop swarm');
+        fastify.log.error({ err: error }, 'Failed to stop team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to stop swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to stop team')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/pause - Pause swarm
+  // POST /api/teams/:id/pause - Pause team
   // ============================================================================
   fastify.post(
     '/:id/pause',
     {
       schema: {
-        summary: 'Pause swarm',
-        description: 'Pause all agents in the swarm',
-        tags: ['swarms'],
+        summary: 'Pause team',
+        description: 'Pause all agents in the team',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -605,25 +605,25 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        swarm.status = 'paused';
-        swarm.updatedAt = new Date().toISOString();
+        team.status = 'paused';
+        team.updatedAt = new Date().toISOString();
         
         // Update in database
         try {
           await swarmRepo.updateStatus(id, 'paused');
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to update swarm status');
+          fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -632,27 +632,27 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to pause swarm');
+        fastify.log.error({ err: error }, 'Failed to pause team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to pause swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to pause team')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/resume - Resume swarm
+  // POST /api/teams/:id/resume - Resume team
   // ============================================================================
   fastify.post(
     '/:id/resume',
     {
       schema: {
-        summary: 'Resume swarm',
-        description: 'Resume all agents in the swarm',
-        tags: ['swarms'],
+        summary: 'Resume team',
+        description: 'Resume all agents in the team',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -661,25 +661,25 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        swarm.status = 'active';
-        swarm.updatedAt = new Date().toISOString();
+        team.status = 'active';
+        team.updatedAt = new Date().toISOString();
         
         // Update in database
         try {
           await swarmRepo.updateStatus(id, 'active');
         } catch (dbError) {
-          fastify.log.warn({ err: dbError }, 'Failed to update swarm status');
+          fastify.log.warn({ err: dbError }, 'Failed to update team status');
         }
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -688,50 +688,50 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to resume swarm');
+        fastify.log.error({ err: error }, 'Failed to resume team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to resume swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to resume team')
         );
       }
     }
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/scale - Scale swarm
+  // POST /api/teams/:id/scale - Scale team
   // ============================================================================
   fastify.post(
     '/:id/scale',
     {
       schema: {
-        summary: 'Scale swarm',
-        description: 'Scale the number of agents in the swarm',
-        tags: ['swarms'],
+        summary: 'Scale team',
+        description: 'Scale the number of agents in the team',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
-        body: zodToJsonSchema(ScaleSwarmSchema) as Record<string, unknown>,
+        body: zodToJsonSchema(ScaleTeamSchema) as Record<string, unknown>,
         response: {
-          200: zodToJsonSchema(SwarmSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
     },
-    async (request: FastifyRequest<{ Params: { id: string }; Body: ScaleSwarm }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string }; Body: ScaleTeam }>, reply: FastifyReply) => {
       try {
         const { id } = IdParamSchema.parse(request.params);
-        const validated = ScaleSwarmSchema.parse(request.body);
+        const validated = ScaleTeamSchema.parse(request.body);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        swarm.status = 'scaling';
-        (swarm.metrics as any).totalAgents = validated.targetSize;
-        swarm.updatedAt = new Date().toISOString();
+        team.status = 'scaling';
+        (team.metrics as any).totalAgents = validated.targetSize;
+        team.updatedAt = new Date().toISOString();
         
         return reply.send(
-          createSuccessResponse(swarm, { requestId: request.id })
+          createSuccessResponse(team, { requestId: request.id })
         );
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -740,24 +740,24 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to scale swarm');
+        fastify.log.error({ err: error }, 'Failed to scale team');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to scale swarm')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to scale team')
         );
       }
     }
   );
 
   // ============================================================================
-  // GET /api/swarms/:id/events - Get swarm events
+  // GET /api/teams/:id/events - Get team events
   // ============================================================================
   fastify.get(
     '/:id/events',
     {
       schema: {
-        summary: 'Get swarm events',
-        description: 'Get events for a specific swarm',
-        tags: ['swarms'],
+        summary: 'Get team events',
+        description: 'Get events for a specific team',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         querystring: {
           type: 'object',
@@ -767,7 +767,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           },
         },
         response: {
-          200: zodToJsonSchema(SwarmEventListResponseSchema) as Record<string, unknown>,
+          200: zodToJsonSchema(TeamEventListResponseSchema) as Record<string, unknown>,
           404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'object' } } },
         },
       },
@@ -780,9 +780,9 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         const { id } = IdParamSchema.parse(request.params);
         const limit = Math.min(request.query.limit || 100, 500);
         
-        if (!swarms.has(id)) {
+        if (!teams.has(id)) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
@@ -802,24 +802,24 @@ export async function swarmRoutes(fastify: FastifyInstance) {
           );
         }
         
-        fastify.log.error({ err: error }, 'Failed to get swarm events');
+        fastify.log.error({ err: error }, 'Failed to get team events');
         return reply.status(500).send(
-          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to get swarm events')
+          createErrorResponse(ErrorCodes.INTERNAL_ERROR, 'Failed to get team events')
         );
       }
     }
   );
 
   // ============================================================================
-  // GET /api/swarms/:id/branches - List branches
+  // GET /api/teams/:id/branches - List branches
   // ============================================================================
   fastify.get(
     '/:id/branches',
     {
       schema: {
         summary: 'List branches',
-        description: 'List all branches in the swarm session tree',
-        tags: ['swarms'],
+        description: 'List all branches in the team session tree',
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         response: {
           200: {
@@ -837,17 +837,17 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       try {
         const { id } = IdParamSchema.parse(request.params);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
         return reply.send(
           createSuccessResponse({
-            branches: swarm.branches,
-            currentBranch: swarm.currentBranch,
+            branches: team.branches,
+            currentBranch: team.currentBranch,
           }, { requestId: request.id })
         );
       } catch (error) {
@@ -866,7 +866,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/branches - Create branch
+  // POST /api/teams/:id/branches - Create branch
   // ============================================================================
   fastify.post(
     '/:id/branches',
@@ -874,7 +874,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       schema: {
         summary: 'Create branch',
         description: 'Create a new branch in the session tree',
-        tags: ['swarms'],
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         body: zodToJsonSchema(CreateBranchSchema) as Record<string, unknown>,
         response: {
@@ -895,15 +895,15 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         const { id } = IdParamSchema.parse(request.params);
         const validated = CreateBranchSchema.parse(request.body);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        if (!swarm.branches.includes(validated.name)) {
-          swarm.branches.push(validated.name);
+        if (!team.branches.includes(validated.name)) {
+          team.branches.push(validated.name);
         }
         
         const entryId = `entry-${Date.now()}`;
@@ -931,7 +931,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
   );
 
   // ============================================================================
-  // POST /api/swarms/:id/switch-branch - Switch branch
+  // POST /api/teams/:id/switch-branch - Switch branch
   // ============================================================================
   fastify.post(
     '/:id/switch-branch',
@@ -939,7 +939,7 @@ export async function swarmRoutes(fastify: FastifyInstance) {
       schema: {
         summary: 'Switch branch',
         description: 'Switch to a different branch in the session tree',
-        tags: ['swarms'],
+        tags: ['teams'],
         params: zodToJsonSchema(IdParamSchema) as Record<string, unknown>,
         body: zodToJsonSchema(SwitchBranchSchema) as Record<string, unknown>,
         response: {
@@ -959,25 +959,25 @@ export async function swarmRoutes(fastify: FastifyInstance) {
         const { id } = IdParamSchema.parse(request.params);
         const validated = SwitchBranchSchema.parse(request.body);
         
-        const swarm = swarms.get(id);
-        if (!swarm) {
+        const team = teams.get(id);
+        if (!team) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SWARM_NOT_FOUND, `Swarm ${id} not found`)
+            createErrorResponse(ErrorCodes.TEAM_NOT_FOUND, `Team ${id} not found`)
           );
         }
         
-        if (!swarm.branches.includes(validated.branchName)) {
+        if (!team.branches.includes(validated.branchName)) {
           return reply.status(400).send(
             createErrorResponse(ErrorCodes.INVALID_INPUT, `Branch ${validated.branchName} does not exist`)
           );
         }
         
-        swarm.currentBranch = validated.branchName;
+        team.currentBranch = validated.branchName;
         
         return reply.send(
           createSuccessResponse({
             success: true,
-            currentBranch: swarm.currentBranch,
+            currentBranch: team.currentBranch,
           }, { requestId: request.id })
         );
       } catch (error) {
@@ -996,4 +996,4 @@ export async function swarmRoutes(fastify: FastifyInstance) {
   );
 }
 
-export default swarmRoutes;
+export default teamRoutes;

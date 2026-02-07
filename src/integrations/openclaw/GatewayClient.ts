@@ -310,7 +310,7 @@ export class GatewayClient extends EventEmitter {
           token: this.config.token,
         },
         locale: 'en-US',
-        userAgent: 'dash-cli/2.0.0',
+        userAgent: 'godel-cli/2.0.0',
       });
 
       this.setState('authenticated');

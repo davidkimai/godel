@@ -2,11 +2,11 @@
 
 ## Overview
 
-This runbook covers procedures for handling budget overruns and cost management in the Dash platform.
+This runbook covers procedures for handling budget overruns and cost management in the Godel platform.
 
 ## Symptoms
 
-- Swarms automatically pausing due to budget limits
+- Teams automatically pausing due to budget limits
 - Alert: `DashBudgetThresholdExceeded`
 - Alert: `DashBudgetHardLimitReached`
 - Dashboard showing "Budget Alert" warnings
@@ -17,73 +17,73 @@ This runbook covers procedures for handling budget overruns and cost management 
 
 1. **Check current budget status:**
    ```bash
-   curl http://api.dash.local/api/budgets/summary
+   curl http://api.godel.local/api/budgets/summary
    ```
 
-2. **Identify high-cost swarms:**
+2. **Identify high-cost teams:**
    ```bash
-   curl "http://api.dash.local/api/swarms?sortBy=budgetConsumed&limit=10"
+   curl "http://api.godel.local/api/teams?sortBy=budgetConsumed&limit=10"
    ```
 
 3. **Check spending rate:**
    ```bash
-   curl http://api.dash.local/metrics | grep budget_consumption_rate
+   curl http://api.godel.local/metrics | grep budget_consumption_rate
    ```
 
 4. **Review recent expensive operations:**
    ```bash
-   kubectl logs -n dash -l app.kubernetes.io/name=dash-api --since=1h | grep -i "budget\|cost"
+   kubectl logs -n godel -l app.kubernetes.io/name=godel-api --since=1h | grep -i "budget\|cost"
    ```
 
 ## Response Procedures
 
 ### Scenario 1: Budget Threshold Alert (80%)
 
-When a swarm approaches its budget limit:
+When a team approaches its budget limit:
 
-1. **Review the swarm's spending:**
+1. **Review the team's spending:**
    ```bash
-   curl http://api.dash.local/api/swarms/{swarmId}/budget
+   curl http://api.godel.local/api/teams/{swarmId}/budget
    ```
 
 2. **Check which agents are consuming budget:**
    ```bash
-   curl "http://api.dash.local/api/swarms/{swarmId}/agents?sortBy=cost&limit=20"
+   curl "http://api.godel.local/api/teams/{swarmId}/agents?sortBy=cost&limit=20"
    ```
 
 3. **Option A: Increase budget (if approved):**
    ```bash
-   curl -X PATCH http://api.dash.local/api/swarms/{swarmId}/budget \
+   curl -X PATCH http://api.godel.local/api/teams/{swarmId}/budget \
      -H "Content-Type: application/json" \
      -d '{"allocated": 100.00}'
    ```
 
-4. **Option B: Pause the swarm:**
+4. **Option B: Pause the team:**
    ```bash
-   curl -X POST http://api.dash.local/api/swarms/{swarmId}/pause
+   curl -X POST http://api.godel.local/api/teams/{swarmId}/pause
    ```
 
 5. **Option C: Optimize remaining agents:**
    ```bash
    # Switch to cheaper model
-   curl -X PATCH http://api.dash.local/api/swarms/{swarmId} \
+   curl -X PATCH http://api.godel.local/api/teams/{swarmId} \
      -H "Content-Type: application/json" \
      -d '{"config":{"model":"gpt-3.5-turbo"}}'
    ```
 
 ### Scenario 2: Hard Budget Limit Reached
 
-When a swarm has exceeded its budget:
+When a team has exceeded its budget:
 
 1. **Immediate containment:**
    ```bash
-   # Pause all running agents in the swarm
-   curl -X POST http://api.dash.local/api/swarms/{swarmId}/pause
+   # Pause all running agents in the team
+   curl -X POST http://api.godel.local/api/teams/{swarmId}/pause
    ```
 
 2. **Generate cost report:**
    ```bash
-   curl "http://api.dash.local/api/swarms/{swarmId}/budget/report?detailed=true" > cost_report.json
+   curl "http://api.godel.local/api/teams/{swarmId}/budget/report?detailed=true" > cost_report.json
    ```
 
 3. **Review for anomalies:**
@@ -95,7 +95,7 @@ When a swarm has exceeded its budget:
 4. **Emergency budget increase (requires approval):**
    ```bash
    # Document justification before increasing
-   curl -X PATCH http://api.dash.local/api/swarms/{swarmId}/budget \
+   curl -X PATCH http://api.godel.local/api/teams/{swarmId}/budget \
      -H "Content-Type: application/json" \
      -d '{"allocated": 150.00, "reason": "Emergency extension - incident #1234"}'
    ```
@@ -106,22 +106,22 @@ If a single agent is consuming excessive budget:
 
 1. **Identify the agent:**
    ```bash
-   curl http://api.dash.local/metrics | grep agent_budget_consumption
+   curl http://api.godel.local/metrics | grep agent_budget_consumption
    ```
 
 2. **Get agent details:**
    ```bash
-   curl http://api.dash.local/api/agents/{agentId}
+   curl http://api.godel.local/api/agents/{agentId}
    ```
 
 3. **Kill the agent if it's stuck:**
    ```bash
-   curl -X DELETE http://api.dash.local/api/agents/{agentId}
+   curl -X DELETE http://api.godel.local/api/agents/{agentId}
    ```
 
 4. **Check for infinite loops or runaway processes:**
    ```bash
-   kubectl logs -n dash -l app.kubernetes.io/name=dash-api | grep {agentId}
+   kubectl logs -n godel -l app.kubernetes.io/name=godel-api | grep {agentId}
    ```
 
 ### Scenario 4: Organization-Wide Budget Alert
@@ -130,28 +130,28 @@ When total platform spending exceeds forecasts:
 
 1. **Get overall budget status:**
    ```bash
-   curl http://api.dash.local/api/budgets/total
+   curl http://api.godel.local/api/budgets/total
    ```
 
 2. **Enable global budget protection:**
    ```bash
-   kubectl patch configmap dash-config -n dash --type merge \
+   kubectl patch configmap godel-config -n godel --type merge \
      -p '{"data":{"BUDGET_PROTECTION_MODE":"strict"}}'
-   kubectl rollout restart deployment dash-api -n dash
+   kubectl rollout restart deployment godel-api -n godel
    ```
 
-3. **Pause all non-critical swarms:**
+3. **Pause all non-critical teams:**
    ```bash
-   # Get all active swarms
-   curl "http://api.dash.local/api/swarms?status=active" | \
-     jq -r '.swarms[].id' | \
-     xargs -I {} curl -X POST http://api.dash.local/api/swarms/{}/pause
+   # Get all active teams
+   curl "http://api.godel.local/api/teams?status=active" | \
+     jq -r '.teams[].id' | \
+     xargs -I {} curl -X POST http://api.godel.local/api/teams/{}/pause
    ```
 
 4. **Notify stakeholders:**
    ```bash
    # Trigger notification (customize for your alerting)
-   curl -X POST http://api.dash.local/admin/alert \
+   curl -X POST http://api.godel.local/admin/alert \
      -H "Content-Type: application/json" \
      -d '{"severity":"critical","message":"Platform budget exceeded"}'
    ```
@@ -160,18 +160,18 @@ When total platform spending exceeds forecasts:
 
 1. **Gradual restoration:**
    ```bash
-   # Resume critical swarms first
-   curl -X POST http://api.dash.local/api/swarms/{criticalSwarmId}/resume
+   # Resume critical teams first
+   curl -X POST http://api.godel.local/api/teams/{criticalSwarmId}/resume
    ```
 
 2. **Monitor spending:**
    ```bash
-   watch -n 30 'curl -s http://api.dash.local/metrics | grep budget_consumption_rate'
+   watch -n 30 'curl -s http://api.godel.local/metrics | grep budget_consumption_rate'
    ```
 
 3. **Adjust thresholds:**
    ```bash
-   kubectl patch configmap dash-config -n dash --type merge \
+   kubectl patch configmap godel-config -n godel --type merge \
      -p '{"data":{"BUDGET_ALERT_THRESHOLD":"0.7"}}'
    ```
 
@@ -189,7 +189,7 @@ When total platform spending exceeds forecasts:
      labels:
        severity: warning
      annotations:
-       summary: "Swarm {{ $labels.swarm_id }} at 80% budget"
+       summary: "Team {{ $labels.swarm_id }} at 80% budget"
    
    - alert: DashBudgetCritical
      expr: |
@@ -200,7 +200,7 @@ When total platform spending exceeds forecasts:
      labels:
        severity: critical
      annotations:
-       summary: "Swarm {{ $labels.swarm_id }} at 95% budget"
+       summary: "Team {{ $labels.swarm_id }} at 95% budget"
    ```
 
 2. **Configure default budgets:**
@@ -214,33 +214,33 @@ When total platform spending exceeds forecasts:
 
 3. **Implement spending rate limits:**
    ```bash
-   kubectl patch configmap dash-config -n dash --type merge \
+   kubectl patch configmap godel-config -n godel --type merge \
      -p '{"data":{"MAX_SPEND_RATE_PER_HOUR":"100.00"}}'
    ```
 
 4. **Set up cost allocation tags:**
    ```bash
    # Tag resources for cost tracking
-   kubectl label namespace dash cost-center=platform-team
-   kubectl label deployment dash-api -n dash project=dash
+   kubectl label namespace godel cost-center=platform-team
+   kubectl label deployment godel-api -n godel project=godel
    ```
 
 ## Cost Analysis
 
 1. **Generate daily cost report:**
    ```bash
-   curl "http://api.dash.local/api/budgets/report?start=$(date -d '1 day ago' -I)&end=$(date -I)"
+   curl "http://api.godel.local/api/budgets/report?start=$(date -d '1 day ago' -I)&end=$(date -I)"
    ```
 
 2. **Find cost optimization opportunities:**
    ```bash
    # Agents with high cost but low completion rate
-   curl "http://api.dash.local/api/agents?status=failed&sortBy=cost&limit=20"
+   curl "http://api.godel.local/api/agents?status=failed&sortBy=cost&limit=20"
    ```
 
 3. **Model cost comparison:**
    ```bash
-   curl http://api.dash.local/api/budgets/model-comparison
+   curl http://api.godel.local/api/budgets/model-comparison
    ```
 
 ## Post-Incident Review

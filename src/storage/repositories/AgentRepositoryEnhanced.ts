@@ -463,13 +463,13 @@ export class AgentRepositoryEnhanced extends AgentRepository {
       for (const input of inputs) {
         const result = await client.query<AgentWithVersion>(
           `INSERT INTO agents (
-            swarm_id, label, status, lifecycle_state, model, task, config,
+            team_id, label, status, lifecycle_state, model, task, config,
             context, code, reasoning, safety_boundaries, max_retries, budget_limit, metadata,
             version
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 0)
           RETURNING *`,
           [
-            input.swarm_id || null,
+            input.team_id || null,
             input.label || null,
             input.status || 'pending',
             input.lifecycle_state || 'initializing',

@@ -1,11 +1,11 @@
-# Code Review Swarm Configuration
-# Specialized swarm with multiple agent types
+# Code Review Team Configuration
+# Specialized team with multiple agent types
 
 apiVersion: godel.io/v1
-kind: Swarm
+kind: Team
 
 metadata:
-  name: code-review-swarm
+  name: code-review-team
   description: Comprehensive code review with specialized agents
 
 spec:

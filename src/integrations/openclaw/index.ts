@@ -390,7 +390,7 @@ export type {
   BudgetStatus,
   BudgetAlert,
   AgentBudgetRecord,
-  SwarmBudgetSummary,
+  TeamBudgetSummary,
   SessionHistoryEntry,
 } from './BudgetTracker';
 

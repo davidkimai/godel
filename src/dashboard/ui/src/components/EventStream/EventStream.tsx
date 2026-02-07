@@ -144,9 +144,9 @@ const EventRow: React.FC<EventRowProps> = ({ event, style }) => {
           </p>
         )}
         
-        {event.swarmId && (
+        {event.teamId && (
           <p className="text-xs text-gray-400 mb-1">
-            Swarm: <span className="font-mono text-gray-300">{event.swarmId.slice(0, 8)}...</span>
+            Team: <span className="font-mono text-gray-300">{event.teamId.slice(0, 8)}...</span>
           </p>
         )}
         
@@ -182,7 +182,7 @@ export const EventStream: React.FC<EventStreamProps> = ({
     if (filter !== 'all') {
       result = result.filter(e => {
         if (filter === 'agent') return e.type.startsWith('agent.');
-        if (filter === 'swarm') return e.type.startsWith('swarm.');
+        if (filter === 'team') return e.type.startsWith('team.');
         if (filter === 'task') return e.type.startsWith('task.');
         if (filter === 'error') return e.type.includes('error') || e.type.includes('failed');
         return true;
@@ -194,7 +194,7 @@ export const EventStream: React.FC<EventStreamProps> = ({
       result = result.filter(e => 
         e.type.toLowerCase().includes(query) ||
         e.agentId?.toLowerCase().includes(query) ||
-        e.swarmId?.toLowerCase().includes(query) ||
+        e.teamId?.toLowerCase().includes(query) ||
         JSON.stringify(e.payload).toLowerCase().includes(query)
       );
     }
@@ -220,7 +220,7 @@ export const EventStream: React.FC<EventStreamProps> = ({
     return {
       all: events.length,
       agent: events.filter(e => e.type.startsWith('agent.')).length,
-      swarm: events.filter(e => e.type.startsWith('swarm.')).length,
+      team: events.filter(e => e.type.startsWith('team.')).length,
       task: events.filter(e => e.type.startsWith('task.')).length,
       error: events.filter(e => e.type.includes('error') || e.type.includes('failed')).length
     };
@@ -278,7 +278,7 @@ export const EventStream: React.FC<EventStreamProps> = ({
         {/* Filters */}
         {showFilters && (
           <div className="flex flex-wrap gap-2">
-            {(['all', 'agent', 'swarm', 'task', 'error'] as const).map((type) => (
+            {(['all', 'agent', 'team', 'task', 'error'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilter(type)}

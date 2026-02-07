@@ -12,7 +12,7 @@ export enum AuthorizationTier {
   TIER_4_BLOCKED = 'TIER_4_BLOCKED',           // Exceeds limits, blocked
 }
 
-export interface SwarmAuthorization {
+export interface TeamAuthorization {
   tier: AuthorizationTier;
   allowed: boolean;
   reason: string;
@@ -22,7 +22,7 @@ export interface SwarmAuthorization {
 }
 
 export interface DecisionRequest {
-  swarmId?: string;
+  teamId?: string;
   estimatedCost: number;
   agentCount: number;
   operationType: 'fix' | 'improve' | 'feature' | 'research' | 'emergency';
@@ -63,9 +63,9 @@ export class DecisionEngine {
   // =========================================================================
 
   /**
-   * Determine authorization tier for a swarm request
+   * Determine authorization tier for a team request
    */
-  getAuthorization(request: DecisionRequest): SwarmAuthorization {
+  getAuthorization(request: DecisionRequest): TeamAuthorization {
     // Check emergency bypass
     if (request.urgency === 'critical' && this.config.emergencyBypasses) {
       return this.createAuthorization(
@@ -271,7 +271,7 @@ export class DecisionEngine {
   private createAuthorizationForTier(
     tier: AuthorizationTier,
     request: DecisionRequest
-  ): SwarmAuthorization {
+  ): TeamAuthorization {
     switch (tier) {
       case AuthorizationTier.TIER_1_AUTO_APPROVE:
         return this.createAuthorization(
@@ -323,7 +323,7 @@ export class DecisionEngine {
     maxSpend: number,
     requiresApproval: boolean,
     conditions: string[]
-  ): SwarmAuthorization {
+  ): TeamAuthorization {
     return {
       tier,
       allowed,
@@ -348,12 +348,12 @@ export const decisionEngine = new DecisionEngine();
 /**
  * Quick authorization check
  */
-export function authorizeSwarm(request: DecisionRequest): SwarmAuthorization {
+export function authorizeTeam(request: DecisionRequest): TeamAuthorization {
   return decisionEngine.getAuthorization(request);
 }
 
 /**
- * Check if swarm should auto-approve
+ * Check if team should auto-approve
  */
 export function canAutoApprove(request: DecisionRequest): boolean {
   return decisionEngine.shouldAutoApprove(request);

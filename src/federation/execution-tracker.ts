@@ -6,6 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { createLogger } from '../utils/logger';
 import {
   ProgressReport,
   TaskResult,
@@ -15,6 +16,11 @@ import {
   TaskFailedEvent,
   LevelCompletedEvent,
 } from './types';
+
+/**
+ * Module logger
+ */
+const log = createLogger('execution-tracker');
 
 /**
  * Options for the execution tracker
@@ -79,7 +85,7 @@ export class ExecutionTracker extends EventEmitter {
     });
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Initialized: ${totalTasks} tasks, ${totalLevels} levels`);
+      log.info('Initialized', { totalTasks, totalLevels });
     }
 
     // Start progress updates
@@ -108,7 +114,7 @@ export class ExecutionTracker extends EventEmitter {
     this.emit('task:started', event);
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Task ${taskId} started on agent ${agentId}`);
+      log.info('Task started', { taskId, agentId });
     }
 
     this.emitProgressUpdate();
@@ -137,7 +143,7 @@ export class ExecutionTracker extends EventEmitter {
     this.emit('task:completed', event);
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Task ${taskId} completed in ${duration}ms`);
+      log.info('Task completed', { taskId, durationMs: duration });
     }
 
     this.emitProgressUpdate();
@@ -169,11 +175,12 @@ export class ExecutionTracker extends EventEmitter {
     this.emit('task:failed', event);
 
     if (this.options.verbose) {
-      console.log(
-        `[ExecutionTracker] Task ${taskId} failed after ${duration}ms${
-          willRetry ? ' (will retry)' : ''
-        }: ${error.message}`
-      );
+      log.warn('Task failed', { 
+        taskId, 
+        durationMs: duration, 
+        willRetry, 
+        error: error.message 
+      });
     }
 
     this.emitProgressUpdate();
@@ -192,7 +199,7 @@ export class ExecutionTracker extends EventEmitter {
     });
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Task ${taskId} cancelled`);
+      log.info('Task cancelled', { taskId });
     }
 
     this.emitProgressUpdate();
@@ -213,7 +220,7 @@ export class ExecutionTracker extends EventEmitter {
     });
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Task ${taskId} skipped: ${reason}`);
+      log.info('Task skipped', { taskId, reason });
     }
 
     this.emitProgressUpdate();
@@ -234,7 +241,7 @@ export class ExecutionTracker extends EventEmitter {
     });
 
     if (this.options.verbose) {
-      console.log(`[ExecutionTracker] Level ${level} started with ${taskCount} tasks`);
+      log.info('Level started', { level, taskCount });
     }
   }
 
@@ -259,9 +266,7 @@ export class ExecutionTracker extends EventEmitter {
     this.emit('level:completed', event);
 
     if (this.options.verbose) {
-      console.log(
-        `[ExecutionTracker] Level ${level} completed: ${completed} completed, ${failed} failed`
-      );
+      log.info('Level completed', { level, completed, failed });
     }
 
     this.emitProgressUpdate();

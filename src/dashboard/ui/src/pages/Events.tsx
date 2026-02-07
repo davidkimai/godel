@@ -73,8 +73,8 @@ export function EventsPage(): React.ReactElement {
           event.id.toLowerCase().includes(search)
         );
       }
-      if (filters.swarmId && filters.swarmId !== 'all') {
-        if (event.swarmId !== filters.swarmId) return false;
+      if (filters.teamId && filters.teamId !== 'all') {
+        if (event.teamId !== filters.teamId) return false;
       }
       return true;
     });
@@ -111,7 +111,7 @@ export function EventsPage(): React.ReactElement {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Events</h1>
-          <p className="text-slate-400 mt-1">Real-time event stream from all agents and swarms</p>
+          <p className="text-slate-400 mt-1">Real-time event stream from all agents and teams</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function EventsPage(): React.ReactElement {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard title="Total Events" value={events.length} color="blue" />
         <StatCard title="Agent Events" value={eventStats['agent'] || 0} color="emerald" />
-        <StatCard title="Swarm Events" value={eventStats['swarm'] || 0} color="purple" />
+        <StatCard title="Team Events" value={eventStats['team'] || 0} color="purple" />
         <StatCard title="Errors" value={eventStats['error'] || 0} color="red" />
       </div>
 
@@ -150,12 +150,12 @@ export function EventsPage(): React.ReactElement {
         </div>
         
         <select
-          value={filters.swarmId || 'all'}
-          onChange={(e) => setFilter('swarmId', e.target.value)}
+          value={filters.teamId || 'all'}
+          onChange={(e) => setFilter('teamId', e.target.value)}
           className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <option value="all">All Sources</option>
-          <option value="swarm">Swarm Events</option>
+          <option value="team">Team Events</option>
           <option value="agent">Agent Events</option>
           <option value="system">System Events</option>
         </select>
@@ -168,7 +168,7 @@ export function EventsPage(): React.ReactElement {
         ) : filteredEvents.length === 0 ? (
           <EmptyState
             title="No events"
-            description="Events will appear here as agents and swarms run"
+            description="Events will appear here as agents and teams run"
             icon={<Activity className="w-12 h-12" />}
           />
         ) : (
@@ -241,8 +241,8 @@ function EventRow({ event, getIcon, getColor }: EventRowProps): React.ReactEleme
             <span className="text-xs text-slate-500">{event.id.slice(0, 8)}...</span>
           </div>
           
-          {event.swarmId && (
-            <span className="text-xs text-slate-500">Swarm: {event.swarmId.slice(0, 8)}...</span>
+          {event.teamId && (
+            <span className="text-xs text-slate-500">Team: {event.teamId.slice(0, 8)}...</span>
           )}
         </div>
 

@@ -16,7 +16,7 @@ API Test: GET /api/v1/agents
 Response: 500 Internal Server Error
 Error: Database not initialized
 
-API Test: POST /api/v1/swarm
+API Test: POST /api/v1/team
 Response: 500 Internal Server Error
 Error: Database not initialized
 ```
@@ -89,11 +89,11 @@ export function createStorage(config: {
 }): Storage {
   switch (config.type) {
     case 'sqlite':
-      return new SQLiteStorage(config.path || './dash.db');
+      return new SQLiteStorage(config.path || './godel.db');
     case 'postgres':
       return new PostgresStorage(config.url!);
     default:
-      return new SQLiteStorage('./dash.db');
+      return new SQLiteStorage('./godel.db');
   }
 }
 ```
@@ -113,14 +113,14 @@ export DASH_STORAGE=sqlite
 ### Phase 2: Configuration
 
 ```yaml
-# config/dash.yaml
+# config/godel.yaml
 
 storage:
   type: ${DASH_STORAGE:-sqlite}
   sqlite:
-    path: ${DASH_SQLITE_PATH:-./dash.db}
+    path: ${DASH_SQLITE_PATH:-./godel.db}
   postgres:
-    url: ${POSTGRES_URL:-postgresql://localhost:5432/dash}
+    url: ${POSTGRES_URL:-postgresql://localhost:5432/godel}
 ```
 
 ### Phase 3: Migrations
@@ -142,7 +142,7 @@ export async function runMigrations(storage: Storage): Promise<void> {
     metadata TEXT
   `);
   
-  await storage.createTable('swarms', `
+  await storage.createTable('teams', `
     id TEXT PRIMARY KEY,
     name TEXT,
     status TEXT,
@@ -182,9 +182,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: dash
+      POSTGRES_USER: godel
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: dash
+      POSTGRES_DB: godel
     ports:
       - "5432:5432"
     volumes:
@@ -203,7 +203,7 @@ docker-compose up -d
 # Run migrations
 npm run db:migrate
 
-# Start Dash
+# Start Godel
 npm run dev
 ```
 
@@ -243,7 +243,7 @@ describe('Hybrid Storage', () => {
 - [ ] API endpoints return 200 (not 500)
 - [ ] GET /api/agents works
 - [ ] POST /api/agents works
-- [ ] POST /api/swarm works
+- [ ] POST /api/team works
 - [ ] Development works without PostgreSQL
 - [ ] Production works with PostgreSQL
 
@@ -252,7 +252,7 @@ describe('Hybrid Storage', () => {
 - `src/storage/index.ts` (modify)
 - `src/storage/sqlite.ts` (modify)
 - `src/storage/postgres.ts` (new)
-- `config/dash.yaml` (modify)
+- `config/godel.yaml` (modify)
 - `docker-compose.yml` (new)
 - `package.json` (modify)
 

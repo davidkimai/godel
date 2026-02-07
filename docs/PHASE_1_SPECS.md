@@ -1,5 +1,5 @@
 # PHASE 1 SUBAGENT SPECIFICATIONS
-## Dash Production Readiness - Integration Phase
+## Godel Production Readiness - Integration Phase
 
 ---
 
@@ -10,7 +10,7 @@
 - **Claude Code CLI** → Architecture/design reviews (secondary)
 - **Kimi CLI** → Research/fallback (tertiary)
 
-### Subagent 1: dash-reliability-engineer (Codex CLI)
+### Subagent 1: godel-reliability-engineer (Codex CLI)
 
 ### Mission
 Implement circuit breaker pattern for all LLM API calls to prevent cascading failures
@@ -41,7 +41,7 @@ Implement circuit breaker pattern for all LLM API calls to prevent cascading fai
 
 ---
 
-## Subagent 2: dash-observability-engineer (Codex CLI)
+## Subagent 2: godel-observability-engineer (Codex CLI)
 
 ### Mission
 Migrate 1,105 console.log statements to structured logging with Pino
@@ -75,7 +75,7 @@ Migrate 1,105 console.log statements to structured logging with Pino
 
 ---
 
-## Subagent 3: dash-test-engineer (Codex CLI)
+## Subagent 3: godel-test-engineer (Codex CLI)
 
 ### Mission
 Achieve >80% test coverage with integration tests
@@ -109,7 +109,7 @@ Achieve >80% test coverage with integration tests
 
 ---
 
-## Subagent 4: dash-security-engineer-2 (Codex CLI)
+## Subagent 4: godel-security-engineer-2 (Codex CLI)
 
 ### Mission
 Security hardening - remove all hardcoded credentials and secrets

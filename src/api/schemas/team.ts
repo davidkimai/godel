@@ -1,17 +1,17 @@
 /**
- * Swarm Zod Schemas
+ * Team Zod Schemas
  * 
- * Validation schemas for swarm-related API endpoints
+ * Validation schemas for team-related API endpoints
  */
 
 import { z } from 'zod';
 import { MetadataSchema, TimestampSchema, OptionalTimestampSchema } from './common';
 
 // ============================================================================
-// Swarm Status Enum
+// Team Status Enum
 // ============================================================================
 
-export const SwarmStatusSchema = z.enum([
+export const TeamStatusSchema = z.enum([
   'creating',
   'active',
   'scaling',
@@ -22,10 +22,10 @@ export const SwarmStatusSchema = z.enum([
 ]);
 
 // ============================================================================
-// Swarm Configuration Schema
+// Team Configuration Schema
 // ============================================================================
 
-export const SwarmConfigSchema = z.object({
+export const TeamConfigSchema = z.object({
   /** Maximum number of agents */
   maxAgents: z.number().int().min(1).max(1000).default(100)
     .describe('Maximum number of agents allowed'),
@@ -41,7 +41,7 @@ export const SwarmConfigSchema = z.object({
   /** Enable event streaming */
   enableEventStreaming: z.boolean().default(true)
     .describe('Enable real-time event streaming'),
-  /** Budget limit for the swarm */
+  /** Budget limit for the team */
   budgetLimit: z.number().positive().optional()
     .describe('Budget limit in USD'),
   /** Strategy for agent distribution */
@@ -59,10 +59,10 @@ export const SwarmConfigSchema = z.object({
 });
 
 // ============================================================================
-// Swarm Metrics Schema
+// Team Metrics Schema
 // ============================================================================
 
-export const SwarmMetricsSchema = z.object({
+export const TeamMetricsSchema = z.object({
   /** Total number of agents */
   totalAgents: z.number().int().default(0),
   /** Currently running agents */
@@ -88,10 +88,10 @@ export const SwarmMetricsSchema = z.object({
 });
 
 // ============================================================================
-// Swarm Budget Schema
+// Team Budget Schema
 // ============================================================================
 
-export const SwarmBudgetSchema = z.object({
+export const TeamBudgetSchema = z.object({
   /** Allocated budget */
   allocated: z.number().default(0),
   /** Consumed budget */
@@ -108,16 +108,16 @@ export const SwarmBudgetSchema = z.object({
 });
 
 // ============================================================================
-// Base Swarm Schema
+// Base Team Schema
 // ============================================================================
 
-export const SwarmSchema = z.object({
-  id: z.string().describe('Unique swarm identifier'),
-  name: z.string().describe('Swarm name'),
-  status: SwarmStatusSchema.describe('Current swarm status'),
-  config: SwarmConfigSchema.describe('Swarm configuration'),
-  metrics: SwarmMetricsSchema.describe('Swarm metrics'),
-  budget: SwarmBudgetSchema.optional().describe('Budget information'),
+export const TeamSchema = z.object({
+  id: z.string().describe('Unique team identifier'),
+  name: z.string().describe('Team name'),
+  status: TeamStatusSchema.describe('Current team status'),
+  config: TeamConfigSchema.describe('Team configuration'),
+  metrics: TeamMetricsSchema.describe('Team metrics'),
+  budget: TeamBudgetSchema.optional().describe('Budget information'),
   currentBranch: z.string().default('main').describe('Current branch name'),
   sessionTreeId: z.string().optional().describe('Session tree ID'),
   createdAt: TimestampSchema.describe('Creation timestamp'),
@@ -127,32 +127,32 @@ export const SwarmSchema = z.object({
 });
 
 // ============================================================================
-// Create Swarm Schema
+// Create Team Schema
 // ============================================================================
 
-export const CreateSwarmSchema = z.object({
-  name: z.string().min(1).max(255).describe('Swarm name'),
-  config: SwarmConfigSchema.optional().describe('Swarm configuration'),
+export const CreateTeamSchema = z.object({
+  name: z.string().min(1).max(255).describe('Team name'),
+  config: TeamConfigSchema.optional().describe('Team configuration'),
   budgetLimit: z.number().positive().optional().describe('Budget limit in USD'),
   metadata: MetadataSchema.describe('Additional metadata'),
 });
 
 // ============================================================================
-// Update Swarm Schema
+// Update Team Schema
 // ============================================================================
 
-export const UpdateSwarmSchema = z.object({
-  name: z.string().min(1).max(255).optional().describe('Swarm name'),
-  config: SwarmConfigSchema.optional().describe('Swarm configuration updates'),
-  status: SwarmStatusSchema.optional().describe('New status'),
+export const UpdateTeamSchema = z.object({
+  name: z.string().min(1).max(255).optional().describe('Team name'),
+  config: TeamConfigSchema.optional().describe('Team configuration updates'),
+  status: TeamStatusSchema.optional().describe('New status'),
   metadata: MetadataSchema.optional().describe('Additional metadata'),
 });
 
 // ============================================================================
-// Scale Swarm Schema
+// Scale Team Schema
 // ============================================================================
 
-export const ScaleSwarmSchema = z.object({
+export const ScaleTeamSchema = z.object({
   targetSize: z.number().int().min(0).max(1000)
     .describe('Target number of agents'),
   strategy: z.enum(['add', 'remove', 'exact']).default('exact')
@@ -203,12 +203,12 @@ export const BranchComparisonSchema = z.object({
 });
 
 // ============================================================================
-// Swarm Event Schema
+// Team Event Schema
 // ============================================================================
 
-export const SwarmEventSchema = z.object({
+export const TeamEventSchema = z.object({
   id: z.string().describe('Event ID'),
-  swarmId: z.string().describe('Swarm ID'),
+  teamId: z.string().describe('Team ID'),
   type: z.string().describe('Event type'),
   payload: MetadataSchema.describe('Event payload'),
   timestamp: TimestampSchema.describe('Event timestamp'),
@@ -216,11 +216,11 @@ export const SwarmEventSchema = z.object({
 });
 
 // ============================================================================
-// List Swarms Query Schema
+// List Teams Query Schema
 // ============================================================================
 
-export const ListSwarmsQuerySchema = z.object({
-  status: SwarmStatusSchema.optional().describe('Filter by status'),
+export const ListTeamsQuerySchema = z.object({
+  status: TeamStatusSchema.optional().describe('Filter by status'),
   cursor: z.string().optional().describe('Pagination cursor'),
   limit: z.coerce.number().int().min(1).max(500).default(50)
     .describe('Number of items per page'),
@@ -230,13 +230,13 @@ export const ListSwarmsQuerySchema = z.object({
 });
 
 // ============================================================================
-// Swarm Summary Schema (for list view)
+// Team Summary Schema (for list view)
 // ============================================================================
 
-export const SwarmSummarySchema = z.object({
-  id: z.string().describe('Swarm ID'),
-  name: z.string().describe('Swarm name'),
-  status: SwarmStatusSchema.describe('Swarm status'),
+export const TeamSummarySchema = z.object({
+  id: z.string().describe('Team ID'),
+  name: z.string().describe('Team name'),
+  status: TeamStatusSchema.describe('Team status'),
   createdAt: TimestampSchema.describe('Creation timestamp'),
   config: z.object({
     maxAgents: z.number().int(),
@@ -254,15 +254,15 @@ export const SwarmSummarySchema = z.object({
 // Response Schemas
 // ============================================================================
 
-export const SwarmListResponseSchema = z.object({
-  swarms: z.array(SwarmSummarySchema),
+export const TeamListResponseSchema = z.object({
+  teams: z.array(TeamSummarySchema),
   total: z.number().int().optional(),
   hasMore: z.boolean(),
   nextCursor: z.string().optional(),
 });
 
-export const SwarmEventListResponseSchema = z.object({
-  events: z.array(SwarmEventSchema),
+export const TeamEventListResponseSchema = z.object({
+  events: z.array(TeamEventSchema),
   hasMore: z.boolean(),
   nextCursor: z.string().optional(),
 });
@@ -271,22 +271,22 @@ export const SwarmEventListResponseSchema = z.object({
 // Type Exports
 // ============================================================================
 
-export type SwarmStatus = z.infer<typeof SwarmStatusSchema>;
-export type Swarm = z.infer<typeof SwarmSchema>;
-export type SwarmConfig = z.infer<typeof SwarmConfigSchema>;
-export type SwarmMetrics = z.infer<typeof SwarmMetricsSchema>;
-export type SwarmBudget = z.infer<typeof SwarmBudgetSchema>;
-export type SwarmSummary = z.infer<typeof SwarmSummarySchema>;
-export type SwarmEvent = z.infer<typeof SwarmEventSchema>;
-export type CreateSwarm = z.infer<typeof CreateSwarmSchema>;
-export type UpdateSwarm = z.infer<typeof UpdateSwarmSchema>;
-export type ScaleSwarm = z.infer<typeof ScaleSwarmSchema>;
+export type TeamStatus = z.infer<typeof TeamStatusSchema>;
+export type Team = z.infer<typeof TeamSchema>;
+export type TeamConfig = z.infer<typeof TeamConfigSchema>;
+export type TeamMetrics = z.infer<typeof TeamMetricsSchema>;
+export type TeamBudget = z.infer<typeof TeamBudgetSchema>;
+export type TeamSummary = z.infer<typeof TeamSummarySchema>;
+export type TeamEvent = z.infer<typeof TeamEventSchema>;
+export type CreateTeam = z.infer<typeof CreateTeamSchema>;
+export type UpdateTeam = z.infer<typeof UpdateTeamSchema>;
+export type ScaleTeam = z.infer<typeof ScaleTeamSchema>;
 export type Branch = z.infer<typeof BranchSchema>;
 export type CreateBranch = z.infer<typeof CreateBranchSchema>;
 export type SwitchBranch = z.infer<typeof SwitchBranchSchema>;
 export type CompareBranches = z.infer<typeof CompareBranchesSchema>;
 export type BranchComparison = z.infer<typeof BranchComparisonSchema>;
-export type ListSwarmsQuery = z.infer<typeof ListSwarmsQuerySchema>;
+export type ListTeamsQuery = z.infer<typeof ListTeamsQuerySchema>;
 
-/** Type alias for SwarmListResponseSchema */
-export type SwarmListResponse = z.infer<typeof SwarmListResponseSchema>;
+/** Type alias for TeamListResponseSchema */
+export type TeamListResponse = z.infer<typeof TeamListResponseSchema>;

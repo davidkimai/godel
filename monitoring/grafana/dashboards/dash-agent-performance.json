@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "dash-agent-performance",
-    "title": "Dash - Agent Performance",
-    "tags": ["dash", "agents", "performance"],
+    "uid": "godel-agent-performance",
+    "title": "Godel - Agent Performance",
+    "tags": ["godel", "agents", "performance"],
     "timezone": "browser",
     "schemaVersion": 38,
     "refresh": "15s",
@@ -142,7 +142,7 @@
       },
       {
         "id": 6,
-        "title": "Execution Time by Swarm (p95)",
+        "title": "Execution Time by Team (p95)",
         "type": "timeseries",
         "targets": [
           {
@@ -159,7 +159,7 @@
       },
       {
         "id": 7,
-        "title": "Throughput by Swarm",
+        "title": "Throughput by Team",
         "type": "timeseries",
         "targets": [
           {
@@ -210,7 +210,7 @@
       },
       {
         "id": 10,
-        "title": "Success Rate by Swarm",
+        "title": "Success Rate by Team",
         "type": "timeseries",
         "targets": [
           {

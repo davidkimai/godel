@@ -1,4 +1,4 @@
-# Dash Performance Baseline Report
+# Godel Performance Baseline Report
 
 **Version:** 2.0.0  
 **Date:** 2025-02-03  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This report documents the performance baseline for Dash's current in-memory architecture. It identifies current limits, breaking points, and provides recommendations for scaling to 50+ agents.
+This report documents the performance baseline for Godel's current in-memory architecture. It identifies current limits, breaking points, and provides recommendations for scaling to 50+ agents.
 
 ### Key Findings
 
@@ -29,7 +29,7 @@ This report documents the performance baseline for Dash's current in-memory arch
 - **Runtime:** Node.js v20+
 - **OS:** macOS / Linux
 - **Hardware:** Modern development machine (8+ cores, 16GB+ RAM)
-- **Dash Version:** 2.0.0 (in-memory event bus, SQLite storage)
+- **Godel Version:** 2.0.0 (in-memory event bus, SQLite storage)
 
 ### Test Scenarios
 
@@ -97,7 +97,7 @@ private deliverEvent(event: AgentEvent): void {
 
 ### 4. Storage Indexing Overhead
 
-**Issue:** `AgentStorage` maintains multiple indexes (status, swarm, parent) with Set-based indexing.
+**Issue:** `AgentStorage` maintains multiple indexes (status, team, parent) with Set-based indexing.
 
 **Impact:**
 - Update operations require multiple Set operations
@@ -201,7 +201,7 @@ private async withAgentLock<T>(agentId: string, operation: () => Promise<T>): Pr
 | Lifecycle State | ~5KB | ~50KB | ~250KB | ~500KB |
 | Event Bus (1k events) | ~500KB | ~500KB | ~2MB | ~5MB |
 | Message Bus | ~1KB | ~10KB | ~50KB | ~100KB |
-| Swarm Metadata | ~1KB | ~10KB | ~50KB | ~100KB |
+| Team Metadata | ~1KB | ~10KB | ~50KB | ~100KB |
 | **Total Fixed** | - | **~10MB** | **~40MB** | **~80MB** |
 | **Growth (events)** | Variable | +5MB/min | +25MB/min | +50MB/min |
 

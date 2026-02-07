@@ -10,7 +10,7 @@
 import type { Agent } from '../../models/agent';
 import type { Task } from '../../models/task';
 import type { Event } from '../../models/event';
-import type { Swarm, SwarmStatusInfo } from '../../core/swarm';
+import type { Team, TeamStatusInfo } from '../../core/team';
 import type { Message } from '../../bus/index';
 
 export type OutputFormat = 'table' | 'json' | 'jsonl';
@@ -132,7 +132,7 @@ export interface AgentOutput {
   model: string;
   runtime: string;
   task: string;
-  swarmId?: string;
+  teamId?: string;
   parentId?: string;
   runtimeMs: number;
   retryCount: number;
@@ -157,7 +157,7 @@ export function agentToOutput(agent: Agent): AgentOutput {
     model: agent.model,
     runtime: runtimeId,
     task: agent.task.slice(0, 50) + (agent.task.length > 50 ? '...' : ''),
-    swarmId: agent.swarmId,
+    teamId: agent.teamId,
     parentId: agent.parentId,
     runtimeMs: agent.runtime,
     retryCount: agent.retryCount,
@@ -223,10 +223,10 @@ export function formatTasks(tasks: Task[], options: FormatOptions): string {
 }
 
 // ============================================================================
-// Swarm Formatting
+// Team Formatting
 // ============================================================================
 
-export interface SwarmOutput {
+export interface TeamOutput {
   id: string;
   name: string;
   status: string;
@@ -240,28 +240,28 @@ export interface SwarmOutput {
   createdAt: string;
 }
 
-export function swarmToOutput(swarm: Swarm): SwarmOutput {
-  const progress = swarm.metrics.totalAgents > 0
-    ? swarm.metrics.completedAgents / swarm.metrics.totalAgents
+export function swarmToOutput(team: Team): TeamOutput {
+  const progress = team.metrics.totalAgents > 0
+    ? team.metrics.completedAgents / team.metrics.totalAgents
     : 0;
     
   return {
-    id: swarm.id,
-    name: swarm.name,
-    status: swarm.status,
-    strategy: swarm.config.strategy,
-    agentCount: swarm.agents.length,
-    maxAgents: swarm.config.maxAgents,
+    id: team.id,
+    name: team.name,
+    status: team.status,
+    strategy: team.config.strategy,
+    agentCount: team.agents.length,
+    maxAgents: team.config.maxAgents,
     progress: Math.round(progress * 100) / 100,
-    budgetAllocated: swarm.budget.allocated,
-    budgetConsumed: swarm.budget.consumed,
-    budgetRemaining: swarm.budget.remaining,
-    createdAt: swarm.createdAt.toISOString(),
+    budgetAllocated: team.budget.allocated,
+    budgetConsumed: team.budget.consumed,
+    budgetRemaining: team.budget.remaining,
+    createdAt: team.createdAt.toISOString(),
   };
 }
 
-export function formatSwarms(swarms: Swarm[], options: FormatOptions): string {
-  const outputs = swarms.map(swarmToOutput);
+export function formatTeams(teams: Team[], options: FormatOptions): string {
+  const outputs = teams.map(swarmToOutput);
   
   if (options.format === 'table') {
     const fields = ['id', 'name', 'status', 'agentCount', 'progress', 'budgetRemaining'];
@@ -271,34 +271,34 @@ export function formatSwarms(swarms: Swarm[], options: FormatOptions): string {
   return formatOutput(outputs, options);
 }
 
-export function formatSwarmStatus(swarm: Swarm, statusInfo: SwarmStatusInfo, options: FormatOptions): string {
+export function formatTeamStatus(team: Team, statusInfo: TeamStatusInfo, options: FormatOptions): string {
   if (options.format === 'json' || options.format === 'jsonl') {
-    return formatOutput({ swarm: swarmToOutput(swarm), status: statusInfo }, options);
+    return formatOutput({ team: swarmToOutput(team), status: statusInfo }, options);
   }
   
   // Table format
   const lines: string[] = [];
-  lines.push(`SWARM: ${swarm.name}`);
+  lines.push(`TEAM: ${team.name}`);
   lines.push('');
-  lines.push(`  ID:           ${swarm.id}`);
-  lines.push(`  Status:       ${getStatusEmoji(swarm.status)} ${swarm.status}`);
-  lines.push(`  Strategy:     ${swarm.config.strategy}`);
-  lines.push(`  Agents:       ${swarm.agents.length} / ${swarm.config.maxAgents}`);
+  lines.push(`  ID:           ${team.id}`);
+  lines.push(`  Status:       ${getStatusEmoji(team.status)} ${team.status}`);
+  lines.push(`  Strategy:     ${team.config.strategy}`);
+  lines.push(`  Agents:       ${team.agents.length} / ${team.config.maxAgents}`);
   lines.push(`  Progress:     ${(statusInfo.progress * 100).toFixed(1)}%`);
   
-  if (swarm.budget.allocated > 0) {
+  if (team.budget.allocated > 0) {
     lines.push('');
     lines.push(`  Budget:`);
-    lines.push(`    Allocated:  $${swarm.budget.allocated.toFixed(2)}`);
-    lines.push(`    Consumed:   $${swarm.budget.consumed.toFixed(2)}`);
-    lines.push(`    Remaining:  $${swarm.budget.remaining.toFixed(2)}`);
+    lines.push(`    Allocated:  $${team.budget.allocated.toFixed(2)}`);
+    lines.push(`    Consumed:   $${team.budget.consumed.toFixed(2)}`);
+    lines.push(`    Remaining:  $${team.budget.remaining.toFixed(2)}`);
   }
   
   lines.push('');
   lines.push(`  Metrics:`);
-  lines.push(`    Total:      ${swarm.metrics.totalAgents}`);
-  lines.push(`    Completed:  ${swarm.metrics.completedAgents}`);
-  lines.push(`    Failed:     ${swarm.metrics.failedAgents}`);
+  lines.push(`    Total:      ${team.metrics.totalAgents}`);
+  lines.push(`    Completed:  ${team.metrics.completedAgents}`);
+  lines.push(`    Failed:     ${team.metrics.failedAgents}`);
   
   return lines.join('\n');
 }
@@ -386,8 +386,8 @@ export interface MetricsOutput {
   totalAgents: number;
   completedAgents: number;
   failedAgents: number;
-  activeSwarms: number;
-  totalSwarms: number;
+  activeTeams: number;
+  totalTeams: number;
   eventsProcessed: number;
   messagesPublished: number;
   averageRuntime: number;
@@ -410,9 +410,9 @@ export function formatMetrics(metrics: MetricsOutput, options: FormatOptions): s
   lines.push(`    Completed:        ${metrics.completedAgents}`);
   lines.push(`    Failed:           ${metrics.failedAgents}`);
   lines.push('');
-  lines.push('  Swarms:');
-  lines.push(`    Active:           ${metrics.activeSwarms}`);
-  lines.push(`    Total:            ${metrics.totalSwarms}`);
+  lines.push('  Teams:');
+  lines.push(`    Active:           ${metrics.activeTeams}`);
+  lines.push(`    Total:            ${metrics.totalTeams}`);
   lines.push('');
   lines.push('  Events:');
   lines.push(`    Processed:        ${metrics.eventsProcessed}`);

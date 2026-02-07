@@ -285,48 +285,48 @@ describe('OpenClaw CLI Commands', () => {
 
   describe('connect command', () => {
     it('should accept --mock flag', () => {
-      // Command: dash openclaw connect --mock
+      // Command: godel openclaw connect --mock
       // Expected: Mock client initialized message
     });
 
     it('should accept host and port options', () => {
-      // Command: dash openclaw connect --host localhost --port 18789
+      // Command: godel openclaw connect --host localhost --port 18789
       // Expected: Connection attempt to specified host:port
     });
   });
 
   describe('spawn command', () => {
     it('should require --task option', () => {
-      // Command: dash openclaw spawn (without --task)
+      // Command: godel openclaw spawn (without --task)
       // Expected: Error about missing required option
     });
 
     it('should spawn with custom model', () => {
-      // Command: dash openclaw spawn --task "Test" --model gpt-4 --mock
+      // Command: godel openclaw spawn --task "Test" --model gpt-4 --mock
       // Expected: Session spawned with specified model
     });
   });
 
   describe('sessions list command', () => {
     it('should list sessions in mock mode', () => {
-      // Command: dash openclaw sessions list --mock
+      // Command: godel openclaw sessions list --mock
       // Expected: List of mock sessions
     });
 
     it('should filter by active sessions', () => {
-      // Command: dash openclaw sessions list --active --mock
+      // Command: godel openclaw sessions list --active --mock
       // Expected: Only active sessions shown
     });
   });
 
   describe('send command', () => {
     it('should require --session option', () => {
-      // Command: dash openclaw send "Hello" (without --session)
+      // Command: godel openclaw send "Hello" (without --session)
       // Expected: Error about missing required option
     });
 
     it('should send message to session', () => {
-      // Command: dash openclaw send --session <id> "Hello" --mock
+      // Command: godel openclaw send --session <id> "Hello" --mock
       // Expected: Message sent confirmation with runId
     });
   });

@@ -49,7 +49,7 @@ const Agents: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-100">Federation Health</h2>
           <p className="text-gray-400 mt-1">
-            Monitor all agents in the swarm federation
+            Monitor all agents in the team federation
           </p>
         </div>
         

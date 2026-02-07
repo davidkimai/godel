@@ -27,7 +27,7 @@
 │  └── Team C: Integration Testing (2 subagents)                              │
 │                                                                             │
 │  PHASE 3: Federation Engine (Weeks 3-4)                                     │
-│  ├── Team A: Swarm Router (3 subagents)                                     │
+│  ├── Team A: Team Router (3 subagents)                                     │
 │  ├── Team B: Load Balancer (2 subagents)                                    │
 │  └── Team C: Health Monitoring (2 subagents)                                │
 │                                                                             │
@@ -185,12 +185,12 @@
 
 ## PHASE 3: Federation Engine (Weeks 3-4)
 **Goal:** Orchestrate 50+ agents with intelligent routing  
-**Success Metric:** `godel swarm spawn --count 50` works with 0 failures  
+**Success Metric:** `godel team spawn --count 50` works with 0 failures  
 **Parallel Teams:** 7 subagents across 3 tracks
 
 ### Week 3: Core Federation
 
-#### Track A: Swarm Router (3 subagents)
+#### Track A: Team Router (3 subagents)
 **Subagent A1: Router Core**
 - Create `src/federation/router.ts`
 - Implement task routing algorithm
@@ -338,7 +338,7 @@ For each task:
 | 1 | Test coverage | 80%+ | Coverage report |
 | 2 | Total tests passing | 1000+ | `npm test` |
 | 2 | Test failure rate | 0% | CI/CD |
-| 3 | Swarm size | 50 agents | Load test |
+| 3 | Team size | 50 agents | Load test |
 | 3 | Routing latency | <10ms | Metrics |
 | 4 | Self-orchestration | 5 tasks | Dogfooding |
 | 5 | Security audit | Pass | External audit |

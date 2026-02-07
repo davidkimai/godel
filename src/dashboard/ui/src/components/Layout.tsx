@@ -1,7 +1,7 @@
 /**
  * Layout Components
  * 
- * Main layout structure for the Dash Dashboard
+ * Main layout structure for the Godel Dashboard
  */
 
 import React, { useState } from 'react';
@@ -29,7 +29,7 @@ import { cn } from '../utils/index';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/swarms', icon: Hexagon, label: 'Swarms' },
+  { path: '/teams', icon: Hexagon, label: 'Teams' },
   { path: '/agents', icon: Users, label: 'Agents' },
   { path: '/events', icon: Activity, label: 'Events' },
   { path: '/costs', icon: DollarSign, label: 'Costs' },
@@ -68,7 +68,7 @@ export function Sidebar(): React.ReactElement {
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
           <NavLink to="/" className="flex items-center gap-2 text-white">
             <Hexagon className="w-8 h-8 text-emerald-500" />
-            <span className="text-xl font-bold">Dash</span>
+            <span className="text-xl font-bold">Godel</span>
           </NavLink>
           <button
             onClick={toggleSidebar}
@@ -157,7 +157,7 @@ export function Header(): React.ReactElement {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-white">Dash Dashboard</h1>
+          <h1 className="text-lg font-semibold text-white">Godel Dashboard</h1>
           {isAdmin() && (
             <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded-full">
               Admin

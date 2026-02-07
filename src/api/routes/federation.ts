@@ -279,7 +279,14 @@ export async function federationRoutes(fastify: FastifyInstance): Promise<void> 
     async (request: FastifyRequest<{ Body: z.infer<typeof ExecuteRequestSchema> }>, reply: FastifyReply) => {
       try {
         const validated = ExecuteRequestSchema.parse(request.body);
-        const config = validated.config || {};
+        const config = validated.config ?? {
+          maxAgents: 10,
+          strategy: 'balanced' as const,
+          decompositionStrategy: 'component-based' as const,
+          budget: 5.00,
+          timeout: 3600000,
+          continueOnFailure: false,
+        };
         
         // Generate execution ID
         const executionId = `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

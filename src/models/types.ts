@@ -58,7 +58,7 @@ export interface Agent {
   runtime: number;
   
   // Grouping & Hierarchy
-  swarmId?: string;
+  teamId?: string;
   parentId?: string;
   childIds: string[];
   
@@ -316,14 +316,14 @@ export interface GlobalOptions {
 }
 
 export interface AgentsListOptions extends GlobalOptions {
-  group?: 'swarm' | 'hierarchy';
+  group?: 'team' | 'hierarchy';
   filter?: string;
 }
 
 export interface AgentsSpawnOptions extends GlobalOptions {
   model?: string;
   label?: string;
-  swarm?: string;
+  team?: string;
 }
 
 export interface TasksListOptions extends GlobalOptions {

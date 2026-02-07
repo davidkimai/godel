@@ -39,4 +39,4 @@ export { default as LegacyCostChart } from './CostChart';
 export { default as EventFeed } from './EventFeed';
 export { Sidebar as Layout } from './Layout';
 export { default as LegacySessionTree } from './SessionTree';
-export { default as SwarmCard } from './SwarmCard';
+export { default as TeamCard } from './TeamCard';

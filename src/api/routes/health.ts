@@ -222,7 +222,7 @@ async function checkDatabase(): Promise<{
   try {
     // Simple check - try to load the sqlite module
     const { getDb } = require('../../storage/sqlite');
-    const db = await getDb({ dbPath: './dash.db' });
+    const db = await getDb({ dbPath: './godel.db' });
     
     // Try a simple query
     const result = db.prepare('SELECT 1 as test').get();

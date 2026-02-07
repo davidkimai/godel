@@ -1,14 +1,14 @@
-# Dash Monitoring Integration Guide
+# Godel Monitoring Integration Guide
 
-This guide explains how to integrate the monitoring stack with your Dash deployment.
+This guide explains how to integrate the monitoring stack with your Godel deployment.
 
 ## Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        Dash Stack                           │
+│                        Godel Stack                           │
 ├─────────────────────────────────────────────────────────────┤
-│  Dash Orchestrator (port 7373)                              │
+│  Godel Orchestrator (port 7373)                              │
 │  ├── /metrics → Prometheus metrics endpoint                 │
 │  ├── /health  → Health check endpoint                       │
 │  └── Event Bus → Redis                                      │
@@ -27,7 +27,7 @@ This guide explains how to integrate the monitoring stack with your Dash deploym
 
 ## Setup Instructions
 
-### 1. Start the Main Dash Stack
+### 1. Start the Main Godel Stack
 
 ```bash
 cd /Users/jasontang/clawd/projects/dash
@@ -35,7 +35,7 @@ docker-compose up -d postgres redis
 npm run dev  # or: dash server
 ```
 
-Verify Dash is exporting metrics:
+Verify Godel is exporting metrics:
 ```bash
 curl http://localhost:7373/metrics
 curl http://localhost:7373/health
@@ -58,7 +58,7 @@ Check Grafana dashboards:
 - Open http://localhost:3000
 - Login: admin/admin
 - Navigate to Dashboards
-- All 5 Dash dashboards should be present
+- All 5 Godel dashboards should be present
 
 ## Configuration
 
@@ -82,7 +82,7 @@ GF_SECURITY_ADMIN_PASSWORD=change_me_in_production
 
 ### Prometheus Scraping
 
-The Prometheus configuration assumes Dash is running on the host machine and accessible via `host.docker.internal:7373`.
+The Prometheus configuration assumes Godel is running on the host machine and accessible via `host.docker.internal:7373`.
 
 For different setups, edit `prometheus/prometheus.yml`:
 
@@ -91,7 +91,7 @@ For different setups, edit `prometheus/prometheus.yml`:
 static_configs:
   - targets: ['host.docker.internal:7373']
 
-# Docker Compose (if Dash in same network)
+# Docker Compose (if Godel in same network)
 static_configs:
   - targets: ['dash:7373']
 
@@ -235,13 +235,13 @@ spec:
 
 ## Troubleshooting
 
-### Prometheus Can't Scrape Dash
+### Prometheus Can't Scrape Godel
 
 **Symptom**: Target shows as DOWN in Prometheus
 
 **Diagnosis**:
 ```bash
-# Check if Dash is responding
+# Check if Godel is responding
 curl http://localhost:7373/metrics
 
 # From inside Prometheus container
@@ -250,7 +250,7 @@ wget -O- http://host.docker.internal:7373/metrics
 ```
 
 **Solutions**:
-1. Verify Dash is running: `curl http://localhost:7373/health`
+1. Verify Godel is running: `curl http://localhost:7373/health`
 2. Check firewall rules for port 7373
 3. Update Prometheus config with correct target
 4. For Linux, ensure Docker supports host.docker.internal

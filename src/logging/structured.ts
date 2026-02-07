@@ -1,5 +1,5 @@
 /**
- * Structured Logging Module for Dash
+ * Structured Logging Module for Godel
  * 
  * Provides JSON-formatted logs with correlation IDs, trace context,
  * and agent-specific metadata for centralized log aggregation.
@@ -35,7 +35,7 @@ export interface LogContext {
   spanId?: string;
   parentSpanId?: string;
   agentId?: string;
-  swarmId?: string;
+  teamId?: string;
   workflowId?: string;
   taskId?: string;
   userId?: string;
@@ -54,7 +54,7 @@ export interface LogEntry {
   span_id?: string;
   parent_span_id?: string;
   agent_id?: string;
-  swarm_id?: string;
+  team_id?: string;
   workflow_id?: string;
   task_id?: string;
   user_id?: string;
@@ -106,7 +106,7 @@ export interface LoggerOptions {
 // ============================================================================
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  service: 'dash',
+  service: 'godel',
   level: LogLevel.INFO,
   enableConsole: true,
   enableFile: false,
@@ -349,7 +349,7 @@ export class StructuredLogger {
     if (this.context.spanId) entry.span_id = this.context.spanId;
     if (this.context.parentSpanId) entry.parent_span_id = this.context.parentSpanId;
     if (this.context.agentId) entry.agent_id = this.context.agentId;
-    if (this.context['swarmId']) entry.swarm_id = this.context['swarmId'];
+    if (this.context['teamId']) entry.team_id = this.context['teamId'];
     if (this.context['workflowId']) entry.workflow_id = this.context['workflowId'];
     if (this.context['taskId']) entry.task_id = this.context['taskId'];
     if (this.context['userId']) entry.user_id = this.context['userId'];
@@ -511,10 +511,10 @@ export function setGlobalLogger(logger: StructuredLogger): void {
 /**
  * Create a logger for a specific agent
  */
-export function createAgentLogger(agentId: string, swarmId?: string, options?: LoggerOptions): StructuredLogger {
+export function createAgentLogger(agentId: string, teamId?: string, options?: LoggerOptions): StructuredLogger {
   return getLogger(options).child({
     agentId,
-    swarmId,
+    teamId,
     traceId: randomUUID()
   });
 }

@@ -132,14 +132,14 @@ godel agent list --runtime native
 # agent-002   | pi      | claude-4.5     | running
 ```
 
-### Mixed Runtime Swarms
+### Mixed Runtime Teams
 
-You can mix runtimes in swarms:
+You can mix runtimes in teams:
 
 ```bash
-# Create swarm with mixed runtimes
-godel swarm create \
-  --name "mixed-swarm" \
+# Create team with mixed runtimes
+godel team create \
+  --name "mixed-team" \
   --coordinator-runtime pi \
   --worker-runtime native \
   --task "Analyze codebase"

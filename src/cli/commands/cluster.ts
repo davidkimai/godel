@@ -108,7 +108,7 @@ export function registerClusterCommands(program: Command): void {
 
         if (clusters.length === 0) {
           console.log(chalk.yellow('\nNo clusters registered.\n'));
-          console.log(chalk.gray('Use "swarmctl cluster add <name> <endpoint>" to register a cluster.\n'));
+          console.log(chalk.gray('Use "godel cluster add <name> <endpoint>" to register a cluster.\n'));
           return;
         }
 

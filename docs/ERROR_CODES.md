@@ -1,6 +1,6 @@
 # Error Code Reference
 
-Complete reference for all error codes in the Dash API, including causes and recovery steps.
+Complete reference for all error codes in the Godel API, including causes and recovery steps.
 
 ## Overview
 
@@ -82,7 +82,7 @@ All API errors follow a consistent format:
 |------|-------------|---------|-------|----------|
 | `NOT_FOUND` | 404 | Resource not found | The requested resource doesn't exist | Verify the resource ID |
 | `AGENT_NOT_FOUND` | 404 | Agent not found | Specified agent ID doesn't exist | Check the agent ID and try again |
-| `SWARM_NOT_FOUND` | 404 | Swarm not found | Specified swarm ID doesn't exist | Verify the swarm ID exists |
+| `SWARM_NOT_FOUND` | 404 | Team not found | Specified team ID doesn't exist | Verify the team ID exists |
 | `TASK_NOT_FOUND` | 404 | Task not found | Specified task ID doesn't exist | Check the task ID and try again |
 
 ### Conflict Errors (409)
@@ -181,11 +181,11 @@ curl -X POST http://localhost:7373/api/v1/agents/agent-123/kill \
 
 **Recovery:** Only running or pending agents can be killed.
 
-### Swarm Operations
+### Team Operations
 
-#### Swarm Not Found
+#### Team Not Found
 ```bash
-curl -X GET http://localhost:7373/api/v1/swarms/swarm-456 \
+curl -X GET http://localhost:7373/api/v1/teams/team-456 \
   -H "X-API-Key: your-api-key"
 ```
 
@@ -195,16 +195,16 @@ curl -X GET http://localhost:7373/api/v1/swarms/swarm-456 \
   "success": false,
   "error": {
     "code": "SWARM_NOT_FOUND",
-    "message": "Swarm swarm-456 not found"
+    "message": "Team team-456 not found"
   }
 }
 ```
 
-**Recovery:** List active swarms with `GET /api/v1/swarms` to find valid IDs.
+**Recovery:** List active teams with `GET /api/v1/teams` to find valid IDs.
 
-#### Invalid Swarm Scale
+#### Invalid Team Scale
 ```bash
-curl -X POST http://localhost:7373/api/v1/swarms/swarm-456/scale \
+curl -X POST http://localhost:7373/api/v1/teams/team-456/scale \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{"targetSize": -5}'

@@ -9,6 +9,12 @@ import { AlertRuleEngine, AlertRule, AlertInstance, AlertSeverity } from './rule
 import { AnomalyDetectionService, AnomalyDetector, StatisticalAnomalyDetector, SeasonalAnomalyDetector } from './anomaly-detection.js';
 import { TimeSeriesStorage, InMemoryTimeSeriesStorage } from './storage.js';
 import type { EventBus } from '../event-bus.js';
+import { createLogger } from '../../utils/logger.js';
+
+/**
+ * Module logger
+ */
+const log = createLogger('alert-manager');
 
 /**
  * Alert manager configuration options
@@ -102,7 +108,7 @@ export class AlertManager {
     }
 
     this.stats.isRunning = true;
-    console.log('[AlertManager] Started');
+    log.info('Started');
   }
 
   /**
@@ -120,7 +126,7 @@ export class AlertManager {
     }
 
     this.stats.isRunning = false;
-    console.log('[AlertManager] Stopped');
+    log.info('Stopped');
   }
 
   /**
@@ -134,12 +140,14 @@ export class AlertManager {
       if (alerts.length > 0) {
         this.totalAlertsFired += alerts.length;
         this.stats.totalAlertsFired = this.totalAlertsFired;
-        console.log(`[AlertManager] ${alerts.length} alerts firing: ${alerts.map(a => a.ruleName).join(', ')}`);
+        log.info(`${alerts.length} alerts firing`, { 
+          alerts: alerts.map(a => ({ id: a.id, name: a.ruleName, severity: a.severity }))
+        });
       }
 
       this.updateStats();
     } catch (error) {
-      console.error('[AlertManager] Evaluation error:', error);
+      log.logError('Evaluation error', error);
     }
   }
 
@@ -152,12 +160,12 @@ export class AlertManager {
       this.stats.lastAnomalyCheckAt = Date.now();
       
       if (anomalies.length > 0) {
-        console.log(`[AlertManager] ${anomalies.length} anomalies detected`);
+        log.info(`${anomalies.length} anomalies detected`, { count: anomalies.length });
       }
 
       this.updateStats();
     } catch (error) {
-      console.error('[AlertManager] Anomaly detection error:', error);
+      log.logError('Anomaly detection error', error);
     }
   }
 

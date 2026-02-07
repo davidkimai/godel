@@ -1,4 +1,4 @@
-# SPEC: Dash Production Readiness - Test Suite Stabilization
+# SPEC: Godel Production Readiness - Test Suite Stabilization
 
 **Version:** 1.0  
 **Date:** February 3, 2026  
@@ -98,7 +98,7 @@ module.exports = {
   // Module path mapping
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@dash/(.*)$': '<rootDir>/src/$1'
+    '^@godel/(.*)$': '<rootDir>/src/$1'
   },
   
   // Coverage

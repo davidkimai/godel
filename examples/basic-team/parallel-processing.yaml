@@ -1,11 +1,11 @@
-# Parallel Processing Swarm
+# Parallel Processing Team
 # Demonstrates parallel execution pattern
 
 apiVersion: godel.io/v1
-kind: Swarm
+kind: Team
 
 metadata:
-  name: parallel-processing-swarm
+  name: parallel-processing-team
   description: Parallel processing of independent tasks
 
 spec:

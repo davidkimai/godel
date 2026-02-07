@@ -13,9 +13,9 @@ CLI commands have implementation gaps that cause failures.
 
 | Command | Status | Error |
 |---------|--------|-------|
-| `dash status` | ⚠️ PARTIAL | Crashes on OpenClaw init |
-| `dash config get server.port` | ❌ FAIL | Command 'get' not recognized |
-| `dash swarm create --name test` | ❌ FAIL | Missing `--task` option |
+| `godel status` | ⚠️ PARTIAL | Crashes on OpenClaw init |
+| `godel config get server.port` | ❌ FAIL | Command 'get' not recognized |
+| `godel team create --name test` | ❌ FAIL | Missing `--task` option |
 
 ## Root Cause Analysis
 
@@ -29,7 +29,7 @@ The `config` command only has `set` but not `get`.
 
 ### Finding 3: Incomplete Validation
 
-The `swarm create` command requires `--task` but the error message doesn't indicate this.
+The `team create` command requires `--task` but the error message doesn't indicate this.
 
 ## Technical Requirements
 
@@ -62,7 +62,7 @@ export default command('status', 'Show system status')
       timestamp: new Date().toISOString()
     };
     
-    console.log('=== Dash Status ===');
+    console.log('=== Godel Status ===');
     console.log(JSON.stringify(basicStatus, null, 2));
     
     // Try OpenClaw only if available
@@ -73,7 +73,7 @@ export default command('status', 'Show system status')
       console.log(JSON.stringify(advancedStatus, null, 2));
     } catch (error) {
       console.log('\n⚠️  OpenClaw: Not available');
-      console.log('   Run: dash init to configure');
+      console.log('   Run: godel init to configure');
     }
   });
 ```
@@ -105,7 +105,7 @@ const getCommand = command('get <key>', 'Get configuration value')
     
     if (value === undefined) {
       console.log(`❌  Config key not found: ${key}`);
-      console.log('💡  Use "dash config list" to see all keys');
+      console.log('💡  Use "godel config list" to see all keys');
       process.exit(1);
     }
     
@@ -118,14 +118,14 @@ function getNestedValue(obj: any, path: string): any {
 }
 ```
 
-### Fix 3: Swarm Create Validation
+### Fix 3: Team Create Validation
 
 Current:
 ```typescript
-// src/cli/commands/swarm.ts
+// src/cli/commands/team.ts
 
-export default command('create [options]', 'Create a swarm')
-  .option('-n, --name <name>', 'Swarm name')
+export default command('create [options]', 'Create a team')
+  .option('-n, --name <name>', 'Team name')
   .action(async (options) => {
     if (!options.name) {
       console.log('❌  Missing required option: --name');
@@ -138,11 +138,11 @@ export default command('create [options]', 'Create a swarm')
 
 Fixed:
 ```typescript
-// src/cli/commands/swarm.ts
+// src/cli/commands/team.ts
 
-export default command('create [options]', 'Create a swarm')
-  .option('-n, --name <name>', 'Swarm name (required)')
-  .option('-t, --task <task>', 'Initial task for swarm (required)')
+export default command('create [options]', 'Create a team')
+  .option('-n, --name <name>', 'Team name (required)')
+  .option('-t, --task <task>', 'Initial task for team (required)')
   .option('-a, --agents <count>', 'Number of agents', { default: 3 })
   .action(async (options) => {
     // Validation with helpful errors
@@ -159,22 +159,22 @@ export default command('create [options]', 'Create a swarm')
       console.log('❌  Validation failed:\n');
       errors.forEach(e => console.log(`   ${e}`));
       console.log('\n💡  Example:');
-      console.log('   dash swarm create -n "my-swarm" -t "Analyze this codebase"');
-      console.log('   dash swarm create --name research --task "Research AI agents"');
+      console.log('   godel team create -n "my-team" -t "Analyze this codebase"');
+      console.log('   godel team create --name research --task "Research AI agents"');
       process.exit(1);
     }
     
     // Success case
-    const swarm = await swarmManager.create({
+    const team = await swarmManager.create({
       name: options.name,
       task: options.task,
       agentCount: options.agents
     });
     
-    console.log(`✅  Swarm created: ${swarm.id}`);
-    console.log(`   Name: ${swarm.name}`);
-    console.log(`   Task: ${swarm.task}`);
-    console.log(`   Agents: ${swarm.agentCount}`);
+    console.log(`✅  Team created: ${team.id}`);
+    console.log(`   Name: ${team.name}`);
+    console.log(`   Task: ${team.task}`);
+    console.log(`   Agents: ${team.agentCount}`);
   });
 ```
 
@@ -190,7 +190,7 @@ export default command('create [options]', 'Create a swarm')
 - [ ] Add `list` subcommand
 - [ ] Add nested key support (e.g., `server.port`)
 
-### Phase 3: Swarm Command
+### Phase 3: Team Command
 - [ ] Add `--task` as required option
 - [ ] Improve validation messages
 - [ ] Add example usage in help
@@ -207,11 +207,11 @@ export default command('create [options]', 'Create a swarm')
 ```typescript
 // tests/cli/status.test.ts
 
-describe('dash status', () => {
+describe('godel status', () => {
   it('should show basic status without OpenClaw', async () => {
     const output = await runCli(['status', '--simple']);
     
-    expect(output).toContain('Dash Status');
+    expect(output).toContain('Godel Status');
     expect(output).toContain('version');
     expect(output).toContain('uptime');
   });
@@ -227,7 +227,7 @@ describe('dash status', () => {
 
 // tests/cli/config.test.ts
 
-describe('dash config', () => {
+describe('godel config', () => {
   it('should get a config value', async () => {
     const output = await runCli(['config', 'get', 'server.port']);
     expect(output).toContain('server.port=7373');
@@ -246,41 +246,41 @@ describe('dash config', () => {
   });
 });
 
-// tests/cli/swarm.test.ts
+// tests/cli/team.test.ts
 
-describe('dash swarm create', () => {
+describe('godel team create', () => {
   it('should error without --name', async () => {
-    const result = await runCli(['swarm', 'create', '-t', 'Task']);
+    const result = await runCli(['team', 'create', '-t', 'Task']);
     expect(result.code).toBe(1);
     expect(result.output).toContain('--name');
   });
   
   it('should error without --task', async () => {
-    const result = await runCli(['swarm', 'create', '-n', 'Name']);
+    const result = await runCli(['team', 'create', '-n', 'Name']);
     expect(result.code).toBe(1);
     expect(result.output).toContain('--task');
   });
   
-  it('should create swarm with both options', async () => {
+  it('should create team with both options', async () => {
     const result = await runCli([
-      'swarm', 'create',
-      '-n', 'test-swarm',
+      'team', 'create',
+      '-n', 'test-team',
       '-t', 'Test task',
       '-a', '2'
     ]);
     
     expect(result.code).toBe(0);
-    expect(result.output).toContain('Swarm created');
+    expect(result.output).toContain('Team created');
   });
 });
 ```
 
 ## Success Criteria
 
-- [ ] `dash status` shows status without crashing
-- [ ] `dash config get server.port` works
-- [ ] `dash config list` works
-- [ ] `dash swarm create -n name -t task` works
+- [ ] `godel status` shows status without crashing
+- [ ] `godel config get server.port` works
+- [ ] `godel config list` works
+- [ ] `godel team create -n name -t task` works
 - [ ] All CLI tests pass
 - [ ] Helpful error messages for all edge cases
 
@@ -288,10 +288,10 @@ describe('dash swarm create', () => {
 
 - `src/cli/commands/status.ts`
 - `src/cli/commands/config.ts`
-- `src/cli/commands/swarm.ts`
+- `src/cli/commands/team.ts`
 - `tests/cli/status.test.ts`
 - `tests/cli/config.test.ts`
-- `tests/cli/swarm.test.ts`
+- `tests/cli/team.test.ts`
 
 ## Estimated Effort
 

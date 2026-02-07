@@ -1,6 +1,6 @@
 # Task Queue System
 
-Redis-backed task queue with work distribution for Dash.
+Redis-backed task queue with work distribution for Godel.
 
 ## Features
 
@@ -222,7 +222,7 @@ const queue = new TaskQueue({
     port: 6379,
     password: 'secret',
     db: 0,
-    keyPrefix: 'dash:queue:',
+    keyPrefix: 'godel:queue:',
   },
   
   // Retry settings

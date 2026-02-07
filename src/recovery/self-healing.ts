@@ -47,7 +47,7 @@ export interface SelfHealingConfig {
 
 export interface FailedAgent {
   id: string;
-  swarmId?: string;
+  teamId?: string;
   status: string;
   lifecycleState: string;
   lastError?: string;
@@ -68,7 +68,7 @@ export interface RecoveryAttempt {
 
 export interface EscalationEvent {
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   reason: string;
   retryCount: number;
   timestamp: Date;
@@ -114,8 +114,8 @@ export interface AgentRecoveryHandler {
   restart(): Promise<boolean>;
   /** Restore agent from checkpoint data */
   restoreFromCheckpoint(data: Record<string, unknown>): Promise<boolean>;
-  /** Get the agent's swarm ID */
-  getSwarmId(): string | undefined;
+  /** Get the agent's team ID */
+  getTeamId(): string | undefined;
   /** Get current status */
   getStatus(): string;
 }
@@ -226,7 +226,7 @@ export class SelfHealingController extends EventEmitter {
       CREATE TABLE IF NOT EXISTS recovery_attempts (
         id SERIAL PRIMARY KEY,
         agent_id VARCHAR(128) NOT NULL,
-        swarm_id VARCHAR(128),
+        team_id VARCHAR(128),
         attempt_number INTEGER NOT NULL,
         strategy VARCHAR(32) NOT NULL,
         success BOOLEAN NOT NULL,
@@ -242,7 +242,7 @@ export class SelfHealingController extends EventEmitter {
       CREATE TABLE IF NOT EXISTS escalation_events (
         id SERIAL PRIMARY KEY,
         agent_id VARCHAR(128) NOT NULL,
-        swarm_id VARCHAR(128),
+        team_id VARCHAR(128),
         reason TEXT NOT NULL,
         retry_count INTEGER NOT NULL,
         suggested_action VARCHAR(32) NOT NULL,
@@ -259,7 +259,7 @@ export class SelfHealingController extends EventEmitter {
       CREATE TABLE IF NOT EXISTS failed_agents (
         id SERIAL PRIMARY KEY,
         agent_id VARCHAR(128) UNIQUE NOT NULL,
-        swarm_id VARCHAR(128),
+        team_id VARCHAR(128),
         status VARCHAR(32) NOT NULL,
         lifecycle_state VARCHAR(32) NOT NULL,
         last_error TEXT,
@@ -285,7 +285,7 @@ export class SelfHealingController extends EventEmitter {
 
     await this.pool!.query(`
       CREATE INDEX IF NOT EXISTS idx_failed_agents_swarm 
-      ON failed_agents(swarm_id)
+      ON failed_agents(team_id)
     `);
 
     logger.debug('[SelfHealingController] Database schema created');
@@ -366,7 +366,7 @@ export class SelfHealingController extends EventEmitter {
     }
 
     logger.debug(`[SelfHealingController] Registered agent ${agentId}`);
-    this.emit('agent.registered', { agentId, swarmId: handler.getSwarmId() });
+    this.emit('agent.registered', { agentId, teamId: handler.getTeamId() });
   }
 
   /**
@@ -472,7 +472,7 @@ export class SelfHealingController extends EventEmitter {
 
     const failedAgent: FailedAgent = {
       id: agentId,
-      swarmId: handler.getSwarmId(),
+      teamId: handler.getTeamId(),
       status: handler.getStatus(),
       lifecycleState: 'failed',
       lastError: errorMessage,
@@ -490,7 +490,7 @@ export class SelfHealingController extends EventEmitter {
     
     this.emit('agent.failed', {
       agentId,
-      swarmId: handler.getSwarmId(),
+      teamId: handler.getTeamId(),
       detectionSource,
       detectionTimeMs,
     });
@@ -572,7 +572,7 @@ export class SelfHealingController extends EventEmitter {
       this.recoveryAttempts.set(agentId, attempts);
 
       // Persist attempt
-      await this.persistRecoveryAttempt(attempt, handler.getSwarmId());
+      await this.persistRecoveryAttempt(attempt, handler.getTeamId());
 
       // Update metrics
       this.metrics.totalRecoveryAttempts++;
@@ -602,7 +602,7 @@ export class SelfHealingController extends EventEmitter {
       attempts.push(attempt);
       this.recoveryAttempts.set(agentId, attempts);
 
-      await this.persistRecoveryAttempt(attempt, handler.getSwarmId());
+      await this.persistRecoveryAttempt(attempt, handler.getTeamId());
 
       this.metrics.totalRecoveryAttempts++;
       this.metrics.failedRecoveries++;
@@ -630,7 +630,7 @@ export class SelfHealingController extends EventEmitter {
 
     this.emit('recovery.success', {
       agentId,
-      swarmId: handler.getSwarmId(),
+      teamId: handler.getTeamId(),
       attempt: attempt.attempt,
       strategy: attempt.strategy,
       durationMs: attempt.durationMs,
@@ -649,7 +649,7 @@ export class SelfHealingController extends EventEmitter {
 
     this.emit('recovery.failed', {
       agentId,
-      swarmId: handler.getSwarmId(),
+      teamId: handler.getTeamId(),
       attempt: attempt.attempt,
       error: attempt.error,
       durationMs: attempt.durationMs,
@@ -690,7 +690,7 @@ export class SelfHealingController extends EventEmitter {
 
     const escalation: EscalationEvent = {
       agentId,
-      swarmId: handler.getSwarmId(),
+      teamId: handler.getTeamId(),
       reason,
       retryCount: this.getRetryCount(agentId),
       timestamp: new Date(),
@@ -726,7 +726,7 @@ export class SelfHealingController extends EventEmitter {
       return 'manual_review';
     }
 
-    // Could add more logic here based on swarm criticality, etc.
+    // Could add more logic here based on team criticality, etc.
     return 'notify';
   }
 
@@ -761,7 +761,7 @@ export class SelfHealingController extends EventEmitter {
     try {
       await this.pool!.query(
         `INSERT INTO failed_agents 
-         (agent_id, swarm_id, status, lifecycle_state, last_error, 
+         (agent_id, team_id, status, lifecycle_state, last_error, 
           failed_at, retry_count, detection_source, metadata)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT (agent_id) DO UPDATE SET
@@ -775,7 +775,7 @@ export class SelfHealingController extends EventEmitter {
          escalated = FALSE`,
         [
           failedAgent.id,
-          failedAgent.swarmId || null,
+          failedAgent.teamId || null,
           failedAgent.status,
           failedAgent.lifecycleState,
           failedAgent.lastError || null,
@@ -792,17 +792,17 @@ export class SelfHealingController extends EventEmitter {
 
   private async persistRecoveryAttempt(
     attempt: RecoveryAttempt,
-    swarmId?: string
+    teamId?: string
   ): Promise<void> {
     try {
       await this.pool!.query(
         `INSERT INTO recovery_attempts 
-         (agent_id, swarm_id, attempt_number, strategy, success, 
+         (agent_id, team_id, attempt_number, strategy, success, 
           error_message, duration_ms, timestamp)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           attempt.agentId,
-          swarmId || null,
+          teamId || null,
           attempt.attempt,
           attempt.strategy,
           attempt.success,
@@ -820,11 +820,11 @@ export class SelfHealingController extends EventEmitter {
     try {
       await this.pool!.query(
         `INSERT INTO escalation_events 
-         (agent_id, swarm_id, reason, retry_count, suggested_action, timestamp, metadata)
+         (agent_id, team_id, reason, retry_count, suggested_action, timestamp, metadata)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           escalation.agentId,
-          escalation.swarmId || null,
+          escalation.teamId || null,
           escalation.reason,
           escalation.retryCount,
           escalation.suggestedAction,
@@ -936,7 +936,7 @@ export class SelfHealingController extends EventEmitter {
 
     interface EscalationRow {
       agent_id: string;
-      swarm_id: string | null;
+      team_id: string | null;
       reason: string;
       retry_count: number;
       timestamp: string;
@@ -951,7 +951,7 @@ export class SelfHealingController extends EventEmitter {
 
     return result.rows.map(row => ({
       agentId: row.agent_id,
-      swarmId: row.swarm_id || undefined,
+      teamId: row.team_id || undefined,
       reason: row.reason,
       retryCount: row.retry_count,
       timestamp: new Date(row.timestamp),
@@ -964,7 +964,7 @@ export class SelfHealingController extends EventEmitter {
 
     interface EscalationRow {
       agent_id: string;
-      swarm_id: string | null;
+      team_id: string | null;
       reason: string;
       retry_count: number;
       timestamp: string;
@@ -979,7 +979,7 @@ export class SelfHealingController extends EventEmitter {
 
     return result.rows.map(row => ({
       agentId: row.agent_id,
-      swarmId: row.swarm_id || undefined,
+      teamId: row.team_id || undefined,
       reason: row.reason,
       retryCount: row.retry_count,
       timestamp: new Date(row.timestamp),

@@ -10,7 +10,7 @@
 
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
-import { getGlobalSwarmManager } from '../../core/swarm';
+import { getGlobalTeamManager } from '../../core/team';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus, subscribeDashboard, type Message } from '../../bus/index';
 import { memoryStore } from '../../storage/memory';
@@ -18,19 +18,19 @@ import { memoryStore } from '../../storage/memory';
 export function registerDashboardCommand(program: Command): void {
   program
     .command('dashboard')
-    .description('Launch Godel dashboard for real-time swarm monitoring')
+    .description('Launch Godel dashboard for real-time team monitoring')
     .option('-p, --port <port>', 'API server port', '7373')
     .option('-h, --host <host>', 'API server host', 'localhost')
     .option('--tui', 'Launch interactive Terminal UI (Ink-based)')
     .option('--headless', 'Start API server only (no TUI)')
     .option('--refresh <ms>', 'Dashboard refresh rate in ms', '1000')
-    .option('--view <view>', 'Default view (swarms|sessions|tasks|logs)', 'swarms')
+    .option('--view <view>', 'Default view (teams|sessions|tasks|logs)', 'teams')
     .action(async (options) => {
       try {
         // Initialize core components
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
 
         // Start managers
         await lifecycle.start();
@@ -87,10 +87,10 @@ export function registerDashboardCommand(program: Command): void {
 
         // Show initial stats
         const metrics = lifecycle.getMetrics();
-        const swarms = swarmManager.listActiveSwarms();
+        const teams = swarmManager.listActiveTeams();
         
         logger.info('📊 Current Status:');
-        logger.info(`   Active Swarms: ${swarms.length}`);
+        logger.info(`   Active Teams: ${teams.length}`);
         logger.info(`   Active Agents: ${metrics.activeAgents}`);
         logger.info(`   Paused Agents: ${metrics.pausedAgents}`);
         logger.info(`   Total Spawned: ${metrics.totalSpawned}`);
@@ -104,14 +104,14 @@ export function registerDashboardCommand(program: Command): void {
         
         if (states.length === 0) {
           logger.info('   No agents running');
-          logger.info('   Use "dash swarm create" to create a swarm');
+          logger.info('   Use "godel team create" to create a team');
         } else {
-          logger.info('ID                   Swarm                Status     Task (truncated)');
+          logger.info('ID                   Team                Status     Task (truncated)');
           logger.info('───────────────────  ───────────────────  ─────────  ──────────────────────────');
           
           for (const state of states.slice(0, 20)) {
-            const swarmName = state.agent.swarmId 
-              ? swarmManager.getSwarm(state.agent.swarmId)?.name?.slice(0, 19) || 'unknown'
+            const swarmName = state.agent.teamId 
+              ? swarmManager.getTeam(state.agent.teamId)?.name?.slice(0, 19) || 'unknown'
               : 'none';
             const task = state.agent.task.slice(0, 26);
             
@@ -137,7 +137,7 @@ export function registerDashboardCommand(program: Command): void {
           const payload = message.payload as { 
             eventType?: string; 
             agentId?: string;
-            swarmId?: string;
+            teamId?: string;
           } | undefined;
           
           if (payload?.eventType) {
@@ -148,8 +148,8 @@ export function registerDashboardCommand(program: Command): void {
               'agent.completed',
               'agent.failed',
               'agent.killed',
-              'swarm.created',
-              'swarm.completed',
+              'team.created',
+              'team.completed',
             ];
             
             if (importantEvents.includes(payload.eventType)) {
@@ -195,9 +195,9 @@ function getEventEmoji(eventType: string): string {
     'agent.killed': '☠️',
     'agent.paused': '⏸️',
     'agent.resumed': '▶️',
-    'swarm.created': '🐝',
-    'swarm.completed': '🎉',
-    'swarm.destroyed': '💥',
+    'team.created': '🐝',
+    'team.completed': '🎉',
+    'team.destroyed': '💥',
   };
   return emojiMap[eventType] || '📌';
 }

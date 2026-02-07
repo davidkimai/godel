@@ -32,7 +32,7 @@ export const spawnAgentSchema = z.object({
   model: z.enum(['kimi-k2.5', 'claude-sonnet-4-5', 'gpt-4', 'gpt-4o']),
   priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   parentId: z.string().uuid().optional(),
-  swarmId: z.string().uuid().optional(),
+  teamId: z.string().uuid().optional(),
   metadata: z.record(z.unknown()).optional(),
 }).refine((data) => {
   // Critical priority requires justification
@@ -79,16 +79,16 @@ export const agentActionSchema = z.object({
 }, { message: 'Action requires reason or force flag; delay only for retry/scale' });
 
 export const agentQuerySchema = z.object({
-  swarmId: z.string().uuid().optional(),
+  teamId: z.string().uuid().optional(),
   status: z.array(z.enum(['idle', 'spawning', 'running', 'paused', 'completed', 'failed', 'killing'])).optional(),
   ...paginationSchema.shape,
 });
 
 // =============================================================================
-// SWARM SCHEMAS
+// TEAM SCHEMAS
 // =============================================================================
 
-export const createSwarmSchema = z.object({
+export const createTeamSchema = z.object({
   name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9-_]+$/),
   description: z.string().max(500).optional(),
   agents: z.number().int().min(1).max(100),
@@ -107,7 +107,7 @@ export const createSwarmSchema = z.object({
   return true;
 }, { message: 'Race strategy requires 2+ agents; map-reduce requires 3+ agents' });
 
-export const updateSwarmSchema = z.object({
+export const updateTeamSchema = z.object({
   name: z.string().min(1).max(100).regex(/^[a-zA-Z0-9-_]+$/).optional(),
   description: z.string().max(500).optional(),
   status: z.enum(['creating', 'active', 'scaling', 'paused', 'completed', 'failed', 'destroyed']).optional(),
@@ -117,7 +117,7 @@ export const updateSwarmSchema = z.object({
   return Object.keys(data).length > 0;
 }, { message: 'At least one field must be provided for update' });
 
-export const swarmActionSchema = z.object({
+export const teamActionSchema = z.object({
   action: z.enum(['pause', 'resume', 'cancel', 'scale', 'rebalance']),
   targetAgents: z.number().int().min(1).max(100).optional(),
   graceful: z.boolean().optional(),
@@ -143,7 +143,7 @@ export const swarmQuerySchema = z.object({
 // =============================================================================
 
 export const setBudgetSchema = z.object({
-  scopeType: z.enum(['swarm', 'agent', 'project', 'global']),
+  scopeType: z.enum(['team', 'agent', 'project', 'global']),
   scopeId: z.string().uuid().optional(),
   maxTokens: z.number().int().positive().optional(),
   maxCost: z.number().positive().optional(),
@@ -172,7 +172,7 @@ export const budgetConsumptionSchema = z.object({
 }, { message: 'At least one consumption metric required' });
 
 export const budgetQuerySchema = z.object({
-  scopeType: z.enum(['swarm', 'agent', 'project', 'global']).optional(),
+  scopeType: z.enum(['team', 'agent', 'project', 'global']).optional(),
   ...paginationSchema.shape,
 });
 
@@ -238,7 +238,7 @@ export const eventPublishSchema = z.object({
 export const configUpdateSchema = z.object({
   key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_.]+$/),
   value: z.unknown(),
-  scope: z.enum(['global', 'swarm', 'agent']).default('global'),
+  scope: z.enum(['global', 'team', 'agent']).default('global'),
   scopeId: z.string().uuid().optional(),
 });
 
@@ -264,10 +264,10 @@ export type UpdateAgentInput = z.infer<typeof updateAgentSchema>;
 export type AgentActionInput = z.infer<typeof agentActionSchema>;
 export type AgentQueryInput = z.infer<typeof agentQuerySchema>;
 
-export type CreateSwarmInput = z.infer<typeof createSwarmSchema>;
-export type UpdateSwarmInput = z.infer<typeof updateSwarmSchema>;
-export type SwarmActionInput = z.infer<typeof swarmActionSchema>;
-export type SwarmQueryInput = z.infer<typeof swarmQuerySchema>;
+export type CreateTeamInput = z.infer<typeof createTeamSchema>;
+export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
+export type TeamActionInput = z.infer<typeof teamActionSchema>;
+export type TeamQueryInput = z.infer<typeof swarmQuerySchema>;
 
 export type SetBudgetInput = z.infer<typeof setBudgetSchema>;
 export type BudgetConsumptionInput = z.infer<typeof budgetConsumptionSchema>;

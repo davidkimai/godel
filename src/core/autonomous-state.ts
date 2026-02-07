@@ -14,8 +14,8 @@ export interface StateVersion {
   lastFullCheck: number;
   status: 'HEALTHY' | 'WARNING' | 'CRITICAL';
   operationalState: {
-    activeSwarms: number;
-    maxSwarms: number;
+    activeTeams: number;
+    maxTeams: number;
     budgetRemaining: number;
     budgetDaily: number;
     agentsStuck: number;
@@ -25,7 +25,7 @@ export interface StateVersion {
   };
   modeConfig: {
     heartbeatMs: number;
-    maxSwarms: number;
+    maxTeams: number;
     budgetLimit: number;
     nightModeStart: string;
     nightModeEnd: string;
@@ -36,15 +36,15 @@ export interface StateVersion {
     timestamp: number;
     type: string;
     result: string;
-    swarmsSpawned: number;
+    teamsSpawned: number;
   }>;
   pendingActions: string[];
   nightModeActive: boolean;
   nextScheduledEvent: number | null;
 }
 
-const STATE_FILE = path.join(process.cwd(), '.dash', 'orchestrator-state.json');
-const STATE_BACKUP = path.join(process.cwd(), '.dash', 'orchestrator-state.backup.json');
+const STATE_FILE = path.join(process.cwd(), '.godel', 'orchestrator-state.json');
+const STATE_BACKUP = path.join(process.cwd(), '.godel', 'orchestrator-state.backup.json');
 
 /**
  * Load state from file with corruption handling
@@ -92,7 +92,7 @@ export function updateHealth(metrics: Partial<StateVersion['operationalState']>)
   }
   
   // Update metrics
-  if (metrics.activeSwarms !== undefined) state.operationalState.activeSwarms = metrics.activeSwarms;
+  if (metrics.activeTeams !== undefined) state.operationalState.activeTeams = metrics.activeTeams;
   if (metrics.budgetRemaining !== undefined) state.operationalState.budgetRemaining = metrics.budgetRemaining;
   if (metrics.agentsStuck !== undefined) state.operationalState.agentsStuck = metrics.agentsStuck;
   if (metrics.buildStatus !== undefined) state.operationalState.buildStatus = metrics.buildStatus;
@@ -143,22 +143,22 @@ export function setMode(mode: StateVersion['mode']): StateVersion {
   switch (mode) {
     case 'ACTIVE_DEVELOPMENT':
       state.modeConfig.heartbeatMs = 60000;
-      state.modeConfig.maxSwarms = 10;
+      state.modeConfig.maxTeams = 10;
       state.modeConfig.budgetLimit = 100;
       break;
     case 'NIGHT_MODE':
       state.modeConfig.heartbeatMs = 180000;
-      state.modeConfig.maxSwarms = 3;
+      state.modeConfig.maxTeams = 3;
       state.modeConfig.budgetLimit = 25;
       break;
     case 'CRISIS':
       state.modeConfig.heartbeatMs = 10000;
-      state.modeConfig.maxSwarms = 15;
+      state.modeConfig.maxTeams = 15;
       state.modeConfig.budgetLimit = 200;
       break;
     default:
       state.modeConfig.heartbeatMs = 300000;
-      state.modeConfig.maxSwarms = 5;
+      state.modeConfig.maxTeams = 5;
       state.modeConfig.budgetLimit = 50;
   }
   
@@ -169,14 +169,14 @@ export function setMode(mode: StateVersion['mode']): StateVersion {
 /**
  * Record a decision in history
  */
-export function recordDecision(type: string, result: string, swarmsSpawned: number): void {
+export function recordDecision(type: string, result: string, teamsSpawned: number): void {
   const state = loadState() || createDefaultState();
   
   state.recentDecisions.push({
     timestamp: Date.now(),
     type,
     result,
-    swarmsSpawned
+    teamsSpawned
   });
   
   // Keep only last 100 decisions
@@ -229,8 +229,8 @@ function createDefaultState(): StateVersion {
     lastFullCheck: Date.now(),
     status: 'HEALTHY',
     operationalState: {
-      activeSwarms: 0,
-      maxSwarms: 10,
+      activeTeams: 0,
+      maxTeams: 10,
       budgetRemaining: 100,
       budgetDaily: 100,
       agentsStuck: 0,
@@ -240,7 +240,7 @@ function createDefaultState(): StateVersion {
     },
     modeConfig: {
       heartbeatMs: 60000,
-      maxSwarms: 10,
+      maxTeams: 10,
       budgetLimit: 100,
       nightModeStart: '23:00',
       nightModeEnd: '07:00'
@@ -263,7 +263,7 @@ if (require.main === module) {
     logger.info(`Version: ${state.version}`);
     logger.info(`Mode: ${state.mode}`);
     logger.info(`Status: ${state.status}`);
-    logger.info(`Active Swarms: ${state.operationalState.activeSwarms}`);
+    logger.info(`Active Teams: ${state.operationalState.activeTeams}`);
   } else {
     logger.info('No state file found, creating default...');
     saveState(createDefaultState());

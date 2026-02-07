@@ -1,29 +1,29 @@
 import { logger } from '../utils/logger';
 /**
- * CLI Examples - Usage Examples for Dash Commands
+ * CLI Examples - Usage Examples for Godel Commands
  */
 
 export const EXAMPLES = {
   status: [
-    { description: 'Show basic status', command: 'dash status' },
-    { description: 'Show status without OpenClaw', command: 'dash status --simple' },
-    { description: 'Output as JSON', command: 'dash status --json' }
+    { description: 'Show basic status', command: 'godel status' },
+    { description: 'Show status without OpenClaw', command: 'godel status --simple' },
+    { description: 'Output as JSON', command: 'godel status --json' }
   ],
   config: [
-    { description: 'Get server port', command: 'dash config get server.port' },
-    { description: 'List all config', command: 'dash config list' },
-    { description: 'Get database URL', command: 'dash config get database.url' }
+    { description: 'Get server port', command: 'godel config get server.port' },
+    { description: 'List all config', command: 'godel config list' },
+    { description: 'Get database URL', command: 'godel config get database.url' }
   ],
-  swarm: [
-    { description: 'Create swarm with name and task', command: 'dash swarm create -n research -t "Analyze AI"' },
-    { description: 'Create swarm with custom agents', command: 'dash swarm create --name coding --task "Fix bugs" -a 5' },
-    { description: 'List all swarms', command: 'dash swarm list' },
-    { description: 'Show swarm status', command: 'dash swarm status <id>' }
+  team: [
+    { description: 'Create team with name and task', command: 'godel team create -n research -t "Analyze AI"' },
+    { description: 'Create team with custom agents', command: 'godel team create --name coding --task "Fix bugs" -a 5' },
+    { description: 'List all teams', command: 'godel team list' },
+    { description: 'Show team status', command: 'godel team status <id>' }
   ],
   agent: [
-    { description: 'List all agents', command: 'dash agent list' },
-    { description: 'Create new agent', command: 'dash agent create --name coder --provider anthropic --model claude' },
-    { description: 'Spawn agent for task', command: 'dash agent spawn "Review this PR"' }
+    { description: 'List all agents', command: 'godel agent list' },
+    { description: 'Create new agent', command: 'godel agent create --name coder --provider anthropic --model claude' },
+    { description: 'Spawn agent for task', command: 'godel agent spawn "Review this PR"' }
   ]
 };
 

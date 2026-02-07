@@ -1,6 +1,6 @@
 # Agent Skills System
 
-Dash implements the [Agent Skills standard](https://agentskills.io) - an open format for defining reusable agent capabilities.
+Godel implements the [Agent Skills standard](https://agentskills.io) - an open format for defining reusable agent capabilities.
 
 ## Overview
 
@@ -16,7 +16,7 @@ Skills are Markdown files that provide agents with:
 ### Loading Skills
 
 ```typescript
-import { SkillRegistry } from '@dash/core/skills';
+import { SkillRegistry } from '@godel/core/skills';
 
 const registry = new SkillRegistry();
 await registry.loadAll();
@@ -111,7 +111,7 @@ Skills are loaded from multiple sources:
 
 1. **User skills** (`~/.godel/skills/`) - Personal skills
 2. **Project skills** (`./.godel/skills/`) - Project-specific skills
-3. **Built-in skills** (`./skills/`) - Bundled with Dash
+3. **Built-in skills** (`./skills/`) - Bundled with Godel
 4. **Explicit paths** - Passed via configuration
 
 ### Directory Structure
@@ -132,7 +132,7 @@ skills/
 
 ## Built-in Skills
 
-Dash includes several built-in skills:
+Godel includes several built-in skills:
 
 ### Deployment
 Automates deployment workflows for web applications, APIs, and services.
@@ -251,7 +251,7 @@ Output: expected result
 ### 3. Test Your Skill
 
 ```typescript
-import { loadSkillFromFile } from '@dash/core/skills';
+import { loadSkillFromFile } from '@godel/core/skills';
 
 const result = loadSkillFromFile(
   '~/.godel/skills/my-skill/SKILL.md',
@@ -271,20 +271,20 @@ console.log(result.diagnostics);
 5. **Keep it focused** - Move detailed reference to separate files
 6. **Version your skills** - Use metadata.version
 
-## Swarm Integration
+## Team Integration
 
-Skills integrate with Dash swarms for multi-agent scenarios:
+Skills integrate with Godel teams for multi-agent scenarios:
 
 ### Shared Skills Across Agents
 
 ```typescript
-import { SwarmSkillManager } from '@dash/core/skills';
+import { SwarmSkillManager } from '@godel/core/skills';
 
 const swarmManager = new SwarmSkillManager(registry);
 
-// Initialize swarm with shared skills
+// Initialize team with shared skills
 await swarmManager.initializeSwarm({
-  swarmId: 'my-swarm',
+  swarmId: 'my-team',
   task: 'deploy application',
   skillConfig: {
     sharedSkills: ['deployment', 'monitoring'],
@@ -303,7 +303,7 @@ await swarmManager.initializeSwarm({
 ```typescript
 // Register agents with role-specific skills
 await swarmManager.registerAgent(
-  'my-swarm',
+  'my-team',
   'agent-1',
   'devops'
 );
@@ -330,7 +330,7 @@ await swarmManager.requestSkill(
 
 // Broadcast skills to all agents
 await swarmManager.broadcastSkills(
-  'my-swarm',
+  'my-team',
   'source-agent',
   ['testing', 'monitoring']
 );
@@ -341,7 +341,7 @@ await swarmManager.broadcastSkills(
 ```typescript
 // Load skills based on context during execution
 const activated = await swarmManager.dynamicLoad(
-  'my-swarm',
+  'my-team',
   'agent-1',
   'We need to run security audit'
 );
@@ -425,20 +425,20 @@ class SwarmSkillManager {
 
 ## Examples
 
-### Complete Example: Setting Up a DevOps Swarm
+### Complete Example: Setting Up a DevOps Team
 
 ```typescript
-import { SkillRegistry, SwarmSkillManager } from '@dash/core/skills';
+import { SkillRegistry, SwarmSkillManager } from '@godel/core/skills';
 
 async function setupDevOpsSwarm() {
   // Initialize registry
   const registry = new SkillRegistry();
   await registry.loadAll();
 
-  // Create swarm manager
+  // Create team manager
   const swarmManager = new SwarmSkillManager(registry);
 
-  // Initialize swarm
+  // Initialize team
   const context = await swarmManager.initializeSwarm({
     swarmId: 'production-deploy',
     task: 'Deploy new API version with zero downtime',

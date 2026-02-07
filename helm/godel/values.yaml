@@ -12,7 +12,7 @@ global:
 nameOverride: ""
 fullnameOverride: ""
 
-# Dash API configuration
+# Godel API configuration
 godelApi:
   enabled: true
   replicaCount: 3
@@ -124,7 +124,7 @@ godelApi:
     ENABLE_CIRCUIT_BREAKER: "true"
     MAX_CONCURRENT_AGENTS: "50"
 
-# Dash Dashboard configuration
+# Godel Dashboard configuration
 godelDashboard:
   enabled: true
   replicaCount: 2
@@ -203,7 +203,7 @@ godelDashboard:
   affinity: {}
   
   env:
-    DASHBOARD_TITLE: "Dash Operations Center"
+    DASHBOARD_TITLE: "Godel Operations Center"
     DASHBOARD_REFRESH_INTERVAL: "5000"
 
 # PostgreSQL configuration
@@ -251,11 +251,21 @@ redis:
         cpu: 100m
 
 # Secrets configuration
+# SECURITY WARNING: These are placeholder values! 
+# For production, override with:
+# 1. External secrets (recommended): Set postgresql.auth.existingSecret and redis.auth.existingSecret
+# 2. CI/CD pipeline: Pass --set secrets.apiSecretKey=$(openssl rand -base64 32)
+# 3. Values file: Create a separate values-production.yaml with real secrets
+#
+# Generate strong secrets:
+#   API Key: node -e "console.log('godel_live_' + require('crypto').randomBytes(32).toString('hex'))"
+#   JWT Secret: openssl rand -base64 64
+#   DB Password: openssl rand -base64 32
 secrets:
-  apiSecretKey: "CHANGE_ME_IN_PRODUCTION"
-  jwtSecret: "CHANGE_ME_IN_PRODUCTION_64_CHARS_LONG"
-  databasePassword: "CHANGE_ME_IN_PRODUCTION"
-  redisPassword: "CHANGE_ME_IN_PRODUCTION"
+  apiSecretKey: "CHANGE_ME_IN_PRODUCTION_MIN_32_CHARS"
+  jwtSecret: "CHANGE_ME_IN_PRODUCTION_MIN_64_CHARS_LONG"
+  databasePassword: "CHANGE_ME_IN_PRODUCTION_DB"
+  redisPassword: "CHANGE_ME_IN_PRODUCTION_REDIS"
 
 # ConfigMap settings
 config:

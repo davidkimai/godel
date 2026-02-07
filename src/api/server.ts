@@ -12,7 +12,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { timingSafeEqual } from 'crypto';
 import { createServer, Server as HttpServer } from 'http';
-import { SwarmRepository } from '../storage/repositories/SwarmRepository';
+import { TeamRepository } from '../storage/repositories/TeamRepository';
 import { AgentRepository } from '../storage/repositories/AgentRepository';
 import { EventRepository } from '../storage/repositories/EventRepository';
 import {
@@ -38,7 +38,7 @@ export interface ServerConfig {
 }
 
 /**
- * Create server configuration from Dash config
+ * Create server configuration from Godel config
  */
 function createServerConfig(config: DashConfig): ServerConfig {
   // Generate secure API key if default is weak
@@ -303,7 +303,7 @@ async function validateCredentials(username: string, password: string): Promise<
 
 async function createApiRoutes() {
   const router = express.Router();
-  const swarmRepo = new SwarmRepository();
+  const swarmRepo = new TeamRepository();
   const agentRepo = new AgentRepository();
   const eventRepo = new EventRepository();
   await Promise.all([
@@ -332,31 +332,31 @@ async function createApiRoutes() {
     next();
   };
 
-  // Swarm endpoints
-  router.post('/swarm', csrfProtection, validators.createSwarm, asyncHandler(async (req: Request, res: Response) => {
+  // Team endpoints
+  router.post('/team', csrfProtection, validators.createTeam, asyncHandler(async (req: Request, res: Response) => {
     const { name, config } = req.body;
-    const swarm = await swarmRepo.create({ name, config, status: 'active' });
-    res.status(201).json(swarm);
+    const team = await swarmRepo.create({ name, config, status: 'active' });
+    res.status(201).json(team);
   }));
 
-  router.get('/swarm/:id', asyncHandler(async (req: Request, res: Response) => {
+  router.get('/team/:id', asyncHandler(async (req: Request, res: Response) => {
     const id = getIdParam(req);
-    let swarm;
+    let team;
     try {
-      swarm = await swarmRepo.findById(id);
+      team = await swarmRepo.findById(id);
     } catch (error) {
       if (isInvalidUuidError(error)) {
-        throw new APIError('Swarm not found', 404, 'NOT_FOUND');
+        throw new APIError('Team not found', 404, 'NOT_FOUND');
       }
       throw error;
     }
-    if (!swarm) {
-      throw new APIError('Swarm not found', 404, 'NOT_FOUND');
+    if (!team) {
+      throw new APIError('Team not found', 404, 'NOT_FOUND');
     }
-    res.json(swarm);
+    res.json(team);
   }));
 
-  router.delete('/swarm/:id', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
+  router.delete('/team/:id', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
     const id = getIdParam(req);
     await swarmRepo.delete(id);
     res.status(204).send();
@@ -370,12 +370,12 @@ async function createApiRoutes() {
 
   router.post('/agents', csrfProtection, asyncHandler(async (req: Request, res: Response) => {
     const body = (req.body || {}) as Record<string, unknown>;
-    const swarmId = body['swarm_id'] ?? body['swarmId'];
+    const teamId = body['team_id'] ?? body['teamId'];
     const task = body['task'];
     const model = body['model'];
 
-    if (typeof swarmId !== 'string' || swarmId.length === 0) {
-      throw new APIError('swarm_id (or swarmId) is required', 400, 'BAD_REQUEST');
+    if (typeof teamId !== 'string' || teamId.length === 0) {
+      throw new APIError('team_id (or teamId) is required', 400, 'BAD_REQUEST');
     }
     if (typeof task !== 'string' || task.trim().length === 0) {
       throw new APIError('task is required', 400, 'BAD_REQUEST');
@@ -386,7 +386,7 @@ async function createApiRoutes() {
 
     const agent = await agentRepo.create({
       ...body,
-      swarm_id: swarmId,
+      team_id: teamId,
       task,
       model,
       budget_limit: (body['budget_limit'] as number | undefined) ?? (body['budgetLimit'] as number | undefined),
@@ -456,7 +456,7 @@ async function createApiRoutes() {
       source: 'self-improvement',
       payload,
       agent_id: typeof payload['agentId'] === 'string' ? payload['agentId'] : undefined,
-      swarm_id: typeof payload['swarmId'] === 'string' ? payload['swarmId'] : undefined
+      team_id: typeof payload['teamId'] === 'string' ? payload['teamId'] : undefined
     });
     res.status(201).json(event);
   }));
@@ -471,7 +471,7 @@ export async function startServer(serverConfig?: Partial<ServerConfig>): Promise
 
   // Initialize database first
   const { getDb } = require('../storage/sqlite');
-  await getDb({ dbPath: './dash.db' });
+  await getDb({ dbPath: './godel.db' });
 
   const app = await createApp(cfg)();
   const server = createServer(app);

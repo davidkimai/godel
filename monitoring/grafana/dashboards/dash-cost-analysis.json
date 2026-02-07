@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "dash-cost-analysis",
-    "title": "Dash - Cost Analysis",
-    "tags": ["dash", "cost", "budget", "finance"],
+    "uid": "godel-cost-analysis",
+    "title": "Godel - Cost Analysis",
+    "tags": ["godel", "cost", "budget", "finance"],
     "timezone": "browser",
     "schemaVersion": 38,
     "refresh": "30s",
@@ -151,7 +151,7 @@
       },
       {
         "id": 7,
-        "title": "Cost by Swarm",
+        "title": "Cost by Team",
         "type": "piechart",
         "targets": [
           {
@@ -166,7 +166,7 @@
       },
       {
         "id": 8,
-        "title": "Budget Utilization by Swarm",
+        "title": "Budget Utilization by Team",
         "type": "bargauge",
         "targets": [
           {
@@ -252,7 +252,7 @@
       },
       {
         "id": 12,
-        "title": "Swarms Nearing Budget Limit",
+        "title": "Teams Nearing Budget Limit",
         "type": "table",
         "targets": [
           {
@@ -275,7 +275,7 @@
             "id": "organize",
             "options": {
               "renameByName": {
-                "swarm_id": "Swarm ID",
+                "swarm_id": "Team ID",
                 "Value #A": "Budget Used %",
                 "Value #B": "Cost (USD)"
               }
@@ -308,7 +308,7 @@
             "id": "organize",
             "options": {
               "renameByName": {
-                "swarm_id": "Swarm ID",
+                "swarm_id": "Team ID",
                 "Value": "Total Cost (USD)"
               }
             }

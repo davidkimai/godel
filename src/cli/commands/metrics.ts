@@ -2,17 +2,17 @@
  * Metrics Commands
  * 
  * Commands:
- * - swarmctl status - Overall system status
- * - swarmctl metrics [--format json] - Detailed metrics
- * - swarmctl health - Health check
- * - swarmctl config - Configuration management
+ * - godel status - Overall system status
+ * - godel metrics [--format json] - Detailed metrics
+ * - godel health - Health check
+ * - godel config - Configuration management
  */
 
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalClient } from '../lib/client';
-import { formatMetrics, type OutputFormat, formatOutput, formatSwarms, formatAgents, formatTasks } from '../lib/output';
-import { getGlobalSwarmManager } from '../../core/swarm';
+import { formatMetrics, type OutputFormat, formatOutput, formatTeams, formatAgents, formatTasks } from '../lib/output';
+import { getGlobalTeamManager } from '../../core/team';
 import { getGlobalLifecycle } from '../../core/lifecycle';
 import { getGlobalBus } from '../../bus/index';
 import { memoryStore, initDatabase } from '../../storage';
@@ -130,25 +130,25 @@ export function registerMetricsCommand(program: Command): void {
     });
 
   // ============================================================================
-  // metrics swarms
+  // metrics teams
   // ============================================================================
   metrics
-    .command('swarms')
-    .description('Show swarm metrics')
+    .command('teams')
+    .description('Show team metrics')
     .option('-f, --format <format>', 'Output format (table|json)', 'table')
     .action(async (options) => {
       try {
         const client = getGlobalClient();
 
-        // Get all swarms
-        const response = await client.listSwarms({ pageSize: 1000 });
+        // Get all teams
+        const response = await client.listTeams({ pageSize: 1000 });
 
         if (!response.success || !response.data) {
-          logger.error('❌ Failed to get swarms:', response.error?.message);
+          logger.error('❌ Failed to get teams:', response.error?.message);
           process.exit(1);
         }
 
-        const swarms = response.data.items;
+        const teams = response.data.items;
 
         // Calculate metrics
         const byStatus: Record<string, number> = {};
@@ -157,16 +157,16 @@ export function registerMetricsCommand(program: Command): void {
         let totalBudgetAllocated = 0;
         let totalBudgetConsumed = 0;
 
-        for (const swarm of swarms) {
-          byStatus[swarm.status] = (byStatus[swarm.status] || 0) + 1;
-          byStrategy[swarm.config.strategy] = (byStrategy[swarm.config.strategy] || 0) + 1;
-          totalAgents += swarm.agents.length;
-          totalBudgetAllocated += swarm.budget.allocated;
-          totalBudgetConsumed += swarm.budget.consumed;
+        for (const team of teams) {
+          byStatus[team.status] = (byStatus[team.status] || 0) + 1;
+          byStrategy[team.config.strategy] = (byStrategy[team.config.strategy] || 0) + 1;
+          totalAgents += team.agents.length;
+          totalBudgetAllocated += team.budget.allocated;
+          totalBudgetConsumed += team.budget.consumed;
         }
 
         const metrics = {
-          totalSwarms: swarms.length,
+          totalTeams: teams.length,
           totalAgents,
           byStatus,
           byStrategy,
@@ -180,8 +180,8 @@ export function registerMetricsCommand(program: Command): void {
           return;
         }
 
-        logger.info('📊 Swarm Metrics\n');
-        logger.info(`  Total Swarms: ${metrics.totalSwarms}`);
+        logger.info('📊 Team Metrics\n');
+        logger.info(`  Total Teams: ${metrics.totalTeams}`);
         logger.info(`  Total Agents: ${metrics.totalAgents}`);
         
         if (totalBudgetAllocated > 0) {
@@ -196,7 +196,7 @@ export function registerMetricsCommand(program: Command): void {
         if (Object.keys(byStatus).length > 0) {
           logger.info('\n  By Status:');
           for (const [status, count] of Object.entries(byStatus).sort((a, b) => b[1] - a[1])) {
-            const emoji = getSwarmEmoji(status);
+            const emoji = getTeamEmoji(status);
             logger.info(`    ${emoji} ${status.padEnd(12)} ${String(count).padStart(4)}`);
           }
         }
@@ -209,7 +209,7 @@ export function registerMetricsCommand(program: Command): void {
         }
 
       } catch (error) {
-        logger.error('❌ Failed to get swarm metrics:', error instanceof Error ? error.message : String(error));
+        logger.error('❌ Failed to get team metrics:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
@@ -225,10 +225,10 @@ export function registerStatusCommand(program: Command): void {
         const client = getGlobalClient();
 
         // Get all data
-        const [healthResponse, metricsResponse, swarmsResponse, agentsResponse] = await Promise.all([
+        const [healthResponse, metricsResponse, teamsResponse, agentsResponse] = await Promise.all([
           client.getHealth(),
           client.getMetrics(),
-          client.listSwarms({ pageSize: 100 }),
+          client.listTeams({ pageSize: 100 }),
           client.listAgents({ pageSize: 100 }),
         ]);
 
@@ -239,14 +239,14 @@ export function registerStatusCommand(program: Command): void {
 
         const health = healthResponse.data!;
         const metrics = metricsResponse.data!;
-        const swarms = swarmsResponse.success ? swarmsResponse.data!.items : [];
+        const teams = teamsResponse.success ? teamsResponse.data!.items : [];
         const agents = agentsResponse.success ? agentsResponse.data!.items : [];
 
         if (options.format === 'json') {
           logger.info(JSON.stringify({
             health,
             metrics,
-            swarms: swarms.slice(0, 10),
+            teams: teams.slice(0, 10),
             agents: agents.slice(0, 10),
           }, null, 2));
           return;
@@ -273,19 +273,19 @@ export function registerStatusCommand(program: Command): void {
 
         // Quick stats
         logger.info('\n  Quick Stats:');
-        logger.info(`    🐝 Swarms:  ${swarms.length} (${swarms.filter(s => s.status === 'active').length} active)`);
+        logger.info(`    🐝 Teams:  ${teams.length} (${teams.filter(s => s.status === 'active').length} active)`);
         logger.info(`    🤖 Agents:  ${agents.length} (${agents.filter(a => a.status === 'running').length} running)`);
         logger.info(`    ✅ Success: ${(metrics.successRate * 100).toFixed(1)}%`);
 
         // Recent activity
-        if (swarms.length > 0) {
-          logger.info('\n  Recent Swarms:');
-          const recentSwarms = swarms
+        if (teams.length > 0) {
+          logger.info('\n  Recent Teams:');
+          const recentTeams = teams
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
             .slice(0, 3);
           
-          for (const swarm of recentSwarms) {
-            logger.info(`    • ${swarm.name} (${swarm.agents.length} agents, ${swarm.status})`);
+          for (const team of recentTeams) {
+            logger.info(`    • ${team.name} (${team.agents.length} agents, ${team.status})`);
           }
         }
 
@@ -440,7 +440,7 @@ function getStatusEmoji(status: string): string {
   return emojiMap[status] || '❓';
 }
 
-function getSwarmEmoji(status: string): string {
+function getTeamEmoji(status: string): string {
   const emojiMap: Record<string, string> = {
     creating: '🔄',
     active: '✅',

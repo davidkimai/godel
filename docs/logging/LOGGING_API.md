@@ -1,6 +1,6 @@
 # Logging API Reference
 
-Complete API documentation for the Dash structured logging module.
+Complete API documentation for the Godel structured logging module.
 
 ## Classes
 
@@ -260,7 +260,7 @@ setGlobalLogger(new StructuredLogger({ service: 'my-service' }));
 Create a logger for a specific agent.
 
 ```typescript
-const logger = createAgentLogger('agent-123', 'swarm-456');
+const logger = createAgentLogger('agent-123', 'team-456');
 ```
 
 ### createRequestLogger(requestId: string, userId?: string, options?: LoggerOptions): StructuredLogger
@@ -442,5 +442,5 @@ console.log(DEFAULT_ERROR_PATTERNS.map(p => p.name));
 |----------|------|---------|-------------|
 | `LOG_LEVEL` | string | `info` | Global log level |
 | `DASH_LOG_LEVEL` | string | `info` | Alternative log level |
-| `DASH_SERVICE_NAME` | string | `dash` | Service identifier |
+| `DASH_SERVICE_NAME` | string | `godel` | Service identifier |
 | `NODE_ENV` | string | - | Controls prettyPrint default |

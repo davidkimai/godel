@@ -33,7 +33,7 @@ export interface BaseAgentEvent {
   type: AgentEventType;
   timestamp: number;
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   sessionId?: string;
   correlationId?: string;
   parentEventId?: string;
@@ -188,7 +188,7 @@ export class AgentEventBus extends EventEmitter {
   }
 
   private setupPersistence(): void {
-    const eventsDir = this.config.eventsDir || join(process.cwd(), '.dash', 'events');
+    const eventsDir = this.config.eventsDir || join(process.cwd(), '.godel', 'events');
     
     if (!existsSync(eventsDir)) {
       mkdirSync(eventsDir, { recursive: true });
@@ -326,10 +326,10 @@ export class AgentEventBus extends EventEmitter {
   }
 
   /**
-   * Create a scoped event bus for a specific agent/swarm
+   * Create a scoped event bus for a specific agent/team
    */
-  createScopedBus(agentId: string, swarmId?: string, sessionId?: string): ScopedEventBus {
-    return new ScopedEventBus(this, agentId, swarmId, sessionId);
+  createScopedBus(agentId: string, teamId?: string, sessionId?: string): ScopedEventBus {
+    return new ScopedEventBus(this, agentId, teamId, sessionId);
   }
 
   /**
@@ -345,7 +345,7 @@ export class AgentEventBus extends EventEmitter {
   getEvents(filter: {
     types?: AgentEventType[];
     agentId?: string;
-    swarmId?: string;
+    teamId?: string;
     sessionId?: string;
     since?: number;
     until?: number;
@@ -353,7 +353,7 @@ export class AgentEventBus extends EventEmitter {
     return this.eventLog.filter(event => {
       if (filter.types && !filter.types.includes(event.type)) return false;
       if (filter.agentId && event.agentId !== filter.agentId) return false;
-      if (filter.swarmId && event.swarmId !== filter.swarmId) return false;
+      if (filter.teamId && event.teamId !== filter.teamId) return false;
       if (filter.sessionId && event.sessionId !== filter.sessionId) return false;
       if (filter.since && event.timestamp < filter.since) return false;
       if (filter.until && event.timestamp > filter.until) return false;
@@ -384,14 +384,14 @@ export class AgentEventBus extends EventEmitter {
 }
 
 // ============================================================================
-// Scoped Event Bus - Pre-configured with agent/swarm/session context
+// Scoped Event Bus - Pre-configured with agent/team/session context
 // ============================================================================
 
 export class ScopedEventBus {
   constructor(
     private bus: AgentEventBus,
     private agentId: string,
-    private swarmId?: string,
+    private teamId?: string,
     private sessionId?: string
   ) {}
 
@@ -400,7 +400,7 @@ export class ScopedEventBus {
       id: `evt_${randomUUID().slice(0, 8)}`,
       timestamp: Date.now(),
       agentId: this.agentId,
-      swarmId: this.swarmId,
+      teamId: this.teamId,
       sessionId: this.sessionId,
     };
   }

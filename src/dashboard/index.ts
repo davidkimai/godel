@@ -17,7 +17,7 @@ export type {
 } from './server';
 
 // Re-export hooks for React UI
-export { useWebSocket, useAgentStatus, useBudget, useEventStream, useSwarmStatus } from './hooks/useWebSocket';
+export { useWebSocket, useAgentStatus, useBudget, useEventStream, useTeamStatus } from './hooks/useWebSocket';
 export type { UseWebSocketOptions, UseWebSocketReturn } from './hooks/useWebSocket';
 
 // Legacy components (for terminal UI)

@@ -1,7 +1,7 @@
 /**
- * Dash Recovery System
+ * Godel Recovery System
  * 
- * Provides self-healing capabilities for the Dash orchestrator:
+ * Provides self-healing capabilities for the Godel orchestrator:
  * - Checkpoint system for periodic state snapshots
  * - Circuit breaker pattern for external service protection
  * - Self-healing controller for automatic failure recovery
@@ -19,7 +19,7 @@
  * // Register an agent for recovery
  * recovery.registerAgent({
  *   getAgentId: () => 'agent-123',
- *   getSwarmId: () => 'swarm-456',
+ *   getTeamId: () => 'team-456',
  *   isHealthy: async () => checkHealth(),
  *   restart: async () => restartAgent(),
  *   restoreFromCheckpoint: async (data) => restoreAgent(data),

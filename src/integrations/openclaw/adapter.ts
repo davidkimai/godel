@@ -2,7 +2,7 @@
  * OpenClaw Adapter
  * 
  * Translates OpenClaw protocol to Godel API, enabling OpenClaw to use
- * Godel as its native orchestration platform for agent swarms.
+ * Godel as its native orchestration platform for agent teams.
  * 
  * @module integrations/openclaw/adapter
  */
@@ -55,8 +55,8 @@ export interface SpawnAgentResult {
   dashAgentId: string;
   /** Initial status */
   status: string;
-  /** Swarm ID if created */
-  swarmId?: string;
+  /** Team ID if created */
+  teamId?: string;
 }
 
 export interface AgentStatus {
@@ -94,7 +94,7 @@ export interface ActiveAgent {
 /**
  * OpenClaw Adapter - Protocol translation layer
  *
- * Maps OpenClaw sessions to Godel agents and swarms, enabling
+ * Maps OpenClaw sessions to Godel agents and teams, enabling
  * bidirectional communication between OpenClaw and Godel.
  */
 export class OpenClawAdapter extends EventEmitter {
@@ -106,8 +106,8 @@ export class OpenClawAdapter extends EventEmitter {
   private agentIdMap: Map<string, string>;
   /** Maps Godel agent IDs to OpenClaw session keys */
   private sessionKeyMap: Map<string, string>;
-  /** Maps OpenClaw session keys to swarm IDs */
-  private swarmIdMap: Map<string, string>;
+  /** Maps OpenClaw session keys to team IDs */
+  private teamIdMap: Map<string, string>;
   /** Tracks agent metadata */
   private agentMetadata: Map<string, { agentType: string; createdAt: Date }>;
   /** Event forwarding handlers */
@@ -121,7 +121,7 @@ export class OpenClawAdapter extends EventEmitter {
 
     this.agentIdMap = new Map();
     this.sessionKeyMap = new Map();
-    this.swarmIdMap = new Map();
+    this.teamIdMap = new Map();
     this.agentMetadata = new Map();
     this.eventHandlers = new Map();
 
@@ -138,7 +138,7 @@ export class OpenClawAdapter extends EventEmitter {
   /**
    * Spawn an agent in Godel from OpenClaw session
    *
-   * Creates a swarm and spawns an agent within it, mapping the OpenClaw
+   * Creates a team and spawns an agent within it, mapping the OpenClaw
    * session key to the Godel agent ID for future operations.
    */
   async spawnAgent(
@@ -151,8 +151,8 @@ export class OpenClawAdapter extends EventEmitter {
     });
 
     try {
-      // Create a swarm for this agent
-      const swarmResult = await this.client.createSwarm({
+      // Create a team for this agent
+      const swarmResult = await this.client.createTeam({
         name: `openclaw-${openclawSessionKey}`,
         task: options.task,
         initialAgents: 1,
@@ -167,27 +167,27 @@ export class OpenClawAdapter extends EventEmitter {
 
       if (!swarmResult.success || !swarmResult.data) {
         throw new ApplicationError(
-          'Failed to create swarm',
-          DashErrorCode.SWARM_CREATE_FAILED,
+          'Failed to create team',
+          DashErrorCode.TEAM_CREATE_FAILED,
           500,
           { error: swarmResult.error }
         );
       }
 
-      const swarmId = swarmResult.data.id;
-      this.swarmIdMap.set(openclawSessionKey, swarmId);
+      const teamId = swarmResult.data.id;
+      this.teamIdMap.set(openclawSessionKey, teamId);
 
-      // Spawn agent in the swarm
+      // Spawn agent in the team
       const agentResult = await this.client.spawnAgent({
         label: `openclaw-agent-${Date.now()}`,
         model: options.model,
         task: options.task,
-        swarmId,
+        teamId,
       });
 
       if (!agentResult.success || !agentResult.data) {
-        // Clean up swarm if agent spawn failed
-        await this.client.destroySwarm(swarmId, true);
+        // Clean up team if agent spawn failed
+        await this.client.destroyTeam(teamId, true);
         throw new ApplicationError(
           'Failed to spawn agent',
           DashErrorCode.AGENT_SPAWN_FAILED,
@@ -215,7 +215,7 @@ export class OpenClawAdapter extends EventEmitter {
         godelAgentId: dashAgentId,
         dashAgentId, // backward compatibility
         status: agentResult.data.status,
-        swarmId,
+        teamId,
       };
     } catch (error) {
       logger.error('[OpenClawAdapter] Failed to spawn agent:', error);
@@ -260,7 +260,7 @@ export class OpenClawAdapter extends EventEmitter {
    */
   async killAgent(openclawSessionKey: string, force = false): Promise<void> {
     const dashAgentId = this.agentIdMap.get(openclawSessionKey);
-    const swarmId = this.swarmIdMap.get(openclawSessionKey);
+    const teamId = this.teamIdMap.get(openclawSessionKey);
 
     if (!dashAgentId) {
       logger.warn(`[OpenClawAdapter] No agent to kill for session ${openclawSessionKey}`);
@@ -279,9 +279,9 @@ export class OpenClawAdapter extends EventEmitter {
         logger.warn(`[OpenClawAdapter] Kill agent returned error:`, result?.error);
       }
 
-      // Clean up swarm if exists
-      if (swarmId) {
-        await this.client.destroySwarm(swarmId, forceArg);
+      // Clean up team if exists
+      if (teamId) {
+        await this.client.destroyTeam(teamId, forceArg);
       }
 
       // Clean up event forwarding
@@ -290,7 +290,7 @@ export class OpenClawAdapter extends EventEmitter {
       // Remove mappings
       this.agentIdMap.delete(openclawSessionKey);
       this.sessionKeyMap.delete(dashAgentId);
-      this.swarmIdMap.delete(openclawSessionKey);
+      this.teamIdMap.delete(openclawSessionKey);
       this.agentMetadata.delete(openclawSessionKey);
 
       logger.info(`[OpenClawAdapter] Agent ${dashAgentId} killed successfully`);
@@ -456,7 +456,7 @@ export class OpenClawAdapter extends EventEmitter {
     };
 
     return {
-      source: 'dash',
+      source: 'godel',
       type: (msg.payload?.['eventType'] as string) || 'agent.update',
       timestamp: msg.timestamp || new Date(),
       sessionKey: openclawSessionKey,
@@ -500,12 +500,12 @@ export class OpenClawAdapter extends EventEmitter {
   getStats(): {
     activeSessions: number;
     activeAgents: number;
-    activeSwarms: number;
+    activeTeams: number;
   } {
     return {
       activeSessions: this.agentIdMap.size,
       activeAgents: this.sessionKeyMap.size,
-      activeSwarms: this.swarmIdMap.size,
+      activeTeams: this.teamIdMap.size,
     };
   }
 
@@ -533,7 +533,7 @@ export class OpenClawAdapter extends EventEmitter {
     // Clear all maps
     this.agentIdMap.clear();
     this.sessionKeyMap.clear();
-    this.swarmIdMap.clear();
+    this.teamIdMap.clear();
     this.agentMetadata.clear();
     this.eventHandlers.clear();
 
@@ -547,7 +547,7 @@ export class OpenClawAdapter extends EventEmitter {
 
 export interface OpenClawEvent {
   /** Event source */
-  source: 'dash';
+  source: 'godel';
   /** Event type */
   type: string;
   /** Event timestamp */

@@ -38,13 +38,13 @@ Features:
 - ✅ `createManyAtomic()` - All-or-nothing batch creation
 - ✅ Status transition validation (pending→running→completed, etc.)
 
-### 3. Enhanced Swarm Repository
+### 3. Enhanced Team Repository
 **File:** `src/storage/repositories/SwarmRepositoryEnhanced.ts` (14,376 bytes)
 
 Features:
-- ✅ `findByIdWithVersion()` - Get swarm with version for locking
-- ✅ `updateWithLock()` - Optimistic locking for swarm updates
-- ✅ `updateStatusWithLock()` - Safe swarm status transitions
+- ✅ `findByIdWithVersion()` - Get team with version for locking
+- ✅ `updateWithLock()` - Optimistic locking for team updates
+- ✅ `updateStatusWithLock()` - Safe team status transitions
 - ✅ `incrementAgentCount()` - Atomic agent count increment
 - ✅ `decrementAgentCount()` - Atomic agent count decrement
 - ✅ `deleteWithAgents()` - Transactional delete with cascade
@@ -56,13 +56,13 @@ Features:
 
 Schema changes:
 - `agents.version` - Optimistic locking version (INTEGER DEFAULT 0)
-- `swarms.version` - Optimistic locking version (INTEGER DEFAULT 0)
+- `teams.version` - Optimistic locking version (INTEGER DEFAULT 0)
 - `agents.updated_at` - Auto-updating timestamp
-- `swarms.updated_at` - Auto-updating timestamp
-- `swarms.total_agents` - Cached agent count
-- `swarms.running_agents` - Cached running count
-- `swarms.completed_agents` - Cached completed count
-- `swarms.failed_agents` - Cached failed count
+- `teams.updated_at` - Auto-updating timestamp
+- `teams.total_agents` - Cached agent count
+- `teams.running_agents` - Cached running count
+- `teams.completed_agents` - Cached completed count
+- `teams.failed_agents` - Cached failed count
 - Indexes on (id, version) for efficient lookups
 - Triggers for auto-updating timestamps
 
@@ -231,7 +231,7 @@ await repo.updateStatusBatch([
 
 1. **Deploy Migration**
    ```bash
-   psql -d dash -f migrations/005_add_version_columns.sql
+   psql -d godel -f migrations/005_add_version_columns.sql
    ```
 
 2. **Migrate Existing Code**
@@ -246,7 +246,7 @@ await repo.updateStatusBatch([
 
 ## Report
 
-**Summary:** Transactions audited across the Godel codebase. Identified 5 high-risk race condition patterns. Implemented TransactionManager with optimistic locking, savepoint support, and atomic operations. Created enhanced repositories with version-based conflict detection. Added comprehensive test suite with 50 concurrent operation stress tests. Database migration adds version columns to agents and swarms tables.
+**Summary:** Transactions audited across the Godel codebase. Identified 5 high-risk race condition patterns. Implemented TransactionManager with optimistic locking, savepoint support, and atomic operations. Created enhanced repositories with version-based conflict detection. Added comprehensive test suite with 50 concurrent operation stress tests. Database migration adds version columns to agents and teams tables.
 
 **Status:** ✅ COMPLETE
 

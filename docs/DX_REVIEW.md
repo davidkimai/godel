@@ -11,7 +11,7 @@
 
 **Overall DX Score: 5.5/10**
 
-Dash has a solid technical foundation with excellent observability and enterprise features, but **critical DX elements are missing** that prevent external developers from effectively using the platform.
+Godel has a solid technical foundation with excellent observability and enterprise features, but **critical DX elements are missing** that prevent external developers from effectively using the platform.
 
 **Status: 🔴 NOT USABLE by external developers**
 
@@ -84,7 +84,7 @@ const API_BASE = '/api';  // Dashboard expects API
 **Current State:** No examples/ directory
 
 **Required:**
-- Basic swarm creation
+- Basic team creation
 - Agent lifecycle management
 - Event streaming
 - Task queue usage
@@ -213,7 +213,7 @@ DASH_DB_URL=postgresql://...
 
 ### Required
 ```yaml
-# config/dash.yaml
+# config/godel.yaml
 server:
   port: 7373
   host: 0.0.0.0
@@ -260,7 +260,7 @@ No standardized error codes for programmatic handling.
     code: 'AGENT_NOT_FOUND',
     message: 'Agent agent-xyz not found',
     details: { agentId: 'agent-xyz' },
-    help: 'https://docs.dash.dev/errors/AGENT_NOT_FOUND'
+    help: 'https://docs.godel.dev/errors/AGENT_NOT_FOUND'
   }
 }
 ```
@@ -276,28 +276,28 @@ See `docs/BEST_IN_CLASS_COMPARISON.md` for detailed comparison.
 - ✅ Great workflow documentation
 - ❌ Complex for simple use cases
 
-**Dash Gap:** No quickstart, no workflow docs
+**Godel Gap:** No quickstart, no workflow docs
 
 ### Stripe
 - ✅ Perfect API design
 - ✅ Excellent error messages
 - ✅ Comprehensive examples
 
-**Dash Gap:** No REST API, inconsistent errors, no examples
+**Godel Gap:** No REST API, inconsistent errors, no examples
 
 ### Docker
 - ✅ Intuitive CLI
 - ✅ Great documentation
 - ✅ Extensive examples
 
-**Dash Gap:** No CLI, poor documentation
+**Godel Gap:** No CLI, poor documentation
 
 ### Grafana
 - ✅ Excellent documentation
 - ✅ Great observability
 - ✅ Active community
 
-**Dash Gap:** Documentation incomplete
+**Godel Gap:** Documentation incomplete
 
 ---
 
@@ -318,7 +318,7 @@ See `docs/BEST_IN_CLASS_COMPARISON.md` for detailed comparison.
 ### Phase 3: Medium Priority (2 weeks)
 9. Create API documentation
 10. Add troubleshooting guide
-11. Create SDK (@dash/client)
+11. Create SDK (@godel/client)
 12. Add integration examples
 
 ### Phase 4: Polish (2 weeks)
@@ -333,7 +333,7 @@ See `docs/BEST_IN_CLASS_COMPARISON.md` for detailed comparison.
 
 ## Conclusion
 
-Dash has excellent technical foundations but **critical DX elements are missing** that prevent external developers from using the platform effectively.
+Godel has excellent technical foundations but **critical DX elements are missing** that prevent external developers from using the platform effectively.
 
 **Current State:** 5.5/10 - Not usable by external developers
 **Target State:** 8-9/10 - Excellent DX comparable to Stripe/Temporal

@@ -1,4 +1,4 @@
-# Dash + OpenClaw Meta-Orchestrator Architecture Specification
+# Godel + OpenClaw Meta-Orchestrator Architecture Specification
 
 **Version:** 1.0  
 **Date:** 2026-02-05  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-This specification defines Dash as a **meta-orchestrator** layer that coordinates **10-50+ OpenClaw instances** simultaneously. This 2-layer architecture enables:
+This specification defines Godel as a **meta-orchestrator** layer that coordinates **10-50+ OpenClaw instances** simultaneously. This 2-layer architecture enables:
 - **Massive horizontal scaling** of agent workloads across isolated OpenClaw instances
 - **Multi-tenant federations** with hundreds of workspaces
 - **Geographic distribution** across regions and cloud providers
@@ -22,7 +22,7 @@ This specification defines Dash as a **meta-orchestrator** layer that coordinate
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                          DASH (Meta-Orchestrator)                        │
+│                          GODEL (Meta-Orchestrator)                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
 │  │ Task Router  │  │ Federation   │  │ Lifecycle    │  │ Observ-    │ │
 │  │ & Dispatcher  │  │ Controller   │  │ Manager      │  │ ability    │ │
@@ -53,16 +53,16 @@ This specification defines Dash as a **meta-orchestrator** layer that coordinate
 | Principle | Description | Implementation |
 |-----------|-------------|-----------------|
 | **Isolation** | Each OpenClaw instance is fully isolated | Git worktrees + separate processes |
-| **Federation** | Unified management across instances | Dash as single control plane |
+| **Federation** | Unified management across instances | Godel as single control plane |
 | **Observability** | End-to-end tracing across layers | OpenTelemetry + correlation IDs |
 | **Fault Tolerance** | Instance failures don't cascade | Circuit breakers + retries |
-| **Scalability** | Linear scaling with instances | Stateless Dash + stateful OpenClaws |
+| **Scalability** | Linear scaling with instances | Stateless Godel + stateful OpenClaws |
 
 ---
 
 ## 3. Component Specifications
 
-### 3.1 Dash Core Services
+### 3.1 Godel Core Services
 
 #### 3.1.1 Task Router & Dispatcher
 
@@ -263,7 +263,7 @@ interface OpenClawInstanceConfig {
 ```protobuf
 syntax = "proto3";
 
-package dash;
+package godel;
 
 // Task dispatch message
 message TaskDispatch {
@@ -318,7 +318,7 @@ message StateSync {
 │       │                                                                 │
 │       ▼                                                                 │
 │  ┌───────────────────────────────────────────────────────────────┐     │
-│  │ Dash: Create root span, inject correlation ID                │     │
+│  │ Godel: Create root span, inject correlation ID                │     │
 │  │ span.setAttribute("tenant.id", task.tenantId)                 │     │
 │  │ span.setAttribute("workflow.id", task.workflowId)             │     │
 │  └────────────────────────┬──────────────────────────────────────┘     │
@@ -334,7 +334,7 @@ message StateSync {
 │                           │                                             │
 │                           ▼                                             │
 │  ┌───────────────────────────────────────────────────────────────┐     │
-│  │ Dash: Aggregate spans, end root span                         │     │
+│  │ Godel: Aggregate spans, end root span                         │     │
 │  │ span.setAttribute("total_duration_ms", total)               │     │
 │  │ exportToOTLP(traces)                                        │     │
 │  └───────────────────────────────────────────────────────────────┘     │
@@ -346,11 +346,11 @@ message StateSync {
 
 | Metric | Source | Aggregation | Alert Threshold |
 |--------|--------|-------------|----------------|
-| task_queue_depth | Dash | gauge | > 1000 |
+| task_queue_depth | Godel | gauge | > 1000 |
 | task_execution_time | OpenClaw | histogram_p99 | > 30s |
 | instance_health | OpenClaw | gauge | < 0.9 |
-| cross_instance_latency | Dash | histogram_p95 | > 500ms |
-| federation_sync_ lag | Dash | gauge | > 5s |
+| cross_instance_latency | Godel | histogram_p95 | > 500ms |
+| federation_sync_ lag | Godel | gauge | > 5s |
 
 ### 5.3 Logging Standard
 
@@ -359,7 +359,7 @@ message StateSync {
 {
   "timestamp": "2026-02-05T15:30:00Z",
   "level": "INFO",
-  "service": "dash-router",
+  "service": "godel-router",
   "instance_id": "oc-001",
   "tenant_id": "tenant-abc",
   "correlation_id": "corr-xyz-123",
@@ -383,7 +383,7 @@ message StateSync {
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  ┌─────────┐      ┌─────────┐      ┌─────────┐      ┌─────────┐        │
-│  │ Client  │─────▶│  Dash   │─────▶│ OpenClaw│─────▶│  LLM    │        │
+│  │ Client  │─────▶│  Godel   │─────▶│ OpenClaw│─────▶│  LLM    │        │
 │  │         │      │ Auth    │      │ Gateway  │      │ Provider │        │
 │  └────┬────┘      └────┬────┘      └────┬────┘      └─────────┘        │
 │       │                 │                 │                                │
@@ -421,8 +421,8 @@ message StateSync {
 ```yaml
 # docker-compose.yml
 services:
-  dash-controller:
-    image: dash:v2.0
+  godel-controller:
+    image: godel:v2.0
     ports:
       - "7373:7373"  # REST API
       - "7374:7374"  # gRPC
@@ -448,7 +448,7 @@ services:
       - ./workspaces:/workspaces
     environment:
       - OPENCLAW_MODE=worker
-      - DASH_CONTROLLER_URL=dash-controller:7374
+      - DASH_CONTROLLER_URL=godel-controller:7374
     deploy:
       replicas: 5
       resources:
@@ -461,7 +461,7 @@ services:
 
 | Component | Scaling Trigger | Action |
 |-----------|---------------|--------|
-| Dash Controller | API latency > 100ms p99 | Add controller replica |
+| Godel Controller | API latency > 100ms p99 | Add controller replica |
 | OpenClaw Instance | Queue depth > 100 | Start new instance |
 | Agent Worker | Active sessions > 50/instance | Scale horizontally |
 | Database | Connection pool > 80% | Add read replica |
@@ -475,7 +475,7 @@ services:
 | Failure | Impact | Recovery | RTO |
 |---------|--------|----------|-----|
 | OpenClaw instance crash | Tasks lost, reconnects needed | Reroute to healthy instance | < 30s |
-| Dash controller failure | API unavailable | Hot standby takeover | < 5s |
+| Godel controller failure | API unavailable | Hot standby takeover | < 5s |
 | Network partition | Partial routing | Quorum-based routing | < 10s |
 | Database unavailability | State lost | Replica promotion | < 60s |
 
@@ -523,12 +523,12 @@ const circuitBreakerConfig = {
 
 | Event | Direction | Payload |
 |-------|-----------|---------|
-| task.submitted | Client → Dash | `{ taskId, status: 'queued' }` |
-| task.started | Dash → Client | `{ taskId, instanceId }` |
-| task.progress | OpenClaw → Dash → Client | `{ taskId, progress: 50, message: '...' }` |
-| task.completed | OpenClaw → Dash → Client | `{ taskId, result: {...} }` |
-| task.failed | OpenClaw → Dash → Client | `{ taskId, error: '...' }` |
-| instance.unhealthy | OpenClaw → Dash | `{ instanceId, reason: '...' }` |
+| task.submitted | Client → Godel | `{ taskId, status: 'queued' }` |
+| task.started | Godel → Client | `{ taskId, instanceId }` |
+| task.progress | OpenClaw → Godel → Client | `{ taskId, progress: 50, message: '...' }` |
+| task.completed | OpenClaw → Godel → Client | `{ taskId, result: {...} }` |
+| task.failed | OpenClaw → Godel → Client | `{ taskId, error: '...' }` |
+| instance.unhealthy | OpenClaw → Godel | `{ instanceId, reason: '...' }` |
 
 ---
 
@@ -536,13 +536,13 @@ const circuitBreakerConfig = {
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| Task submission latency | < 50ms p99 | From client to Dash queue |
+| Task submission latency | < 50ms p99 | From client to Godel queue |
 | Task routing throughput | **10,000+ QPS** | With 50 OpenClaw instances |
-| Cross-instance routing | < 20ms p95 | Dash → OpenClaw (same region) |
+| Cross-instance routing | < 20ms p95 | Godel → OpenClaw (same region) |
 | Global state sync | < 2s p99 | Between instances |
 | API availability | 99.99% | Uptime SLA |
 | Recovery time objective | < 10s | After instance failure |
-| OpenClaw instances | **10-50+** | Per Dash deployment |
+| OpenClaw instances | **10-50+** | Per Godel deployment |
 | Tasks/minute per OpenClaw | 500+ | Sustained throughput |
 
 ---
@@ -550,7 +550,7 @@ const circuitBreakerConfig = {
 ## 11. Implementation Phases
 
 ### Phase 1: Foundation (Weeks 1-2)
-- [ ] Dash controller with REST API
+- [ ] Godel controller with REST API
 - [ ] Single OpenClaw instance registration
 - [ ] Basic task routing (least-loaded)
 - [ ] Health checking
@@ -597,8 +597,8 @@ const circuitBreakerConfig = {
 
 ### Internal
 - OpenClaw Architecture: `docs.openclaw.ai`
-- Dash ARCHITECTURE.md
-- Dash README.md
+- Godel ARCHITECTURE.md
+- Godel README.md
 
 ### External Best Practices
 - Kubernetes Federation patterns (KubeAdmiral, OCM)
@@ -607,6 +607,6 @@ const circuitBreakerConfig = {
 
 ---
 
-**Document Owner:** Dash Engineering Team  
+**Document Owner:** Godel Engineering Team  
 **Next Review:** 2026-02-12  
 **Version History:** 1.0 (Initial Draft)

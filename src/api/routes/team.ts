@@ -2,47 +2,47 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { z } from 'zod';
 import { validateRequest, validateParams, NotFoundError } from '../../validation';
 import {
-  createSwarmSchema,
-  updateSwarmSchema,
-  swarmActionSchema,
+  createTeamSchema,
+  updateTeamSchema,
+  teamActionSchema,
   idSchema,
-  type CreateSwarmInput,
-  type UpdateSwarmInput,
-  type SwarmActionInput,
+  type CreateTeamInput,
+  type UpdateTeamInput,
+  type TeamActionInput,
 } from '../../validation/schemas';
-import { SwarmRepository } from '../../storage/repositories/SwarmRepository';
+import { TeamRepository } from '../../storage/repositories/TeamRepository';
 import { AgentRepository } from '../../storage/repositories/AgentRepository';
 
 const router = Router();
 
-// GET /api/swarm - List swarms
+// GET /api/team - List teams
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const repo = new SwarmRepository();
-    const swarms = await repo.list();
-    res.json({ swarms });
+    const repo = new TeamRepository();
+    const teams = await repo.list();
+    res.json({ teams });
   } catch (error) {
     next(error);
   }
 });
 
-// GET /api/swarm/:id - Get swarm by ID
+// GET /api/team/:id - Get team by ID
 router.get('/:id', validateParams(z.object({ id: idSchema })), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const repo = new SwarmRepository();
-    const swarm = await repo.findById(id as string);
+    const repo = new TeamRepository();
+    const team = await repo.findById(id as string);
     
-    if (!swarm) {
-      throw new NotFoundError('Swarm', id as string);
+    if (!team) {
+      throw new NotFoundError('Team', id as string);
     }
     
     // Get agent count
     const agentRepo = new AgentRepository();
-    const agents = await agentRepo.findBySwarmId(id as string);
+    const agents = await agentRepo.findByTeamId(id as string);
     
     res.json({
-      ...swarm,
+      ...team,
       agentCount: agents.length,
       agents: agents.map(a => ({ id: a.id, status: a.status })),
     });
@@ -51,13 +51,13 @@ router.get('/:id', validateParams(z.object({ id: idSchema })), async (req: Reque
   }
 });
 
-// POST /api/swarm - Create new swarm
-router.post('/', validateRequest(createSwarmSchema), async (req: Request, res: Response, next: NextFunction) => {
+// POST /api/team - Create new team
+router.post('/', validateRequest(createTeamSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = req.body as CreateSwarmInput;
-    const repo = new SwarmRepository();
+    const data = req.body as CreateTeamInput;
+    const repo = new TeamRepository();
     
-    const swarm = await repo.create({
+    const team = await repo.create({
       name: data.name,
       status: 'active',
       config: {
@@ -67,22 +67,22 @@ router.post('/', validateRequest(createSwarmSchema), async (req: Request, res: R
       },
     });
     
-    res.status(201).json(swarm);
+    res.status(201).json(team);
   } catch (error) {
     next(error);
   }
 });
 
-// PATCH /api/swarm/:id - Update swarm
-router.patch('/:id', validateParams(z.object({ id: idSchema })), validateRequest(updateSwarmSchema), async (req: Request, res: Response, next: NextFunction) => {
+// PATCH /api/team/:id - Update team
+router.patch('/:id', validateParams(z.object({ id: idSchema })), validateRequest(updateTeamSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const data = req.body as UpdateSwarmInput;
-    const repo = new SwarmRepository();
+    const data = req.body as UpdateTeamInput;
+    const repo = new TeamRepository();
     
     const existing = await repo.findById(id as string);
     if (!existing) {
-      throw new NotFoundError('Swarm', id as string);
+      throw new NotFoundError('Team', id as string);
     }
     
     const updated = await repo.update(id as string, {
@@ -97,25 +97,25 @@ router.patch('/:id', validateParams(z.object({ id: idSchema })), validateRequest
   }
 });
 
-// DELETE /api/swarm/:id - Destroy swarm
+// DELETE /api/team/:id - Destroy team
 router.delete('/:id', validateParams(z.object({ id: idSchema })), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const repo = new SwarmRepository();
+    const repo = new TeamRepository();
     const agentRepo = new AgentRepository();
     
     const existing = await repo.findById(id as string);
     if (!existing) {
-      throw new NotFoundError('Swarm', id as string);
+      throw new NotFoundError('Team', id as string);
     }
     
-    // Kill all agents in swarm first
-    const agents = await agentRepo.findBySwarmId(id as string);
+    // Kill all agents in team first
+    const agents = await agentRepo.findByTeamId(id as string);
     for (const agent of agents) {
       await agentRepo.updateStatus(agent.id, 'killed');
     }
     
-    // Delete swarm
+    // Delete team
     await repo.delete(id as string);
     
     res.status(204).send();
@@ -124,21 +124,21 @@ router.delete('/:id', validateParams(z.object({ id: idSchema })), async (req: Re
   }
 });
 
-// POST /api/swarm/:id/scale - Scale swarm
-router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRequest(swarmActionSchema), async (req: Request, res: Response, next: NextFunction) => {
+// POST /api/team/:id/scale - Scale team
+router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRequest(teamActionSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { targetAgents } = req.body as SwarmActionInput & { targetAgents: number };
+    const { targetAgents } = req.body as TeamActionInput & { targetAgents: number };
     
-    const repo = new SwarmRepository();
+    const repo = new TeamRepository();
     const agentRepo = new AgentRepository();
     
-    const swarm = await repo.findById(id as string);
-    if (!swarm) {
-      throw new NotFoundError('Swarm', id as string);
+    const team = await repo.findById(id as string);
+    if (!team) {
+      throw new NotFoundError('Team', id as string);
     }
     
-    const currentAgents = await agentRepo.findBySwarmId(id as string);
+    const currentAgents = await agentRepo.findByTeamId(id as string);
     const currentCount = currentAgents.length;
     
     const targetCount = targetAgents as number;
@@ -147,7 +147,7 @@ router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRe
       // Scale up - spawn new agents
       for (let i = currentCount; i < targetCount; i++) {
         await agentRepo.create({
-          swarm_id: id as string,
+          team_id: id as string,
           status: 'pending',
           model: 'gpt-4',
           task: 'Auto-scaled agent',
@@ -161,9 +161,9 @@ router.post('/:id/scale', validateParams(z.object({ id: idSchema })), validateRe
       }
     }
     
-    const updatedAgents = await agentRepo.findBySwarmId(id as string);
+    const updatedAgents = await agentRepo.findByTeamId(id as string);
     res.json({
-      swarmId: id as string,
+      teamId: id as string,
       previousCount: currentCount,
       newCount: updatedAgents.length,
       agents: updatedAgents,

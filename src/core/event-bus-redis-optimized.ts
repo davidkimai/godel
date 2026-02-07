@@ -92,8 +92,8 @@ export class OptimizedRedisEventBus extends EventEmitter {
     this.config = {
       nodeId: this.nodeId,
       redisUrl: config.redisUrl || process.env['REDIS_URL'] || 'redis://localhost:6379/0',
-      streamKey: config.streamKey || 'dash:events',
-      consumerGroup: config.consumerGroup || 'dash:consumers',
+      streamKey: config.streamKey || 'godel:events',
+      consumerGroup: config.consumerGroup || 'godel:consumers',
       compressionThreshold: config.compressionThreshold || 1024,
       maxStreamLength: config.maxStreamLength || 100000,
       maxBatchSize: config.maxBatchSize || 100,
@@ -154,7 +154,7 @@ export class OptimizedRedisEventBus extends EventEmitter {
     payload?: unknown;
     timestamp?: number;
     agentId?: string;
-    swarmId?: string;
+    teamId?: string;
     [key: string]: unknown;
   }): Promise<void> {
     const fullEvent = {
@@ -246,7 +246,7 @@ export class OptimizedRedisEventBus extends EventEmitter {
   private async setupSubscriber(): Promise<void> {
     if (!this.subscriber) return;
 
-    await this.subscriber.subscribe('dash:events:realtime');
+    await this.subscriber.subscribe('godel:events:realtime');
 
     this.subscriber.on('message', async (channel, message) => {
       try {
@@ -354,7 +354,7 @@ export class OptimizedRedisEventBus extends EventEmitter {
       await this.pool.withConnection(async (redis) => {
         // Publish to pub/sub for real-time
         await redis.publish(
-          'dash:events:realtime',
+          'godel:events:realtime',
           JSON.stringify({
             type,
             batch: true,

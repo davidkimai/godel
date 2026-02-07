@@ -9,6 +9,12 @@
 
 import type { GodelEvent, ProjectionHandler } from '../event-replay';
 import type { PostgresPool } from '../../storage/postgres/pool';
+import { createLogger } from '../../utils/logger';
+
+/**
+ * Module logger
+ */
+const log = createLogger('agent-read-model');
 
 // ============================================================================
 // Type Definitions
@@ -560,7 +566,7 @@ export class AgentReadModel implements ProjectionHandler {
       );
     } catch (error) {
       // Log but don't fail - in-memory state is primary
-      console.warn(`Failed to persist agent view ${view.id}:`, error);
+      log.warn('Failed to persist agent view', { viewId: view.id, error: (error as Error).message });
     }
   }
 }

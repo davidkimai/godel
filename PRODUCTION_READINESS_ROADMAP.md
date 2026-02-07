@@ -89,7 +89,7 @@ godel do "Add OAuth2 login with Google, ensure CSRF protection"
 **Deliverable:** `src/cli/intent/parser.ts` with 90%+ parsing accuracy
 
 ### 2.2 Intent Execution Engine
-**Goal:** Transform parsed intents into agent swarms
+**Goal:** Transform parsed intents into agent teams
 
 #### Tasks:
 - [ ] 2.2.1 Create `IntentExecutor` class
@@ -102,7 +102,7 @@ godel do "Add OAuth2 login with Google, ensure CSRF protection"
 - [ ] 2.2.4 Implement dependency detection (package installation, migrations)
 - [ ] 2.2.5 Add progress streaming to CLI
 
-**Deliverable:** `src/cli/intent/executor.ts` with working swarm orchestration
+**Deliverable:** `src/cli/intent/executor.ts` with working team orchestration
 
 ### 2.3 "godel do" Command Implementation
 **Goal:** Main user-facing command
@@ -157,16 +157,16 @@ godel do "Deploy to production" --require-approval
 
 #### Views to Implement:
 - [ ] 3.2.1 **Overview Dashboard**
-  - Active swarms count
+  - Active teams count
   - Agent status summary
   - Recent events feed
   - System health indicators
   - Cost metrics
 
-- [ ] 3.2.2 **Swarm Management**
-  - Swarm list with status
-  - Create new swarm wizard
-  - Real-time swarm monitoring
+- [ ] 3.2.2 **Team Management**
+  - Team list with status
+  - Create new team wizard
+  - Real-time team monitoring
   - Agent composition view
 
 - [ ] 3.2.3 **Session Tree Visualizer**
@@ -192,7 +192,7 @@ godel do "Deploy to production" --require-approval
 **Goal:** Rich terminal interface for CLI users
 
 #### Features:
-- [ ] 3.3.1 **Real-time Swarm Monitor**
+- [ ] 3.3.1 **Real-time Team Monitor**
   ```bash
   godel dashboard --tui
   ```
@@ -230,7 +230,7 @@ godel do "Deploy to production" --require-approval
 #### Tasks:
 - [ ] 4.1.1 Create `tests/load/` directory
 - [ ] 4.1.2 Implement load test scenarios:
-  - 10 sessions: Basic concurrent swarms
+  - 10 sessions: Basic concurrent teams
   - 25 sessions: Multi-region federation
   - 50 sessions: Stress test with resource contention
 - [ ] 4.1.3 Add metrics collection (latency, throughput, errors)
@@ -241,19 +241,19 @@ godel do "Deploy to production" --require-approval
 ### 4.2 Scale Testing Scenarios
 
 #### 4.2.1 10 Session Scale (Warm-up)
-- [ ] Spawn 10 concurrent swarms
-- [ ] Each swarm: 1 Coordinator + 3 Workers
+- [ ] Spawn 10 concurrent teams
+- [ ] Each team: 1 Coordinator + 3 Workers
 - [ ] Duration: 10 minutes
 - [ ] Measure: Response times, resource usage
 
 #### 4.2.2 25 Session Scale (Production)
-- [ ] Spawn 25 concurrent swarms
+- [ ] Spawn 25 concurrent teams
 - [ ] Mixed workloads (code review, testing, refactoring)
 - [ ] Duration: 30 minutes
 - [ ] Measure: Queue depth, event latency, memory usage
 
 #### 4.2.3 50 Session Scale (Stress)
-- [ ] Spawn 50 concurrent swarms
+- [ ] Spawn 50 concurrent teams
 - [ ] Maximum resource utilization
 - [ ] Duration: 60 minutes
 - [ ] Measure: Failure rates, recovery times, bottlenecks

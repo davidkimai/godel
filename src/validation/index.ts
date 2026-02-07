@@ -5,17 +5,17 @@ import {
   spawnAgentSchema,
   updateAgentSchema,
   agentActionSchema,
-  createSwarmSchema,
-  updateSwarmSchema,
-  swarmActionSchema,
+  createTeamSchema,
+  updateTeamSchema,
+  teamActionSchema,
   setBudgetSchema,
   idSchema,
   type SpawnAgentInput,
   type UpdateAgentInput,
   type AgentActionInput,
-  type CreateSwarmInput,
-  type UpdateSwarmInput,
-  type SwarmActionInput,
+  type CreateTeamInput,
+  type UpdateTeamInput,
+  type TeamActionInput,
   type SetBudgetInput,
 } from './schemas';
 
@@ -251,9 +251,9 @@ export function coerceArray<T>(schema: z.ZodSchema<T>) {
 export const validateSpawnAgent = (data: unknown) => validate(spawnAgentSchema, data);
 export const validateUpdateAgent = (data: unknown) => validate(updateAgentSchema, data);
 export const validateAgentAction = (data: unknown) => validate(agentActionSchema, data);
-export const validateCreateSwarm = (data: unknown) => validate(createSwarmSchema, data);
-export const validateUpdateSwarm = (data: unknown) => validate(updateSwarmSchema, data);
-export const validateSwarmAction = (data: unknown) => validate(swarmActionSchema, data);
+export const validateCreateTeam = (data: unknown) => validate(createTeamSchema, data);
+export const validateUpdateTeam = (data: unknown) => validate(updateTeamSchema, data);
+export const validateTeamAction = (data: unknown) => validate(teamActionSchema, data);
 export const validateSetBudget = (data: unknown) => validate(setBudgetSchema, data);
 export const validateId = (data: unknown): string => validate(idSchema, data);
 

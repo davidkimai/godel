@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-**Recommendation:** ✅ **Integrate Pi AI Unified LLM API into Dash**
+**Recommendation:** ✅ **Integrate Pi AI Unified LLM API into Godel**
 
 **Strategic Value:** HIGH  
 **Implementation Effort:** MEDIUM (2-3 days)  
@@ -18,7 +18,7 @@
 
 ## Current State Analysis
 
-### Dash Current LLM Support
+### Godel Current LLM Support
 - **Status:** No unified LLM API exists
 - **Approach:** Each agent likely implements its own LLM client
 - **Providers:** Not standardized
@@ -47,7 +47,7 @@ Pi AI is a **unified LLM API** that provides:
 
 ### Key Features
 
-| Feature | Description | Benefit for Dash |
+| Feature | Description | Benefit for Godel |
 |---------|-------------|------------------|
 | **Multi-Provider** | OpenAI, Anthropic, Google, local models | Agent flexibility |
 | **Auto-Failover** | Switches providers on failure | Reliability |
@@ -66,8 +66,8 @@ Pi AI is a **unified LLM API** that provides:
 const response = await openai.chat.completions.create({...});
 // If OpenAI fails, agent fails
 
-// After: Dash provides resilient LLM API
-const response = await dash.llm.complete({
+// After: Godel provides resilient LLM API
+const response = await godel.llm.complete({
   prompt: "...",
   providers: ['openai', 'anthropic', 'google'] // Auto-failover
 });
@@ -75,7 +75,7 @@ const response = await dash.llm.complete({
 
 ### 2. Cost Optimization
 - Route to cheapest provider
-- Track costs per agent/swarm
+- Track costs per agent/team
 - Budget alerts
 - Usage quotas
 
@@ -101,7 +101,7 @@ const response = await dash.llm.complete({
 
 **Requirements:**
 - Integrate `@pi/ai` package
-- Create Dash LLM service
+- Create Godel LLM service
 - Add configuration system
 - Implement provider failover
 
@@ -150,12 +150,12 @@ const response = await dash.llm.complete({
 
 ```
 ┌─────────────────────────────────────────┐
-│              Dash Agents                │
+│              Godel Agents                │
 └─────────────┬───────────────────────────┘
               │
               ▼
 ┌─────────────────────────────────────────┐
-│         Dash LLM Service                │
+│         Godel LLM Service                │
 │  ┌─────────────┐  ┌─────────────────┐  │
 │  │   Router    │──│  Rate Limiter   │  │
 │  └─────────────┘  └─────────────────┘  │
@@ -210,7 +210,7 @@ interface LLMService {
 ### Configuration
 
 ```yaml
-# config/dash.yaml
+# config/godel.yaml
 ai:
   defaultProvider: openai
   providers:
@@ -281,7 +281,7 @@ ai:
 **APPROVE integration of Pi AI Unified LLM API**
 
 **Rationale:**
-1. Aligns with Dash's goal of being a production-grade orchestration platform
+1. Aligns with Godel's goal of being a production-grade orchestration platform
 2. Solves real reliability and cost management problems
 3. Relatively low implementation effort (2-3 days)
 4. High strategic value for OpenClaw integration

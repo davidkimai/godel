@@ -19,7 +19,7 @@ vi.mock('./services/api', () => ({
       kill: vi.fn(),
       restart: vi.fn()
     },
-    swarms: {
+    teams: {
       list: vi.fn(),
       get: vi.fn(),
       create: vi.fn(),
@@ -55,7 +55,7 @@ vi.mock('./services/websocket', () => ({
     subscribe: () => () => {}
   }),
   useAgentUpdates: () => ({ agents: [], updateAgent: vi.fn() }),
-  useSwarmUpdates: () => ({ swarms: [], updateSwarm: vi.fn() }),
+  useSwarmUpdates: () => ({ teams: [], updateSwarm: vi.fn() }),
   useCostUpdates: () => null,
   useEventStream: () => []
 }));
@@ -222,7 +222,7 @@ describe('Utility Functions', () => {
       expect(running).toContain('text-green-500');
     });
 
-    it('returns color classes for swarm states', () => {
+    it('returns color classes for team states', () => {
       const active = getStatusColor('active');
       expect(active).toContain('text-green-500');
     });
@@ -261,7 +261,7 @@ describe('State Management', () => {
       const { useDashboardStore } = require('./contexts/store');
       
       expect(useDashboardStore.getState().agents).toEqual([]);
-      expect(useDashboardStore.getState().swarms).toEqual([]);
+      expect(useDashboardStore.getState().teams).toEqual([]);
     });
   });
 });

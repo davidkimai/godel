@@ -6,10 +6,10 @@
  * Uses commander.js for command parsing and registration.
  * 
  * Per SPEC_v2.md, supports:
- * - dash swarm create/destroy/scale/status
- * - dash dashboard (launch TUI)
- * - dash agents spawn/kill/pause/resume
- * - dash events stream/list
+ * - godel team create/destroy/scale/status
+ * - godel dashboard (launch TUI)
+ * - godel agents spawn/kill/pause/resume
+ * - godel events stream/list
  */
 
 import { logger } from './integrations/utils/logger';

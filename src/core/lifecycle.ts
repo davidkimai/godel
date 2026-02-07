@@ -248,7 +248,7 @@ export class AgentLifecycle extends EventEmitter {
               task: agent.task,
               context: {
                 label: agent.label,
-                swarmId: agent.swarmId,
+                teamId: agent.teamId,
                 parentId: agent.parentId,
                 ...agent.metadata,
               },
@@ -280,7 +280,7 @@ export class AgentLifecycle extends EventEmitter {
         label: agent.label,
         model: agent.model,
         task: agent.task,
-        swarmId: agent.swarmId,
+        teamId: agent.teamId,
         parentId: agent.parentId,
         sessionId: state.sessionId,
       });
@@ -675,10 +675,10 @@ export class AgentLifecycle extends EventEmitter {
   }
 
   /**
-   * Get agents by swarm
+   * Get agents by team
    */
-  getAgentsBySwarm(swarmId: string): AgentState[] {
-    return this.getAllStates().filter(s => s.agent.swarmId === swarmId);
+  getAgentsByTeam(teamId: string): AgentState[] {
+    return this.getAllStates().filter(s => s.agent.teamId === teamId);
   }
 
   /**

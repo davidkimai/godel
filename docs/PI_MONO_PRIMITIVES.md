@@ -1,10 +1,10 @@
-# PI-MONO PRIMITIVES FOR DASH
+# PI-MONO PRIMITIVES FOR GODEL
 
-> Core primitives from pi-mono (https://github.com/badlogic/pi-mono) that should be incorporated into Dash as core capabilities.
+> Core primitives from pi-mono (https://github.com/badlogic/pi-mono) that should be incorporated into Godel as core capabilities.
 
 ## Overview
 
-Pi-mono provides powerful primitives for building AI coding agents. These should be core to Dash:
+Pi-mono provides powerful primitives for building AI coding agents. These should be core to Godel:
 
 1. **Unified Multi-Provider LLM API** - `@mariozechner/pi-ai`
 2. **Stateful Agent Core** - `@mariozechner/pi-agent-core`
@@ -245,7 +245,7 @@ Use this skill when the user asks about X.
 
 ---
 
-## RECOMMENDED INTEGRATION FOR DASH
+## RECOMMENDED INTEGRATION FOR GODEL
 
 ### Priority 1: Core LLM Abstraction
 
@@ -293,7 +293,7 @@ src/orchestration/
 
 ## KEY DIFFERENTIATORS
 
-| Feature | Pi-Mono Approach | Dash Should Adopt |
+| Feature | Pi-Mono Approach | Godel Should Adopt |
 |---------|-----------------|------------------|
 | **Multi-Provider** | Unified API with auto-discovery | ✅ Core |
 | **Context Serialization** | JSON-native | ✅ Core |

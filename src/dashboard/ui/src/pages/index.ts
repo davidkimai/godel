@@ -13,5 +13,5 @@ export { default as Alerts } from './Alerts';
 export { default as Settings } from './Settings';
 export { default as Login } from './Login';
 export { default as Events } from './Events';
-export { default as Swarms } from './Swarms';
+export { default as Teams } from './Teams';
 export { default as Costs } from './Costs';

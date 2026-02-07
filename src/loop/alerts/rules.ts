@@ -7,6 +7,12 @@
 
 import type { EventBus } from '../event-bus.js';
 import type { TimeSeriesStorage, TimeSeriesPoint } from './storage.js';
+import { createLogger } from '../../utils/logger.js';
+
+/**
+ * Module logger
+ */
+const log = createLogger('alert-rules');
 
 /**
  * Comparison operators for threshold evaluation
@@ -217,7 +223,7 @@ export class AlertRuleEngine {
           triggered.push(alert);
         }
       } catch (error) {
-        console.error(`Error evaluating rule ${rule.id}:`, error);
+        log.logError('Error evaluating rule', error, { ruleId: rule.id });
       }
     }
 
@@ -381,7 +387,7 @@ export class AlertRuleEngine {
       try {
         await this.executeAction(action, alert);
       } catch (error) {
-        console.error(`Action failed for alert ${alert.id}:`, error);
+        log.logError('Action failed for alert', error, { alertId: alert.id });
       }
     }
   }
@@ -392,7 +398,11 @@ export class AlertRuleEngine {
   private async executeAction(action: AlertAction, alert: AlertInstance): Promise<void> {
     switch (action.type) {
       case 'log':
-        console.log(`[ALERT ${alert.severity.toUpperCase()}] ${alert.message}`);
+        log.warn(`Alert triggered`, { 
+          severity: alert.severity, 
+          message: alert.message,
+          alertId: alert.id 
+        });
         break;
         
       case 'webhook':
@@ -405,7 +415,10 @@ export class AlertRuleEngine {
         
       case 'email':
         // Email sending implementation would go here
-        console.log(`[EMAIL] Would send alert: ${alert.message}`);
+        log.info('Would send email alert', { 
+          alertId: alert.id, 
+          message: alert.message 
+        });
         break;
         
       case 'pagerduty':
@@ -420,7 +433,7 @@ export class AlertRuleEngine {
   private async sendWebhookNotification(config: Record<string, unknown>, alert: AlertInstance): Promise<void> {
     const url = config['url'] as string;
     if (!url) {
-      console.error('Webhook URL not configured');
+      log.error('Webhook URL not configured');
       return;
     }
 
@@ -446,10 +459,13 @@ export class AlertRuleEngine {
       });
 
       if (!response.ok) {
-        console.error(`Webhook failed: ${response.status} ${response.statusText}`);
+        log.error('Webhook request failed', { 
+          status: response.status, 
+          statusText: response.statusText 
+        });
       }
     } catch (error) {
-      console.error('Webhook request failed:', error);
+      log.logError('Webhook request error', error);
     }
   }
 
@@ -461,7 +477,7 @@ export class AlertRuleEngine {
     const channel = config['channel'] as string;
     
     if (!webhookUrl) {
-      console.error('Slack webhook URL not configured');
+      log.error('Slack webhook URL not configured');
       return;
     }
 
@@ -490,7 +506,7 @@ export class AlertRuleEngine {
         })
       });
     } catch (error) {
-      console.error('Slack notification failed:', error);
+      log.logError('Slack notification failed', error);
     }
   }
 
@@ -501,7 +517,7 @@ export class AlertRuleEngine {
     const routingKey = config['routingKey'] as string || config['integrationKey'] as string;
     
     if (!routingKey) {
-      console.error('PagerDuty routing key not configured');
+      log.error('PagerDuty routing key not configured');
       return;
     }
 
@@ -534,7 +550,7 @@ export class AlertRuleEngine {
         })
       });
     } catch (error) {
-      console.error('PagerDuty alert failed:', error);
+      log.logError('PagerDuty alert failed', error);
     }
   }
 

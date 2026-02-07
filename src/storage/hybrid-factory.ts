@@ -35,7 +35,7 @@ export function createStorage(config: StorageConfig): SQLiteStorage | PostgresSt
   switch (config.type) {
     case 'sqlite':
       return new SQLiteStorage({
-        dbPath: config.sqlite?.dbPath || './dash.db',
+        dbPath: config.sqlite?.dbPath || './godel.db',
         enableWAL: true,
         busyTimeout: 5000,
       });
@@ -59,8 +59,8 @@ export async function createStorageFromEnv(): Promise<SQLiteStorage | PostgresSt
     const config = {
       host: process.env['POSTGRES_HOST'] || 'localhost',
       port: parseInt(process.env['POSTGRES_PORT'] || '5432'),
-      database: process.env['POSTGRES_DB'] || 'dash',
-      user: process.env['POSTGRES_USER'] || 'dash',
+      database: process.env['POSTGRES_DB'] || 'godel',
+      user: process.env['POSTGRES_USER'] || 'godel',
       password: process.env['POSTGRES_PASSWORD'] || 'dash_password',
       ssl: process.env['POSTGRES_SSL'] === 'true',
       maxConnections: parseInt(process.env['POSTGRES_MAX_CONNECTIONS'] || '20'),
@@ -70,7 +70,7 @@ export async function createStorageFromEnv(): Promise<SQLiteStorage | PostgresSt
   }
   
   return initDatabase({
-    dbPath: './dash.db',
+    dbPath: './godel.db',
     enableWAL: true,
     busyTimeout: 5000,
   });

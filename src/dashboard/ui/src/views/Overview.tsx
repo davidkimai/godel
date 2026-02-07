@@ -44,20 +44,20 @@ import {
   calculateAgentMetrics,
   cn
 } from '../types/index';
-import type { Agent, Swarm, AgentEvent } from '../types/index';
+import type { Agent, Team, AgentEvent } from '../types/index';
 
 // ============================================================================
 // Overview View
 // ============================================================================
 
 export function Overview(): React.ReactElement {
-  const { agents, swarms, stats, isLoadingAgents, isLoadingSwarms, setAgents, setSwarms, setStats, updateAgent, updateSwarm } = useDashboardStore();
+  const { agents, teams, stats, isLoadingAgents, isLoadingSwarms, setAgents, setSwarms, setStats, updateAgent, updateSwarm } = useDashboardStore();
   const { addNotification } = useUIStore();
   const events = useEventStream(50);
 
   // Subscribe to real-time updates
   const { agents: updatedAgents } = useAgentUpdates();
-  const { swarms: updatedSwarms } = useSwarmUpdates();
+  const { teams: updatedSwarms } = useSwarmUpdates();
 
   // Merge real-time updates
   useEffect(() => {
@@ -65,7 +65,7 @@ export function Overview(): React.ReactElement {
   }, [updatedAgents, updateAgent]);
 
   useEffect(() => {
-    updatedSwarms.forEach(swarm => updateSwarm(swarm));
+    updatedSwarms.forEach(team => updateSwarm(team));
   }, [updatedSwarms, updateSwarm]);
 
   // Fetch initial data
@@ -74,7 +74,7 @@ export function Overview(): React.ReactElement {
       try {
         const [agentsData, swarmsData, statsData] = await Promise.all([
           api.agents.list(),
-          api.swarms.list(),
+          api.teams.list(),
           api.metrics.getDashboardStats()
         ]);
         setAgents(agentsData);
@@ -99,9 +99,9 @@ export function Overview(): React.ReactElement {
 
   // Calculate metrics
   const agentMetrics = useMemo(() => calculateAgentMetrics(agents), [agents]);
-  const activeSwarms = useMemo(() => swarms.filter(s => 
+  const activeSwarms = useMemo(() => teams.filter(s => 
     s.status === SwarmState.ACTIVE || s.status === SwarmState.SCALING
-  ).length, [swarms]);
+  ).length, [teams]);
   const totalCost = useMemo(() => 
     agents.reduce((sum, a) => sum + (a.cost || 0), 0),
     [agents]
@@ -136,7 +136,7 @@ export function Overview(): React.ReactElement {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-slate-400 mt-1">Real-time overview of your agent swarms</p>
+          <p className="text-slate-400 mt-1">Real-time overview of your agent teams</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={stats?.systemHealth === 'healthy' ? 'success' : stats?.systemHealth === 'degraded' ? 'warning' : 'error'}>
@@ -144,11 +144,11 @@ export function Overview(): React.ReactElement {
             {stats?.systemHealth || 'unknown'}
           </Badge>
           <a 
-            href="/swarms/new" 
+            href="/teams/new" 
             className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors"
           >
             <Hexagon className="w-4 h-4" />
-            New Swarm
+            New Team
           </a>
         </div>
       </div>
@@ -163,9 +163,9 @@ export function Overview(): React.ReactElement {
           color="blue"
         />
         <StatsCard
-          title="Active Swarms"
+          title="Active Teams"
           value={isLoading ? '-' : activeSwarms}
-          subtitle={`of ${swarms.length} total swarms`}
+          subtitle={`of ${teams.length} total teams`}
           icon={<Hexagon className="w-6 h-6" />}
           color="emerald"
         />
@@ -207,38 +207,38 @@ export function Overview(): React.ReactElement {
           <CostChart agents={agents} isLoading={isLoading} />
         </Card>
 
-        <Card title="Swarm Activity">
-          <SwarmActivityChart swarms={swarms} isLoading={isLoading} />
+        <Card title="Team Activity">
+          <SwarmActivityChart teams={teams} isLoading={isLoading} />
         </Card>
       </div>
 
-      {/* Active Swarms Preview */}
+      {/* Active Teams Preview */}
       {activeSwarms > 0 && (
-        <Card title="Active Swarms">
+        <Card title="Active Teams">
           <div className="space-y-3">
-            {swarms
+            {teams
               .filter(s => s.status === SwarmState.ACTIVE || s.status === SwarmState.SCALING)
               .slice(0, 3)
-              .map(swarm => (
+              .map(team => (
                 <div 
-                  key={swarm.id}
+                  key={team.id}
                   className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={cn('w-2 h-2 rounded-full', getStatusColor(swarm.status))} />
+                    <div className={cn('w-2 h-2 rounded-full', getStatusColor(team.status))} />
                     <div>
-                      <p className="font-medium text-white">{swarm.name}</p>
+                      <p className="font-medium text-white">{team.name}</p>
                       <p className="text-xs text-slate-500">
-                        {swarm.agents.length} agents · {swarm.config.strategy}
+                        {team.agents.length} agents · {team.config.strategy}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-slate-400">
-                      {swarm.metrics.completedAgents} / {swarm.metrics.totalAgents} done
+                      {team.metrics.completedAgents} / {team.metrics.totalAgents} done
                     </span>
                     <a 
-                      href={`/swarms/${swarm.id}`}
+                      href={`/teams/${team.id}`}
                       className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
                     >
                       <ArrowRight className="w-4 h-4" />
@@ -250,10 +250,10 @@ export function Overview(): React.ReactElement {
           {activeSwarms > 3 && (
             <div className="mt-4 text-center">
               <a 
-                href="/swarms" 
+                href="/teams" 
                 className="text-sm text-emerald-400 hover:text-emerald-300"
               >
-                View all {activeSwarms} active swarms →
+                View all {activeSwarms} active teams →
               </a>
             </div>
           )}
@@ -265,8 +265,8 @@ export function Overview(): React.ReactElement {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <QuickActionButton
             icon={<Hexagon className="w-5 h-5" />}
-            label="New Swarm"
-            href="/swarms/new"
+            label="New Team"
+            href="/teams/new"
             color="emerald"
           />
           <QuickActionButton
@@ -428,26 +428,26 @@ function CostChart({ agents, isLoading }: { agents: Agent[]; isLoading: boolean 
 }
 
 // ============================================================================
-// Swarm Activity Chart
+// Team Activity Chart
 // ============================================================================
 
-function SwarmActivityChart({ swarms, isLoading }: { swarms: Swarm[]; isLoading: boolean }): React.ReactElement {
+function SwarmActivityChart({ teams, isLoading }: { teams: Team[]; isLoading: boolean }): React.ReactElement {
   if (isLoading) {
     return <LoadingSpinner className="py-8" />;
   }
 
-  const data = swarms.slice(0, 6).map(swarm => ({
-    name: swarm.name.slice(0, 15),
-    agents: swarm.agents.length,
-    completed: swarm.metrics.completedAgents,
-    failed: swarm.metrics.failedAgents
+  const data = teams.slice(0, 6).map(team => ({
+    name: team.name.slice(0, 15),
+    agents: team.agents.length,
+    completed: team.metrics.completedAgents,
+    failed: team.metrics.failedAgents
   }));
 
   if (data.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Hexagon className="w-12 h-12 text-slate-700 mb-3" />
-        <p className="text-slate-500">No swarms to display</p>
+        <p className="text-slate-500">No teams to display</p>
       </div>
     );
   }

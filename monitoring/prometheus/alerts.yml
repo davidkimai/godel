@@ -1,4 +1,4 @@
-# Alert rules for Dash monitoring
+# Alert rules for Godel monitoring
 
 groups:
   # ============================================================================
@@ -6,17 +6,17 @@ groups:
   # ============================================================================
   - name: dash_critical
     rules:
-      # Dash service down
+      # Godel service down
       - alert: DashDown
-        expr: up{job="dash"} == 0
+        expr: up{job="godel"} == 0
         for: 2m
         labels:
           severity: critical
           category: availability
         annotations:
-          summary: "Dash orchestrator is down"
-          description: "Dash metrics endpoint has been unreachable for more than 2 minutes"
-          runbook_url: "https://docs.dash.local/runbooks/dash-down"
+          summary: "Godel orchestrator is down"
+          description: "Godel metrics endpoint has been unreachable for more than 2 minutes"
+          runbook_url: "https://docs.godel.local/runbooks/godel-down"
 
       # High error rate (>5% for 5 minutes)
       - alert: DashHighErrorRate
@@ -31,9 +31,9 @@ groups:
           severity: critical
           category: reliability
         annotations:
-          summary: "High error rate in Dash"
+          summary: "High error rate in Godel"
           description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
-          runbook_url: "https://docs.dash.local/runbooks/high-error-rate"
+          runbook_url: "https://docs.godel.local/runbooks/high-error-rate"
 
       # Agent failure rate > 10%
       - alert: DashHighAgentFailureRate
@@ -50,7 +50,7 @@ groups:
         annotations:
           summary: "High agent failure rate"
           description: "{{ $value | humanizePercentage }} of agents are failing"
-          runbook_url: "https://docs.dash.local/runbooks/high-agent-failure"
+          runbook_url: "https://docs.godel.local/runbooks/high-agent-failure"
 
       # Budget critical - 95% consumed
       - alert: DashBudgetCritical
@@ -60,9 +60,9 @@ groups:
           severity: critical
           category: cost
         annotations:
-          summary: "Dash budget critically low"
-          description: "Budget utilization is {{ $value | humanizePercentage }} for swarm {{ $labels.swarm_id }}"
-          runbook_url: "https://docs.dash.local/runbooks/budget-critical"
+          summary: "Godel budget critically low"
+          description: "Budget utilization is {{ $value | humanizePercentage }} for team {{ $labels.swarm_id }}"
+          runbook_url: "https://docs.godel.local/runbooks/budget-critical"
 
       # Database down
       - alert: DashPostgreSQLDown
@@ -74,7 +74,7 @@ groups:
         annotations:
           summary: "PostgreSQL is down"
           description: "PostgreSQL database is unreachable"
-          runbook_url: "https://docs.dash.local/runbooks/postgresql-down"
+          runbook_url: "https://docs.godel.local/runbooks/postgresql-down"
 
       # Redis down
       - alert: DashRedisDown
@@ -86,7 +86,7 @@ groups:
         annotations:
           summary: "Redis is down"
           description: "Redis server is unreachable"
-          runbook_url: "https://docs.dash.local/runbooks/redis-down"
+          runbook_url: "https://docs.godel.local/runbooks/redis-down"
 
       # Disk full
       - alert: DashDiskFull
@@ -99,7 +99,7 @@ groups:
         annotations:
           summary: "Disk is critically full"
           description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
-          runbook_url: "https://docs.dash.local/runbooks/disk-full"
+          runbook_url: "https://docs.godel.local/runbooks/disk-full"
 
   # ============================================================================
   # Warning Alerts - Attention Needed
@@ -114,9 +114,9 @@ groups:
           severity: warning
           category: cost
         annotations:
-          summary: "Dash budget warning"
-          description: "Budget utilization is {{ $value | humanizePercentage }} for swarm {{ $labels.swarm_id }}"
-          runbook_url: "https://docs.dash.local/runbooks/budget-warning"
+          summary: "Godel budget warning"
+          description: "Budget utilization is {{ $value | humanizePercentage }} for team {{ $labels.swarm_id }}"
+          runbook_url: "https://docs.godel.local/runbooks/budget-warning"
 
       # High memory usage
       - alert: DashMemoryHigh
@@ -128,7 +128,7 @@ groups:
         annotations:
           summary: "High memory usage"
           description: "Memory usage is {{ $value }}GB"
-          runbook_url: "https://docs.dash.local/runbooks/high-memory"
+          runbook_url: "https://docs.godel.local/runbooks/high-memory"
 
       # Disk space warning
       - alert: DashDiskSpaceLow
@@ -141,7 +141,7 @@ groups:
         annotations:
           summary: "Low disk space"
           description: "Disk is {{ $value | humanizePercentage }} full on {{ $labels.instance }}"
-          runbook_url: "https://docs.dash.local/runbooks/disk-space-low"
+          runbook_url: "https://docs.godel.local/runbooks/disk-space-low"
 
       # Slow event processing
       - alert: DashEventProcessingSlow
@@ -158,7 +158,7 @@ groups:
         annotations:
           summary: "Slow event processing"
           description: "Average event processing time is {{ $value }}s"
-          runbook_url: "https://docs.dash.local/runbooks/slow-event-processing"
+          runbook_url: "https://docs.godel.local/runbooks/slow-event-processing"
 
       # High API latency
       - alert: DashHighApiLatency
@@ -173,7 +173,7 @@ groups:
         annotations:
           summary: "High API latency"
           description: "95th percentile API latency is {{ $value }}s"
-          runbook_url: "https://docs.dash.local/runbooks/high-api-latency"
+          runbook_url: "https://docs.godel.local/runbooks/high-api-latency"
 
       # Queue depth - tasks backing up
       - alert: DashQueueDepthHigh
@@ -185,9 +185,9 @@ groups:
         annotations:
           summary: "High queue depth"
           description: "{{ $value }} tasks are pending in the queue"
-          runbook_url: "https://docs.dash.local/runbooks/queue-depth-high"
+          runbook_url: "https://docs.godel.local/runbooks/queue-depth-high"
 
-      # Swarm failure rate elevated
+      # Team failure rate elevated
       - alert: DashSwarmFailureRate
         expr: |
           (
@@ -200,9 +200,9 @@ groups:
           severity: warning
           category: reliability
         annotations:
-          summary: "High swarm failure rate"
-          description: "{{ $value | humanizePercentage }} of swarms are failing"
-          runbook_url: "https://docs.dash.local/runbooks/swarm-failure-rate"
+          summary: "High team failure rate"
+          description: "{{ $value | humanizePercentage }} of teams are failing"
+          runbook_url: "https://docs.godel.local/runbooks/team-failure-rate"
 
       # Event bus backlog
       - alert: DashEventBusBacklog
@@ -214,7 +214,7 @@ groups:
         annotations:
           summary: "Event bus backlog detected"
           description: "{{ $value }} events are queued in the event bus"
-          runbook_url: "https://docs.dash.local/runbooks/event-bus-backlog"
+          runbook_url: "https://docs.godel.local/runbooks/event-bus-backlog"
 
       # High CPU usage
       - alert: DashCPUHigh
@@ -226,7 +226,7 @@ groups:
         annotations:
           summary: "High CPU usage"
           description: "CPU usage is {{ $value }}%"
-          runbook_url: "https://docs.dash.local/runbooks/high-cpu"
+          runbook_url: "https://docs.godel.local/runbooks/high-cpu"
 
   # ============================================================================
   # Info Alerts - Awareness
@@ -244,7 +244,7 @@ groups:
           summary: "New agent spawned"
           description: "A new agent has been spawned"
 
-      # Swarm completed
+      # Team completed
       - alert: DashSwarmCompleted
         expr: increase(dash_swarm_success_total[1m]) > 0
         for: 0m
@@ -252,8 +252,8 @@ groups:
           severity: info
           category: lifecycle
         annotations:
-          summary: "Swarm completed successfully"
-          description: "A swarm has completed successfully"
+          summary: "Team completed successfully"
+          description: "A team has completed successfully"
 
   # ============================================================================
   # SLO Alerts
@@ -270,7 +270,7 @@ groups:
         annotations:
           summary: "Error budget burning fast"
           description: "Only {{ $value | humanizePercentage }} of monthly error budget remains"
-          runbook_url: "https://docs.dash.local/runbooks/error-budget"
+          runbook_url: "https://docs.godel.local/runbooks/error-budget"
 
       # SLO violation - latency
       - alert: DashSLOLatencyViolation
@@ -282,7 +282,7 @@ groups:
         annotations:
           summary: "SLO latency violation"
           description: "99th percentile latency ({{ $value }}s) exceeds SLO (2s)"
-          runbook_url: "https://docs.dash.local/runbooks/slo-latency"
+          runbook_url: "https://docs.godel.local/runbooks/slo-latency"
 
       # SLO violation - availability
       - alert: DashSLOAvailabilityViolation
@@ -294,4 +294,4 @@ groups:
         annotations:
           summary: "SLO availability violation"
           description: "Success rate ({{ $value | humanizePercentage }}) below SLO (99%)"
-          runbook_url: "https://docs.dash.local/runbooks/slo-availability"
+          runbook_url: "https://docs.godel.local/runbooks/slo-availability"

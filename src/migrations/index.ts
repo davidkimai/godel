@@ -1,7 +1,7 @@
 /**
  * Database Migrations Module
  * 
- * Exports migration utilities and types for the Dash database schema.
+ * Exports migration utilities and types for the Godel database schema.
  */
 
 export { 

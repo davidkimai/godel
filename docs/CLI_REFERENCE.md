@@ -1,6 +1,6 @@
 # CLI Reference - swarmctl
 
-`swarmctl` is the official command-line interface for the Dash Agent Orchestration Platform. It provides comprehensive management capabilities for swarms, agents, tasks, events, and system configuration.
+`swarmctl` is the official command-line interface for the Godel Agent Orchestration Platform. It provides comprehensive management capabilities for teams, agents, tasks, events, and system configuration.
 
 ## Installation
 
@@ -15,11 +15,11 @@ npx @jtan15010/godel swarmctl --help
 ## Quick Start
 
 ```bash
-# Create a swarm
-swarmctl swarm create --name "my-swarm" --task "Implement user authentication" --count 5
+# Create a team
+swarmctl team create --name "my-team" --task "Implement user authentication" --count 5
 
-# List all swarms
-swarmctl swarm list
+# List all teams
+swarmctl team list
 
 # Check system status
 swarmctl status
@@ -38,45 +38,45 @@ swarmctl events stream
 
 ## Commands
 
-### Swarm Commands
+### Team Commands
 
-Manage agent swarms.
+Manage agent teams.
 
-#### `swarmctl swarm list`
+#### `swarmctl team list`
 
-List all swarms.
+List all teams.
 
 ```bash
-swarmctl swarm list [options]
+swarmctl team list [options]
 ```
 
 **Options:**
 - `-f, --format <format>` - Output format (table|json|jsonl)
-- `-a, --active` - Show only active swarms
+- `-a, --active` - Show only active teams
 - `--page <page>` - Page number (default: 1)
 - `--page-size <size>` - Items per page (default: 50)
 
 **Examples:**
 ```bash
-swarmctl swarm list
-swarmctl swarm list --format json
-swarmctl swarm list --active
+swarmctl team list
+swarmctl team list --format json
+swarmctl team list --active
 ```
 
-#### `swarmctl swarm create`
+#### `swarmctl team create`
 
-Create a new swarm of agents.
+Create a new team of agents.
 
 ```bash
-swarmctl swarm create [options]
+swarmctl team create [options]
 ```
 
 **Options:**
-- `-n, --name <name>` - Swarm name (required)
+- `-n, --name <name>` - Team name (required)
 - `-t, --task <task>` - Task description (required)
 - `-c, --count <count>` - Initial number of agents (default: 5)
 - `--max <count>` - Maximum number of agents (default: 50)
-- `-s, --strategy <strategy>` - Swarm strategy: parallel, map-reduce, pipeline, tree (default: parallel)
+- `-s, --strategy <strategy>` - Team strategy: parallel, map-reduce, pipeline, tree (default: parallel)
 - `-m, --model <model>` - Model to use (default: kimi-k2.5)
 - `-b, --budget <amount>` - Budget limit in USD
 - `--warning-threshold <percentage>` - Budget warning threshold (default: 75)
@@ -86,17 +86,17 @@ swarmctl swarm create [options]
 
 **Examples:**
 ```bash
-swarmctl swarm create --name "api-swarm" --task "Build REST API"
-swarmctl swarm create -n "code-review" -t "Review pull requests" -c 3 -s pipeline
-swarmctl swarm create -n "test-swarm" -t "Run tests" --budget 100.00
+swarmctl team create --name "api-team" --task "Build REST API"
+swarmctl team create -n "code-review" -t "Review pull requests" -c 3 -s pipeline
+swarmctl team create -n "test-team" -t "Run tests" --budget 100.00
 ```
 
-#### `swarmctl swarm get`
+#### `swarmctl team get`
 
-Get detailed information about a swarm.
+Get detailed information about a team.
 
 ```bash
-swarmctl swarm get <swarm-id> [options]
+swarmctl team get <team-id> [options]
 ```
 
 **Options:**
@@ -104,30 +104,30 @@ swarmctl swarm get <swarm-id> [options]
 
 **Examples:**
 ```bash
-swarmctl swarm get swarm-abc123
-swarmctl swarm get swarm-abc123 --format json
+swarmctl team get team-abc123
+swarmctl team get team-abc123 --format json
 ```
 
-#### `swarmctl swarm scale`
+#### `swarmctl team scale`
 
-Scale a swarm to a target number of agents.
+Scale a team to a target number of agents.
 
 ```bash
-swarmctl swarm scale <swarm-id> <target-size>
+swarmctl team scale <team-id> <target-size>
 ```
 
 **Examples:**
 ```bash
-swarmctl swarm scale swarm-abc123 10
-swarmctl swarm scale swarm-abc123 0  # Scale down to zero
+swarmctl team scale team-abc123 10
+swarmctl team scale team-abc123 0  # Scale down to zero
 ```
 
-#### `swarmctl swarm destroy`
+#### `swarmctl team destroy`
 
-Destroy a swarm and all its agents.
+Destroy a team and all its agents.
 
 ```bash
-swarmctl swarm destroy <swarm-id> [options]
+swarmctl team destroy <team-id> [options]
 ```
 
 **Options:**
@@ -136,8 +136,8 @@ swarmctl swarm destroy <swarm-id> [options]
 
 **Examples:**
 ```bash
-swarmctl swarm destroy swarm-abc123 --yes
-swarmctl swarm destroy swarm-abc123 --force --yes
+swarmctl team destroy team-abc123 --yes
+swarmctl team destroy team-abc123 --force --yes
 ```
 
 ---
@@ -156,7 +156,7 @@ swarmctl agent list [options]
 
 **Options:**
 - `-f, --format <format>` - Output format (table|json|jsonl)
-- `-s, --swarm <swarmId>` - Filter by swarm ID
+- `-s, --team <swarmId>` - Filter by team ID
 - `--status <status>` - Filter by status
 - `--page <page>` - Page number
 - `--page-size <size>` - Items per page
@@ -164,7 +164,7 @@ swarmctl agent list [options]
 **Examples:**
 ```bash
 swarmctl agent list
-swarmctl agent list --format json --swarm swarm-abc123
+swarmctl agent list --format json --team team-abc123
 swarmctl agent list --status running
 ```
 
@@ -179,7 +179,7 @@ swarmctl agent spawn <task> [options]
 **Options:**
 - `-m, --model <model>` - Model to use (default: kimi-k2.5)
 - `-l, --label <label>` - Agent label
-- `-s, --swarm <swarmId>` - Add to existing swarm
+- `-s, --team <swarmId>` - Add to existing team
 - `-p, --parent <parentId>` - Parent agent ID
 - `-r, --retries <count>` - Max retry attempts (default: 3)
 - `-b, --budget <limit>` - Budget limit in USD
@@ -188,7 +188,7 @@ swarmctl agent spawn <task> [options]
 **Examples:**
 ```bash
 swarmctl agent spawn "Implement login page"
-swarmctl agent spawn "Fix bug #123" --label "bugfix-agent" --swarm swarm-abc123
+swarmctl agent spawn "Fix bug #123" --label "bugfix-agent" --team team-abc123
 ```
 
 #### `swarmctl agent get`
@@ -457,7 +457,7 @@ swarmctl bus subscribe <topic> [options]
 **Examples:**
 ```bash
 swarmctl bus subscribe agent.*.events --follow
-swarmctl bus subscribe swarm.abc123.broadcast --follow
+swarmctl bus subscribe team.abc123.broadcast --follow
 ```
 
 #### `swarmctl bus topics`
@@ -531,12 +531,12 @@ swarmctl metrics agents [options]
 swarmctl metrics agents
 ```
 
-#### `swarmctl metrics swarms`
+#### `swarmctl metrics teams`
 
-Show swarm metrics.
+Show team metrics.
 
 ```bash
-swarmctl metrics swarms [options]
+swarmctl metrics teams [options]
 ```
 
 **Options:**
@@ -544,7 +544,7 @@ swarmctl metrics swarms [options]
 
 **Examples:**
 ```bash
-swarmctl metrics swarms
+swarmctl metrics teams
 ```
 
 ---
@@ -665,8 +665,8 @@ Human-readable tabular output.
 ```
 ID                   NAME                STATUS   AGENTS  PROGRESS
 ───────────────────  ──────────────────  ───────  ──────  ────────
-swarm-abc123...      api-swarm           active       5      0.60
-swarm-def456...      code-review         active       3      0.25
+team-abc123...      api-team           active       5      0.60
+team-def456...      code-review         active       3      0.25
 ```
 
 ### JSON Format
@@ -674,14 +674,14 @@ swarm-def456...      code-review         active       3      0.25
 Pretty-printed JSON for programmatic use.
 
 ```bash
-swarmctl swarm list --format json
+swarmctl team list --format json
 ```
 
 ```json
 [
   {
-    "id": "swarm-abc123...",
-    "name": "api-swarm",
+    "id": "team-abc123...",
+    "name": "api-team",
     "status": "active",
     "agentCount": 5,
     "progress": 0.6
@@ -694,12 +694,12 @@ swarmctl swarm list --format json
 JSON Lines format, one JSON object per line.
 
 ```bash
-swarmctl swarm list --format jsonl
+swarmctl team list --format jsonl
 ```
 
 ```json
-{"id":"swarm-abc123...","name":"api-swarm","status":"active","agentCount":5}
-{"id":"swarm-def456...","name":"code-review","status":"active","agentCount":3}
+{"id":"team-abc123...","name":"api-team","status":"active","agentCount":5}
+{"id":"team-def456...","name":"code-review","status":"active","agentCount":3}
 ```
 
 ---
@@ -732,8 +732,8 @@ swarmctl swarm list --format jsonl
 Combine with `watch` for live monitoring:
 
 ```bash
-# Watch swarm status
-watch -n 5 swarmctl swarm get swarm-abc123
+# Watch team status
+watch -n 5 swarmctl team get team-abc123
 
 # Watch metrics
 watch -n 10 swarmctl metrics show
@@ -744,8 +744,8 @@ watch -n 10 swarmctl metrics show
 Use with `jq` for powerful queries:
 
 ```bash
-# Get only swarm names
-swarmctl swarm list --format json | jq '.[].name'
+# Get only team names
+swarmctl team list --format json | jq '.[].name'
 
 # Filter active agents
 swarmctl agent list --format json | jq '.[] | select(.status == "running")'
@@ -800,6 +800,6 @@ If you see database-related errors, check:
 
 ## See Also
 
-- [Dash Documentation](./README.md)
+- [Godel Documentation](./README.md)
 - [API Reference](./API_REFERENCE.md)
 - [Configuration Guide](./CONFIGURATION.md)

@@ -10,7 +10,7 @@
 
 ## Overview
 
-Integrate Pi AI Unified LLM API into Dash to provide multi-provider LLM support with automatic failover, rate limiting, and cost tracking.
+Integrate Pi AI Unified LLM API into Godel to provide multi-provider LLM support with automatic failover, rate limiting, and cost tracking.
 
 **PRD Success Criteria:**
 1. ✅ Agents can call LLMs through unified API
@@ -541,7 +541,7 @@ export class CostTracker {
         report.byAgent[req.agentId].requests++;
       }
       
-      // By swarm
+      // By team
       if (req.swarmId) {
         if (!report.bySwarm[req.swarmId]) {
           report.bySwarm[req.swarmId] = { cost: 0, tokens: 0, requests: 0, swarmId: req.swarmId };
@@ -837,7 +837,7 @@ npm test -- --testPathPattern=llm-service
 ### Integration Verification
 
 ```bash
-# Start Dash
+# Start Godel
 npm run start
 
 # Test LLM endpoint

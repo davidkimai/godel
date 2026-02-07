@@ -2,7 +2,7 @@
 
 **Source:** [badlogic/pi-mono/packages/agent](https://github.com/badlogic/pi-mono/tree/main/packages/agent)  
 **Package:** `@mariozechner/pi-agent-core`  
-**Purpose:** Deep analysis of patterns beneficial for Dash agent orchestration
+**Purpose:** Deep analysis of patterns beneficial for Godel agent orchestration
 
 ---
 
@@ -634,7 +634,7 @@ for await (const event of stream) {
 
 ---
 
-## 5. Integration Recommendations for Dash
+## 5. Integration Recommendations for Godel
 
 ### 5.1 What to Adopt
 
@@ -648,7 +648,7 @@ export interface CustomAgentMessages {
 export type AgentMessage = Message | CustomAgentMessages[keyof CustomAgentMessages];
 ```
 
-**Why:** Allows Dash to add custom message types (thinking, notification, system) while maintaining LLM compatibility.
+**Why:** Allows Godel to add custom message types (thinking, notification, system) while maintaining LLM compatibility.
 
 #### ✅ Adopt: Convert-to-LLM Pattern
 ```typescript
@@ -693,15 +693,15 @@ execute: (
 streamFn?: StreamFn  // Can swap between direct LLM and proxy
 ```
 
-**Why:** Dash can route through its own proxy for rate limiting, logging, or provider abstraction.
+**Why:** Godel can route through its own proxy for rate limiting, logging, or provider abstraction.
 
 ### 5.2 What to Adapt
 
 #### 🔄 Adapt: State Management
 **Current:** Direct property mutation  
-**Dash Adaptation:** Use Svelte stores for reactivity
+**Godel Adaptation:** Use Svelte stores for reactivity
 ```typescript
-// Dash pattern
+// Godel pattern
 export const agentState = writable<AgentState>(initialState);
 
 // In Agent class
@@ -712,9 +712,9 @@ setSystemPrompt(v: string) {
 
 #### 🔄 Adapt: Event System
 **Current:** Custom EventStream class  
-**Dash Adaptation:** Use Svelte's event system or custom store
+**Godel Adaptation:** Use Svelte's event system or custom store
 ```typescript
-// Dash pattern
+// Godel pattern
 export const agentEvents = writable<AgentEvent | null>(null);
 
 // Emit becomes
@@ -723,7 +723,7 @@ agentEvents.set(event);
 
 #### 🔄 Adapt: Context Transform
 **Current:** Optional transformContext function  
-**Dash Adaptation:** Context manager with hooks
+**Godel Adaptation:** Context manager with hooks
 ```typescript
 interface ContextManager {
   transform: (messages: AgentMessage[]) => Promise<AgentMessage[]>;
@@ -739,19 +739,19 @@ interface ContextManager {
 // Current default
 model: getModel("google", "gemini-2.5-flash-lite-preview-06-17")
 ```
-**Why:** Dash should have its own provider-agnostic model selection.
+**Why:** Godel should have its own provider-agnostic model selection.
 
 #### ❌ Skip: Built-in convertToLlm
 **Current:** Filters to user/assistant/toolResult  
-**Why:** Dash needs custom conversion for its specific message types.
+**Why:** Godel needs custom conversion for its specific message types.
 
 #### ❌ Skip: Package-Specific Dependencies
 **Current:** Depends on `@mariozechner/pi-ai`  
-**Why:** Dash should abstract LLM provider through its own interface.
+**Why:** Godel should abstract LLM provider through its own interface.
 
-### 5.4 Code Examples for Dash Integration
+### 5.4 Code Examples for Godel Integration
 
-#### Example 1: Dash Agent Store
+#### Example 1: Godel Agent Store
 ```typescript
 // stores/agent.ts
 import { writable, derived } from 'svelte/store';
@@ -864,7 +864,7 @@ function createAgentStore() {
 export const agent = createAgentStore();
 ```
 
-#### Example 2: Dash Tool Definition
+#### Example 2: Godel Tool Definition
 ```typescript
 // tools/fs.ts
 import { Type } from '@sinclair/typebox';
@@ -908,7 +908,7 @@ export const readFileTool: AgentTool<typeof ReadFileSchema> = {
 };
 ```
 
-#### Example 3: Dash Event Handler Component
+#### Example 3: Godel Event Handler Component
 ```svelte
 <!-- components/AgentStream.svelte -->
 <script lang="ts">
@@ -968,7 +968,7 @@ export const readFileTool: AgentTool<typeof ReadFileSchema> = {
 </div>
 ```
 
-#### Example 4: Dash Proxy Stream Function
+#### Example 4: Godel Proxy Stream Function
 ```typescript
 // lib/stream.ts
 import type { StreamFn } from './types';
@@ -1021,9 +1021,9 @@ The pi-mono agent package provides a well-architected foundation with these key 
 5. **Pluggable Infrastructure**: streamFn, convertToLlm, transformContext hooks
 6. **Streaming-First**: All components support real-time updates
 
-For Dash, the primary integration points are:
+For Godel, the primary integration points are:
 - Adapt state management to Svelte stores
-- Implement custom convertToLlm for Dash message types
+- Implement custom convertToLlm for Godel message types
 - Use the dual queue pattern for user interaction
 - Leverage the EventStream pattern for reactive UI updates
 - Implement tool streaming for long-running operations

@@ -413,7 +413,7 @@ export function instrumentAgentHeartbeat(
 ): void {
   // Heartbeats are high-frequency, use a simple span
   const { trace } = require('@opentelemetry/api');
-  const tracer = trace.getTracer('dash-task-queue');
+  const tracer = trace.getTracer('godel-task-queue');
   const span = tracer.startSpan(SPAN_NAMES.AGENT_HEARTBEAT);
   
   span.setAttributes({

@@ -384,7 +384,7 @@ export function createStepSpan(
   stepName: string,
   parentContext?: ReturnType<typeof restoreWorkflowTraceContext>
 ) {
-  const tracer = trace.getTracer('dash-workflow');
+  const tracer = trace.getTracer('godel-workflow');
   const ctx = parentContext || context.active();
   
   return tracer.startSpan(

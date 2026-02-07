@@ -1,7 +1,7 @@
 /**
  * Reasoning Module
  * 
- * Complete reasoning module for Dash - Phase 3: Reasoning Features
+ * Complete reasoning module for Godel - Phase 3: Reasoning Features
  * 
  * @module reasoning
  */

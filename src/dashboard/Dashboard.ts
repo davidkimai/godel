@@ -1,5 +1,5 @@
 /**
- * Dash Dashboard - Terminal Implementation
+ * Godel Dashboard - Terminal Implementation
  * 
  * PRD Section 4: OpenTUI Dashboard
  * 
@@ -39,9 +39,9 @@ interface BudgetDisplay {
 }
 
 const DEFAULT_CONFIG: TerminalDashboardConfig = {
-  apiUrl: 'http://localhost:7373',
-  wsUrl: 'ws://localhost:7374',
-  apiKey: 'dash-api-key',
+  apiUrl: process.env['GODEL_API_URL'] || 'http://localhost:7373',
+  wsUrl: process.env['GODEL_WS_URL'] || 'ws://localhost:7374',
+  apiKey: process.env['GODEL_API_KEY'] || '',
   refreshRate: 100,
   theme: 'dark'
 };

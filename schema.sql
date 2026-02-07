@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================================
 -- Swarms Table (must be created before agents due to FK)
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS swarms (
+CREATE TABLE IF NOT EXISTS teams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     config JSONB DEFAULT '{}',
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS swarms (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS agents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    swarm_id UUID,
+    team_id UUID,
     label VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     lifecycle_state VARCHAR(50) NOT NULL DEFAULT 'initializing',
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS agents (
     last_error TEXT,
     budget_limit DECIMAL(12, 4),
     metadata JSONB DEFAULT '{}',
-    CONSTRAINT fk_swarm FOREIGN KEY (swarm_id) REFERENCES swarms(id) ON DELETE SET NULL
+    CONSTRAINT fk_swarm FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE SET NULL
 );
 
 -- ============================================================================
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS events (
     source JSONB,
     payload JSONB,
     agent_id UUID REFERENCES agents(id) ON DELETE CASCADE,
-    swarm_id UUID REFERENCES swarms(id) ON DELETE CASCADE
+    team_id UUID REFERENCES teams(id) ON DELETE CASCADE
 );
 
 -- ============================================================================
@@ -100,18 +100,18 @@ CREATE TABLE IF NOT EXISTS budgets (
 -- Agent indexes
 CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
 CREATE INDEX IF NOT EXISTS idx_agents_lifecycle_state ON agents(lifecycle_state);
-CREATE INDEX IF NOT EXISTS idx_agents_swarm_id ON agents(swarm_id);
+CREATE INDEX IF NOT EXISTS idx_agents_swarm_id ON agents(team_id);
 CREATE INDEX IF NOT EXISTS idx_agents_model ON agents(model);
 CREATE INDEX IF NOT EXISTS idx_agents_spawned_at ON agents(spawned_at DESC);
 CREATE INDEX IF NOT EXISTS idx_agents_status_spawned ON agents(status, spawned_at DESC);
 
 -- Swarm indexes
-CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
-CREATE INDEX IF NOT EXISTS idx_swarms_created_at ON swarms(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_swarms_status ON teams(status);
+CREATE INDEX IF NOT EXISTS idx_swarms_created_at ON teams(created_at DESC);
 
 -- Event indexes
 CREATE INDEX IF NOT EXISTS idx_events_agent_id ON events(agent_id);
-CREATE INDEX IF NOT EXISTS idx_events_swarm_id ON events(swarm_id);
+CREATE INDEX IF NOT EXISTS idx_events_swarm_id ON events(team_id);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
 CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC);
 
@@ -128,7 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_budgets_entity ON budgets(entity_type, entity_id)
 -- ============================================================================
 
 COMMENT ON TABLE agents IS 'Agents managed by Dash orchestration';
-COMMENT ON TABLE swarms IS 'Swarm configurations and state';
-COMMENT ON TABLE events IS 'Event log for agents and swarms';
+COMMENT ON TABLE teams IS 'Swarm configurations and state';
+COMMENT ON TABLE events IS 'Event log for agents and teams';
 COMMENT ON TABLE sessions IS 'Agent session tree for hierarchical context';
 COMMENT ON TABLE budgets IS 'Budget tracking per entity';

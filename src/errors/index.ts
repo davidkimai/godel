@@ -1,7 +1,7 @@
 /**
- * Dash Error Handling System
+ * Godel Error Handling System
  * 
- * Centralized error handling for the Dash platform.
+ * Centralized error handling for the Godel platform.
  * 
  * @example
  * ```typescript
@@ -44,7 +44,7 @@ export {
   SchemaValidationError,
   NotFoundError,
   AgentNotFoundError,
-  SwarmNotFoundError,
+  TeamNotFoundError,
   TaskNotFoundError,
   AlreadyExistsError,
   
@@ -56,7 +56,7 @@ export {
   // Execution errors (5xx)
   AgentExecutionError,
   AgentTimeoutError,
-  SwarmExecutionError,
+  TeamExecutionError,
   
   // Resource limit errors (429)
   RateLimitError,
@@ -136,7 +136,7 @@ export {
 } from './handler';
 
 // =============================================================================
-// DASH-SPECIFIC ERROR CODES (E-Codes)
+// GODEL-SPECIFIC ERROR CODES (E-Codes)
 // 
 // Machine-readable error codes for programmatic handling.
 // Format: E### where ### is a unique numeric identifier.
@@ -159,13 +159,13 @@ export enum DashErrorCode {
   AGENT_COMPLETE_FAILED = 'E207',
   INVALID_AGENT_STATE = 'E208',
   
-  // Swarm Errors (E3xx)
-  SWARM_NOT_FOUND = 'E300',
-  SWARM_ALREADY_EXISTS = 'E301',
-  SWARM_CREATE_FAILED = 'E302',
-  SWARM_DESTROY_FAILED = 'E303',
-  SWARM_SCALE_FAILED = 'E304',
-  INVALID_SWARM_STATE = 'E305',
+  // Team Errors (E3xx)
+  TEAM_NOT_FOUND = 'E300',
+  TEAM_ALREADY_EXISTS = 'E301',
+  TEAM_CREATE_FAILED = 'E302',
+  TEAM_DESTROY_FAILED = 'E303',
+  TEAM_SCALE_FAILED = 'E304',
+  INVALID_TEAM_STATE = 'E305',
   MAX_AGENTS_EXCEEDED = 'E306',
   
   // Context Errors (E4xx)
@@ -228,7 +228,7 @@ export const ErrorRecoveryStrategies: Record<string, RecoveryAction> = {
   [DashErrorCode.LIFECYCLE_NOT_STARTED]: { type: 'abort' },
   [DashErrorCode.BUDGET_EXHAUSTED]: { type: 'escalate', toModel: 'cheaper-model' },
   [DashErrorCode.AGENT_NOT_FOUND]: { type: 'abort' },
-  [DashErrorCode.SWARM_NOT_FOUND]: { type: 'abort' },
+  [DashErrorCode.TEAM_NOT_FOUND]: { type: 'abort' },
   [DashErrorCode.CONTEXT_NOT_FOUND]: { type: 'fallback', fallbackValue: { files: [] } },
   [DashErrorCode.INVALID_FILE_PATH]: { type: 'skip' },
   [DashErrorCode.FILE_NOT_FOUND_IN_CONTEXT]: { type: 'skip' },

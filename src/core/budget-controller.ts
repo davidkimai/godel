@@ -6,9 +6,9 @@ import { logger } from '../utils/logger';
 export const HARD_LIMITS = {
   // Absolute maximums
   maxAgents: 50,
-  maxConcurrentSwarms: 10,
+  maxConcurrentTeams: 10,
   maxTotalSpendPerDay: 100.00, // dollars
-  maxSpendPerSwarm: 50.00, // dollars
+  maxSpendPerTeam: 50.00, // dollars
 
   // Emergency stops
   emergencyBudgetCap: 50.00, // per day
@@ -17,7 +17,7 @@ export const HARD_LIMITS = {
   // AFK mode (human not seen for 4+ hours)
   afkBudgetCap: 25.00,
   afkAgentCap: 5,
-  afkAllowNewSwarms: false,
+  afkAllowNewTeams: false,
 };
 
 // ============================================================================
@@ -26,7 +26,7 @@ export const HARD_LIMITS = {
 export const SOFT_LIMITS = {
   warnSpendPerHour: 10.00, // Warning at this spend per hour
   warnAgentsCount: 20, // Warning at this agent count
-  warnSwarmsInFlight: 5, // Warning at this swarm count
+  warnTeamsInFlight: 5, // Warning at this team count
   warnTestCoverageDrop: 5, // Percentage points
 };
 
@@ -39,11 +39,11 @@ export const NIGHT_MODE_LIMITS = {
   endHour: 7, // 7 AM
 
   maxAgents: 5,
-  maxConcurrentSwarms: 2,
+  maxConcurrentTeams: 2,
   maxTotalSpendPerNight: 25.00, // $25 max overnight
   maxSpendPerHour: 5.00, // $5 per hour max
 
-  newSwarmsAllowed: false, // Only finish existing
+  newTeamsAllowed: false, // Only finish existing
   criticalFixesAllowed: true, // Critical fixes OK
 };
 
@@ -76,7 +76,7 @@ export interface BudgetSnapshot {
   agentCount: number;
   swarmCount: number;
   perAgentSpend: number;
-  perSwarmSpend: number;
+  perTeamSpend: number;
 }
 
 export interface NightModeStatus {
@@ -106,8 +106,8 @@ export class BudgetController {
   private config = {
     dailyBudget: HARD_LIMITS.maxTotalSpendPerDay,
     agentCap: HARD_LIMITS.maxAgents,
-    swarmCap: HARD_LIMITS.maxConcurrentSwarms,
-    perSwarmCap: HARD_LIMITS.maxSpendPerSwarm,
+    swarmCap: HARD_LIMITS.maxConcurrentTeams,
+    perTeamCap: HARD_LIMITS.maxSpendPerTeam,
   };
 
   // --------------------------------------------------------------------------
@@ -133,11 +133,11 @@ export class BudgetController {
       };
     }
 
-    // Check swarm budget
-    if (swarmBudget > this.config.perSwarmCap) {
+    // Check team budget
+    if (swarmBudget > this.config.perTeamCap) {
       return {
         allowed: false,
-        reason: `Swarm budget exceeded: $${swarmBudget}/$${this.config.perSwarmCap}`,
+        reason: `Team budget exceeded: $${swarmBudget}/$${this.config.perTeamCap}`,
         currentSpend: this.totalSpend,
         remainingBudget: this.config.dailyBudget - this.totalSpend,
         agentCount,
@@ -187,7 +187,7 @@ export class BudgetController {
       agentCount: this.agentCount,
       swarmCount: this.swarmCount,
       perAgentSpend: this.agentCount > 0 ? this.totalSpend / this.agentCount : 0,
-      perSwarmSpend: this.swarmCount > 0 ? this.totalSpend / this.swarmCount : 0,
+      perTeamSpend: this.swarmCount > 0 ? this.totalSpend / this.swarmCount : 0,
     });
 
     // Keep only last 100 entries
@@ -204,9 +204,9 @@ export class BudgetController {
   }
 
   /**
-   * Update swarm count
+   * Update team count
    */
-  updateSwarmCount(count: number): void {
+  updateTeamCount(count: number): void {
     this.swarmCount = count;
   }
 
@@ -297,7 +297,7 @@ export class BudgetController {
     this.nightModeEnabled = false;
     // Reset to day mode limits
     this.config.agentCap = HARD_LIMITS.maxAgents;
-    this.config.swarmCap = HARD_LIMITS.maxConcurrentSwarms;
+    this.config.swarmCap = HARD_LIMITS.maxConcurrentTeams;
     logger.info('budget', 'Night mode disabled, restored day mode limits');
   }
 
@@ -329,9 +329,9 @@ export class BudgetController {
   }
 
   /**
-   * Get per-swarm spend average
+   * Get per-team spend average
    */
-  getPerSwarmSpend(): number {
+  getPerTeamSpend(): number {
     if (this.swarmCount <= 0) return 0;
     return this.totalSpend / this.swarmCount;
   }
@@ -366,5 +366,5 @@ export function canAddAgent(): boolean {
  */
 export function getBudgetStatus(): string {
   const status = budgetController.getStatus();
-  return `Budget: $${status.totalSpend.toFixed(2)}/${status.dailyBudget} (${status.percentUsed.toFixed(1)}%) | Agents: ${status.agentCount}/${status.agentCap} | Swarms: ${status.swarmCount}/${status.swarmCap}`;
+  return `Budget: $${status.totalSpend.toFixed(2)}/${status.dailyBudget} (${status.percentUsed.toFixed(1)}%) | Agents: ${status.agentCount}/${status.agentCap} | Teams: ${status.swarmCount}/${status.swarmCap}`;
 }

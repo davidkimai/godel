@@ -64,7 +64,7 @@ Tests for Zod schemas:
 - `spawnAgentSchema` - Agent spawning
 - `updateAgentSchema` - Agent updates
 - `agentActionSchema` - Kill/pause/resume/retry/scale actions
-- `createSwarmSchema` - Swarm creation with strategy validation
+- `createSwarmSchema` - Team creation with strategy validation
 - `setBudgetSchema` - Budget configuration
 
 #### `tests/utils/memory-manager.test.ts` (48 tests)

@@ -1,9 +1,9 @@
 /**
  * Scaling Integration
  * 
- * Integration layer connecting the auto-scaler with existing Dash components:
+ * Integration layer connecting the auto-scaler with existing Godel components:
  * - Event bus for scaling events
- * - Swarm orchestrator for scaling operations
+ * - Team orchestrator for scaling operations
  * - PostgreSQL repositories for persistence
  * - Prometheus metrics for monitoring
  */
@@ -17,24 +17,24 @@ import {
   BudgetConfig,
   AutoScalerConfig,
 } from './types';
-import { SwarmOrchestrator } from '../core/swarm-orchestrator';
+import { TeamOrchestrator } from '../core/team-orchestrator';
 import { RedisEventBus } from '../core/event-bus-redis';
 import { PrometheusMetrics } from '../metrics/prometheus';
-import { SwarmRepository, BudgetRepository } from '../storage/repositories';
+import { TeamRepository, BudgetRepository } from '../storage/repositories';
 
 // ============================================================================
 // Scaling Service
 // ============================================================================
 
 /**
- * High-level service for managing auto-scaling across all swarms
+ * High-level service for managing auto-scaling across all teams
  */
 export class ScalingService {
   private autoScaler: AutoScaler;
-  private orchestrator?: SwarmOrchestrator;
+  private orchestrator?: TeamOrchestrator;
   private eventBus?: RedisEventBus;
   private prometheus?: PrometheusMetrics;
-  private swarmRepository?: SwarmRepository;
+  private swarmRepository?: TeamRepository;
   private budgetRepository?: BudgetRepository;
   private isInitialized: boolean = false;
 
@@ -47,10 +47,10 @@ export class ScalingService {
    * Initialize with required dependencies
    */
   initialize(options: {
-    orchestrator: SwarmOrchestrator;
+    orchestrator: TeamOrchestrator;
     eventBus: RedisEventBus;
     prometheus: PrometheusMetrics;
-    swarmRepository: SwarmRepository;
+    swarmRepository: TeamRepository;
     budgetRepository: BudgetRepository;
   }): void {
     this.orchestrator = options.orchestrator;
@@ -94,20 +94,20 @@ export class ScalingService {
   }
 
   /**
-   * Enable auto-scaling for a swarm
+   * Enable auto-scaling for a team
    */
   async enableAutoScaling(
-    swarmId: string,
+    teamId: string,
     policy?: Partial<ScalingPolicy>
   ): Promise<void> {
     if (!this.isInitialized) {
       throw new Error('ScalingService not initialized');
     }
 
-    // Get swarm info
-    const swarm = await this.swarmRepository?.findById(swarmId);
-    if (!swarm) {
-      throw new Error(`Swarm ${swarmId} not found`);
+    // Get team info
+    const team = await this.swarmRepository?.findById(teamId);
+    if (!team) {
+      throw new Error(`Team ${teamId} not found`);
     }
 
     // Create default policy with overrides
@@ -115,7 +115,7 @@ export class ScalingService {
     const defaultMaxAgents = policy?.maxAgents || 50;
 
     const fullPolicy: ScalingPolicy = {
-      swarmId,
+      teamId,
       minAgents: defaultMinAgents,
       maxAgents: defaultMaxAgents,
       scaleUp: {
@@ -150,10 +150,10 @@ export class ScalingService {
 
     this.autoScaler.registerPolicy(fullPolicy);
 
-    // Update swarm config in database
-    await this.swarmRepository?.update(swarmId, {
+    // Update team config in database
+    await this.swarmRepository?.update(teamId, {
       config: {
-        ...swarm.config,
+        ...team.config,
         autoScaling: {
           enabled: true,
           policy: fullPolicy,
@@ -161,21 +161,21 @@ export class ScalingService {
       },
     });
 
-    logger.info(`[ScalingService] Enabled auto-scaling for swarm ${swarmId}`);
+    logger.info(`[ScalingService] Enabled auto-scaling for team ${teamId}`);
   }
 
   /**
-   * Disable auto-scaling for a swarm
+   * Disable auto-scaling for a team
    */
-  async disableAutoScaling(swarmId: string): Promise<void> {
-    this.autoScaler.unregisterPolicy(swarmId);
+  async disableAutoScaling(teamId: string): Promise<void> {
+    this.autoScaler.unregisterPolicy(teamId);
 
-    // Update swarm config in database
-    const swarm = await this.swarmRepository?.findById(swarmId);
-    if (swarm) {
-      await this.swarmRepository?.update(swarmId, {
+    // Update team config in database
+    const team = await this.swarmRepository?.findById(teamId);
+    if (team) {
+      await this.swarmRepository?.update(teamId, {
         config: {
-          ...swarm.config,
+          ...team.config,
           autoScaling: {
             enabled: false,
           },
@@ -183,25 +183,25 @@ export class ScalingService {
       });
     }
 
-    logger.info(`[ScalingService] Disabled auto-scaling for swarm ${swarmId}`);
+    logger.info(`[ScalingService] Disabled auto-scaling for team ${teamId}`);
   }
 
   /**
-   * Set budget for a swarm
+   * Set budget for a team
    */
   async setBudget(config: BudgetConfig): Promise<void> {
     this.autoScaler.registerBudget(config);
 
     // Persist to database
     await this.budgetRepository?.create({
-      swarm_id: config.swarmId,
-      scope_id: config.swarmId,
-      scope_type: 'swarm',
+      team_id: config.teamId,
+      scope_id: config.teamId,
+      scope_type: 'team',
       allocated: config.totalBudget,
       currency: config.currency || 'USD',
     });
 
-    logger.info(`[ScalingService] Set budget for swarm ${config.swarmId}: $${config.totalBudget}`);
+    logger.info(`[ScalingService] Set budget for team ${config.teamId}: $${config.totalBudget}`);
   }
 
   /**
@@ -212,17 +212,17 @@ export class ScalingService {
   }
 
   /**
-   * Get decision history for a swarm
+   * Get decision history for a team
    */
-  getDecisionHistory(swarmId: string) {
-    return this.autoScaler.getDecisionHistory(swarmId);
+  getDecisionHistory(teamId: string) {
+    return this.autoScaler.getDecisionHistory(teamId);
   }
 
   /**
-   * Force evaluation of a swarm
+   * Force evaluation of a team
    */
-  async evaluateSwarm(swarmId: string): Promise<ScalingDecision | null> {
-    return this.autoScaler.evaluateSwarm(swarmId);
+  async evaluateTeam(teamId: string): Promise<ScalingDecision | null> {
+    return this.autoScaler.evaluateTeam(teamId);
   }
 
   // ============================================================================
@@ -232,7 +232,7 @@ export class ScalingService {
   private setupEventHandlers(): void {
     // Handle scale events
     this.autoScaler.on('scale', async (command: {
-      swarmId: string;
+      teamId: string;
       action: string;
       fromCount: number;
       toCount: number;
@@ -243,7 +243,7 @@ export class ScalingService {
 
     // Handle cost alerts
     this.autoScaler.on('cost.alert', (alert) => {
-      logger.warn(`[ScalingService] Cost alert for ${alert.swarmId}: ${alert.level}`);
+      logger.warn(`[ScalingService] Cost alert for ${alert.teamId}: ${alert.level}`);
       
       // Update Prometheus metrics
       this.prometheus?.errorsTotalCounter.inc({
@@ -265,7 +265,7 @@ export class ScalingService {
   }
 
   private async executeScaleCommand(command: {
-    swarmId: string;
+    teamId: string;
     action: string;
     fromCount: number;
     toCount: number;
@@ -278,15 +278,15 @@ export class ScalingService {
 
     try {
       logger.info(
-        `[ScalingService] Executing scale: ${command.swarmId} ` +
+        `[ScalingService] Executing scale: ${command.teamId} ` +
         `${command.fromCount} → ${command.toCount}`
       );
 
-      await this.orchestrator.scale(command.swarmId, command.toCount);
+      await (this.orchestrator as any).scale(command.teamId, command.toCount);
 
-      // Update swarm status in database
-      await this.swarmRepository?.updateStatus(command.swarmId, 'scaling');
-      await this.swarmRepository?.updateStatus(command.swarmId, 'active');
+      // Update team status in database
+      await this.swarmRepository?.updateStatus(command.teamId, 'scaling');
+      await this.swarmRepository?.updateStatus(command.teamId, 'active');
 
     } catch (error) {
       logger.error(`[ScalingService] Scale execution failed: ${error}`);
@@ -312,8 +312,8 @@ export class ScalingService {
       id: event.id,
       type: 'agent_start', // Map to appropriate type
       timestamp: event.timestamp.getTime(),
-      agentId: event.swarmId,
-      swarmId: event.swarmId,
+      agentId: event.teamId,
+      teamId: event.teamId,
       ...event.payload,
     };
 
@@ -335,10 +335,10 @@ let globalScalingService: ScalingService | null = null;
 
 export function createScalingService(
   options: {
-    orchestrator: SwarmOrchestrator;
+    orchestrator: TeamOrchestrator;
     eventBus: RedisEventBus;
     prometheus: PrometheusMetrics;
-    swarmRepository: SwarmRepository;
+    swarmRepository: TeamRepository;
     budgetRepository: BudgetRepository;
     config?: Partial<AutoScalerConfig>;
   }

@@ -1,5 +1,5 @@
 /**
- * Default Dash Extension
+ * Default Godel Extension
  * 
  * Provides built-in tools that are always available:
  * - read: Read file contents
@@ -9,7 +9,7 @@
  * - grep: Search file contents
  * - find: Find files by pattern
  * 
- * These tools form the foundation of Dash agent capabilities.
+ * These tools form the foundation of Godel agent capabilities.
  */
 
 import * as fs from 'node:fs';

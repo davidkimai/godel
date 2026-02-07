@@ -41,7 +41,7 @@ export interface ImprovementMetrics {
 }
 
 export interface ImprovementContext {
-  swarmId: string;
+  teamId: string;
   agentCount: number;
   modelUsed: string;
   toolsUsed: string[];
@@ -167,7 +167,7 @@ export class ImprovementStore {
         lines_added INTEGER,
         lines_removed INTEGER,
         files_changed INTEGER,
-        swarm_id TEXT,
+        team_id TEXT,
         agent_count INTEGER,
         model_used TEXT,
         tools_used TEXT,
@@ -342,7 +342,7 @@ export class ImprovementStore {
       INSERT INTO store_improvements (
         id, timestamp, area, strategy, success, confidence, budget_used, duration_ms, changes,
         test_coverage_delta, bugs_fixed, performance_improvement, code_quality_score, documentation_coverage,
-        lines_added, lines_removed, files_changed, swarm_id, agent_count, model_used, tools_used,
+        lines_added, lines_removed, files_changed, team_id, agent_count, model_used, tools_used,
         files_affected, commit_hash, error_details, tags
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
@@ -363,7 +363,7 @@ export class ImprovementStore {
       entry.metrics.linesAdded ?? null,
       entry.metrics.linesRemoved ?? null,
       entry.metrics.filesChanged ?? null,
-      entry.context.swarmId,
+      entry.context.teamId,
       entry.context.agentCount,
       entry.context.modelUsed,
       JSON.stringify(entry.context.toolsUsed),
@@ -864,7 +864,7 @@ export class ImprovementStore {
         filesChanged: row.files_changed,
       },
       context: {
-        swarmId: row.swarm_id,
+        teamId: row.team_id,
         agentCount: row.agent_count,
         modelUsed: row.model_used,
         toolsUsed: JSON.parse(row.tools_used || '[]'),

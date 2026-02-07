@@ -1,16 +1,16 @@
 /**
- * Swarm Monitor Component
+ * Team Monitor Component
  * 
- * Displays a live table of active swarms and their agents
+ * Displays a live table of active teams and their agents
  * with real-time status updates.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import Spinner from 'ink-spinner';
-import { useSwarmData } from '../hooks/useWebSocket';
+import { useTeamData } from '../hooks/useWebSocket';
 
-export interface SwarmMonitorProps {
+export interface TeamMonitorProps {
   width: number;
   height: number;
 }
@@ -29,27 +29,27 @@ interface AgentInfo {
   name: string;
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'killed';
   task: string;
-  swarmId: string;
+  teamId: string;
   startTime?: Date;
   duration?: number;
 }
 
-export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
+export function TeamMonitor({ width, height }: TeamMonitorProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [expandedSwarms, setExpandedSwarms] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'swarms' | 'agents'>('swarms');
+  const [viewMode, setViewMode] = useState<'teams' | 'agents'>('teams');
 
-  const { swarms, agents, loading, error, refresh } = useSwarmData();
+  const { teams, agents, loading, error, refresh } = useTeamData();
 
   // Calculate display items
   const displayItems = useMemo(() => {
-    const items: Array<{ type: 'swarm' | 'agent'; data: SwarmInfo | AgentInfo }> = [];
+    const items: Array<{ type: 'team' | 'agent'; data: SwarmInfo | AgentInfo }> = [];
     
-    for (const swarm of (swarms as unknown as SwarmInfo[])) {
-      items.push({ type: 'swarm', data: swarm });
+    for (const team of (teams as unknown as SwarmInfo[])) {
+      items.push({ type: 'team', data: team });
       
-      if (expandedSwarms.has(swarm.id)) {
-        const swarmAgents = agents.filter(a => a.swarmId === swarm.id);
+      if (expandedSwarms.has(team.id)) {
+        const swarmAgents = agents.filter(a => a.teamId === team.id);
         for (const agent of swarmAgents) {
           items.push({ type: 'agent', data: agent });
         }
@@ -57,7 +57,7 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
     }
     
     return items;
-  }, [swarms, agents, expandedSwarms]);
+  }, [teams, agents, expandedSwarms]);
 
   // Keyboard navigation
   useInput((input, key) => {
@@ -71,14 +71,14 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
 
     if (key.return) {
       const item = displayItems[selectedIndex];
-      if (item?.type === 'swarm') {
-        const swarmId = (item.data as SwarmInfo).id;
+      if (item?.type === 'team') {
+        const teamId = (item.data as SwarmInfo).id;
         setExpandedSwarms(prev => {
           const next = new Set(prev);
-          if (next.has(swarmId)) {
-            next.delete(swarmId);
+          if (next.has(teamId)) {
+            next.delete(teamId);
           } else {
-            next.add(swarmId);
+            next.add(teamId);
           }
           return next;
         });
@@ -99,7 +99,7 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
     }
 
     if (input === 'v') {
-      setViewMode(prev => prev === 'swarms' ? 'agents' : 'swarms');
+      setViewMode(prev => prev === 'teams' ? 'agents' : 'teams');
     }
   });
 
@@ -142,26 +142,26 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
     return `${seconds}s`;
   };
 
-  const renderSwarmRow = (swarm: SwarmInfo, index: number, isSelected: boolean) => {
-    const isExpanded = expandedSwarms.has(swarm.id);
-    const agentCount = agents.filter(a => a.swarmId === swarm.id).length;
+  const renderSwarmRow = (team: SwarmInfo, index: number, isSelected: boolean) => {
+    const isExpanded = expandedSwarms.has(team.id);
+    const agentCount = agents.filter(a => a.teamId === team.id).length;
     const maxIdWidth = 20;
     const maxNameWidth = 25;
     
     return (
-      <Box key={swarm.id}>
+      <Box key={team.id}>
         <Text 
           color={isSelected ? 'cyan' : 'white'} 
           backgroundColor={isSelected ? 'gray' : undefined}
           bold={isSelected}
         >
           {isExpanded ? '▼ ' : '▶ '}
-          {getStatusIcon(swarm.status)} {' '}
-          {swarm.id.slice(0, maxIdWidth).padEnd(maxIdWidth)} {' '}
-          {swarm.name.slice(0, maxNameWidth).padEnd(maxNameWidth)} {' '}
-          <Text color={getStatusColor(swarm.status)}>{swarm.status.padEnd(10)}</Text> {' '}
+          {getStatusIcon(team.status)} {' '}
+          {team.id.slice(0, maxIdWidth).padEnd(maxIdWidth)} {' '}
+          {team.name.slice(0, maxNameWidth).padEnd(maxNameWidth)} {' '}
+          <Text color={getStatusColor(team.status)}>{team.status.padEnd(10)}</Text> {' '}
           {agentCount.toString().padStart(3)} agents {' '}
-          {Math.round(swarm.progress)}%
+          {Math.round(team.progress)}%
         </Text>
       </Box>
     );
@@ -210,7 +210,7 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
     return (
       <Box flexDirection="column" padding={1}>
         <Text>
-          <Spinner type="dots" /> Loading swarm data...
+          <Spinner type="dots" /> Loading team data...
         </Text>
       </Box>
     );
@@ -238,7 +238,7 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
       {/* Stats Summary */}
       <Box paddingY={1}>
         <Text color="gray">
-          Total: {swarms.length} swarms | {agents.length} agents | {' '}
+          Total: {teams.length} teams | {agents.length} agents | {' '}
           Running: {agents.filter(a => a.status === 'running').length} | {' '}
           Pending: {agents.filter(a => a.status === 'pending').length} | {' '}
           Failed: {agents.filter(a => a.status === 'failed').length}
@@ -257,14 +257,14 @@ export function SwarmMonitor({ width, height }: SwarmMonitorProps) {
       <Box flexDirection="column">
         {visibleItems.length === 0 ? (
           <Box paddingY={2}>
-            <Text color="gray">No swarms active. Use &quot;godel swarm create&quot; to start a swarm.</Text>
+            <Text color="gray">No teams active. Use &quot;godel team create&quot; to start a team.</Text>
           </Box>
         ) : (
           visibleItems.map((item, idx) => {
             const actualIndex = startIndex + idx;
             const isSelected = actualIndex === selectedIndex;
             
-            if (item.type === 'swarm') {
+            if (item.type === 'team') {
               return renderSwarmRow(item.data as SwarmInfo, actualIndex, isSelected);
             } else {
               return renderAgentRow(item.data as AgentInfo, actualIndex, isSelected);

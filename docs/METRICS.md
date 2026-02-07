@@ -1,10 +1,10 @@
-# Dash Metrics Infrastructure
+# Godel Metrics Infrastructure
 
-This document describes the Prometheus metrics export and health check infrastructure for Dash.
+This document describes the Prometheus metrics export and health check infrastructure for Godel.
 
 ## Overview
 
-The metrics infrastructure provides comprehensive observability for the Dash orchestration platform, including:
+The metrics infrastructure provides comprehensive observability for the Godel orchestration platform, including:
 
 - **Prometheus metrics export** for all system and business metrics
 - **Health check endpoints** for monitoring system health
@@ -55,17 +55,17 @@ curl http://localhost:7373/health/live
 | `dash_agent_failures_total` | Counter | `swarm_id`, `failure_reason` | Total agent failures |
 | `dash_agent_execution_duration_seconds` | Histogram | `swarm_id`, `model` | Agent execution time |
 
-### Swarm Metrics
+### Team Metrics
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `dash_swarms_active` | Gauge | - | Active swarm count |
-| `dash_swarms_total` | Gauge | - | Total swarm count |
-| `dash_swarm_agents` | Gauge | `swarm_id`, `strategy` | Agents per swarm |
-| `dash_swarm_success_total` | Counter | `strategy` | Successful swarm completions |
-| `dash_swarm_failure_total` | Counter | `strategy`, `failure_reason` | Failed swarms |
-| `dash_swarm_cost_usd` | Gauge | `swarm_id`, `currency` | Swarm cost |
-| `dash_swarm_duration_seconds` | Histogram | `strategy`, `status` | Swarm execution time |
+| `dash_swarms_active` | Gauge | - | Active team count |
+| `dash_swarms_total` | Gauge | - | Total team count |
+| `dash_swarm_agents` | Gauge | `swarm_id`, `strategy` | Agents per team |
+| `dash_swarm_success_total` | Counter | `strategy` | Successful team completions |
+| `dash_swarm_failure_total` | Counter | `strategy`, `failure_reason` | Failed teams |
+| `dash_swarm_cost_usd` | Gauge | `swarm_id`, `currency` | Team cost |
+| `dash_swarm_duration_seconds` | Histogram | `strategy`, `status` | Team execution time |
 | `dash_budget_utilization_ratio` | Gauge | `swarm_id` | Budget used (0-1) |
 
 ### Event Metrics
@@ -103,7 +103,7 @@ curl http://localhost:7373/health/live
 ### Agent Status
 
 ```promql
-# Active agents by swarm
+# Active agents by team
 sum by (swarm_id) (dash_agents_active)
 
 # Agent failure rate
@@ -115,30 +115,30 @@ histogram_quantile(0.95,
 )
 ```
 
-### Swarm Performance
+### Team Performance
 
 ```promql
-# Swarm success rate
+# Team success rate
 rate(dash_swarm_success_total[10m]) / 
   (rate(dash_swarm_success_total[10m]) + rate(dash_swarm_failure_total[10m]))
 
-# Average swarm cost by strategy
+# Average team cost by strategy
 avg by (strategy) (dash_swarm_cost_usd)
 
-# Swarms running over 1 hour
+# Teams running over 1 hour
 dash_swarm_duration_seconds_bucket{le="3600"}
 ```
 
 ### Budget Monitoring
 
 ```promql
-# Budget utilization by swarm
+# Budget utilization by team
 dash_budget_utilization_ratio
 
-# Total spend across all swarms
+# Total spend across all teams
 sum(dash_swarm_cost_usd)
 
-# Swarms approaching budget limit
+# Teams approaching budget limit
 dash_budget_utilization_ratio > 0.8
 ```
 
@@ -161,10 +161,10 @@ rate(dash_api_request_duration_seconds_count{status_code=~"5.."}[5m])
 
 | Alert | Condition | Threshold | Action |
 |-------|-----------|-----------|--------|
-| DashNoMetrics | `up{job="dash"} == 0` | 2m | Check if Dash is running |
+| DashNoMetrics | `up{job="godel"} == 0` | 2m | Check if Godel is running |
 | DashBudgetCritical | `dash_budget_utilization_ratio > 0.95` | 1m | Scale down or increase budget |
 | DashHighAgentFailureRate | `rate(dash_agent_failures_total[10m]) > 0.5` | 5m | Investigate agent failures |
-| DashSwarmFailureRate | `rate(dash_swarm_failure_total[10m]) > 0.1` | 5m | Review swarm strategy |
+| DashSwarmFailureRate | `rate(dash_swarm_failure_total[10m]) > 0.1` | 5m | Review team strategy |
 
 ### Warning Alerts (Monitor Closely)
 
@@ -189,7 +189,7 @@ Returns comprehensive health report:
   "timestamp": "2024-01-15T10:30:00Z",
   "version": "2.0.0",
   "uptime": 3600,
-  "hostname": "dash-server",
+  "hostname": "godel-server",
   "checks": [
     {
       "name": "memory",
@@ -267,7 +267,7 @@ To enable metrics in the dashboard server:
 import { DashboardServer } from './dashboard/server';
 import { getGlobalPrometheusMetrics } from './metrics';
 import { getGlobalEventBus } from './core/event-bus';
-import { getGlobalSwarmOrchestrator } from './core/swarm-orchestrator';
+import { getGlobalSwarmOrchestrator } from './core/team-orchestrator';
 
 // Initialize metrics
 const metrics = getGlobalPrometheusMetrics();
@@ -296,11 +296,11 @@ const metrics = getGlobalPrometheusMetrics();
 metrics.swarmSuccessCounter.inc({ strategy: 'pipeline' });
 
 // Record with value
-metrics.swarmCostGauge.set({ swarm_id: 'swarm-123', currency: 'usd' }, 25.50);
+metrics.swarmCostGauge.set({ swarm_id: 'team-123', currency: 'usd' }, 25.50);
 
 // Observe histogram
 metrics.agentExecutionHistogram.observe(
-  { swarm_id: 'swarm-123', model: 'gpt-4' },
+  { swarm_id: 'team-123', model: 'gpt-4' },
   45.5 // seconds
 );
 ```
@@ -309,8 +309,8 @@ metrics.agentExecutionHistogram.observe(
 
 ### Pre-built Dashboards
 
-1. **Dash Overview** - High-level system health and key metrics
-2. **Swarm Performance** - Detailed swarm execution metrics
+1. **Godel Overview** - High-level system health and key metrics
+2. **Team Performance** - Detailed team execution metrics
 3. **Agent Metrics** - Per-agent performance and health
 4. **Cost Analysis** - Budget tracking and cost breakdowns
 
@@ -335,11 +335,11 @@ To create custom dashboards:
 
 2. Verify Prometheus is scraping:
    - Open http://localhost:9090/targets
-   - Check if `dash` target is up
+   - Check if `godel` target is up
 
 3. Check Prometheus logs:
    ```bash
-   docker logs dash-prometheus
+   docker logs godel-prometheus
    ```
 
 ### High Memory Usage

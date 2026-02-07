@@ -1,7 +1,7 @@
 # Pi-Mono Repository Strategic Assessment
 
 **Date:** February 3, 2026  
-**Objective:** Extract beneficial patterns from pi-mono for OpenClaw/Dash integration  
+**Objective:** Extract beneficial patterns from pi-mono for OpenClaw/Godel integration  
 **Strategic Importance:** HIGH - OpenClaw is built on pi-mono (this is essentially OpenClaw's SDK)
 
 ---
@@ -18,7 +18,7 @@
 5. **@mariozechner/pi-mom** - Slack bot delegation patterns
 
 **Strategic Opportunities:**
-- Agent runtime patterns for Dash
+- Agent runtime patterns for Godel
 - TUI components for swarmctl
 - Tool calling architecture
 - Extension system for skills
@@ -104,8 +104,8 @@ interface AgentTool<TParameters extends TSchema, TDetails = any> {
 }
 ```
 
-**Dash Integration Opportunity:**
-- Use agent-loop.ts as foundation for Dash agents
+**Godel Integration Opportunity:**
+- Use agent-loop.ts as foundation for Godel agents
 - Tool system for agent capabilities
 - Event streaming for real-time monitoring
 - State management for persistence
@@ -136,7 +136,7 @@ interface AgentTool<TParameters extends TSchema, TDetails = any> {
 // stdin buffer handling
 ```
 
-**Dash Integration Opportunity:**
+**Godel Integration Opportunity:**
 - Replace Ink with pi-tui for swarmctl
 - Better component architecture
 - Theme system for consistent UI
@@ -195,7 +195,7 @@ Commands:
 // Serialization for persistence
 ```
 
-**Dash Integration Opportunity:**
+**Godel Integration Opportunity:**
 - Extension system for custom agent behaviors
 - Skills system for agent capabilities
 - Session tree for agent lineage
@@ -210,19 +210,19 @@ Commands:
 - Event handling from Slack
 - Message routing
 
-**Less relevant for Dash but shows:**
+**Less relevant for Godel but shows:**
 - Multi-platform integration patterns
 - Message delegation architecture
 
 ---
 
-## Critical Patterns for Dash
+## Critical Patterns for Godel
 
 ### 1. Agent Runtime (from pi-agent-core)
 
 **What:** Core agent execution loop with event streaming
 **Benefit:** Production-grade agent lifecycle management
-**Integration:** Replace Dash's basic agent spawning with full runtime
+**Integration:** Replace Godel's basic agent spawning with full runtime
 
 **Key Features:**
 - Event-driven architecture
@@ -235,13 +235,13 @@ Commands:
 
 **What:** Plugin architecture for custom behaviors
 **Benefit:** Extensible agent capabilities without core changes
-**Integration:** Allow custom agent behaviors in Dash
+**Integration:** Allow custom agent behaviors in Godel
 
 ### 3. Tool System (from pi-agent-core)
 
 **What:** TypeBox-based tool definitions with validation
 **Benefit:** Type-safe, validated tool calling
-**Integration:** Standardize Dash agent tools
+**Integration:** Standardize Godel agent tools
 
 ### 4. TUI Components (from pi-tui)
 
@@ -253,7 +253,7 @@ Commands:
 
 **What:** Tree-structured sessions with persistence
 **Benefit:** Agent lineage and history
-**Integration:** Track agent relationships in Dash
+**Integration:** Track agent relationships in Godel
 
 ### 6. Cross-Provider Handoffs (from pi-ai)
 
@@ -272,7 +272,7 @@ Commands:
 
 ### Phase 2: Extension System (Week 2)
 - Port extension loader from pi-coding-agent
-- Create extension API for Dash
+- Create extension API for Godel
 - Document extension development
 
 ### Phase 3: TUI Components (Week 3)
@@ -327,12 +327,12 @@ Commands:
 ## Recommended Actions
 
 1. **Create PRD-006: Agent Runtime Integration**
-   - Integrate pi-agent-core into Dash
+   - Integrate pi-agent-core into Godel
    - Replace current agent spawning
 
 2. **Create PRD-007: Extension System**
    - Port extension system from pi-coding-agent
-   - Create Dash-specific extension API
+   - Create Godel-specific extension API
 
 3. **Create PRD-008: TUI Components**
    - Integrate pi-tui for swarmctl
@@ -344,7 +344,7 @@ Commands:
 
 5. **Study Key Files**
    - Spawn agents to analyze each package
-   - Extract patterns for Dash
+   - Extract patterns for Godel
 
 ---
 
@@ -361,12 +361,12 @@ Commands:
 
 **Total Strategic Value:** VERY HIGH
 **Total Integration Effort:** ~4 weeks
-**Impact on Dash:** Transforms from basic orchestrator to production-grade agent platform
+**Impact on Godel:** Transforms from basic orchestrator to production-grade agent platform
 
 ---
 
 **Next Steps:**
 1. Spawn research agents for each package
 2. Create detailed PRDs for integration
-3. Prioritize based on Dash roadmap
+3. Prioritize based on Godel roadmap
 4. Begin implementation

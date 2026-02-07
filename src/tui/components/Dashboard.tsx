@@ -2,7 +2,7 @@
  * Main Dashboard Component
  * 
  * Provides tab-based navigation between different views:
- * - Swarms: Monitor active swarms and agents
+ * - Teams: Monitor active teams and agents
  * - Sessions: Browse session tree
  * - Tasks: View task queue
  * - Logs: Real-time log streaming
@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput, useApp, Spacer } from 'ink';
-import { SwarmMonitor } from './SwarmMonitor';
+import { TeamMonitor } from './TeamMonitor';
 import { SessionBrowser } from './SessionBrowser';
 import { TaskQueue } from './TaskQueue';
 import { LogStream } from './LogStream';
@@ -20,12 +20,12 @@ export interface DashboardProps {
   port: number;
   host: string;
   refreshRate: number;
-  defaultView: 'swarms' | 'sessions' | 'tasks' | 'logs';
+  defaultView: 'teams' | 'sessions' | 'tasks' | 'logs';
 }
 
-type Tab = 'swarms' | 'sessions' | 'tasks' | 'logs';
+type Tab = 'teams' | 'sessions' | 'tasks' | 'logs';
 
-const TABS: Tab[] = ['swarms', 'sessions', 'tasks', 'logs'];
+const TABS: Tab[] = ['teams', 'sessions', 'tasks', 'logs'];
 
 export function Dashboard({ port, host, refreshRate, defaultView }: DashboardProps) {
   const { exit } = useApp();
@@ -72,7 +72,7 @@ export function Dashboard({ port, host, refreshRate, defaultView }: DashboardPro
       setShowHelp(!showHelp);
     }
 
-    if (input === '1') setActiveTab('swarms');
+    if (input === '1') setActiveTab('teams');
     if (input === '2') setActiveTab('sessions');
     if (input === '3') setActiveTab('tasks');
     if (input === '4') setActiveTab('logs');
@@ -80,8 +80,8 @@ export function Dashboard({ port, host, refreshRate, defaultView }: DashboardPro
 
   const renderTab = (tab: Tab) => {
     switch (tab) {
-      case 'swarms':
-        return <SwarmMonitor width={terminalWidth} height={terminalHeight - 6} />;
+      case 'teams':
+        return <TeamMonitor width={terminalWidth} height={terminalHeight - 6} />;
       case 'sessions':
         return <SessionBrowser width={terminalWidth} height={terminalHeight - 6} />;
       case 'tasks':
@@ -96,7 +96,7 @@ export function Dashboard({ port, host, refreshRate, defaultView }: DashboardPro
   const getTabLabel = (tab: Tab, index: number) => {
     const isActive = activeTab === tab;
     const labels: Record<Tab, string> = {
-      swarms: 'Swarms',
+      teams: 'Teams',
       sessions: 'Sessions',
       tasks: 'Tasks',
       logs: 'Logs'

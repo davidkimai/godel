@@ -41,7 +41,7 @@ export const defaultServerConfig: ServerConfig = {
 // ============================================================================
 
 export const defaultDatabaseConfig: DatabaseConfig = {
-  url: 'postgresql://dash:dash@localhost:5432/dash',
+  url: 'postgresql://godel:godel@localhost:5432/godel',
   poolSize: 25,
   minPoolSize: 5,
   maxPoolSize: 50,
@@ -56,7 +56,7 @@ export const defaultDatabaseConfig: DatabaseConfig = {
   keepAlive: true,
   keepAliveInitialDelayMs: 10000,
   maxUses: 7500,
-  applicationName: 'dash',
+  applicationName: 'godel',
 };
 
 // ============================================================================
@@ -78,8 +78,10 @@ export const defaultRedisConfig: RedisConfig = {
 // ============================================================================
 
 export const defaultAuthConfig: AuthConfig = {
-  apiKeys: ['dash-api-key'],
-  jwtSecret: 'change-me-in-production',
+  // SECURITY: No default API keys. Must be explicitly configured.
+  apiKeys: [],
+  // SECURITY: Must be overridden in production
+  jwtSecret: process.env['GODEL_JWT_SECRET'] || 'development-only-change-me',
   tokenExpirySeconds: 3600,
   refreshTokenExpirySeconds: 604800,
   enableApiKeyAuth: true,
@@ -94,9 +96,9 @@ export const defaultLoggingConfig: LoggingConfig = {
   level: 'info',
   format: 'pretty',
   destination: 'stdout',
-  filePath: './logs/dash.log',
+  filePath: './logs/godel.log',
   lokiUrl: 'http://localhost:3100',
-  serviceName: 'dash',
+  serviceName: 'godel',
   includeTimestamp: true,
   includeSourceLocation: false,
 };
@@ -155,8 +157,8 @@ export const defaultOpenClawConfig: OpenClawConfig = {
 
 export const defaultEventBusConfig: EventBusConfig = {
   type: 'redis',
-  streamKey: 'dash:events',
-  consumerGroup: 'dash:consumers',
+  streamKey: 'godel:events',
+  consumerGroup: 'godel:consumers',
   compressionThreshold: 1024,
   maxStreamLength: 100000,
   maxQueuedEvents: 10000,
@@ -244,9 +246,16 @@ export const productionConfig: Partial<DashConfig> = {
     format: 'json',
   },
   auth: {
-    ...defaultAuthConfig,
-    apiKeys: [], // Must be explicitly configured
-    jwtSecret: 'MUST_BE_CONFIGURED_IN_PRODUCTION',
+    // SECURITY: Production requires explicit API key configuration
+    apiKeys: process.env['GODEL_API_KEY'] 
+      ? process.env['GODEL_API_KEY'].split(',').map(k => k.trim())
+      : [],
+    // SECURITY: Production requires strong JWT secret
+    jwtSecret: process.env['GODEL_JWT_SECRET'] || '',
+    tokenExpirySeconds: 3600,
+    refreshTokenExpirySeconds: 604800,
+    enableApiKeyAuth: true,
+    enableJwtAuth: false,
   },
   metrics: {
     ...defaultMetricsConfig,
@@ -270,7 +279,7 @@ export const testConfig: Partial<DashConfig> = {
   },
   database: {
     ...defaultDatabaseConfig,
-    url: 'postgresql://dash:dash@localhost:5432/dash_test',
+    url: 'postgresql://godel:godel@localhost:5432/dash_test',
   },
   redis: {
     ...defaultRedisConfig,

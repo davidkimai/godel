@@ -1,4 +1,4 @@
-# Dash Meta-Orchestrator Implementation Roadmap
+# Godel Meta-Orchestrator Implementation Roadmap
 
 **Phase-by-phase breakdown with deliverables, milestones, and success criteria**
 
@@ -91,7 +91,7 @@ export interface InstanceMetrics {
 
 syntax = "proto3";
 
-package dash.federation;
+package godel.federation;
 
 service FederationService {
   // Instance registration
@@ -453,7 +453,7 @@ export class Telemetry {
     return this.tracer.startSpan(name, {
       parent: context,
       attributes: {
-        'service.type': 'dash-orchestrator',
+        'service.type': 'godel-orchestrator',
         'version': '2.0.0'
       }
     });
@@ -587,4 +587,4 @@ export class SecurityManager {
 
 **Document Version:** 1.0  
 **Last Updated:** 2026-02-05  
-**Owner:** Dash Engineering Team
+**Owner:** Godel Engineering Team

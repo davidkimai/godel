@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the migration from in-memory state to database-backed state persistence in Dash.
+This document describes the migration from in-memory state to database-backed state persistence in Godel.
 
 ## Migration Path
 
@@ -17,7 +17,7 @@ const config = {
   enableOptimisticLocking: true,     // Enable conflict detection
   enableAuditLog: true,              // Enable audit logging
   featureFlags: {
-    useDatabaseSwarms: true,         // Use database for swarms
+    useDatabaseSwarms: true,         // Use database for teams
     useDatabaseAgents: false,        // Keep agents in-memory for now
     useDatabaseSessions: false,      // Keep sessions in-memory for now
   }
@@ -43,7 +43,7 @@ Once all feature flags are enabled:
 ### Before (In-Memory Only)
 
 ```typescript
-import { SwarmOrchestrator, getGlobalSwarmOrchestrator } from './core/swarm-orchestrator';
+import { SwarmOrchestrator, getGlobalSwarmOrchestrator } from './core/team-orchestrator';
 
 const orchestrator = getGlobalSwarmOrchestrator(
   agentLifecycle,
@@ -85,16 +85,16 @@ const orchestrator = await createStateAwareOrchestrator(
 
 // Start with automatic recovery
 const recoveryResult = await orchestrator.start();
-console.log(`Recovered ${recoveryResult.swarmsRecovered} swarms, ${recoveryResult.agentsRecovered} agents`);
+console.log(`Recovered ${recoveryResult.swarmsRecovered} teams, ${recoveryResult.agentsRecovered} agents`);
 ```
 
 ## Recovery Behavior
 
-### Swarm Recovery
+### Team Recovery
 
 | Previous Status | Recovered Status | Action |
 |----------------|------------------|--------|
-| `creating` | `active` | Resume swarm creation |
+| `creating` | `active` | Resume team creation |
 | `active` | `active` | Continue normal operation |
 | `scaling` | `active` | Resume scaling operations |
 | `paused` | `paused` | Remain paused |
@@ -119,20 +119,20 @@ console.log(`Recovered ${recoveryResult.swarmsRecovered} swarms, ${recoveryResul
 When `enableOptimisticLocking` is true, concurrent modifications are prevented:
 
 ```typescript
-// Version 1: Read swarm
-const swarm = await statePersistence.loadSwarm('swarm-123');
+// Version 1: Read team
+const team = await statePersistence.loadSwarm('team-123');
 
 // ... some operations ...
 
 // Version 2: Update with version check
 await statePersistence.updateSwarmStatus(
-  'swarm-123',
+  'team-123',
   'paused',
   'user-action',
-  swarm.version  // Expected version
+  team.version  // Expected version
 );
 
-// If another process modified the swarm in between,
+// If another process modified the team in between,
 // OptimisticLockError is thrown with automatic retry
 ```
 
@@ -141,8 +141,8 @@ await statePersistence.updateSwarmStatus(
 All state changes are logged when `enableAuditLog` is true:
 
 ```typescript
-// Get audit log for a swarm
-const auditLog = await statePersistence.getAuditLog('swarm-123', {
+// Get audit log for a team
+const auditLog = await statePersistence.getAuditLog('team-123', {
   limit: 100,
   since: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
 });
@@ -163,14 +163,14 @@ Point-in-time rollback is supported:
 ```typescript
 // Rollback to a specific version
 await statePersistence.rollbackToVersion(
-  'swarm',
-  'swarm-123',
+  'team',
+  'team-123',
   5,  // Target version
   'admin-rollback'
 );
 
 // A checkpoint is automatically created before rollback
-const checkpoint = await statePersistence.getLatestCheckpoint('swarm-123');
+const checkpoint = await statePersistence.getLatestCheckpoint('team-123');
 ```
 
 ## Migration from Existing In-Memory State
@@ -180,7 +180,7 @@ For systems already running with in-memory state:
 ```typescript
 // Migrate all current state to database
 const result = await orchestrator.migrateFromMemory();
-console.log(`Migrated ${result.swarms} swarms, ${result.agents} agents`);
+console.log(`Migrated ${result.teams} teams, ${result.agents} agents`);
 ```
 
 ## Database Schema
@@ -188,7 +188,7 @@ console.log(`Migrated ${result.swarms} swarms, ${result.agents} agents`);
 ### New Tables
 
 1. **`state_versions`** - Optimistic locking versions
-2. **`swarm_states`** - Persisted swarm state
+2. **`swarm_states`** - Persisted team state
 3. **`agent_states`** - Persisted agent state
 4. **`session_states`** - Persisted session metadata
 5. **`state_audit_log`** - Audit trail of all changes
@@ -201,7 +201,7 @@ Old states are automatically cleaned up:
 ```typescript
 // Clean up completed/failed states older than 24 hours
 const result = await statePersistence.cleanup(24);
-console.log(`Deleted ${result.swarmsDeleted} swarms, ${result.agentsDeleted} agents`);
+console.log(`Deleted ${result.swarmsDeleted} teams, ${result.agentsDeleted} agents`);
 ```
 
 ## Monitoring
@@ -223,7 +223,7 @@ console.log(stats);
 
 ```typescript
 const recoveryContext = orchestrator.getRecoveryContext();
-console.log(`Recovered ${recoveryContext.recoveredSwarms.size} swarms`);
+console.log(`Recovered ${recoveryContext.recoveredSwarms.size} teams`);
 if (recoveryContext.errors.length > 0) {
   console.error('Recovery errors:', recoveryContext.errors);
 }

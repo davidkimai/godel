@@ -1,5 +1,5 @@
 /**
- * Dash Retry Mechanisms - Exponential Backoff & Circuit Breaker
+ * Godel Retry Mechanisms - Exponential Backoff & Circuit Breaker
  * 
  * PRD Section 2.7: Race Condition Handling
  * 

@@ -2,10 +2,10 @@
  * Message Bus Commands
  * 
  * Commands:
- * - swarmctl bus publish <topic> --message <message>
- * - swarmctl bus subscribe <topic> [--follow]
- * - swarmctl bus topics
- * - swarmctl bus status
+ * - godel bus publish <topic> --message <message>
+ * - godel bus subscribe <topic> [--follow]
+ * - godel bus topics
+ * - godel bus status
  */
 
 import { logger } from '../../utils/logger';
@@ -173,7 +173,7 @@ export function registerBusCommand(program: Command): void {
 
         if (topics.length === 0) {
           logger.info('📭 No topics found');
-          logger.info('💡 Use "swarmctl bus publish" to send a message');
+          logger.info('💡 Use "godel bus publish" to send a message');
           return;
         }
 

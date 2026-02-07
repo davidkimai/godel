@@ -36,7 +36,7 @@ Successfully created comprehensive mock infrastructure for reliable testing of t
 **Fixture Categories:**
 - ✅ Agents: pending, running, completed, failed, parent/child, with reasoning
 - ✅ Tasks: all statuses, with dependencies, quality gates, checkpoints
-- ✅ Configs: runtime, Pi client, PostgreSQL, Redis, app, swarm configs
+- ✅ Configs: runtime, Pi client, PostgreSQL, Redis, app, team configs
 
 ### 3. Test Utilities (`tests/utils/`)
 

@@ -26,7 +26,7 @@ Phase 3 of the Godel Enterprise Control Plane successfully implemented the **Fed
 
 ## Components Implemented
 
-### Track A: Swarm Router (3 Subagents)
+### Track A: Team Router (3 Subagents)
 
 #### A1: Task Decomposer
 **File:** `src/federation/task-decomposer.ts` (912 lines)  

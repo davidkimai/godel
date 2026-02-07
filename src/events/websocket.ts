@@ -1,5 +1,5 @@
 /**
- * Dash WebSocket Server
+ * Godel WebSocket Server
  * Real-time event streaming for dashboard updates
  * 
  * Port: 7374 (W-E-B-S-O-C-K-E-T on T9)

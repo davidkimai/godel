@@ -1,5 +1,5 @@
 /**
- * Dash Predictive Budget - Cost Forecasting & Anomaly Detection
+ * Godel Predictive Budget - Cost Forecasting & Anomaly Detection
  * 
  * PRD Section 2.6: Predictive Budget
  * 

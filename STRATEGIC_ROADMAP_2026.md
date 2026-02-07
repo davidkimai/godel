@@ -41,7 +41,7 @@
 |---------|--------|-----------------|
 | **Pi-Mono Integration** | ⚠️ Partial | Complete brain transplant |
 | **Budget Per Intent** | ⚠️ Basic | Full economic control |
-| **Federation Engine** | ❌ Not Started | Swarm Router for 50+ agents |
+| **Federation Engine** | ❌ Not Started | Team Router for 50+ agents |
 | **Agent-First API** | ❌ Not Started | JSON-RPC for external agents |
 | **PHASR Hardening** | ⚠️ Draft | Security at proxy level |
 
@@ -100,9 +100,9 @@ Winner Merged → Main Branch
 ```bash
 godel do "fix authentication bug" --budget $5.00 --model claude-sonnet-4-5
 
-# Godel spawns swarm
+# Godel spawns team
 # Tracks spend in real-time
-# Kills swarm at $5.00
+# Kills team at $5.00
 # Reports actual cost: $3.47
 ```
 
@@ -176,14 +176,14 @@ npm test
 ```
 
 **Action Items:**
-1. Implement Swarm Router with skill-based routing
+1. Implement Team Router with skill-based routing
 2. Add auto-scaling based on queue depth
 3. Create agent specialization registry
 4. Build health monitoring dashboard
 
 **Success Metric:**
 ```bash
-godel swarm spawn --count 50 --task "refactor codebase"
+godel team spawn --count 50 --task "refactor codebase"
 # All 50 agents spawned
 # Tasks distributed by skill
 # 0 failures
@@ -293,7 +293,7 @@ godel do "refactor src/agent/manager.ts to use Pi-Mono"
 | Multi-Agent | ❌ Manual | ✅ Orchestrated |
 | State Management | ❌ Session-only | ✅ Git-backed |
 | Cost Tracking | ❌ None | ✅ Per-intent |
-| Collaboration | ❌ None | ✅ Swarm routing |
+| Collaboration | ❌ None | ✅ Team routing |
 
 **Message:** "Pi is the engine. Godel is the vehicle."
 
@@ -375,7 +375,7 @@ Godel is positioned to become the **Kubernetes of AI Agents** - the enterprise c
 1. ✅ Git-backed state (time travel)
 2. ✅ Server-side security (shadow AI protection)
 3. 🔄 Economic control (budget per intent)
-4. ❌ Federation engine (swarm routing)
+4. ❌ Federation engine (team routing)
 
 **Next 30 Days:**
 - Week 1: Pi brain transplant

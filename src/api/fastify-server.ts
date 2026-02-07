@@ -20,7 +20,7 @@ import swaggerUi from '@fastify/swagger-ui';
 
 // Routes
 import agentRoutes from './routes/agents';
-import swarmRoutes from './routes/swarms';
+import teamRoutes from './routes/teams';
 import taskRoutes from './routes/tasks';
 import busRoutes from './routes/bus';
 import logsRoutes from './routes/logs';
@@ -179,7 +179,7 @@ export async function createFastifyServer(
         tags: [
           { name: 'capabilities', description: 'API discovery' },
           { name: 'agents', description: 'Agent management' },
-          { name: 'swarms', description: 'Swarm orchestration' },
+          { name: 'teams', description: 'Team orchestration' },
           { name: 'tasks', description: 'Task management' },
           { name: 'bus', description: 'Event bus' },
           { name: 'metrics', description: 'System metrics' },
@@ -282,7 +282,7 @@ export async function createFastifyServer(
   await fastify.register(capabilitiesRoutes, { prefix: '/api/v1/capabilities' });
   await fastify.register(healthRoutes, { prefix: '/api/v1/health' });
   await fastify.register(agentRoutes, { prefix: '/api/v1/agents' });
-  await fastify.register(swarmRoutes, { prefix: '/api/v1/swarms' });
+  await fastify.register(teamRoutes, { prefix: '/api/v1/teams' });
   await fastify.register(taskRoutes, { prefix: '/api/v1/tasks' });
   await fastify.register(busRoutes, { prefix: '/api/v1/bus' });
   await fastify.register(metricsApiRoutes, { prefix: '/api/v1/metrics' });
@@ -292,7 +292,7 @@ export async function createFastifyServer(
   await fastify.register(capabilitiesRoutes, { prefix: '/api/capabilities' });
   await fastify.register(healthRoutes, { prefix: '/api/health' });
   await fastify.register(agentRoutes, { prefix: '/api/agents' });
-  await fastify.register(swarmRoutes, { prefix: '/api/swarms' });
+  await fastify.register(teamRoutes, { prefix: '/api/teams' });
   await fastify.register(taskRoutes, { prefix: '/api/tasks' });
   await fastify.register(busRoutes, { prefix: '/api/bus' });
   await fastify.register(metricsApiRoutes, { prefix: '/api/metrics' });

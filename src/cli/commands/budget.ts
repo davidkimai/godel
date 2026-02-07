@@ -110,9 +110,9 @@ function createSetCommand(): Command {
     .addOption(new Option('--reset-hour <hour>', 'UTC hour for daily reset (0-23)').default('0').argParser(parseInt))
     .addHelpText('after', `
 Examples:
-  $ dash budget set --daily 10000 --cost 50 --project myapp
-  $ dash budget set --task 5000 --cost 10 --agent agent-1
-  $ dash budget set --daily 50000 --cost 100 --project prod --reset-hour 6
+  $ godel budget set --daily 10000 --cost 50 --project myapp
+  $ godel budget set --task 5000 --cost 10 --agent agent-1
+  $ godel budget set --daily 50000 --cost 100 --project prod --reset-hour 6
     `)
     .action(async (options) => {
       try {
@@ -121,15 +121,15 @@ Examples:
           logger.error('budget', '❌ Error: Must specify either --task or --daily');
           logger.error('');
           logger.error('budget', 'Usage examples:');
-          logger.error('budget', '  dash budget set --daily 10000 --cost 50 --project myapp');
-          logger.error('budget', '  dash budget set --task 5000 --cost 10');
+          logger.error('budget', '  godel budget set --daily 10000 --cost 50 --project myapp');
+          logger.error('budget', '  godel budget set --task 5000 --cost 10');
           process.exit(1);
         }
 
         if (options.cost === undefined || options.cost === null || isNaN(options.cost)) {
           logger.error('budget', '❌ Error: --cost is required (budget cost limit in USD)');
           logger.error('');
-          logger.error('budget', 'Example: dash budget set --daily 10000 --cost 50 --project myapp');
+          logger.error('budget', 'Example: godel budget set --daily 10000 --cost 50 --project myapp');
           process.exit(1);
         }
 
@@ -155,7 +155,7 @@ Examples:
           if (!options.project) {
             logger.error('budget', '❌ Error: --project is required when using --daily');
             logger.error('');
-            logger.error('budget', 'Example: dash budget set --daily 10000 --cost 50 --project myapp');
+            logger.error('budget', 'Example: godel budget set --daily 10000 --cost 50 --project myapp');
             process.exit(1);
           }
           if (options.daily <= 0) {

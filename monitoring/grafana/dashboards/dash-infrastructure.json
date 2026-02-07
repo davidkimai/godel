@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "dash-infrastructure",
-    "title": "Dash - Infrastructure",
-    "tags": ["dash", "infrastructure", "system", "redis", "postgres"],
+    "uid": "godel-infrastructure",
+    "title": "Godel - Infrastructure",
+    "tags": ["godel", "infrastructure", "system", "redis", "postgres"],
     "timezone": "browser",
     "schemaVersion": 38,
     "refresh": "15s",
@@ -14,11 +14,11 @@
     "panels": [
       {
         "id": 1,
-        "title": "Dash Status",
+        "title": "Godel Status",
         "type": "stat",
         "targets": [
           {
-            "expr": "up{job=\"dash\"}",
+            "expr": "up{job=\"godel\"}",
             "legendFormat": "Status"
           }
         ],

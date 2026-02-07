@@ -1,10 +1,10 @@
-# Prometheus configuration for Dash monitoring
+# Prometheus configuration for Godel monitoring
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'dash'
+    cluster: 'godel'
     replica: '{{.ExternalURL}}'
 
 alerting:
@@ -22,8 +22,8 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Dash orchestrator
-  - job_name: 'dash'
+  # Godel orchestrator
+  - job_name: 'godel'
     static_configs:
       - targets: ['host.docker.internal:7373']
     metrics_path: '/metrics'

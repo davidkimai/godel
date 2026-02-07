@@ -164,7 +164,7 @@ export class RecoveryObservability extends EventEmitter {
     this.agentHealthGauge = new Gauge({
       name: `${prefix}_agent_health`,
       help: 'Current health status of agents (1=healthy, 0=unhealthy)',
-      labelNames: ['agent_id', 'swarm_id'],
+      labelNames: ['agent_id', 'team_id'],
       registers: [this.registry],
     });
 
@@ -244,7 +244,7 @@ export class RecoveryObservability extends EventEmitter {
 
     controller.on('agent.failed', (event) => {
       this.agentHealthGauge.set(
-        { agent_id: event.agentId, swarm_id: event.swarmId || 'none' },
+        { agent_id: event.agentId, team_id: event.teamId || 'none' },
         0
       );
     });
@@ -262,7 +262,7 @@ export class RecoveryObservability extends EventEmitter {
       );
 
       this.agentHealthGauge.set(
-        { agent_id: event.agentId, swarm_id: event.swarmId || 'none' },
+        { agent_id: event.agentId, team_id: event.teamId || 'none' },
         1
       );
     });
@@ -290,7 +290,7 @@ export class RecoveryObservability extends EventEmitter {
 
     controller.on('agent.registered', (event) => {
       this.agentHealthGauge.set(
-        { agent_id: event.agentId, swarm_id: event.swarmId || 'none' },
+        { agent_id: event.agentId, team_id: event.teamId || 'none' },
         1
       );
     });
@@ -365,9 +365,9 @@ export class RecoveryObservability extends EventEmitter {
   /**
    * Update agent health status
    */
-  updateAgentHealth(agentId: string, swarmId: string, healthy: boolean): void {
+  updateAgentHealth(agentId: string, teamId: string, healthy: boolean): void {
     this.agentHealthGauge.set(
-      { agent_id: agentId, swarm_id: swarmId || 'none' },
+      { agent_id: agentId, team_id: teamId || 'none' },
       healthy ? 1 : 0
     );
   }

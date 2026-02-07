@@ -5,7 +5,7 @@ import { join } from 'path';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-const METRICS_DIR = '~/.config/dash/metrics';
+const METRICS_DIR = '~/.config/godel/metrics';
 const RETENTION_DAYS = 7;
 
 // ============================================================================
@@ -29,7 +29,7 @@ export interface MetricSnapshot {
   // System metrics
   errorCount: number;
   agentCount: number;
-  activeSwarms: number;
+  activeTeams: number;
   
   // Budget metrics
   totalSpend: number;
@@ -97,7 +97,7 @@ export class MetricsCollector {
       buildErrors: metrics.buildErrors ?? 0,
       errorCount: metrics.errorCount ?? 0,
       agentCount: metrics.agentCount ?? 0,
-      activeSwarms: metrics.activeSwarms ?? 0,
+      activeTeams: metrics.activeTeams ?? 0,
       totalSpend: metrics.totalSpend ?? 0,
       hourlySpend: metrics.hourlySpend ?? 0,
       apiResponseTime: metrics.apiResponseTime ?? 0,
@@ -146,10 +146,10 @@ export class MetricsCollector {
   /**
    * Record system state
    */
-  async recordSystemState(agentCount: number, activeSwarms: number, errorCount: number): Promise<void> {
+  async recordSystemState(agentCount: number, activeTeams: number, errorCount: number): Promise<void> {
     await this.record({
       agentCount,
-      activeSwarms,
+      activeTeams,
       errorCount,
     });
   }
@@ -443,6 +443,6 @@ export async function getRecentMetrics(): Promise<string> {
 /**
  * Record current system state
  */
-export async function recordCurrentState(agentCount: number, activeSwarms: number): Promise<void> {
-  await metricsCollector.recordSystemState(agentCount, activeSwarms, 0);
+export async function recordCurrentState(agentCount: number, activeTeams: number): Promise<void> {
+  await metricsCollector.recordSystemState(agentCount, activeTeams, 0);
 }

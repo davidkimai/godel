@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Production deployment options for Dash: Docker, Kubernetes, and cloud platforms.
+Production deployment options for Godel: Docker, Kubernetes, and cloud platforms.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ Production deployment options for Dash: Docker, Kubernetes, and cloud platforms.
 ```bash
 # Clone repository
 git clone https://github.com/davidkimai/godel.git
-cd dash
+cd godel
 
 # Create environment file
 cp .env.example .env
@@ -40,7 +40,7 @@ The included `docker-compose.yml` provides:
 
 | Service | Purpose | Port |
 |---------|---------|------|
-| `dash` | Main Dash application | 3000 |
+| `godel` | Main Godel application | 3000 |
 | `postgres` | PostgreSQL database | 5432 |
 | `redis` | Redis cache | 6379 |
 | `grafana` | Monitoring dashboards | 3001 |
@@ -52,16 +52,16 @@ The included `docker-compose.yml` provides:
 version: '3.8'
 
 services:
-  dash:
+  godel:
     build: .
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dash
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/godel
       - REDIS_URL=redis://redis:6379
       - GODEL_LOG_LEVEL=info
     volumes:
-      - ./.dash:/app/.dash
+      - ./.godel:/app/.godel
       - ./.claude-worktrees:/app/.claude-worktrees
     depends_on:
       - postgres
@@ -73,7 +73,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=dash
+      - POSTGRES_DB=godel
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -97,15 +97,15 @@ volumes:
 
 ```bash
 # Build image
-docker build -t my-dash:latest .
+docker build -t my-godel:latest .
 
 # Run container
 docker run -d \
   -p 3000:3000 \
   -e DATABASE_URL=postgresql://... \
   -e REDIS_URL=redis://... \
-  -v $(pwd)/.dash:/app/.dash \
-  my-dash:latest
+  -v $(pwd)/.godel:/app/.godel \
+  my-godel:latest
 ```
 
 ### Dockerfile
@@ -178,7 +178,7 @@ CMD ["node", "dist/index.js", "server"]
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dash
+  name: godel
 ```
 
 ```yaml
@@ -186,8 +186,8 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dash-config
-  namespace: dash
+  name: godel-config
+  namespace: godel
 data:
   GODEL_LOG_LEVEL: "info"
   GODEL_MAX_SWARMS: "10"
@@ -199,11 +199,11 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: dash-secrets
-  namespace: dash
+  name: godel-secrets
+  namespace: godel
 type: Opaque
 stringData:
-  DATABASE_URL: "postgresql://user:pass@postgres:5432/dash"
+  DATABASE_URL: "postgresql://user:pass@postgres:5432/godel"
   REDIS_URL: "redis://redis:6379"
   OPENCLAW_GATEWAY_TOKEN: "your-token-here"
 ```
@@ -213,28 +213,28 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dash-api
-  namespace: dash
+  name: godel-api
+  namespace: godel
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: dash-api
+      app: godel-api
   template:
     metadata:
       labels:
-        app: dash-api
+        app: godel-api
     spec:
       containers:
-        - name: dash
-          image: dashai/dash:latest
+        - name: godel
+          image: dashai/godel:latest
           ports:
             - containerPort: 3000
           envFrom:
             - configMapRef:
-                name: dash-config
+                name: godel-config
             - secretRef:
-                name: dash-secrets
+                name: godel-secrets
           resources:
             requests:
               memory: "512Mi"
@@ -255,14 +255,14 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           volumeMounts:
-            - name: dash-data
-              mountPath: /app/.dash
+            - name: godel-data
+              mountPath: /app/.godel
             - name: worktrees
               mountPath: /app/.claude-worktrees
       volumes:
-        - name: dash-data
+        - name: godel-data
           persistentVolumeClaim:
-            claimName: dash-data-pvc
+            claimName: godel-data-pvc
         - name: worktrees
           emptyDir: {}
 ```
@@ -272,11 +272,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: dash-api
-  namespace: dash
+  name: godel-api
+  namespace: godel
 spec:
   selector:
-    app: dash-api
+    app: godel-api
   ports:
     - port: 80
       targetPort: 3000
@@ -288,25 +288,25 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dash-ingress
-  namespace: dash
+  name: godel-ingress
+  namespace: godel
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt
 spec:
   tls:
     - hosts:
-        - dash.yourdomain.com
-      secretName: dash-tls
+        - godel.yourdomain.com
+      secretName: godel-tls
   rules:
-    - host: dash.yourdomain.com
+    - host: godel.yourdomain.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: dash-api
+                name: godel-api
                 port:
                   number: 80
 ```
@@ -319,7 +319,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: dash
+  namespace: godel
 spec:
   serviceName: postgres
   replicas: 1
@@ -336,14 +336,14 @@ spec:
           image: postgres:16-alpine
           env:
             - name: POSTGRES_USER
-              value: dash
+              value: godel
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
                   key: password
             - name: POSTGRES_DB
-              value: dash
+              value: godel
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -367,7 +367,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: dash
+  namespace: godel
 spec:
   replicas: 1
   selector:
@@ -395,7 +395,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: dash
+  namespace: godel
 spec:
   selector:
     app: redis
@@ -417,26 +417,26 @@ kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/ingress.yaml
 
 # Check status
-kubectl get pods -n dash
-kubectl get svc -n dash
-kubectl get ingress -n dash
+kubectl get pods -n godel
+kubectl get svc -n godel
+kubectl get ingress -n godel
 ```
 
 ### Helm Chart
 
 ```bash
-# Add Dash Helm repository
-helm repo add godel https://charts.dash-ai.io
+# Add Godel Helm repository
+helm repo add godel https://charts.godel-ai.io
 helm repo update
 
 # Install with default values
-helm install godel dash/dash
+helm install godel godel/godel
 
 # Install with custom values
-helm install godel dash/dash -f values.yaml
+helm install godel godel/godel -f values.yaml
 
 # Upgrade
-helm upgrade godel dash/dash
+helm upgrade godel godel/godel
 ```
 
 Example `values.yaml`:
@@ -445,7 +445,7 @@ Example `values.yaml`:
 replicaCount: 3
 
 image:
-  repository: dashai/dash
+  repository: dashai/godel
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -457,14 +457,14 @@ ingress:
   enabled: true
   className: nginx
   hosts:
-    - host: dash.yourdomain.com
+    - host: godel.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: dash-tls
+    - secretName: godel-tls
       hosts:
-        - dash.yourdomain.com
+        - godel.yourdomain.com
 
 resources:
   requests:
@@ -481,8 +481,8 @@ persistence:
 postgresql:
   enabled: true
   auth:
-    username: dash
-    database: dash
+    username: godel
+    database: godel
   persistence:
     size: 20Gi
 
@@ -592,9 +592,9 @@ data:
       scrape_interval: 15s
     
     scrape_configs:
-      - job_name: 'dash-api'
+      - job_name: 'godel-api'
         static_configs:
-          - targets: ['dash-api.dash.svc.cluster.local:3000']
+          - targets: ['godel-api.godel.svc.cluster.local:3000']
         metrics_path: /metrics
       
       - job_name: 'postgres'
@@ -611,7 +611,7 @@ data:
 | Metric | Description | Alert Threshold |
 |--------|-------------|-----------------|
 | `dash_agents_active` | Number of active agents | > 80% of max |
-| `dash_swarms_active` | Number of active swarms | > 80% of max |
+| `dash_swarms_active` | Number of active teams | > 80% of max |
 | `dash_workflows_running` | Running workflows | > 50 |
 | `dash_budget_used_percent` | Budget utilization | > 75% warning, > 90% critical |
 | `dash_request_duration_seconds` | API response time | > 1s p99 |
@@ -627,7 +627,7 @@ Import pre-built dashboards from `monitoring/dashboards/`:
 curl -X POST \
   http://grafana:3000/api/dashboards/db \
   -H "Content-Type: application/json" \
-  -d @monitoring/dashboards/dash-overview.json
+  -d @monitoring/dashboards/godel-overview.json
 ```
 
 ### Alerting Rules
@@ -635,7 +635,7 @@ curl -X POST \
 ```yaml
 # monitoring/alert-rules.yaml
 groups:
-  - name: dash
+  - name: godel
     rules:
       - alert: DashHighErrorRate
         expr: rate(dash_errors_total[5m]) / rate(dash_requests_total[5m]) > 0.01

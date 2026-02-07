@@ -15,7 +15,25 @@ import {
   InvalidTransitionError 
 } from '../../loop/state-machine';
 import { memoryStore } from '../../storage/memory';
+import { AgentStatus } from '../../models';
 import { InMemoryStateStorage } from '../../loop/state-machine';
+import type { Agent } from '../../models';
+
+/**
+ * Extended agent interface for state CLI responses
+ */
+interface AgentStateView extends Agent {
+  name?: string;
+  currentLoad?: number;
+  lastActivity?: number;
+  stateEntryTime?: number;
+  stateHistory?: Array<{
+    from: string;
+    to: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+  }>;
+}
 
 // ============================================================================
 // STATE COLORS (ANSI escape codes)
@@ -84,7 +102,7 @@ export function registerStateCommands(program: Command): void {
 
         if (agents.length === 0) {
           logger.info('📭 No agents found');
-          logger.info('💡 Use "swarmctl agents spawn" to create agents');
+          logger.info('💡 Use "godel agents spawn" to create agents');
           return;
         }
 
@@ -172,30 +190,30 @@ export function registerStateCommands(program: Command): void {
     .option('--diagram', 'Show state diagram')
     .action(async (agentId, options) => {
       try {
-        const agent = (memoryStore.agents || {})[agentId];
+        const agent = memoryStore.agents.get(agentId);
         
         if (!agent) {
           logger.error(`❌ Agent ${agentId} not found`);
           process.exit(2);
         }
 
-        const agentAny = agent as any;
+        const agentView = agent as AgentStateView;
 
         if (options.json) {
           const output = {
             agent: {
-              id: agentAny.id,
-              name: agentAny.label || agentAny.name,
-              model: agentAny.model,
-              status: agentAny.status,
-              load: agentAny.currentLoad || 0,
-              createdAt: agentAny.spawnedAt || agentAny.createdAt,
-              lastActivity: agentAny.lastActivity || agentAny.spawnedAt
+              id: agentView.id,
+              name: agentView.label || agentView.name,
+              model: agentView.model,
+              status: agentView.status,
+              load: agentView.currentLoad || 0,
+              createdAt: agentView.spawnedAt,
+              lastActivity: agentView.lastActivity || agentView.spawnedAt.getTime()
             },
             state: {
-              current: agentAny.lifecycleState || agentAny.status,
-              timeInState: agentAny.stateEntryTime 
-                ? Date.now() - agentAny.stateEntryTime 
+              current: agentView.lifecycleState || agentView.status,
+              timeInState: agentView.stateEntryTime 
+                ? Date.now() - agentView.stateEntryTime 
                 : 0
             }
           };
@@ -204,23 +222,23 @@ export function registerStateCommands(program: Command): void {
         }
 
         // Render agent state info
-        const agentState = agentAny.lifecycleState || agentAny.status || 'unknown';
+        const agentState = agentView.lifecycleState || agentView.status || 'unknown';
         const color = stateColors[agentState] || stateColors['unknown'];
         const icon = stateIndicators[agentState] || '?';
         
         logger.info(`\n🤖 Agent: ${agentId}\n`);
         logger.info(`Current State: ${color}${icon} ${agentState}${'\x1b[0m'}`);
         
-        if (agentAny.stateEntryTime) {
-          const duration = Date.now() - agentAny.stateEntryTime;
+        if (agentView.stateEntryTime) {
+          const duration = Date.now() - agentView.stateEntryTime;
           logger.info(`Time in State: ${formatDuration(duration)}`);
         }
         
-        logger.info(`Status: ${agentAny.status}`);
-        logger.info(`Model: ${agentAny.model}`);
+        logger.info(`Status: ${agentView.status}`);
+        logger.info(`Model: ${agentView.model}`);
         
-        if (agentAny.task) {
-          logger.info(`Task: ${agentAny.task.slice(0, 50)}${agentAny.task.length > 50 ? '...' : ''}`);
+        if (agentView.task) {
+          logger.info(`Task: ${agentView.task.slice(0, 50)}${agentView.task.length > 50 ? '...' : ''}`);
         }
 
         // Show state diagram if requested
@@ -354,7 +372,7 @@ export function registerStateCommands(program: Command): void {
     .option('--force', 'Force stop without confirmation')
     .action(async (agentId, options) => {
       try {
-        const agent = (memoryStore.agents || {})[agentId];
+        const agent = memoryStore.agents.get(agentId);
         
         if (!agent) {
           logger.error(`❌ Agent ${agentId} not found`);
@@ -367,7 +385,7 @@ export function registerStateCommands(program: Command): void {
         if (!options.force) {
           logger.info(`⚠️  About to stop agent: ${agentId}`);
           logger.info(`   Current State: ${sm?.state || 'unknown'}`);
-          logger.info(`   Name: ${(agent as any).label || (agent as any).name || 'Unnamed'}`);
+          logger.info(`   Name: ${(agent as { label?: string; name?: string }).label || (agent as { label?: string; name?: string }).name || 'Unnamed'}`);
           logger.info('\n🛑 Use --force to confirm stop');
           return;
         }
@@ -380,7 +398,7 @@ export function registerStateCommands(program: Command): void {
           logger.info(`✓ Agent stopped`);
         } else {
           // Fallback: update memory store directly
-          (agent as any).status = 'stopped';
+          memoryStore.agents.update(agentId, { status: 'stopped' as AgentStatus });
           logger.info(`✓ Agent marked as stopped`);
         }
       } catch (error) {

@@ -225,7 +225,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 // Specialized Hooks for Different Data Types
 // ============================================================================
 
-interface Swarm {
+interface Team {
   id: string;
   name: string;
   status: 'active' | 'paused' | 'completed' | 'failed' | 'idle';
@@ -239,13 +239,13 @@ interface Agent {
   name: string;
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'killed';
   task: string;
-  swarmId: string;
+  teamId: string;
   startTime?: Date;
   duration?: number;
 }
 
-export interface UseSwarmDataReturn {
-  swarms: Swarm[];
+export interface UseTeamDataReturn {
+  teams: Team[];
   agents: Agent[];
   loading: boolean;
   error: string | null;
@@ -253,10 +253,10 @@ export interface UseSwarmDataReturn {
 }
 
 /**
- * Hook for swarm monitoring data
+ * Hook for team monitoring data
  */
-export function useSwarmData(): UseSwarmDataReturn {
-  const [swarms, setSwarms] = useState<Swarm[]>([]);
+export function useTeamData(): UseTeamDataReturn {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -274,9 +274,9 @@ export function useSwarmData(): UseSwarmDataReturn {
     setLoading(true);
     setError(null);
 
-    // Subscribe to swarm updates
-    const unsubscribeSwarms = subscribe('swarm_update', (data) => {
-      setSwarms(prev => {
+    // Subscribe to team updates
+    const unsubscribeTeams = subscribe('team_update', (data) => {
+      setTeams(prev => {
         const index = prev.findIndex(s => s.id === data.id);
         if (index >= 0) {
           const updated = [...prev];
@@ -302,14 +302,14 @@ export function useSwarmData(): UseSwarmDataReturn {
     });
 
     // Subscribe to initial data
-    const unsubscribeInit = subscribe('swarms_init', (data) => {
-      setSwarms(data.swarms || []);
+    const unsubscribeInit = subscribe('teams_init', (data) => {
+      setTeams(data.teams || []);
       setAgents(data.agents || []);
       setLoading(false);
     });
 
     return () => {
-      unsubscribeSwarms();
+      unsubscribeTeams();
       unsubscribeAgents();
       unsubscribeInit();
     };
@@ -319,7 +319,7 @@ export function useSwarmData(): UseSwarmDataReturn {
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  return { swarms, agents, loading, error, refresh };
+  return { teams, agents, loading, error, refresh };
 }
 
 interface Session {

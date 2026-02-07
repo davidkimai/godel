@@ -1,7 +1,7 @@
 {
   "name": "@godel/client",
   "version": "1.0.0",
-  "description": "Official Godel SDK for managing swarms, agents, and events",
+  "description": "Official Godel SDK for managing teams, agents, and events",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -16,7 +16,7 @@
   },
   "keywords": [
     "godel",
-    "swarm",
+    "team",
     "agents",
     "orchestration",
     "sdk"

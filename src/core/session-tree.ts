@@ -176,7 +176,7 @@ export function loadEntriesFromFile(filePath: string): FileEntry[] {
 // ============================================================================
 
 export class SessionTree {
-  private sessionId: string;
+  private sessionId!: string;
   private sessionFile: string;
   private sessionDir: string;
   private cwd: string;
@@ -908,7 +908,7 @@ export function getGlobalSessionTree(
 ): SessionTree {
   if (!globalSessionTree) {
     const workDir = cwd || process.cwd();
-    const dir = sessionDir || join(workDir, '.dash', 'sessions');
+    const dir = sessionDir || join(workDir, '.godel', 'sessions');
     globalSessionTree = SessionTree.create(workDir, dir);
   }
   return globalSessionTree;

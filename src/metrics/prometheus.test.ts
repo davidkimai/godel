@@ -4,7 +4,7 @@
 
 import { PrometheusMetrics, getGlobalPrometheusMetrics, resetGlobalPrometheusMetrics, register } from './prometheus';
 import { AgentEventBus } from '../core/event-bus';
-import { SwarmOrchestrator } from '../core/swarm-orchestrator';
+import { TeamOrchestrator } from '../core/team-orchestrator';
 
 // Mock dependencies
 jest.mock('../utils/logger', () => ({
@@ -19,7 +19,7 @@ jest.mock('../utils/logger', () => ({
 describe('PrometheusMetrics', () => {
   let metrics: PrometheusMetrics;
   let mockEventBus: jest.Mocked<AgentEventBus>;
-  let mockOrchestrator: jest.Mocked<SwarmOrchestrator>;
+  let mockOrchestrator: jest.Mocked<TeamOrchestrator>;
 
   beforeEach(() => {
     // Clear the registry before each test
@@ -38,10 +38,10 @@ describe('PrometheusMetrics', () => {
     } as unknown as jest.Mocked<AgentEventBus>;
 
     mockOrchestrator = {
-      listActiveSwarms: jest.fn().mockReturnValue([]),
-      getSwarmAgents: jest.fn().mockReturnValue([]),
+      listActiveTeams: jest.fn().mockReturnValue([]),
+      getTeamAgents: jest.fn().mockReturnValue([]),
       getStatus: jest.fn(),
-    } as unknown as jest.Mocked<SwarmOrchestrator>;
+    } as unknown as jest.Mocked<TeamOrchestrator>;
   });
 
   afterEach(() => {
@@ -62,32 +62,32 @@ describe('PrometheusMetrics', () => {
       // Fast-forward past first collection
       jest.advanceTimersByTime(20000);
       
-      expect(mockOrchestrator.listActiveSwarms).toHaveBeenCalled();
+      expect(mockOrchestrator.listActiveTeams).toHaveBeenCalled();
       jest.useRealTimers();
     });
   });
 
   describe('agent metrics', () => {
     it('should set active agents gauge without error', () => {
-      expect(() => metrics.agentActiveGauge.set({ swarm_id: 'test-swarm' }, 5)).not.toThrow();
+      expect(() => metrics.agentActiveGauge.set({ team_id: 'test-team' }, 5)).not.toThrow();
     });
 
     it('should increment agent failure counter without error', () => {
-      expect(() => metrics.recordAgentFailure('test-swarm', 'timeout')).not.toThrow();
+      expect(() => metrics.recordAgentFailure('test-team', 'timeout')).not.toThrow();
     });
   });
 
-  describe('swarm metrics', () => {
-    it('should set swarm cost gauge without error', () => {
-      expect(() => metrics.swarmCostGauge.set({ swarm_id: 'test-swarm', currency: 'usd' }, 25.50)).not.toThrow();
+  describe('team metrics', () => {
+    it('should set team cost gauge without error', () => {
+      expect(() => metrics.swarmCostGauge.set({ team_id: 'test-team', currency: 'usd' }, 25.50)).not.toThrow();
     });
 
-    it('should increment swarm success counter without error', () => {
+    it('should increment team success counter without error', () => {
       expect(() => metrics.swarmSuccessCounter.inc({ strategy: 'parallel' })).not.toThrow();
     });
 
-    it('should record swarm failure without error', () => {
-      expect(() => metrics.recordSwarmFailure('test-swarm', 'pipeline', 'error')).not.toThrow();
+    it('should record team failure without error', () => {
+      expect(() => metrics.recordTeamFailure('test-team', 'pipeline', 'error')).not.toThrow();
     });
   });
 
@@ -99,8 +99,8 @@ describe('PrometheusMetrics', () => {
 
   describe('API metrics', () => {
     it('should record API request without error', () => {
-      expect(() => metrics.recordApiRequest('GET', '/api/swarms', 200, 150)).not.toThrow();
-      expect(() => metrics.recordApiRequest('POST', '/api/swarms', 500, 5000)).not.toThrow();
+      expect(() => metrics.recordApiRequest('GET', '/api/teams', 200, 150)).not.toThrow();
+      expect(() => metrics.recordApiRequest('POST', '/api/teams', 500, 5000)).not.toThrow();
     });
   });
 

@@ -2,7 +2,7 @@
  * OpenTelemetry Tracing Configuration
  * 
  * Configures and initializes OpenTelemetry for distributed tracing across
- * Dash services including agent execution, task queue, workflow engine,
+ * Godel services including agent execution, task queue, workflow engine,
  * and database operations.
  */
 
@@ -59,7 +59,7 @@ export interface TracingConfig {
 
 // Default configuration
 const DEFAULT_CONFIG: TracingConfig = {
-  serviceName: process.env['OTEL_SERVICE_NAME'] || 'dash-orchestrator',
+  serviceName: process.env['OTEL_SERVICE_NAME'] || 'godel-orchestrator',
   serviceVersion: process.env['OTEL_SERVICE_VERSION'] || '2.0.0',
   environment: process.env['NODE_ENV'] || 'development',
   jaegerHost: process.env['JAEGER_AGENT_HOST'] || 'localhost',

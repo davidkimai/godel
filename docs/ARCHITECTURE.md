@@ -47,7 +47,7 @@ Godel is a distributed agent orchestration platform built on a modular, event-dr
 │  └─────────────────────────────────────────────────────────────────────────┘│
 │                                    │                                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐│
-│  │ Agent        │  │ Swarm        │  │ Workflow     │  │ Task             ││
+│  │ Agent        │  │ Team        │  │ Workflow     │  │ Task             ││
 │  │ Manager      │  │ Manager      │  │ Engine       │  │ Manager          ││
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘│
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐│
@@ -107,7 +107,7 @@ REST API and WebSocket server for programmatic access.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/agents` | GET/POST | Agent management |
-| `/api/v1/swarms` | GET/POST | Swarm management |
+| `/api/v1/teams` | GET/POST | Team management |
 | `/api/v1/workflows` | GET/POST | Workflow execution |
 | `/api/v1/events` | WS | Event streaming |
 
@@ -134,12 +134,12 @@ interface AgentManager {
 }
 ```
 
-#### Swarm Manager
+#### Team Manager
 
 Orchestrates multiple agents working together.
 
 **Responsibilities:**
-- Create and manage agent swarms
+- Create and manage agent teams
 - Implement execution strategies (parallel, map-reduce, pipeline)
 - Handle auto-scaling based on workload
 - Coordinate inter-agent communication
@@ -224,8 +224,8 @@ type EventType =
   | 'agent:start'
   | 'agent:complete'
   | 'agent:error'
-  | 'swarm:start'
-  | 'swarm:complete'
+  | 'team:start'
+  | 'team:complete'
   | 'workflow:step:start'
   | 'workflow:step:complete'
   | 'budget:warning'
@@ -365,7 +365,7 @@ interface Event {
     correlationId?: string;      // Request correlation
     userId?: string;             // Originating user
     agentId?: string;            // Related agent
-    swarmId?: string;            // Related swarm
+    swarmId?: string;            // Related team
   };
 }
 ```
@@ -378,8 +378,8 @@ interface Event {
 | `agent:start` | Agent started | `{ agentId, task, model }` |
 | `agent:complete` | Agent completed | `{ agentId, duration, cost }` |
 | `agent:error` | Agent error | `{ agentId, error, stack }` |
-| `swarm:start` | Swarm started | `{ swarmId, name, agents }` |
-| `swarm:complete` | Swarm completed | `{ swarmId, results }` |
+| `team:start` | Team started | `{ swarmId, name, agents }` |
+| `team:complete` | Team completed | `{ swarmId, results }` |
 
 #### Workflow Events
 | Event | Description | Data |
@@ -416,7 +416,7 @@ eventBus.onPattern('workflow:*', (event) => {
 });
 
 // One-time subscription
-eventBus.once('swarm:complete', (event) => {
+eventBus.once('team:complete', (event) => {
   sendNotification(event);
 });
 ```
@@ -566,7 +566,7 @@ const tracer = trace.getTracer('godel');
 
 const span = tracer.startSpan('workflow.execute');
 span.setAttribute('workflow.id', workflowId);
-span.setAttribute('swarm.id', swarmId);
+span.setAttribute('team.id', swarmId);
 // ... execution
 span.end();
 ```

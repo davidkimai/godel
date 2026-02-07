@@ -12,7 +12,7 @@ import { MissionEvent, EventType } from '../events/types';
 // - agent.{id}.commands    # Control messages to agent
 // - agent.{id}.events      # Status updates from agent
 // - agent.{id}.logs        # Log output
-// - swarm.{id}.broadcast   # All agents in swarm
+// - team.{id}.broadcast   # All agents in team
 // - task.{type}.updates    # Type-specific updates
 // - system.alerts          # System-wide alerts
 
@@ -20,7 +20,7 @@ export type TopicPattern =
   | `agent.${string}.commands`
   | `agent.${string}.events`
   | `agent.${string}.logs`
-  | `swarm.${string}.broadcast`
+  | `team.${string}.broadcast`
   | `task.${string}.updates`
   | 'system.alerts'
   | string; // Allow custom topics
@@ -73,7 +73,7 @@ export interface BusConfig {
  * - * - Single segment wildcard (same as {id})
  * - # - Multi-segment wildcard (matches everything including dots)
  * - agent.*.events - matches agent.123.events, agent.abc.events
- * - swarm.# - matches swarm.123.broadcast, swarm.abc.anything.here
+ * - team.# - matches team.123.broadcast, team.abc.anything.here
  */
 export function patternToRegex(pattern: string): RegExp {
   // Escape special regex characters except our wildcards
@@ -438,10 +438,10 @@ export class MessageBus {
   }
 
   /**
-   * Create swarm-specific topic names
+   * Create team-specific topic names
    */
-  static swarmBroadcast(swarmId: string): string {
-    return `swarm.${swarmId}.broadcast`;
+  static teamBroadcast(teamId: string): string {
+    return `team.${teamId}.broadcast`;
   }
 
   /**
@@ -498,7 +498,7 @@ export function subscribeDashboard(
   handler: MessageHandler,
   options?: {
     agentIds?: string[];
-    swarmIds?: string[];
+    teamIds?: string[];
     eventTypes?: EventType[];
     includeSystem?: boolean;
   }
@@ -514,10 +514,10 @@ export function subscribeDashboard(
     }
   }
 
-  // Subscribe to specific swarms
-  if (options?.swarmIds) {
-    for (const swarmId of options.swarmIds) {
-      topics.push(`swarm.${swarmId}.broadcast`);
+  // Subscribe to specific teams
+  if (options?.teamIds) {
+    for (const teamId of options.teamIds) {
+      topics.push(`team.${teamId}.broadcast`);
     }
   }
 
@@ -527,9 +527,9 @@ export function subscribeDashboard(
     topics.push('agent.*.logs');
   }
 
-  // Subscribe to all swarm broadcasts
-  if (!options?.swarmIds) {
-    topics.push('swarm.*.broadcast');
+  // Subscribe to all team broadcasts
+  if (!options?.teamIds) {
+    topics.push('team.*.broadcast');
   }
 
   // Subscribe to system alerts

@@ -44,7 +44,7 @@ This rubric validates that Godel is production-ready by testing all README-promi
 ### 2.2 Intent Execution
 | Criteria | Status | Evidence |
 |----------|--------|----------|
-| Creates appropriate swarms | ✅ | Execution plan shows correct swarm config |
+| Creates appropriate teams | ✅ | Execution plan shows correct team config |
 | Selects right agents | ✅ | Worker/Coordinator/Reviewer assigned per complexity |
 | Shows execution plan | ✅ | Dry-run mode displays full plan |
 | Templates available | ✅ | 5 intent templates in /templates |
@@ -123,7 +123,7 @@ This rubric validates that Godel is production-ready by testing all README-promi
 ### 6.2 Role Assignment
 | Criteria | Status | Test Command |
 |----------|--------|--------------|
-| Role-based swarm creation | ✅ | Intent executor assigns roles by complexity |
+| Role-based team creation | ✅ | Intent executor assigns roles by complexity |
 | Tools restricted by role | ✅ | Each role has specific tool sets |
 | Permissions enforced | ✅ | canMessage restrictions in role definitions |
 
@@ -183,9 +183,9 @@ This rubric validates that Godel is production-ready by testing all README-promi
 | `godel agent list` | ✅ | Works |
 | `godel agent create --role X` | ✅ | Works |
 | `godel agent terminate` | ✅ | Implemented |
-| `godel swarm create` | ✅ | Works |
-| `godel swarm list` | ✅ | Works |
-| `godel swarm status` | ✅ | Works |
+| `godel team create` | ✅ | Works |
+| `godel team list` | ✅ | Works |
+| `godel team status` | ✅ | Works |
 | `godel worktree list` | ✅ | Works |
 | `godel worktree create` | ✅ | Works |
 | `godel pi instances` | ✅ | Works |
@@ -204,7 +204,7 @@ This rubric validates that Godel is production-ready by testing all README-promi
 | Criteria | Status | Evidence |
 |----------|--------|----------|
 | Accessible at localhost:7373 | ✅ | Server configured |
-| Swarm Overview view | ✅ | API endpoints exist |
+| Team Overview view | ✅ | API endpoints exist |
 | Agent Status view | ✅ | API endpoints exist |
 | Conversation Trees view | ✅ | Session tree visualization |
 | Worktree Map view | ✅ | Worktree API exists |
@@ -215,7 +215,7 @@ This rubric validates that Godel is production-ready by testing all README-promi
 | Criteria | Status | Test Command |
 |----------|--------|--------------|
 | `godel dashboard --tui` works | ✅ | Launches interactive TUI |
-| Swarm monitoring | ✅ | SwarmMonitor component |
+| Team monitoring | ✅ | SwarmMonitor component |
 | Session browser | ✅ | SessionBrowser component |
 | Task queue view | ✅ | TaskQueue component |
 | Log streaming | ✅ | LogStream component |
@@ -357,7 +357,7 @@ This rubric validates that Godel is production-ready by testing all README-promi
 8. ✅ All documentation accurate
 
 ### Feature Highlights
-- **Intent-Based Interface:** Natural language to swarm execution
+- **Intent-Based Interface:** Natural language to team execution
 - **Complete CLI:** 13 command groups, 40+ subcommands
 - **TUI Dashboard:** Real-time terminal monitoring
 - **Web Dashboard:** React components for visualization

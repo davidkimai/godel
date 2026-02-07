@@ -97,27 +97,27 @@ class MetricsCollector {
     this.redis = null;
   }
 
-  async collectMetrics(swarmId: string, currentAgentCount: number): Promise<ScalingMetrics> {
+  async collectMetrics(teamId: string, currentAgentCount: number): Promise<ScalingMetrics> {
     const timestamp = new Date();
 
     // Collect from Redis
-    const queueDepth = await this.getQueueDepth(swarmId);
-    const eventBacklogSize = await this.getEventBacklogSize(swarmId);
+    const queueDepth = await this.getQueueDepth(teamId);
+    const eventBacklogSize = await this.getEventBacklogSize(teamId);
     
     // Collect from Prometheus (via Redis cache)
-    const avgCpuUtilization = await this.getCpuUtilization(swarmId);
-    const avgMemoryUtilization = await this.getMemoryUtilization(swarmId);
-    const taskCompletionRate = await this.getTaskCompletionRate(swarmId);
-    const avgTaskLatency = await this.getTaskLatency(swarmId);
-    const currentCost = await this.getCurrentCost(swarmId);
-    const budgetUtilization = await this.getBudgetUtilization(swarmId);
+    const avgCpuUtilization = await this.getCpuUtilization(teamId);
+    const avgMemoryUtilization = await this.getMemoryUtilization(teamId);
+    const taskCompletionRate = await this.getTaskCompletionRate(teamId);
+    const avgTaskLatency = await this.getTaskLatency(teamId);
+    const currentCost = await this.getCurrentCost(teamId);
+    const budgetUtilization = await this.getBudgetUtilization(teamId);
 
     // Calculate queue growth rate from history (would be stored in Redis)
-    const queueGrowthRate = await this.getQueueGrowthRate(swarmId);
+    const queueGrowthRate = await this.getQueueGrowthRate(teamId);
 
     return {
       timestamp,
-      swarmId,
+      teamId,
       currentAgentCount,
       queueDepth,
       queueGrowthRate,
@@ -131,81 +131,81 @@ class MetricsCollector {
     };
   }
 
-  private async getQueueDepth(swarmId: string): Promise<number> {
+  private async getQueueDepth(teamId: string): Promise<number> {
     try {
-      const depth = await this.redis?.llen(`dash:queue:${swarmId}`);
+      const depth = await this.redis?.llen(`godel:queue:${teamId}`);
       return depth || 0;
     } catch {
       return 0;
     }
   }
 
-  private async getEventBacklogSize(swarmId: string): Promise<number> {
+  private async getEventBacklogSize(teamId: string): Promise<number> {
     try {
-      const backlog = await this.redis?.xlen(`dash:events:${swarmId}`);
+      const backlog = await this.redis?.xlen(`godel:events:${teamId}`);
       return backlog || 0;
     } catch {
       return 0;
     }
   }
 
-  private async getCpuUtilization(swarmId: string): Promise<number> {
+  private async getCpuUtilization(teamId: string): Promise<number> {
     try {
-      const cpu = await this.redis?.get(`dash:metrics:${swarmId}:cpu`);
+      const cpu = await this.redis?.get(`godel:metrics:${teamId}:cpu`);
       return cpu ? parseFloat(cpu) : 50; // Default to 50%
     } catch {
       return 50;
     }
   }
 
-  private async getMemoryUtilization(swarmId: string): Promise<number> {
+  private async getMemoryUtilization(teamId: string): Promise<number> {
     try {
-      const memory = await this.redis?.get(`dash:metrics:${swarmId}:memory`);
+      const memory = await this.redis?.get(`godel:metrics:${teamId}:memory`);
       return memory ? parseFloat(memory) : 50; // Default to 50%
     } catch {
       return 50;
     }
   }
 
-  private async getTaskCompletionRate(swarmId: string): Promise<number> {
+  private async getTaskCompletionRate(teamId: string): Promise<number> {
     try {
-      const rate = await this.redis?.get(`dash:metrics:${swarmId}:completion_rate`);
+      const rate = await this.redis?.get(`godel:metrics:${teamId}:completion_rate`);
       return rate ? parseFloat(rate) : 0;
     } catch {
       return 0;
     }
   }
 
-  private async getTaskLatency(swarmId: string): Promise<number> {
+  private async getTaskLatency(teamId: string): Promise<number> {
     try {
-      const latency = await this.redis?.get(`dash:metrics:${swarmId}:latency`);
+      const latency = await this.redis?.get(`godel:metrics:${teamId}:latency`);
       return latency ? parseFloat(latency) : 0;
     } catch {
       return 0;
     }
   }
 
-  private async getCurrentCost(swarmId: string): Promise<number> {
+  private async getCurrentCost(teamId: string): Promise<number> {
     try {
-      const cost = await this.redis?.get(`dash:budget:${swarmId}:consumed`);
+      const cost = await this.redis?.get(`godel:budget:${teamId}:consumed`);
       return cost ? parseFloat(cost) : 0;
     } catch {
       return 0;
     }
   }
 
-  private async getBudgetUtilization(swarmId: string): Promise<number> {
+  private async getBudgetUtilization(teamId: string): Promise<number> {
     try {
-      const utilization = await this.redis?.get(`dash:budget:${swarmId}:utilization`);
+      const utilization = await this.redis?.get(`godel:budget:${teamId}:utilization`);
       return utilization ? parseFloat(utilization) : 0;
     } catch {
       return 0;
     }
   }
 
-  private async getQueueGrowthRate(swarmId: string): Promise<number> {
+  private async getQueueGrowthRate(teamId: string): Promise<number> {
     try {
-      const rate = await this.redis?.get(`dash:metrics:${swarmId}:queue_growth`);
+      const rate = await this.redis?.get(`godel:metrics:${teamId}:queue_growth`);
       return rate ? parseFloat(rate) : 0;
     } catch {
       return 0;
@@ -215,8 +215,8 @@ class MetricsCollector {
   /**
    * Publish metrics to Redis for other components
    */
-  async publishMetrics(swarmId: string, metrics: ScalingMetrics): Promise<void> {
-    const key = `dash:scaling:metrics:${swarmId}`;
+  async publishMetrics(teamId: string, metrics: ScalingMetrics): Promise<void> {
+    const key = `godel:scaling:metrics:${teamId}`;
     await this.redis?.setex(key, 300, JSON.stringify(metrics)); // 5 minute TTL
   }
 
@@ -325,32 +325,32 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
   }
 
   /**
-   * Register a scaling policy for a swarm
+   * Register a scaling policy for a team
    */
   registerPolicy(policy: ScalingPolicy): void {
-    this.state.activePolicies.set(policy.swarmId, policy);
-    this.scalingHistory.set(policy.swarmId, {});
+    this.state.activePolicies.set(policy.teamId, policy);
+    this.scalingHistory.set(policy.teamId, {});
     
-    // Initialize queue tracker for this swarm
-    if (!this.queueTrackers.has(policy.swarmId)) {
-      this.queueTrackers.set(policy.swarmId, new QueueGrowthTracker());
+    // Initialize queue tracker for this team
+    if (!this.queueTrackers.has(policy.teamId)) {
+      this.queueTrackers.set(policy.teamId, new QueueGrowthTracker());
     }
 
-    logger.info(`[AutoScaler] Registered policy for swarm ${policy.swarmId}`);
+    logger.info(`[AutoScaler] Registered policy for team ${policy.teamId}`);
     this.emit('policy.registered', policy);
   }
 
   /**
    * Unregister a scaling policy
    */
-  unregisterPolicy(swarmId: string): void {
-    this.state.activePolicies.delete(swarmId);
-    this.scalingHistory.delete(swarmId);
-    this.queueTrackers.delete(swarmId);
-    this.budgetManager.unregisterBudget(swarmId);
+  unregisterPolicy(teamId: string): void {
+    this.state.activePolicies.delete(teamId);
+    this.scalingHistory.delete(teamId);
+    this.queueTrackers.delete(teamId);
+    this.budgetManager.unregisterBudget(teamId);
     
-    logger.info(`[AutoScaler] Unregistered policy for swarm ${swarmId}`);
-    this.emit('policy.unregistered', { swarmId });
+    logger.info(`[AutoScaler] Unregistered policy for team ${teamId}`);
+    this.emit('policy.unregistered', { teamId });
   }
 
   /**
@@ -365,19 +365,19 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
         id: `evt_${Date.now()}`,
         type: 'cost.alert',
         timestamp: new Date(),
-        swarmId: alert.swarmId,
+        teamId: alert.teamId,
         payload: alert,
       });
     });
 
-    logger.info(`[AutoScaler] Registered budget for swarm ${config.swarmId}`);
+    logger.info(`[AutoScaler] Registered budget for team ${config.teamId}`);
   }
 
   /**
-   * Get decision history for a swarm
+   * Get decision history for a team
    */
-  getDecisionHistory(swarmId: string): ScalingDecision[] {
-    return this.state.recentDecisions.filter(d => d.swarmId === swarmId);
+  getDecisionHistory(teamId: string): ScalingDecision[] {
+    return this.state.recentDecisions.filter(d => d.teamId === teamId);
   }
 
   /**
@@ -412,16 +412,44 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
   }
 
   /**
-   * Force a scaling evaluation for a specific swarm
+   * Force a scaling evaluation for a specific team
    */
-  async evaluateSwarm(swarmId: string): Promise<ScalingDecision | null> {
-    const policy = this.state.activePolicies.get(swarmId);
+  async evaluateTeam(teamId: string): Promise<ScalingDecision | null> {
+    const policy = this.state.activePolicies.get(teamId);
     if (!policy) {
-      logger.warn(`[AutoScaler] No policy found for swarm ${swarmId}`);
+      logger.warn(`[AutoScaler] No policy found for team ${teamId}`);
       return null;
     }
 
-    return this.evaluateSwarmInternal(swarmId, policy);
+    return this.evaluateTeamInternal(teamId, policy);
+  }
+
+  /**
+   * Evaluate a scaling policy against metrics
+   * This is a public method that can be used for testing and manual evaluation
+   */
+  evaluatePolicy(metrics: ScalingMetrics, policy: ScalingPolicy): ScalingDecision {
+    // Get scaling history
+    const history = this.scalingHistory.get(metrics.teamId) || {};
+
+    // Use the policy evaluator
+    const decision = evaluateScalingPolicy(policy, metrics, history.lastScaleUp, history.lastScaleDown, this.budgetManager?.isBudgetExceeded(metrics.teamId));
+
+    // Store the decision
+    this.state.recentDecisions.unshift(decision);
+    if (this.state.recentDecisions.length > 100) {
+      this.state.recentDecisions = this.state.recentDecisions.slice(0, 100);
+    }
+
+    // Update scaling history
+    if (decision.action === 'scale_up') {
+      history.lastScaleUp = new Date();
+    } else if (decision.action === 'scale_down') {
+      history.lastScaleDown = new Date();
+    }
+    this.scalingHistory.set(metrics.teamId, history);
+
+    return decision;
   }
 
   // ============================================================================
@@ -446,12 +474,12 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
         return;
       }
 
-      // Evaluate each swarm
-      for (const [swarmId, policy] of Array.from(this.state.activePolicies)) {
+      // Evaluate each team
+      for (const [teamId, policy] of Array.from(this.state.activePolicies)) {
         try {
-          await this.evaluateSwarmInternal(swarmId, policy);
+          await this.evaluateTeamInternal(teamId, policy);
         } catch (error) {
-          this.recordError(`Error evaluating swarm ${swarmId}: ${(error as Error).message}`);
+          this.recordError(`Error evaluating team ${teamId}: ${(error as Error).message}`);
         }
       }
     } catch (error) {
@@ -459,42 +487,42 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
     }
   }
 
-  private async evaluateSwarmInternal(
-    swarmId: string, 
+  private async evaluateTeamInternal(
+    teamId: string, 
     policy: ScalingPolicy
   ): Promise<ScalingDecision | null> {
     // Collect metrics
     const metrics = await this.metricsCollector.collectMetrics(
-      swarmId, 
+      teamId, 
       policy.minAgents // Will be updated with actual count
     );
 
     // Update with actual agent count from metrics
-    metrics.currentAgentCount = await this.getActualAgentCount(swarmId);
+    metrics.currentAgentCount = await this.getActualAgentCount(teamId);
 
     // Update queue tracker
-    const queueTracker = this.queueTrackers.get(swarmId);
+    const queueTracker = this.queueTrackers.get(teamId);
     if (queueTracker) {
       queueTracker.record(metrics);
     }
 
     // Publish metrics to Redis
-    await this.metricsCollector.publishMetrics(swarmId, metrics);
+    await this.metricsCollector.publishMetrics(teamId, metrics);
 
     // Update budget tracking
-    const alert = this.budgetManager.updateCost(swarmId, metrics.currentCost);
+    const alert = this.budgetManager.updateCost(teamId, metrics.currentCost);
     if (alert) {
       this.emit('cost.alert', alert);
     }
 
     // Check if budget blocks scaling
-    const budgetExceeded = this.budgetManager.isBudgetExceeded(swarmId);
+    const budgetExceeded = this.budgetManager.isBudgetExceeded(teamId);
     if (budgetExceeded && this.config.debug) {
-      logger.debug(`[AutoScaler] Budget exceeded for swarm ${swarmId}`);
+      logger.debug(`[AutoScaler] Budget exceeded for team ${teamId}`);
     }
 
     // Get scaling history
-    const history = this.scalingHistory.get(swarmId) || {};
+    const history = this.scalingHistory.get(teamId) || {};
 
     // Make decision using policy
     let decision = evaluateScalingPolicy(
@@ -533,25 +561,25 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       id: `evt_${Date.now()}`,
       type: 'scaling.decision',
       timestamp: new Date(),
-      swarmId,
+      teamId,
       payload: decision,
     });
 
     // Execute if needed
     if (decision.action !== 'maintain') {
-      await this.executeDecision(swarmId, decision);
+      await this.executeDecision(teamId, decision);
     }
 
     return decision;
   }
 
   private async executeDecision(
-    swarmId: string, 
+    teamId: string, 
     decision: ScalingDecision
   ): Promise<void> {
     // Check cost constraints
     const blockCheck = this.budgetManager.shouldBlockScaling(
-      swarmId,
+      teamId,
       decision.targetAgentCount
     );
 
@@ -563,11 +591,11 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
         id: `evt_${Date.now()}`,
         type: 'scaling.blocked',
         timestamp: new Date(),
-        swarmId,
+        teamId,
         payload: decision,
       });
 
-      logger.warn(`[AutoScaler] Scaling blocked for ${swarmId}: ${blockCheck.reason}`);
+      logger.warn(`[AutoScaler] Scaling blocked for ${teamId}: ${blockCheck.reason}`);
       return;
     }
 
@@ -575,7 +603,7 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
     if (this.isRateLimited()) {
       decision.blockReason = 'Rate limited';
       decision.executionResult = 'blocked';
-      logger.warn(`[AutoScaler] Scaling rate limited for ${swarmId}`);
+      logger.warn(`[AutoScaler] Scaling rate limited for ${teamId}`);
       return;
     }
 
@@ -586,13 +614,13 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
 
     try {
       // Update scaling history
-      const history = this.scalingHistory.get(swarmId) || {};
+      const history = this.scalingHistory.get(teamId) || {};
       if (decision.action === 'scale_up') {
         history.lastScaleUp = new Date();
       } else if (decision.action === 'scale_down') {
         history.lastScaleDown = new Date();
       }
-      this.scalingHistory.set(swarmId, history);
+      this.scalingHistory.set(teamId, history);
 
       // Increment rate limit counter
       this.state.scalingOperationCount++;
@@ -601,23 +629,23 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       this.emit('scaling.execute', decision);
 
       // Perform actual scaling (would call orchestrator)
-      await this.performScaling(swarmId, decision);
+      await this.performScaling(teamId, decision);
 
       decision.executionResult = 'success';
 
       logger.info(
-        `[AutoScaler] Scaled ${swarmId}: ${decision.currentAgentCount} → ${decision.targetAgentCount} ` +
+        `[AutoScaler] Scaled ${teamId}: ${decision.currentAgentCount} → ${decision.targetAgentCount} ` +
         `(${decision.action}) in ${Date.now() - startTime}ms`
       );
     } catch (error) {
       decision.executionResult = 'failure';
-      this.recordError(`Scaling execution failed for ${swarmId}: ${(error as Error).message}`);
+      this.recordError(`Scaling execution failed for ${teamId}: ${(error as Error).message}`);
       
       this.emitScalingEvent({
         id: `evt_${Date.now()}`,
         type: 'scaling.error',
         timestamp: new Date(),
-        swarmId,
+        teamId,
         payload: { error: String(error), details: decision },
       });
     }
@@ -627,16 +655,16 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
       id: `evt_${Date.now()}`,
       type: 'scaling.executed',
       timestamp: new Date(),
-      swarmId,
+      teamId,
       payload: decision,
     });
   }
 
-  private async performScaling(swarmId: string, decision: ScalingDecision): Promise<void> {
-    // This would integrate with the SwarmOrchestrator to actually scale
+  private async performScaling(teamId: string, decision: ScalingDecision): Promise<void> {
+    // This would integrate with the TeamOrchestrator to actually scale
     // For now, we emit an event that the orchestrator can listen to
     this.emit('scale', {
-      swarmId,
+      teamId,
       action: decision.action,
       fromCount: decision.currentAgentCount,
       toCount: decision.targetAgentCount,
@@ -646,9 +674,9 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
     // Also store in Redis for external consumers
     const redis = new Redis(this.config.redisUrl!);
     await redis.publish(
-      'dash:scaling:commands',
+      'godel:scaling:commands',
       JSON.stringify({
-        swarmId,
+        teamId,
         action: decision.action,
         targetCount: decision.targetAgentCount,
         timestamp: Date.now(),
@@ -657,12 +685,12 @@ export class AutoScaler extends EventEmitter implements IAutoScaler {
     await redis.quit();
   }
 
-  private async getActualAgentCount(swarmId: string): Promise<number> {
+  private async getActualAgentCount(teamId: string): Promise<number> {
     // Would query the orchestrator or Prometheus
     // For now, return from Redis
     try {
       const redis = new Redis(this.config.redisUrl!);
-      const count = await redis.get(`dash:swarm:${swarmId}:agent_count`);
+      const count = await redis.get(`godel:team:${teamId}:agent_count`);
       await redis.quit();
       return count ? parseInt(count, 10) : 5;
     } catch {

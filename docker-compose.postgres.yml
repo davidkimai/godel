@@ -1,13 +1,16 @@
 version: '3.8'
 
 services:
+  # SECURITY WARNING: Use strong passwords in production!
+  # Generate: openssl rand -base64 32
+  # Store in .env file: POSTGRES_PASSWORD=your_strong_password
   postgres:
     image: postgres:15-alpine
     container_name: godel-postgres
     environment:
-      POSTGRES_USER: godel
-      POSTGRES_PASSWORD: godel_password
-      POSTGRES_DB: godel
+      POSTGRES_USER: ${POSTGRES_USER:-godel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-godel_password_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-godel}
     ports:
       - "5433:5432"
     volumes:
@@ -22,12 +25,13 @@ services:
       - godel-network
 
   # Optional: pgAdmin for database management
+  # SECURITY WARNING: Change default credentials in production!
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: godel-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@godel.local
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@godel.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin_change_me}
     ports:
       - "5050:80"
     depends_on:

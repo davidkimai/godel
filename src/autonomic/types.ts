@@ -1,5 +1,5 @@
 /**
- * Autonomic Maintenance Swarm - Type Definitions
+ * Autonomic Maintenance Team - Type Definitions
  * 
  * Core types for the self-maintaining maintenance system.
  */
@@ -16,7 +16,7 @@ export interface ErrorContext {
   sessionId?: string;
   taskId?: string;
   agentId?: string;
-  swarmId?: string;
+  teamId?: string;
   inputs?: Record<string, unknown>;
   state?: Record<string, unknown>;
 }

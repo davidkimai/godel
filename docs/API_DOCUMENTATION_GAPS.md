@@ -20,7 +20,7 @@ Content-Type: application/json
 X-API-Key: {api_key}
 
 {
-  "swarmId": "swarm-abc123",
+  "swarmId": "team-abc123",
   "config": {
     "strategy": "round-robin",
     "tools": ["github", "slack"]
@@ -38,12 +38,12 @@ X-API-Key: {api_key}
   "success": true,
   "data": {
     "id": "agent-xyz789",
-    "swarmId": "swarm-abc123",
+    "swarmId": "team-abc123",
     "status": "spawning",
     "createdAt": "2024-01-15T10:00:00Z",
     "links": {
       "self": "/api/agents/agent-xyz789",
-      "swarm": "/api/swarms/swarm-abc123",
+      "team": "/api/teams/team-abc123",
       "logs": "/api/agents/agent-xyz789/logs"
     }
   }
@@ -52,8 +52,8 @@ X-API-Key: {api_key}
 
 **Errors:**
 - `400` - Invalid configuration
-- `404` - Swarm not found
-- `409` - Swarm at capacity
+- `404` - Team not found
+- `409` - Team at capacity
 - `402` - Budget exceeded
 
 ---
@@ -94,7 +94,7 @@ X-API-Key: {api_key}
 ---
 
 #### 3. GET /api/capabilities - Discovery
-Discover Dash capabilities and API schema.
+Discover Godel capabilities and API schema.
 
 **Request:**
 ```http
@@ -106,7 +106,7 @@ Accept: application/json
 ```json
 {
   "version": "3.0.0",
-  "name": "dash",
+  "name": "godel",
   "description": "Agent orchestration platform",
   "api": {
     "baseUrl": "/api",
@@ -115,7 +115,7 @@ Accept: application/json
     "websocket": "/events"
   },
   "capabilities": [
-    "swarm-management",
+    "team-management",
     "agent-lifecycle",
     "task-queue",
     "event-streaming",
@@ -131,7 +131,7 @@ Accept: application/json
     "window": "1m"
   },
   "links": {
-    "docs": "https://docs.dash.dev",
+    "docs": "https://docs.godel.dev",
     "skills": "/skill.json"
   }
 }
@@ -205,7 +205,7 @@ X-API-Key: {api_key}
     "repository": "owner/repo",
     "pr": 123
   },
-  "swarmId": "swarm-abc123",
+  "swarmId": "team-abc123",
   "priority": 1,
   "deadline": "2024-01-15T12:00:00Z",
   "dependencies": ["task-abc"]
@@ -220,7 +220,7 @@ X-API-Key: {api_key}
     "id": "task-xyz789",
     "type": "code-review",
     "status": "pending",
-    "swarmId": "swarm-abc123",
+    "swarmId": "team-abc123",
     "priority": 1,
     "createdAt": "2024-01-15T10:00:00Z",
     "links": {
@@ -272,10 +272,10 @@ Content-Type: application/json
 X-API-Key: {api_key}
 
 {
-  "topic": "swarm:updates",
+  "topic": "team:updates",
   "type": "status-change",
   "payload": {
-    "swarmId": "swarm-abc123",
+    "swarmId": "team-abc123",
     "status": "active"
   },
   "timestamp": "2024-01-15T10:00:00Z"
@@ -288,7 +288,7 @@ X-API-Key: {api_key}
   "success": true,
   "data": {
     "messageId": "msg-xyz789",
-    "topic": "swarm:updates",
+    "topic": "team:updates",
     "publishedAt": "2024-01-15T10:00:00Z"
   }
 }
@@ -301,7 +301,7 @@ WebSocket endpoint for subscribing to topics.
 
 **WebSocket Connection:**
 ```
-ws://localhost:7373/api/bus/subscribe?topics=swarm:updates,agent:events
+ws://localhost:7373/api/bus/subscribe?topics=team:updates,agent:events
 Headers: X-API-Key: {api_key}
 ```
 
@@ -309,9 +309,9 @@ Headers: X-API-Key: {api_key}
 ```json
 {
   "type": "message",
-  "topic": "swarm:updates",
+  "topic": "team:updates",
   "data": {
-    "swarmId": "swarm-abc123",
+    "swarmId": "team-abc123",
     "status": "active"
   },
   "timestamp": "2024-01-15T10:00:01Z"
@@ -341,7 +341,7 @@ X-API-Key: {api_key}
       "failed": 2,
       "total": 52
     },
-    "swarms": {
+    "teams": {
       "active": 3,
       "total": 5
     },
@@ -375,10 +375,10 @@ X-API-Key: {api_key}
 ```
 
 **Query Parameters:**
-- `service` - Service name (agent, swarm, api, etc.)
+- `service` - Service name (agent, team, api, etc.)
 - `level` - Log level
 - `agentId` - Filter by agent
-- `swarmId` - Filter by swarm
+- `swarmId` - Filter by team
 - `since` - Start time
 - `until` - End time
 - `search` - Full-text search
@@ -519,7 +519,7 @@ Send auth message immediately after connection:
 ```json
 {
   "type": "auth",
-  "apiKey": "dash-api-key"
+  "apiKey": "godel-api-key"
 }
 ```
 
@@ -528,7 +528,7 @@ Subscribe to specific events:
 ```json
 {
   "type": "subscribe",
-  "topics": ["agent:*", "swarm:abc123"]
+  "topics": ["agent:*", "team:abc123"]
 }
 ```
 
@@ -539,7 +539,7 @@ Subscribe to specific events:
   "topic": "agent:spawned",
   "data": {
     "agentId": "agent-xyz789",
-    "swarmId": "swarm-abc123",
+    "swarmId": "team-abc123",
     "timestamp": "2024-01-15T10:00:00Z"
   }
 }
@@ -554,7 +554,7 @@ Create file: `openapi.yaml`
 ```yaml
 openapi: 3.0.3
 info:
-  title: Dash API
+  title: Godel API
   version: 3.0.0
   description: Agent orchestration platform API
 
@@ -608,7 +608,7 @@ Host at: `/api/openapi.json`
 
 ---
 
-## @dash/client SDK Structure
+## @godel/client SDK Structure
 
 ```
 packages/client/
@@ -616,7 +616,7 @@ packages/client/
 │   ├── index.ts           # Main export
 │   ├── client.ts          # DashClient class
 │   ├── resources/
-│   │   ├── swarms.ts      # Swarms API
+│   │   ├── teams.ts      # Teams API
 │   │   ├── agents.ts      # Agents API
 │   │   ├── tasks.ts       # Tasks API
 │   │   ├── events.ts      # Events API
@@ -631,7 +631,7 @@ packages/client/
 
 ### Usage Example
 ```typescript
-import { DashClient } from '@dash/client';
+import { DashClient } from '@godel/client';
 
 const client = new DashClient({
   baseUrl: 'http://localhost:7373',
@@ -640,7 +640,7 @@ const client = new DashClient({
 
 // Spawn agent
 const agent = await client.agents.spawn({
-  swarmId: 'swarm-abc123'
+  swarmId: 'team-abc123'
 });
 
 // Stream events
@@ -670,4 +670,4 @@ events.on('agent:spawned', (e) => {
 - [ ] GET /api/health/detailed
 - [ ] Response wrapper standard
 - [ ] OpenAPI specification
-- [ ] @dash/client SDK
+- [ ] @godel/client SDK

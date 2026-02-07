@@ -1,7 +1,7 @@
 /**
  * Configuration Types
  * 
- * TypeScript type definitions for the Dash configuration system.
+ * TypeScript type definitions for the Godel configuration system.
  */
 
 import type { Static } from '@sinclair/typebox';
@@ -11,9 +11,9 @@ import { Type } from '@sinclair/typebox';
 // TypeBox Schemas
 // ============================================================================
 
-export const SwarmYamlSchema = Type.Object({
-  apiVersion: Type.String({ pattern: '^dash\\.io/v1$' }),
-  kind: Type.Literal('Swarm'),
+export const TeamYamlSchema = Type.Object({
+  apiVersion: Type.String({ pattern: '^godel\\.io/v1$' }),
+  kind: Type.Literal('Team'),
   metadata: Type.Object({
     name: Type.String(),
     namespace: Type.Optional(Type.String()),
@@ -252,7 +252,7 @@ export interface OpenClawConfig {
   mode: 'restricted' | 'full';
   /** Sandbox mode */
   sandboxMode: 'none' | 'non-main' | 'docker';
-  /** Maximum concurrent OpenClaw sessions managed by Dash */
+  /** Maximum concurrent OpenClaw sessions managed by Godel */
   maxConcurrentSessions: number;
   /** Maximum sessions assigned to a single gateway instance */
   perGatewayMaxConcurrentSessions: number;
@@ -387,14 +387,14 @@ export class ConfigValidationException extends Error {
 }
 
 // ============================================================================
-// Swarm YAML Configuration
+// Team YAML Configuration
 // ============================================================================
 
-export interface SwarmYamlConfig {
+export interface TeamYamlConfig {
   /** API version */
   apiVersion: string;
   /** Resource kind */
-  kind: 'Swarm';
+  kind: 'Team';
   /** Metadata */
   metadata: {
     name: string;
@@ -496,8 +496,8 @@ export interface GitOpsEvent {
   timestamp: Date;
   /** Path to config file */
   filePath: string;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Config diff (for change events) */
   diff?: ConfigDiffResult;
   /** Error (for failed events) */
@@ -512,7 +512,7 @@ export type GitOpsEventHandler = (event: GitOpsEvent) => void;
 
 export interface ConfigLoadResult {
   /** Loaded and validated configuration */
-  config: SwarmYamlConfig;
+  config: TeamYamlConfig;
   /** Raw file content */
   rawContent: string;
   /** Path to config file */

@@ -1,5 +1,5 @@
 /**
- * Metrics Module for Dash
+ * Metrics Module for Godel
  * 
  * Exports Prometheus metrics, health checks, and performance tracking.
  */
@@ -37,7 +37,7 @@ export type {
 
 export type {
   AgentMetricLabels,
-  SwarmMetricLabels,
+  TeamMetricLabels,
   EventMetricLabels,
   ApiMetricLabels,
   ErrorMetricLabels,

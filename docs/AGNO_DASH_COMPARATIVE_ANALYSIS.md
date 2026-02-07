@@ -1,8 +1,8 @@
-# Dash Comparative Analysis
+# Godel Comparative Analysis
 
 **Date:** February 3, 2026  
 **Analyst:** OpenClaw  
-**Source:** https://github.com/agno-agi/dash
+**Source:** https://github.com/agno-agi/godel
 
 ---
 
@@ -10,24 +10,24 @@
 
 **Critical Finding:** These are two *completely different* systems with the same name.
 
-| Aspect | Our Dash (davidkimai/dash) | Agno Dash (agno-agi/dash) |
+| Aspect | Our Godel (davidkimai/godel) | Agno Godel (agno-agi/godel) |
 |--------|---------------------------|---------------------------|
 | **Purpose** | Agent orchestration platform | Data analytics agent (Text-to-SQL) |
 | **Users** | Agents managing other agents | Data analysts querying databases |
-| **Architecture** | Distributed swarm orchestrator | Single data agent with memory |
+| **Architecture** | Distributed team orchestrator | Single data agent with memory |
 | **Core Function** | Spawn, monitor, coordinate agents | Answer questions about data |
 | **Deployment** | K8s, enterprise scale | Docker Compose, single-node |
 
-**Strategic Insight:** Despite different purposes, Agno Dash implements several patterns we should adopt for our agent orchestration platform.
+**Strategic Insight:** Despite different purposes, Agno Godel implements several patterns we should adopt for our agent orchestration platform.
 
 ---
 
-## Our Dash Architecture
+## Our Godel Architecture
 
 **Type:** Agent Orchestration Platform
 
 **Core Capabilities:**
-- Spawn and manage agent swarms
+- Spawn and manage agent teams
 - Event-driven coordination
 - REST API for programmatic control
 - CLI (swarmctl) for operations
@@ -40,7 +40,7 @@
 
 ---
 
-## Agno Dash Architecture
+## Agno Godel Architecture
 
 **Type:** Self-Learning Data Agent
 
@@ -74,14 +74,14 @@ Layer 5: Memory (error patterns, fixes)
 Layer 6: Runtime Context (live schema changes)
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```
 Layer 1: Agent Definitions (capabilities, requirements)
 Layer 2: Task Patterns (proven workflow templates)
 Layer 3: System Context (available tools, APIs)
 Layer 4: Organizational Knowledge (docs, runbooks)
 Layer 5: Execution Memory (past successes/failures)
-Layer 6: Runtime State (current swarm status, resources)
+Layer 6: Runtime State (current team status, resources)
 ```
 
 **Implementation:** Add context retrieval layer to agent spawning
@@ -105,12 +105,12 @@ learning=LearningMachine(
 )
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```typescript
 learning: SwarmLearningMachine({
   // Curated knowledge - validated patterns
   knowledge: {
-    successfulSwarms: [],      // Swarm configs that worked
+    successfulSwarms: [],      // Team configs that worked
     taskPatterns: [],          // Reusable task templates
     toolCombinations: [],      // Tools that work well together
   },
@@ -154,7 +154,7 @@ learning: SwarmLearningMachine({
 # + Usage frequency weighting
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```typescript
 // src/core/context-retrieval.ts
 interface ContextRetrievalConfig {
@@ -190,7 +190,7 @@ class AgentContextRetriever {
 ```
 
 **Use Cases:**
-- Find similar past swarms before spawning
+- Find similar past teams before spawning
 - Retrieve recovery strategies for failures
 - Suggest optimal agent configurations
 
@@ -206,12 +206,12 @@ Question: Who won the most races in 2019?
 
 Typical Agent: "Hamilton: 11"
 
-Agno Dash: "Lewis Hamilton dominated 2019 with 11 wins out of 21 races, 
+Agno Godel: "Lewis Hamilton dominated 2019 with 11 wins out of 21 races, 
 more than double Bottas's 4 wins. This performance secured his 
 sixth world championship."
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```typescript
 // Transform raw agent outputs into actionable insights
 interface SwarmInsight {
@@ -255,7 +255,7 @@ class SwarmInsightGenerator {
 ```bash
 $ swarmctl status --insight
 
-✓ Swarm "code-review" completed successfully
+✓ Team "code-review" completed successfully
 
 Summary:
   47 files reviewed across 3 repositories in 12 minutes.
@@ -285,12 +285,12 @@ Warnings:
 
 **Agno Implementation:**
 ```bash
-python -m dash.evals.run_evals         # String matching
-python -m dash.evals.run_evals -g      # LLM grader
-python -m dash.evals.run_evals -g -r   # Golden SQL comparison
+python -m godel.evals.run_evals         # String matching
+python -m godel.evals.run_evals -g      # LLM grader
+python -m godel.evals.run_evals -g -r   # Golden SQL comparison
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```typescript
 // src/evaluation/index.ts
 interface EvalSuite {
@@ -309,7 +309,7 @@ interface EvalTestCase {
 // Evaluation types
 const evalSuites: EvalSuite[] = [
   {
-    name: 'swarm-lifecycle',
+    name: 'team-lifecycle',
     testCases: [
       {
         input: { type: 'spawn', count: 5 },
@@ -345,13 +345,13 @@ const evalSuites: EvalSuite[] = [
 ];
 
 // CLI command
-// swarmctl eval --suite swarm-lifecycle --grader llm
+// swarmctl eval --suite team-lifecycle --grader llm
 ```
 
 **CI/CD Integration:**
 ```yaml
 # .github/workflows/evals.yml
-- name: Run Swarm Evaluations
+- name: Run Team Evaluations
   run: |
     swarmctl eval --suite all --fail-on-below 0.9
 ```
@@ -370,14 +370,14 @@ knowledge/
 └── business/      # Business rules and metrics
 ```
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```
 knowledge/
 ├── agents/           # Agent definitions and capabilities
 │   ├── code-reviewer.yaml
 │   ├── security-auditor.yaml
 │   └── deployment-agent.yaml
-├── swarms/           # Proven swarm configurations
+├── teams/           # Proven team configurations
 │   ├── parallel-review.yaml
 │   ├── security-audit-suite.yaml
 │   └── multi-region-deploy.yaml
@@ -397,7 +397,7 @@ knowledge/
 
 **Schema Example:**
 ```yaml
-# knowledge/swarms/security-audit-suite.yaml
+# knowledge/teams/security-audit-suite.yaml
 name: security-audit-suite
 description: Comprehensive security audit across multiple dimensions
 tags: [security, audit, compliance]
@@ -453,7 +453,7 @@ swarmctl knowledge discover --from-commits 100
 
 **Agno Usage:** Connect to docs, wikis, external systems
 
-**Adaptation for Our Dash:**
+**Adaptation for Our Godel:**
 ```typescript
 // Support MCP servers for institutional knowledge
 interface MCPServer {
@@ -485,7 +485,7 @@ const mcpServers: MCPServer[] = [
   }
 ];
 
-// Use in swarm config
+// Use in team config
 agents:
   - type: knowledge-worker
     mcpServers: [confluence, notion]
@@ -498,7 +498,7 @@ agents:
 
 ## Feature Comparison Matrix
 
-| Feature | Our Dash | Agno Dash | Priority to Adopt |
+| Feature | Our Godel | Agno Godel | Priority to Adopt |
 |---------|----------|-----------|-------------------|
 | **Context Layers** | ❌ None | ✅ 6 layers | 🔴 Critical |
 | **Self-Learning** | ❌ None | ✅ GPU-poor | 🔴 Critical |
@@ -547,7 +547,7 @@ agents:
 
 ## Key Takeaways
 
-1. **We're building different things** - Our Dash is orchestration, theirs is analytics
+1. **We're building different things** - Our Godel is orchestration, theirs is analytics
 
 2. **Their patterns are universal** - Context, learning, evaluation apply to any agent system
 
@@ -595,18 +595,18 @@ export class ContextRetriever {
 ```typescript
 // src/core/learning-machine.ts
 export class SwarmLearningMachine {
-  async onSwarmComplete(swarm: Swarm, result: SwarmResult): Promise<void> {
+  async onSwarmComplete(team: Team, result: SwarmResult): Promise<void> {
     if (result.success) {
       // Save successful pattern
       await this.saveKnowledge({
         type: 'successful_swarm',
-        config: swarm.config,
+        config: team.config,
         metrics: result.metrics,
         timestamp: Date.now()
       });
     } else {
       // Analyze failure and save learning
-      const analysis = await this.analyzeFailure(swarm, result);
+      const analysis = await this.analyzeFailure(team, result);
       await this.saveLearning({
         type: 'failure_pattern',
         pattern: analysis.pattern,

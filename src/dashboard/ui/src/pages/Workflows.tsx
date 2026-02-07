@@ -10,13 +10,13 @@ import { useSwarmsRealtime } from '../hooks/useWebSocket';
 import { Play, Pause, Square, Plus, Filter, Search } from 'lucide-react';
 
 const Workflows: React.FC = () => {
-  const { swarms } = useSwarmsRealtime();
+  const { teams } = useSwarmsRealtime();
   const [selectedSwarm, setSelectedSwarm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredSwarms = swarms.filter(swarm => 
-    swarm.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    swarm.id.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSwarms = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -38,7 +38,7 @@ const Workflows: React.FC = () => {
         </div>
       </div>
 
-      {/* Swarm Selector */}
+      {/* Team Selector */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -52,17 +52,17 @@ const Workflows: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 overflow-x-auto">
-          {filteredSwarms.map(swarm => (
+          {filteredSwarms.map(team => (
             <button
-              key={swarm.id}
-              onClick={() => setSelectedSwarm(swarm.id)}
+              key={team.id}
+              onClick={() => setSelectedSwarm(team.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedSwarm === swarm.id
+                selectedSwarm === team.id
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
             >
-              {swarm.name}
+              {team.name}
             </button>
           ))}
         </div>
@@ -81,19 +81,19 @@ const Workflows: React.FC = () => {
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
           <h3 className="text-lg font-semibold text-gray-100 mb-4">Active Workflows</h3>
           <div className="space-y-3">
-            {swarms.slice(0, 5).map(swarm => (
-              <div key={swarm.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+            {teams.slice(0, 5).map(team => (
+              <div key={team.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-200">{swarm.name}</p>
-                  <p className="text-sm text-gray-400">{swarm.agents.length} agents</p>
+                  <p className="font-medium text-gray-200">{team.name}</p>
+                  <p className="text-sm text-gray-400">{team.agents.length} agents</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${
-                    swarm.status === 'active' ? 'bg-green-500' :
-                    swarm.status === 'paused' ? 'bg-yellow-500' :
+                    team.status === 'active' ? 'bg-green-500' :
+                    team.status === 'paused' ? 'bg-yellow-500' :
                     'bg-gray-500'
                   }`} />
-                  <span className="text-sm text-gray-400 capitalize">{swarm.status}</span>
+                  <span className="text-sm text-gray-400 capitalize">{team.status}</span>
                 </div>
               </div>
             ))}

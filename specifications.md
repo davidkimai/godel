@@ -1,13 +1,13 @@
-# Dash Technical Specification and Codebase Review
+# Godel Technical Specification and Codebase Review
 
 Date: 2026-02-06
 Reviewer: Codex (GPT-5)
-Scope: Recursive review of Dash first-party source, configuration, docs, and tests; targeted implementation for production readiness and OpenClaw operational compatibility.
+Scope: Recursive review of Godel first-party source, configuration, docs, and tests; targeted implementation for production readiness and OpenClaw operational compatibility.
 
 ## Checklist
 1. Inventory repository recursively and classify first-party vs generated/vendor assets.
 2. Deep-research OpenClaw architecture and gateway configuration from official docs and repo sources.
-3. Assess Dash architecture against 10-50+ concurrent OpenClaw orchestration goals.
+3. Assess Godel architecture against 10-50+ concurrent OpenClaw orchestration goals.
 4. Walk through reviewed paths in alphabetical order with Purpose, Implementation Details, Issues and Fixes, and Questions/Dependencies.
 5. Define production-grade target architecture and scaling model.
 6. Implement highest-risk defects affecting correctness, security, and compatibility.
@@ -36,23 +36,23 @@ Validation: All listed items are backed by code changes and passing release-gate
 - `openclaw gateway status` confirms local daemonized gateway is running and RPC probe is healthy.
 - Live API smoke (local port 7399) validated:
   - `/health` => `200`
-  - unauthenticated `/api/v1/swarms` => `401`
+  - unauthenticated `/api/v1/teams` => `401`
   - `/api/v1/auth/login` => `200`
   - `/api/v1/auth/me` (cookie session) => `200`
-  - `/api/v1/swarms` (cookie session) => `200`
-  - `/api/swarms` compatibility alias (cookie session) => `200`
+  - `/api/v1/teams` (cookie session) => `200`
+  - `/api/teams` compatibility alias (cookie session) => `200`
 
 Validation: Smoke checks verify operational authentication flow and route readiness against real server startup.
 
-## Research Context (OpenClaw + Dash)
+## Research Context (OpenClaw + Godel)
 ### Key external findings
 - OpenClaw is gateway-centric and WS-protocol based, with one long-lived gateway control plane per host by default and explicit support for multiple isolated gateways via profiles, isolated state/config/workspace, and non-overlapping port ranges.
 - OpenClaw command queue model is lane-aware with configurable concurrency caps (`main` and `subagent` lanes), and per-session serialization is a core invariant.
 - Gateway protocol requires connect handshake semantics, token/device-auth options, and typed request/response/event framing.
 - Gateway CLI/service model emphasizes daemonized operation (`openclaw gateway install/start/status`) rather than a dedicated `openclawd` binary name in current public docs; operationally this is still a daemonized gateway process.
 
-### Strategic implication for Dash
-Dash should be treated as a federation and lifecycle layer above multiple OpenClaw gateway instances, with strict per-instance isolation and central control for routing, backpressure, and observability.
+### Strategic implication for Godel
+Godel should be treated as a federation and lifecycle layer above multiple OpenClaw gateway instances, with strict per-instance isolation and central control for routing, backpressure, and observability.
 
 ### Sources
 - https://docs.openclaw.ai/gateway/configuration
@@ -62,7 +62,7 @@ Dash should be treated as a federation and lifecycle layer above multiple OpenCl
 - https://docs.openclaw.ai/gateway/protocol
 - https://docs.openclaw.ai/cli/gateway
 - https://github.com/openclaw/openclaw
-- https://github.com/davidkimai/dash/tree/main
+- https://github.com/davidkimai/godel/tree/main
 
 Validation: Research is based on primary sources requested by the user and mapped directly to architecture and implementation decisions.
 
@@ -91,7 +91,7 @@ Validation: Recursive traversal completed; exclusion policy minimizes false-posi
 - Adapter robustness issues caused runtime crashes in failure/dispose paths.
 - Integration test defaults and infra assumptions caused noisy false negatives.
 
-### Competitive differentiators Dash can own
+### Competitive differentiators Godel can own
 - Meta-orchestration across isolated OpenClaw gateways (tenant-aware routing + cost/latency balancing).
 - Unified observability and policy enforcement across heterogeneous agent instances.
 - Orchestration-native backlog management (priority + retries + dead-letter + bounded backpressure) with OpenClaw-aware routing semantics.
@@ -129,7 +129,7 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
   - Consolidation policy for superseded docs is needed.
 
 ### `examples/`
-- Purpose: Example swarm/workflow usage and integration examples.
+- Purpose: Example team/workflow usage and integration examples.
 - Implementation Details:
   - YAML-based examples and README guidance.
 - Issues and Fixes:
@@ -154,7 +154,7 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
   - Incremental schema evolution.
 - Issues and Fixes:
   - Test defaults still assumed mismatched DB roles in some integration tests.
-  - Fix implemented: test defaults aligned to `dash:dash` where applicable.
+  - Fix implemented: test defaults aligned to `godel:godel` where applicable.
 - Questions/Dependencies:
   - Whether migrations are compatible across SQLite and PostgreSQL modes.
 
@@ -179,9 +179,9 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
   - Which scripts are part of supported operator runbooks.
 
 ### `sdk/`
-- Purpose: client SDK for Dash APIs.
+- Purpose: client SDK for Godel APIs.
 - Implementation Details:
-  - API client resources for agents/events/swarms.
+  - API client resources for agents/events/teams.
 - Issues and Fixes:
   - API version drift risk (`/api` vs `/api/v1`).
   - Fix: define a compatibility policy and contract tests.
@@ -274,14 +274,14 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
   - Interaction with OpenClaw session context and compaction strategy.
 
 ### `src/core/`
-- Purpose: orchestration, lifecycle, swarm, OpenClaw primitive integration.
+- Purpose: orchestration, lifecycle, team, OpenClaw primitive integration.
 - Implementation Details:
   - Central runtime coordination and eventing.
 - Issues and Fixes:
   - Mixed concerns between orchestration and adapter surfaces.
   - Fix: isolate external instance management into dedicated federation layer.
 - Questions/Dependencies:
-  - Canonical ownership of session state between Dash and OpenClaw.
+  - Canonical ownership of session state between Godel and OpenClaw.
 
 ### `src/dashboard/`
 - Purpose: dashboard server and frontend UI.
@@ -393,7 +393,7 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
   - Hybrid storage support with repositories.
 - Issues and Fixes:
   - Integration defaults previously mismatched common local credentials.
-  - Fix implemented: updated integration test defaults to `postgresql://dash:dash@localhost:5432/dash_test`.
+  - Fix implemented: updated integration test defaults to `postgresql://godel:godel@localhost:5432/dash_test`.
 - Questions/Dependencies:
   - Clear production database recommendation (SQLite vs PostgreSQL) and migration path.
 
@@ -436,7 +436,7 @@ Validation: Strategic findings map directly to implemented fixes and prioritized
     - Gated live-only suites behind `RUN_LIVE_INTEGRATION_TESTS=true` (`tests/integration/auth.test.ts`, `tests/integration/workflow.test.ts`, and `tests/integration/scenarios/*.test.ts`).
     - Linked WebSocket integration gating to both `RUN_WEBSOCKET_TESTS=true` and `RUN_LIVE_INTEGRATION_TESTS=true`.
     - Gated legacy mock-heavy combined suites behind `RUN_LEGACY_COMBINED_TESTS=true` (`tests/integration/api-combined.test.ts`, `tests/e2e/full-workflow.test.ts`).
-    - Updated OpenClaw adapter test expectations to current swarm payload shape.
+    - Updated OpenClaw adapter test expectations to current team payload shape.
     - Added queue regression tests in `tests/unit/queue/task-queue.test.ts`.
 - Questions/Dependencies:
   - Define strict live-integration gating separate from default local test runs.
@@ -472,7 +472,7 @@ Validation: Diffs correspond to implemented files and were verified by tests/typ
 
 ## Production Target Architecture for 10-50+ OpenClaw Sessions
 ### Core topology
-- Dash Control Plane:
+- Godel Control Plane:
   - API gateway, auth, routing, policy, global queue, federation registry.
 - OpenClaw Instance Pool:
   - 10-50 isolated gateway instances at launch, profile-isolated state/workspace/ports.
@@ -489,7 +489,7 @@ Validation: Diffs correspond to implemented files and were verified by tests/typ
 
 ### `openclawd` operational requirement mapping
 - Current official model uses `openclaw gateway` as daemonized service (`install/start/status`).
-- Dash requirement should be: configurable gateway launcher command (`openclaw gateway` by default, `openclawd` alias supported when present).
+- Godel requirement should be: configurable gateway launcher command (`openclaw gateway` by default, `openclawd` alias supported when present).
 - Add startup probe, health probe, and reconnect backoff policy per instance.
 
 ## Verification and Assessment Loops
@@ -543,7 +543,7 @@ Validation: Recursive verification executed for impacted subsystems; remaining l
 - Add release gating checklist for SLOs, migration safety, and rollback validation.
 
 ## Inaccessible/Ambiguous Materials and Workarounds
-- GitHub rendering of `https://github.com/davidkimai/dash/tree/main` was not fully retrievable from tooling in this run.
+- GitHub rendering of `https://github.com/davidkimai/godel/tree/main` was not fully retrievable from tooling in this run.
 - Workaround used: local repository content reviewed directly and matched against package metadata repository URL.
 - `openclawd` binary naming is not explicit in current public docs; official docs emphasize daemonized `openclaw gateway` service model.
 
@@ -555,14 +555,14 @@ Validation: Ambiguities are explicitly called out with concrete workaround steps
 
 ## Competitive Research Integration
 
-Based on systematic analysis of frontier competitors (Gas Town, Conductor, Loom, Pi), the following specifications extend Dash capabilities to match and exceed industry standards.
+Based on systematic analysis of frontier competitors (Gas Town, Conductor, Loom, Pi), the following specifications extend Godel capabilities to match and exceed industry standards.
 
 ---
 
 ## Pi Integration Architecture (First-Class Primitive)
 
 ### Overview
-Pi is the multi-provider coding agent CLI by Mario Zechner and serves as the primary agent runtime in OpenClaw. Dash must integrate Pi as a first-class primitive for model orchestration.
+Pi is the multi-provider coding agent CLI by Mario Zechner and serves as the primary agent runtime in OpenClaw. Godel must integrate Pi as a first-class primitive for model orchestration.
 
 ### Pi Architecture Components
 
@@ -582,7 +582,7 @@ Pi is the multi-provider coding agent CLI by Mario Zechner and serves as the pri
 - Model switching mid-session (Ctrl+L / `/model`)
 - Todo tracking with `todo_write` tool
 
-### Dash-Pi Integration Design
+### Godel-Pi Integration Design
 
 **Integration Layer: `src/integrations/pi/`**
 
@@ -724,7 +724,7 @@ interface PiSessionState {
 **Implementation Notes:**
 - Pi sessions run in RPC mode for headless operation
 - State checkpoints stored in Redis/PostgreSQL for recovery
-- Tool execution routed through Dash's sandbox layer
+- Tool execution routed through Godel's sandbox layer
 - Cost tracking per provider and model
 
 ---
@@ -756,7 +756,7 @@ interface WorktreeManager {
 interface WorktreeConfig {
   repository: string;           // Git repository path
   baseBranch: string;           // Branch to create worktree from
-  sessionId: string;            // Associated Dash session
+  sessionId: string;            // Associated Godel session
   dependencies: {
     shared: string[];           // Paths to share (node_modules, .venv)
     isolated: string[];         // Paths to isolate (.env, build/)
@@ -785,7 +785,7 @@ Repository: ~/projects/myapp
 ├── src/
 └── package.json
 
-Worktrees: ~/projects/myapp-dash-worktrees/
+Worktrees: ~/projects/myapp-godel-worktrees/
 ├── wt-session-001/          # Branch: feature/auth
 │   ├── src/                 # Isolated
 │   ├── node_modules -> ~/projects/myapp/node_modules
@@ -835,8 +835,8 @@ CREATE INDEX idx_worktrees_status ON worktrees(status);
 // Response
 {
   "id": "wt_abc123",
-  "path": "/home/user/projects/myapp-dash-worktrees/wt-abc123",
-  "branch": "dash/session-abc123",
+  "path": "/home/user/projects/myapp-godel-worktrees/wt-abc123",
+  "branch": "godel/session-abc123",
   "status": "active"
 }
 
@@ -1181,7 +1181,7 @@ interface TreeOperations {
 ### CLI Commands (Pi-Compatible)
 
 ```bash
-# Inside Pi/Dash session
+# Inside Pi/Godel session
 /tree                    # Show tree visualization
 /branch new-feature      # Create new branch from current node  
 /switch main             # Switch to branch
@@ -1296,9 +1296,9 @@ const BUILTIN_ROLES: AgentRole[] = [
   }
 }
 
-// POST /api/v1/swarms
+// POST /api/v1/teams
 {
-  "name": "feature-auth-swarm",
+  "name": "feature-auth-team",
   "coordinator": {
     "role": "coordinator",
     "model": "claude-opus-4"
@@ -1408,7 +1408,7 @@ interface Environment {
 
 ```yaml
 # Kubernetes CRD: AgentSession
-apiVersion: dash.dev/v1
+apiVersion: godel.dev/v1
 kind: AgentSession
 metadata:
   name: session-abc123
@@ -1417,7 +1417,7 @@ spec:
     cpu: 2
     memory: "4Gi"
     disk: "20Gi"
-  image: "dash-agent:latest"
+  image: "godel-agent:latest"
   volumes:
     - name: workspace
       emptyDir: {}
@@ -1442,8 +1442,8 @@ class FirecrackerProvider implements RemoteExecutionProvider {
   async createEnvironment(config: EnvironmentConfig): Promise<Environment> {
     // 1. Create microVM with pre-built rootfs
     const vm = await this.firecracker.createVM({
-      kernel: '/opt/dash/firecracker-kernel',
-      rootfs: '/opt/dash/agent-rootfs.ext4',
+      kernel: '/opt/godel/firecracker-kernel',
+      rootfs: '/opt/godel/agent-rootfs.ext4',
       cpu: config.cpu,
       memory: config.memory,
       network: 'tap0'
@@ -1481,7 +1481,7 @@ Implement Loom-inspired server-side proxy to keep API keys secure and enable uni
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   Client    │──────▶│  Dash Proxy  │──────▶│  Anthropic  │
+│   Client    │──────▶│  Godel Proxy  │──────▶│  Anthropic  │
 │  (CLI/UI)   │      │   (Secure)   │      │   (Claude)  │
 └─────────────┘      └──────────────┘      └─────────────┘
                             │
@@ -1717,7 +1717,7 @@ When system approaches limits, degrade gracefully in this order:
 
 ## Pi Integration Core Components (Detailed)
 
-Based on the complete Pi-Dash integration design, the following core components provide detailed implementation specifications:
+Based on the complete Pi-Godel integration design, the following core components provide detailed implementation specifications:
 
 ### PiRegistry
 
@@ -1966,7 +1966,7 @@ interface Branch {
 
 ### ToolInterceptor
 
-**Purpose:** Route tool calls between Pi, Dash tools, and remote executors with policy enforcement.
+**Purpose:** Route tool calls between Pi, Godel tools, and remote executors with policy enforcement.
 
 ```typescript
 interface ToolInterceptor {
@@ -2206,7 +2206,7 @@ class RetryHandler {
 
 ### Philosophy: Agents as First-Class Citizens
 
-Traditional orchestration treats agents as passive resources—tasks are assigned TO agents. Dash treats agents as active participants—agents negotiate, coordinate, and self-organize.
+Traditional orchestration treats agents as passive resources—tasks are assigned TO agents. Godel treats agents as active participants—agents negotiate, coordinate, and self-organize.
 
 **Traditional Model (Resource-Centric):**
 ```
@@ -2233,7 +2233,7 @@ Self-Coordinate → Execute Collectively → Report Collectively
 └──────────────────────┬──────────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                  AGENT SWARM LAYER                           │
+│                  AGENT TEAM LAYER                           │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
 │  │ Agent-1  │  │ Agent-2  │  │ Agent-3  │  │ Agent-N  │    │
 │  │ (Coord)  │  │ (Worker) │  │ (Worker) │  │ (Spec)   │    │
@@ -2436,7 +2436,7 @@ const relevant = knowledgeBase.query({
 // Returns: [auth-middleware-pattern, ...]
 ```
 
-### Swarm Coordination Protocols
+### Team Coordination Protocols
 
 **Gossip-Based Task Distribution:**
 
@@ -2473,14 +2473,14 @@ interface GossipMessage {
 
 ### The "Hive Mind" Dashboard
 
-**Real-Time Swarm Visualization:**
+**Real-Time Team Visualization:**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ DASH SWARM VIEW                                          [Live] │
+│ GODEL TEAM VIEW                                          [Live] │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  Active Swarms: 3          Agents: 23/25         Tasks: 47/50   │
+│  Active Teams: 3          Agents: 23/25         Tasks: 47/50   │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ Feature: OAuth Integration                              │   │
@@ -2566,7 +2566,7 @@ src/
 │   ├── nlp-engine.ts          # Natural language understanding
 │   ├── decomposer.ts          # Task decomposition
 │   └── validator.ts           # Intent validation
-├── swarm/
+├── team/
 │   ├── coordinator.ts         # P2P coordination logic
 │   ├── gossip-protocol.ts     # Agent communication
 │   ├── specialization.ts      # Dynamic specialization

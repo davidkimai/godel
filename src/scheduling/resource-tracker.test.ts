@@ -59,7 +59,7 @@ describe('ResourceTracker', () => {
     });
 
     it('should get all registered nodes', async () => {
-      mockRedis.keys.mockResolvedValue(['dash:scheduler:nodes:node-1']);
+      mockRedis.keys.mockResolvedValue(['godel:scheduler:nodes:node-1']);
       mockRedis.get.mockResolvedValue(JSON.stringify({
         nodeId: 'node-1',
         labels: { zone: 'us-east-1a' },
@@ -240,7 +240,7 @@ describe('ResourceTracker', () => {
 
   describe('Cleanup', () => {
     it('should cleanup stale nodes', async () => {
-      mockRedis.keys.mockResolvedValue(['dash:scheduler:nodes:node-1']);
+      mockRedis.keys.mockResolvedValue(['godel:scheduler:nodes:node-1']);
       mockRedis.get.mockResolvedValue(JSON.stringify({
         nodeId: 'node-1',
         cpu: 8,

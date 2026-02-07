@@ -13,12 +13,12 @@ export interface AgentStorageInterface {
   deleteAgent(id: string): Promise<void>;
   listAgents(): Promise<AgentData[]>;
   
-  // Swarm-specific
-  createSwarm(data: SwarmData): Promise<string>;
-  getSwarm(id: string): Promise<SwarmData | null>;
-  updateSwarm(id: string, data: Partial<SwarmData>): Promise<void>;
-  deleteSwarm(id: string): Promise<void>;
-  listSwarms(): Promise<SwarmData[]>;
+  // Team-specific
+  createTeam(data: TeamData): Promise<string>;
+  getTeam(id: string): Promise<TeamData | null>;
+  updateTeam(id: string, data: Partial<TeamData>): Promise<void>;
+  deleteTeam(id: string): Promise<void>;
+  listTeams(): Promise<TeamData[]>;
 }
 
 export interface AgentData {
@@ -32,7 +32,7 @@ export interface AgentData {
   metadata?: Record<string, unknown>;
 }
 
-export interface SwarmData {
+export interface TeamData {
   id: string;
   name: string;
   agentIds: string[];

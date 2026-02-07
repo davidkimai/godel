@@ -64,9 +64,9 @@ async updateMany(ids: string[], input: AgentUpdateInput): Promise<number> {
 
 #### Medium Risk
 
-**Pattern 4: Swarm Agent Count Updates**
+**Pattern 4: Team Agent Count Updates**
 ```typescript
-// Potential race when updating agent counts in swarms
+// Potential race when updating agent counts in teams
 // No atomic increment/decrement operations
 ```
 
@@ -81,7 +81,7 @@ async updateMany(ids: string[], input: AgentUpdateInput): Promise<number> {
 | Operation | Location | Risk | Status |
 |-----------|----------|------|--------|
 | Agent Status + Event Creation | Multiple | High | ⚠️ Needs transaction |
-| Swarm Delete + Agent Cleanup | SwarmRepository.ts:180 | Medium | ✅ Has transaction |
+| Team Delete + Agent Cleanup | SwarmRepository.ts:180 | Medium | ✅ Has transaction |
 | Budget Check + Allocation | BudgetRepository.ts | High | ⚠️ Needs review |
 | Session Tree Updates | SessionRepository.ts | Medium | ✅ Has transaction |
 
@@ -118,9 +118,9 @@ export class TransactionManager {
 
 Added to tables:
 - `agents.version` (INTEGER DEFAULT 0)
-- `swarms.version` (INTEGER DEFAULT 0)
+- `teams.version` (INTEGER DEFAULT 0)
 - `agents.updated_at` (TIMESTAMP)
-- `swarms.updated_at` (TIMESTAMP)
+- `teams.updated_at` (TIMESTAMP)
 
 **Pattern:**
 ```sql
@@ -199,7 +199,7 @@ const VALID_STATUS_TRANSITIONS: Record<AgentStatus, AgentStatus[]> = {
 };
 ```
 
-**Valid Swarm Status Transitions:**
+**Valid Team Status Transitions:**
 ```typescript
 const VALID_SWARM_STATUS_TRANSITIONS: Record<SwarmStatus, SwarmStatus[]> = {
   creating: ['active', 'failed', 'destroyed'],
@@ -253,7 +253,7 @@ const VALID_SWARM_STATUS_TRANSITIONS: Record<SwarmStatus, SwarmStatus[]> = {
 ### Phase 1: Schema Updates (Completed)
 ```sql
 -- Run migration
-psql -d dash -f migrations/005_add_version_columns.sql
+psql -d godel -f migrations/005_add_version_columns.sql
 ```
 
 ### Phase 2: Gradual Adoption
@@ -279,7 +279,7 @@ await repo.updateWithLock(id, updates, agent.version);
 
 Priority order for migration:
 1. Agent status updates (highest concurrency)
-2. Swarm scaling operations
+2. Team scaling operations
 3. Budget allocation
 4. Session state management
 
@@ -296,7 +296,7 @@ Priority order for migration:
 
 ### Immediate Actions
 1. ✅ **COMPLETED** - Deploy TransactionManager
-2. ✅ **COMPLETED** - Add version columns to agents/swarms
+2. ✅ **COMPLETED** - Add version columns to agents/teams
 3. ✅ **COMPLETED** - Create enhanced repositories
 4. ⏳ **PENDING** - Migrate critical status update paths
 
@@ -330,10 +330,10 @@ npm test -- --testPathPattern="transaction"
 npm test -- --testPathPattern="concurrent"
 
 # Verify migration applied
-psql -d dash -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'version';"
+psql -d godel -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'agents' AND column_name = 'version';"
 
 # Check for active transactions (PostgreSQL)
-psql -d dash -c "SELECT * FROM pg_stat_activity WHERE state = 'active';"
+psql -d godel -c "SELECT * FROM pg_stat_activity WHERE state = 'active';"
 ```
 
 ## Conclusion
@@ -353,7 +353,7 @@ The implemented TransactionManager and enhanced repositories provide strong cons
 
 - `src/storage/transaction.ts` - Core transaction manager
 - `src/storage/repositories/AgentRepositoryEnhanced.ts` - Enhanced agent repository
-- `src/storage/repositories/SwarmRepositoryEnhanced.ts` - Enhanced swarm repository
+- `src/storage/repositories/SwarmRepositoryEnhanced.ts` - Enhanced team repository
 - `migrations/005_add_version_columns.sql` - Database migration
 - `tests/transaction/transaction-manager.test.ts` - Test suite
 - `docs/TRANSACTION_AUDIT_REPORT.md` - This document

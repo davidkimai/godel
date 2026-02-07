@@ -3,12 +3,12 @@
  * 
  * This module provides TypeScript interfaces and types for the "godel do" command
  * which allows users to express tasks in natural language that get parsed into
- * structured intents and executed by agent swarms.
+ * structured intents and executed by agent teams.
  * 
  * @module @godel/cli/intent/types
  */
 
-import { SwarmConfig } from '../../core/swarm';
+import { TeamConfig } from '../../core/team';
 import { WorktreeConfig } from '../../core/worktree/types';
 
 // ============================================================================
@@ -17,7 +17,7 @@ import { WorktreeConfig } from '../../core/worktree/types';
 
 /**
  * Supported intent types for natural language commands.
- * These represent the core actions that can be performed by agent swarms.
+ * These represent the core actions that can be performed by agent teams.
  */
 export type IntentType = 
   | 'implement' 
@@ -42,7 +42,7 @@ export const INTENT_TYPES: IntentType[] = [
 ];
 
 /**
- * Complexity levels determine swarm configuration.
+ * Complexity levels determine team configuration.
  * - low: Simple tasks (1 Worker)
  * - medium: Standard tasks (1 Coordinator + 3 Workers + 1 Reviewer)
  * - high: Complex tasks (1 Coordinator + 5 Workers + 2 Reviewers + 1 Specialist)
@@ -71,9 +71,9 @@ export interface Intent {
 }
 
 /**
- * Configuration for swarm execution based on intent.
+ * Configuration for team execution based on intent.
  */
-export interface SwarmConfiguration extends SwarmConfig {
+export interface TeamConfiguration extends TeamConfig {
   /** Strategy for agent coordination */
   strategy: 'parallel' | 'pipeline' | 'map-reduce';
   
@@ -82,7 +82,7 @@ export interface SwarmConfiguration extends SwarmConfig {
 }
 
 /**
- * Configuration for a specific agent role in the swarm.
+ * Configuration for a specific agent role in the team.
  */
 export interface AgentRoleConfig {
   /** Role identifier */
@@ -103,8 +103,8 @@ export interface AgentRoleConfig {
  * Contains all configuration needed to execute the intent.
  */
 export interface ExecutionPlan {
-  /** Swarm configuration for execution */
-  swarmConfig: SwarmConfiguration;
+  /** Team configuration for execution */
+  teamConfig: TeamConfiguration;
   
   /** Optional worktree configuration for isolated execution */
   worktreeConfig?: WorktreeConfig;
@@ -186,8 +186,8 @@ export interface ExecutionResult {
   /** Whether execution was successful */
   success: boolean;
   
-  /** Swarm ID created for execution */
-  swarmId?: string;
+  /** Team ID created for execution */
+  teamId?: string;
   
   /** Worktree ID if created */
   worktreeId?: string;
@@ -271,13 +271,13 @@ export interface ExecutorConfig {
 }
 
 // ============================================================================
-// SWARM SIZE CONFIGURATIONS
+// TEAM SIZE CONFIGURATIONS
 // ============================================================================
 
 /**
- * Swarm configurations for different complexity levels.
+ * Team configurations for different complexity levels.
  */
-export const SWARM_CONFIGS: Record<ComplexityLevel, SwarmConfiguration> = {
+export const TEAM_CONFIGS: Record<ComplexityLevel, TeamConfiguration> = {
   low: {
     name: 'simple-task',
     task: '',

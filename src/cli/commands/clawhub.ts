@@ -2,11 +2,11 @@
  * ClawHub CLI Command
  * 
  * Commands:
- * - dash clawhub search [query] [--limit N] [--sort type]
- * - dash clawhub install [skill] [--version V] [--force]
- * - dash clawhub list [--show-inactive]
- * - dash clawhub uninstall [skill]
- * - dash clawhub info [skill]
+ * - godel clawhub search [query] [--limit N] [--sort type]
+ * - godel clawhub install [skill] [--version V] [--force]
+ * - godel clawhub list [--show-inactive]
+ * - godel clawhub uninstall [skill]
+ * - godel clawhub info [skill]
  * 
  * Per OPENCLAW_INTEGRATION_SPEC.md section F4.1
  */
@@ -223,7 +223,7 @@ export function registerClawhubCommand(program: Command): void {
         
         if (error instanceof Error && error.message.includes('not found')) {
           logger.error(chalk.gray('\n💡 The skill may not exist. Try searching first:'));
-          logger.error(chalk.gray(`   dash clawhub search ${skillSlug}`));
+          logger.error(chalk.gray(`   godel clawhub search ${skillSlug}`));
         }
         
         process.exit(1);
@@ -248,9 +248,9 @@ export function registerClawhubCommand(program: Command): void {
         if (installed.length === 0) {
           logger.info(chalk.yellow('No skills installed.'));
           logger.info(chalk.gray('\nInstall skills with:'));
-          logger.info(chalk.gray('  dash clawhub install <skill>'));
+          logger.info(chalk.gray('  godel clawhub install <skill>'));
           logger.info(chalk.gray('\nSearch for skills with:'));
-          logger.info(chalk.gray('  dash clawhub search <query>'));
+          logger.info(chalk.gray('  godel clawhub search <query>'));
           return;
         }
 
@@ -341,7 +341,7 @@ export function registerClawhubCommand(program: Command): void {
           // In a real implementation, we'd use inquirer or similar
           // For now, just require --yes flag
           logger.info(chalk.gray('Re-run with --yes to confirm:'));
-          logger.info(chalk.gray(`  dash clawhub uninstall ${skillSlug} --yes`));
+          logger.info(chalk.gray(`  godel clawhub uninstall ${skillSlug} --yes`));
           return;
         }
 
@@ -429,7 +429,7 @@ export function registerClawhubCommand(program: Command): void {
           }
         } else {
           logger.info(chalk.gray('  Not installed'));
-          logger.info(chalk.gray(`  Install: dash clawhub install ${skillSlug}`));
+          logger.info(chalk.gray(`  Install: godel clawhub install ${skillSlug}`));
         }
         logger.info('');
 
@@ -446,7 +446,7 @@ export function registerClawhubCommand(program: Command): void {
         if (error instanceof Error && error.message.includes('not found')) {
           logger.error(chalk.red(`❌ Skill not found: ${skillSlug}`));
           logger.error(chalk.gray('\nTry searching for it:'));
-          logger.error(chalk.gray(`  dash clawhub search ${skillSlug}`));
+          logger.error(chalk.gray(`  godel clawhub search ${skillSlug}`));
         } else {
           logger.error(chalk.red('❌ Failed to fetch skill info'));
           logger.error(chalk.red(`   Error: ${error instanceof Error ? error.message : String(error)}`));
@@ -468,8 +468,8 @@ export function registerClawhubCommand(program: Command): void {
 
         if (!skillSlug && !options.all) {
           logger.info(chalk.yellow('Please specify a skill or use --all to update all skills'));
-          logger.info(chalk.gray('  dash clawhub update <skill>'));
-          logger.info(chalk.gray('  dash clawhub update --all'));
+          logger.info(chalk.gray('  godel clawhub update <skill>'));
+          logger.info(chalk.gray('  godel clawhub update --all'));
           return;
         }
 

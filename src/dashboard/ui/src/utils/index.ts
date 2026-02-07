@@ -1,10 +1,10 @@
 /**
  * Utility Functions
  * 
- * Helper functions for the Dash Dashboard UI
+ * Helper functions for the Godel Dashboard UI
  */
 
-import { AgentStatus, SwarmState, type Agent, type Swarm } from '../types';
+import { AgentStatus, TeamState, type Agent, type Team } from '../types';
 
 // ============================================================================
 // Formatting Utilities
@@ -73,9 +73,9 @@ export function formatTimestamp(date: string | Date): string {
 // Status Utilities
 // ============================================================================
 
-export function getStatusColor(status: AgentStatus | SwarmState | string): string {
+export function getStatusColor(status: AgentStatus | TeamState | string): string {
   const colors: Record<string, string> = {
-    // Agent statuses (also covers overlapping SwarmState values)
+    // Agent statuses (also covers overlapping TeamState values)
     [AgentStatus.PENDING]: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
     [AgentStatus.RUNNING]: 'text-green-500 bg-green-500/10 border-green-500/20',
     [AgentStatus.PAUSED]: 'text-orange-500 bg-orange-500/10 border-orange-500/20',
@@ -85,11 +85,11 @@ export function getStatusColor(status: AgentStatus | SwarmState | string): strin
     [AgentStatus.KILLED]: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
     [AgentStatus.OFFLINE]: 'text-gray-400 bg-gray-400/10 border-gray-400/20',
     [AgentStatus.BUSY]: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-    // Swarm-only states (not overlapping with AgentStatus)
-    [SwarmState.CREATING]: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
-    [SwarmState.ACTIVE]: 'text-green-500 bg-green-500/10 border-green-500/20',
-    [SwarmState.SCALING]: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
-    [SwarmState.DESTROYED]: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
+    // Team-only states (not overlapping with AgentStatus)
+    [TeamState.CREATING]: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
+    [TeamState.ACTIVE]: 'text-green-500 bg-green-500/10 border-green-500/20',
+    [TeamState.SCALING]: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+    [TeamState.DESTROYED]: 'text-gray-500 bg-gray-500/10 border-gray-500/20',
     // Health
     healthy: 'text-green-500 bg-green-500/10 border-green-500/20',
     degraded: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
@@ -99,7 +99,7 @@ export function getStatusColor(status: AgentStatus | SwarmState | string): strin
   return colors[status] || 'text-gray-500 bg-gray-500/10 border-gray-500/20';
 }
 
-export function getStatusIcon(status: AgentStatus | SwarmState | string): string {
+export function getStatusIcon(status: AgentStatus | TeamState | string): string {
   const icons: Record<string, string> = {
     [AgentStatus.PENDING]: '⏳',
     [AgentStatus.RUNNING]: '▶️',
@@ -110,10 +110,10 @@ export function getStatusIcon(status: AgentStatus | SwarmState | string): string
     [AgentStatus.KILLED]: '💀',
     [AgentStatus.OFFLINE]: '⚫',
     [AgentStatus.BUSY]: '🔥',
-    [SwarmState.CREATING]: '🔄',
-    [SwarmState.ACTIVE]: '🟢',
-    [SwarmState.SCALING]: '📊',
-    [SwarmState.DESTROYED]: '🗑️',
+    [TeamState.CREATING]: '🔄',
+    [TeamState.ACTIVE]: '🟢',
+    [TeamState.SCALING]: '📊',
+    [TeamState.DESTROYED]: '🗑️',
     healthy: '💚',
     degraded: '💛',
     critical: '❤️'
@@ -122,33 +122,33 @@ export function getStatusIcon(status: AgentStatus | SwarmState | string): string
   return icons[status] || '⚪';
 }
 
-export function isActiveStatus(status: AgentStatus | SwarmState): boolean {
+export function isActiveStatus(status: AgentStatus | TeamState): boolean {
   return status === AgentStatus.RUNNING || 
          status === AgentStatus.BUSY ||
-         status === SwarmState.ACTIVE ||
-         status === SwarmState.SCALING;
+         status === TeamState.ACTIVE ||
+         status === TeamState.SCALING;
 }
 
-export function isTerminalStatus(status: AgentStatus | SwarmState): boolean {
+export function isTerminalStatus(status: AgentStatus | TeamState): boolean {
   return status === AgentStatus.COMPLETED || 
          status === AgentStatus.FAILED ||
          status === AgentStatus.KILLED ||
-         status === SwarmState.COMPLETED ||
-         status === SwarmState.FAILED ||
-         status === SwarmState.DESTROYED;
+         status === TeamState.COMPLETED ||
+         status === TeamState.FAILED ||
+         status === TeamState.DESTROYED;
 }
 
 // ============================================================================
 // Data Utilities
 // ============================================================================
 
-export function groupAgentsBySwarm(agents: Agent[]): Record<string, Agent[]> {
+export function groupAgentsByTeam(agents: Agent[]): Record<string, Agent[]> {
   return agents.reduce((groups, agent) => {
-    const swarmId = agent.swarmId || 'unassigned';
-    if (!groups[swarmId]) {
-      groups[swarmId] = [];
+    const teamId = agent.teamId || 'unassigned';
+    if (!groups[teamId]) {
+      groups[teamId] = [];
     }
-    groups[swarmId].push(agent);
+    groups[teamId].push(agent);
     return groups;
   }, {} as Record<string, Agent[]>);
 }
@@ -181,17 +181,17 @@ export function calculateAgentMetrics(agents: Agent[]) {
   return { total, online, offline, busy, idle, error };
 }
 
-export function calculateSwarmProgress(swarm: Swarm): number {
-  if (swarm.metrics.totalAgents === 0) return 0;
-  const completed = swarm.metrics.completedAgents + swarm.metrics.failedAgents;
-  return completed / swarm.metrics.totalAgents;
+export function calculateTeamProgress(team: Team): number {
+  if (team.metrics.totalAgents === 0) return 0;
+  const completed = team.metrics.completedAgents + team.metrics.failedAgents;
+  return completed / team.metrics.totalAgents;
 }
 
 export function filterAgents(
   agents: Agent[],
   filters: {
     status?: AgentStatus | 'all';
-    swarmId?: string | 'all';
+    teamId?: string | 'all';
     search?: string;
   }
 ): Agent[] {
@@ -199,7 +199,7 @@ export function filterAgents(
     if (filters.status && filters.status !== 'all' && agent.status !== filters.status) {
       return false;
     }
-    if (filters.swarmId && filters.swarmId !== 'all' && agent.swarmId !== filters.swarmId) {
+    if (filters.teamId && filters.teamId !== 'all' && agent.teamId !== filters.teamId) {
       return false;
     }
     if (filters.search) {
@@ -275,8 +275,8 @@ export function isValidToken(token: string): boolean {
   return typeof token === 'string' && token.length >= 32;
 }
 
-export function isValidSwarmId(id: string): boolean {
-  return /^swarm-[0-9]+-[a-z0-9]{9}$/.test(id);
+export function isValidTeamId(id: string): boolean {
+  return /^team-[0-9]+-[a-z0-9]{9}$/.test(id);
 }
 
 export function isValidAgentId(id: string): boolean {

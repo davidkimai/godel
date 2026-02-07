@@ -1,6 +1,6 @@
-# Dash Dashboard Usage Guide
+# Godel Dashboard Usage Guide
 
-This guide explains how to use the pre-built Grafana dashboards for monitoring the Dash orchestration platform.
+This guide explains how to use the pre-built Grafana dashboards for monitoring the Godel orchestration platform.
 
 ## Accessing Dashboards
 
@@ -253,7 +253,7 @@ Latency distributions:
 1. Verify Prometheus data source
 2. Check time range includes data
 3. Verify recording rules are loaded
-4. Check Dash is exporting metrics
+4. Check Godel is exporting metrics
 
 ### Slow Loading
 1. Reduce time range

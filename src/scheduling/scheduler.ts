@@ -584,12 +584,12 @@ export class Scheduler extends EventEmitter {
     try {
       await this.config.pgPool.query(
         `INSERT INTO scheduling_history (
-          agent_id, swarm_id, node_id, success, error_message,
+          agent_id, team_id, node_id, success, error_message,
           cpu_requested, memory_requested, scheduled_at, affinity_score
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           request.agent.id,
-          request.agent.swarmId || null,
+          request.agent.teamId || null,
           result.nodeId || null,
           result.success,
           result.error || null,

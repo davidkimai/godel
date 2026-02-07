@@ -3,7 +3,7 @@
  * 
  * Gas Town-inspired specialized agent roles for coordinated multi-agent workflows.
  * This module defines the core type system for agent roles, permissions, assignments,
- * and swarm compositions.
+ * and team compositions.
  * 
  * @module core/roles/types
  * @version 1.0.0
@@ -15,11 +15,11 @@
  * Each permission grants specific access to resources and actions within the system.
  */
 export type Permission =
-  /** Read access to all resources in the swarm */
+  /** Read access to all resources in the team */
   | 'read_all'
   /** Read access only to assigned resources */
   | 'read_assigned'
-  /** Write access to all resources in the swarm */
+  /** Write access to all resources in the team */
   | 'write_all'
   /** Write access only to assigned resources */
   | 'write_assigned'
@@ -186,8 +186,8 @@ export interface RoleAssignment {
   agentId: string
   /** ID of the role being assigned */
   roleId: string
-  /** Optional swarm ID for swarm-scoped assignments */
-  swarmId?: string
+  /** Optional team ID for team-scoped assignments */
+  teamId?: string
   /** Optional worktree ID for worktree-scoped assignments */
   worktreeId?: string
   /** Timestamp when the assignment was created */
@@ -196,7 +196,7 @@ export interface RoleAssignment {
   assignedBy: string
   /** Optional expiration time for temporary assignments */
   expiresAt?: Date
-  /** Assignment context (e.g., 'manual', 'auto-scheduled', 'swarm-composed') */
+  /** Assignment context (e.g., 'manual', 'auto-scheduled', 'team-composed') */
   context?: string
 }
 
@@ -205,8 +205,8 @@ export interface RoleAssignment {
  * Used when assigning roles programmatically.
  */
 export interface AssignmentContext {
-  /** Swarm ID if assignment is swarm-scoped */
-  swarmId?: string
+  /** Team ID if assignment is team-scoped */
+  teamId?: string
   /** Worktree ID if assignment is worktree-scoped */
   worktreeId?: string
   /** Expiration time for temporary assignments */
@@ -216,8 +216,8 @@ export interface AssignmentContext {
 }
 
 /**
- * Composition of a swarm with different role assignments.
- * Defines the organizational structure of a multi-agent swarm.
+ * Composition of a team with different role assignments.
+ * Defines the organizational structure of a multi-agent team.
  * 
  * Inspired by the Gas Town hierarchy:
  * - Coordinator (Mayor): Central authority
@@ -225,8 +225,8 @@ export interface AssignmentContext {
  * - Reviewers (Witnesses): Quality assurance
  * - Monitors (Deacons): System watchers
  */
-export interface SwarmComposition {
-  /** The coordinator agent overseeing the swarm */
+export interface TeamComposition {
+  /** The coordinator agent overseeing the team */
   coordinator: RoleAssignment
   /** Worker agents executing tasks */
   workers: RoleAssignment[]
@@ -238,16 +238,16 @@ export interface SwarmComposition {
   refineries?: RoleAssignment[]
   /** Timestamp when the composition was created */
   createdAt?: Date
-  /** Swarm configuration metadata */
+  /** Team configuration metadata */
   metadata?: Record<string, unknown>
 }
 
 /**
- * Requirements for composing a new swarm.
- * Used by the RoleRegistry to determine optimal swarm composition.
+ * Requirements for composing a new team.
+ * Used by the RoleRegistry to determine optimal team composition.
  */
-export interface SwarmRequirements {
-  /** Description of the task the swarm needs to accomplish */
+export interface TeamRequirements {
+  /** Description of the task the team needs to accomplish */
   task: string
   /** Complexity level of the task */
   complexity: 'low' | 'medium' | 'high'
@@ -261,7 +261,7 @@ export interface SwarmRequirements {
   requiresMonitoring?: boolean
   /** Whether the task involves merge conflicts or integration */
   requiresIntegration?: boolean
-  /** Preferred provider for swarm agents */
+  /** Preferred provider for team agents */
   preferredProvider?: string
   /** Budget constraints in USD */
   budget?: number

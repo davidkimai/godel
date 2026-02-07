@@ -1,6 +1,6 @@
 # Contributing Guide
 
-How to contribute to Dash - setup, coding standards, testing, and PR process.
+How to contribute to Godel - setup, coding standards, testing, and PR process.
 
 ## Table of Contents
 
@@ -23,8 +23,8 @@ How to contribute to Dash - setup, coding standards, testing, and PR process.
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/dash.git
-cd dash
+git clone https://github.com/YOUR_USERNAME/godel.git
+cd godel
 
 # Add upstream remote
 git remote add upstream https://github.com/davidkimai/godel.git
@@ -78,7 +78,7 @@ git push origin feature/my-feature
 cp .env.example .env
 
 # Edit with your settings
-# At minimum, set GODEL_PROJECT_PATH
+# At minimum, set GODEL_API_KEY and database configuration
 
 # For development, you may want:
 GODEL_LOG_LEVEL=debug
@@ -89,10 +89,11 @@ GODEL_DRY_RUN=false
 
 ```bash
 # Start development mode (with hot reload)
-npm run dev -- <command>
+npm run dev
 
-# Example:
-npm run dev -- agents spawn "test task"
+# Or run specific commands:
+npm run build
+node dist/src/index.js agents spawn "test task"
 
 # Or build and run
 npm run build
@@ -505,7 +506,7 @@ Types:
 Examples:
 ```bash
 git commit -m "feat(agent): add support for custom models"
-git commit -m "fix(swarm): resolve race condition in agent spawning"
+git commit -m "fix(team): resolve race condition in agent spawning"
 git commit -m "docs: update API reference"
 git commit -m "refactor(workflow): simplify DAG execution logic"
 ```
@@ -602,4 +603,4 @@ jobs:
 
 ---
 
-Thank you for contributing to Dash! 🚀
+Thank you for contributing to Godel! 🚀

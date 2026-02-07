@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/component: namespace
     app.kubernetes.io/part-of: godel-platform
   annotations:
-    description: "Dash Agent Orchestration Platform namespace"
+    description: "Godel Agent Orchestration Platform namespace"
 ---
 # Resource quota for the namespace
 apiVersion: v1

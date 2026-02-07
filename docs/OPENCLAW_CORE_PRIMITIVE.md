@@ -2,7 +2,7 @@
 
 ## Overview
 
-OpenClaw has been transformed from a "bolted-on" integration to a **core primitive** of the Dash system. This document describes the architecture and usage patterns.
+OpenClaw has been transformed from a "bolted-on" integration to a **core primitive** of the Godel system. This document describes the architecture and usage patterns.
 
 ## Architecture Philosophy
 
@@ -29,7 +29,7 @@ src/
 ├── core/
 │   ├── index.ts           # Exports all core primitives
 │   ├── lifecycle.ts       # Initializes OpenClaw at startup
-│   ├── swarm.ts           # Uses OpenClaw through lifecycle
+│   ├── team.ts           # Uses OpenClaw through lifecycle
 │   └── openclaw.ts        # Core primitive (moved from integrations/)
 ├── integrations/
 │   └── openclaw/          # Legacy directory (types only)

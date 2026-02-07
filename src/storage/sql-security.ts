@@ -3,7 +3,7 @@
 // Allowed table names (whitelist)
 export const ALLOWED_TABLES = new Set([
   'agents',
-  'swarms',
+  'teams',
   'events',
   'users',
   'api_keys',
@@ -14,7 +14,7 @@ export const ALLOWED_TABLES = new Set([
 // Allowed column names (whitelist)
 export const ALLOWED_COLUMNS = new Set([
   'id', 'name', 'status', 'type', 'created_at', 'updated_at',
-  'config', 'metadata', 'user_id', 'swarm_id', 'agent_id',
+  'config', 'metadata', 'user_id', 'team_id', 'agent_id',
   'payload', 'timestamp', 'scope', 'hash', 'is_revoked',
   'expires_at', 'last_used_at'
 ]);

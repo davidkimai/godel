@@ -15,9 +15,9 @@
 
 ## What is Godel?
 
-Godel is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw/Pi agent sessions with enterprise reliability, observability, and operational efficiency. Godel operates as the central nervous system for AI agent swarms, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous agent instances.
+Godel is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw/Pi agent sessions with enterprise reliability, observability, and operational efficiency. Godel operates as the central nervous system for AI agent teams, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous agent instances.
 
-### The "Intent-Based" Interface
+### The Intent-Based Interface
 
 Instead of manually managing individual agents, you describe what you want:
 
@@ -44,7 +44,7 @@ Godel automatically:
 ### Multi-Provider Orchestration
 - **Pi Integration First-Class**: Native support for Pi multi-provider CLI (15+ providers)
 - **Model Routing**: Cost-optimized, capability-matched, and latency-optimized routing
-- **Fallback Chains**: Automatic failover between providers (Anthropic → OpenAI → Google)
+- **Fallback Chains**: Automatic failover between providers (Anthropic, OpenAI, Google)
 - **Unified API**: Single interface for Claude, GPT-4, Gemini, and more
 
 ### Tree-Structured Sessions
@@ -220,7 +220,7 @@ npm run dev
 
 ## Pi Runtime
 
-Godel now supports Pi (pi-mono) as a first-class runtime for agent execution.
+Godel supports Pi (pi-mono) as a first-class runtime for agent execution.
 
 ### Quick Start
 
@@ -371,22 +371,22 @@ godel agent create --role worker --model claude-sonnet-4
 godel agent terminate <agent-id>
 ```
 
-### Swarm Operations
+### Team Operations
 
 ```bash
-# Create a swarm with role composition
-godel swarm create \
+# Create a team with role composition
+godel team create \
   --name "feature-auth" \
   --coordinator coordinator \
   --workers 3 \
   --reviewer 1 \
   --task "Implement OAuth2 authentication"
 
-# List swarms
-godel swarm list
+# List teams
+godel team list
 
-# Monitor swarm
-godel swarm status <swarm-id>
+# Monitor team
+godel team status <team-id>
 ```
 
 ### Worktree Operations
@@ -462,8 +462,8 @@ const response = await client.proxy.complete({
   }
 });
 
-// Create role-based swarm
-const swarm = await client.swarms.create({
+// Create role-based team
+const team = await client.teams.create({
   name: 'auth-implementation',
   composition: {
     coordinator: { role: 'coordinator', model: 'claude-opus-4' },
@@ -483,38 +483,38 @@ const swarm = await client.swarms.create({
 
 ```
 godel/
-├-- src/
-│   ├-- api/                    # REST API endpoints
-│   │   ├-- routes/
-│   │   │   ├-- pi.ts          # Pi integration routes
-│   │   │   ├-- worktrees.ts   # Worktree management
-│   │   │   ├-- proxy.ts       # LLM proxy routes
-│   │   │   ├-- federation.ts  # Instance federation
-│   │   │   └-- roles.ts       # Agent roles
-│   │   └-- fastify-server.ts  # Main server
-│   ├-- core/
-│   │   ├-- worktree/          # Git worktree isolation
-│   │   ├-- federation/        # Multi-instance federation
-│   │   └-- roles/             # Agent role system
-│   ├-- integrations/
-│   │   └-- pi/                # Pi SDK integration
-│   │       ├-- registry.ts    # Provider registry
-│   │       ├-- router.ts      # Model routing
-│   │       ├-- session.ts     # Session management
-│   │       ├-- tree.ts        # Tree-structured sessions
-│   │       ├-- tools.ts       # Tool interceptor
-│   │       └-- client.ts      # Pi RPC client
-│   ├-- proxy/                 # Server-side LLM proxy
-│   │   ├-- proxy.ts           # Main proxy
-│   │   ├-- adapters.ts        # Provider adapters
-│   │   ├-- security.ts        # Auth & rate limiting
-│   │   └-- cache.ts           # Response caching
-│   ├-- cli/                   # CLI commands
-│   ├-- dashboard/             # Web UI
-│   └-- storage/               # Database layer
-├-- migrations/                # Database migrations
-├-- tests/                     # Test suites
-└-- docs/                      # Documentation
+|-- src/
+|   |-- api/                    # REST API endpoints
+|   |   |-- routes/
+|   |   |   |-- pi.ts          # Pi integration routes
+|   |   |   |-- worktrees.ts   # Worktree management
+|   |   |   |-- proxy.ts       # LLM proxy routes
+|   |   |   |-- federation.ts  # Instance federation
+|   |   |   |-- roles.ts       # Agent roles
+|   |   |-- fastify-server.ts  # Main server
+|   |-- core/
+|   |   |-- worktree/          # Git worktree isolation
+|   |   |-- federation/        # Multi-instance federation
+|   |   |-- roles/             # Agent role system
+|   |-- integrations/
+|   |   |-- pi/                # Pi SDK integration
+|   |   |   |-- registry.ts    # Provider registry
+|   |   |   |-- router.ts      # Model routing
+|   |   |   |-- session.ts     # Session management
+|   |   |   |-- tree.ts        # Tree-structured sessions
+|   |   |   |-- tools.ts       # Tool interceptor
+|   |   |   |-- client.ts      # Pi RPC client
+|   |-- proxy/                 # Server-side LLM proxy
+|   |   |-- proxy.ts           # Main proxy
+|   |   |-- adapters.ts        # Provider adapters
+|   |   |-- security.ts        # Auth & rate limiting
+|   |   |-- cache.ts           # Response caching
+|   |-- cli/                   # CLI commands
+|   |-- dashboard/             # Web UI
+|   |-- storage/               # Database layer
+|-- migrations/                # Database migrations
+|-- tests/                     # Test suites
+|-- docs/                      # Documentation
 ```
 
 ---
@@ -584,14 +584,14 @@ Providers are configured server-side in the proxy:
 
 ---
 
-## Monitoring & Observability
+## Monitoring and Observability
 
 ### Dashboard
 
 Access the web dashboard at `http://localhost:7373` when the server is running.
 
 **Available Views:**
-- **Swarm Overview**: Real-time visualization of active swarms
+- **Team Overview**: Real-time visualization of active teams
 - **Agent Status**: Individual agent health and activity
 - **Conversation Trees**: Visual tree navigation for Pi sessions
 - **Worktree Map**: Active worktrees and their status

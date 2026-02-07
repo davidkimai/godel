@@ -2,7 +2,7 @@
 
 ## Overview
 
-This runbook covers procedures for handling PostgreSQL database failures and failovers in the Dash platform.
+This runbook covers procedures for handling PostgreSQL database failures and failovers in the Godel platform.
 
 ## Symptoms
 
@@ -16,17 +16,17 @@ This runbook covers procedures for handling PostgreSQL database failures and fai
 
 1. **Check database connectivity:**
    ```bash
-   kubectl exec -it -n dash deploy/dash-api -- nc -zv postgres 5432
+   kubectl exec -it -n godel deploy/godel-api -- nc -zv postgres 5432
    ```
 
 2. **Check database logs:**
    ```bash
-   kubectl logs -n dash -l app.kubernetes.io/name=postgres --tail=100
+   kubectl logs -n godel -l app.kubernetes.io/name=postgres --tail=100
    ```
 
 3. **Verify connection pool status:**
    ```bash
-   kubectl exec -it -n dash deploy/dash-api -- curl localhost:9090/metrics | grep pg_pool
+   kubectl exec -it -n godel deploy/godel-api -- curl localhost:9090/metrics | grep pg_pool
    ```
 
 ## Response Procedures
@@ -37,42 +37,42 @@ This runbook covers procedures for handling PostgreSQL database failures and fai
    ```bash
    # Wait 30 seconds and re-check
    sleep 30
-   kubectl get pods -n dash
+   kubectl get pods -n godel
    ```
 
 2. **If pods are crashing, check resource usage:**
    ```bash
-   kubectl top pods -n dash -l app.kubernetes.io/component=database
+   kubectl top pods -n godel -l app.kubernetes.io/component=database
    ```
 
 3. **Restart database if needed:**
    ```bash
-   kubectl rollout restart statefulset/postgres -n dash
+   kubectl rollout restart statefulset/postgres -n godel
    ```
 
 ### Scenario 2: Database Corruption
 
 1. **Stop all writes immediately:**
    ```bash
-   kubectl scale deployment dash-api --replicas=0 -n dash
+   kubectl scale deployment godel-api --replicas=0 -n godel
    ```
 
 2. **Verify backup exists:**
    ```bash
    # Check latest backup
-   ls -la /backups/dash/postgres/
+   ls -la /backups/godel/postgres/
    ```
 
 3. **Restore from backup:**
    ```bash
    # Stop postgres
-   kubectl delete statefulset postgres -n dash
+   kubectl delete statefulset postgres -n godel
    
    # Delete PVC (caution: destructive)
-   kubectl delete pvc postgres-storage-postgres-0 -n dash
+   kubectl delete pvc postgres-storage-postgres-0 -n godel
    
    # Restore from backup (example using pg_restore)
-   kubectl exec -it postgres-0 -n dash -- pg_restore -U dash_user -d dash /backups/dash/postgres/latest.dump
+   kubectl exec -it postgres-0 -n godel -- pg_restore -U dash_user -d godel /backups/godel/postgres/latest.dump
    ```
 
 ### Scenario 3: Primary-Replica Failover (if HA enabled)
@@ -88,18 +88,18 @@ This runbook covers procedures for handling PostgreSQL database failures and fai
 
 2. **Promote replica to primary:**
    ```bash
-   kubectl exec postgres-replica-0 -n dash -- pg_ctl promote
+   kubectl exec postgres-replica-0 -n godel -- pg_ctl promote
    ```
 
 3. **Update application connection strings:**
    ```bash
-   kubectl patch configmap dash-config -n dash --type merge \
+   kubectl patch configmap godel-config -n godel --type merge \
      -p '{"data":{"DATABASE_HOST":"postgres-replica"}}'
    ```
 
 4. **Restart applications:**
    ```bash
-   kubectl rollout restart deployment dash-api -n dash
+   kubectl rollout restart deployment godel-api -n godel
    ```
 
 ### Scenario 4: Connection Pool Exhaustion
@@ -128,32 +128,32 @@ This runbook covers procedures for handling PostgreSQL database failures and fai
 
 4. **Increase connection pool temporarily:**
    ```bash
-   kubectl patch configmap dash-config -n dash --type merge \
+   kubectl patch configmap godel-config -n godel --type merge \
      -p '{"data":{"DATABASE_POOL_SIZE":"50"}}'
-   kubectl rollout restart deployment dash-api -n dash
+   kubectl rollout restart deployment godel-api -n godel
    ```
 
 ## Recovery Verification
 
 1. **Verify database connectivity:**
    ```bash
-   kubectl exec -it -n dash deploy/dash-api -- curl localhost:3001/ready
+   kubectl exec -it -n godel deploy/godel-api -- curl localhost:3001/ready
    ```
 
 2. **Check application logs:**
    ```bash
-   kubectl logs -n dash -l app.kubernetes.io/name=dash-api --tail=50
+   kubectl logs -n godel -l app.kubernetes.io/name=godel-api --tail=50
    ```
 
 3. **Verify metrics:**
    ```bash
-   kubectl exec -it -n dash deploy/dash-api -- curl localhost:9090/metrics | grep pg_
+   kubectl exec -it -n godel deploy/godel-api -- curl localhost:9090/metrics | grep pg_
    ```
 
 4. **Run smoke tests:**
    ```bash
-   curl http://api.dash.local/health
-   curl http://api.dash.local/ready
+   curl http://api.godel.local/health
+   curl http://api.godel.local/ready
    ```
 
 ## Post-Incident
@@ -166,8 +166,8 @@ This runbook covers procedures for handling PostgreSQL database failures and fai
 ## Emergency Contacts
 
 - **Database Admin:** db-oncall@company.com
-- **Dash Team:** dash-oncall@company.com
-- **PagerDuty:** Dash Critical
+- **Godel Team:** godel-oncall@company.com
+- **PagerDuty:** Godel Critical
 
 ## Related Runbooks
 

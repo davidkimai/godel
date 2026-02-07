@@ -1,7 +1,7 @@
 /**
- * Enhanced Swarm Repository - With Transaction Safety
+ * Enhanced Team Repository - With Transaction Safety
  * 
- * Extends the base SwarmRepository with:
+ * Extends the base TeamRepository with:
  * - Optimistic locking for concurrent updates
  * - Transactional batch operations
  * - Race-condition-safe agent count updates
@@ -10,28 +10,28 @@
 import { PostgresPool } from '../postgres/pool';
 import { TransactionManager, OptimisticLockError, TransactionOptions } from '../transaction';
 import {
-  SwarmRepository,
-  Swarm,
-  SwarmCreateInput,
-  SwarmUpdateInput,
-  SwarmFilter,
-  SwarmStatus,
-} from './SwarmRepository';
+  TeamRepository,
+  Team,
+  TeamCreateInput,
+  TeamUpdateInput,
+  TeamFilter,
+  TeamStatus,
+} from './TeamRepository';
 import { logger } from '../../utils/logger';
 
-export interface SwarmWithVersion extends Swarm {
+export interface TeamWithVersion extends Team {
   version: number;
 }
 
-export interface SwarmAgentCount {
+export interface TeamAgentCount {
   total: number;
   running: number;
   completed: number;
   failed: number;
 }
 
-// Valid swarm status transitions
-const VALID_SWARM_STATUS_TRANSITIONS: Record<SwarmStatus, SwarmStatus[]> = {
+// Valid team status transitions
+const VALID_TEAM_STATUS_TRANSITIONS: Record<TeamStatus, TeamStatus[]> = {
   creating: ['active', 'failed', 'destroyed'],
   active: ['scaling', 'paused', 'completed', 'failed', 'destroyed'],
   scaling: ['active', 'paused', 'failed'],
@@ -41,7 +41,7 @@ const VALID_SWARM_STATUS_TRANSITIONS: Record<SwarmStatus, SwarmStatus[]> = {
   destroyed: [], // Terminal state
 };
 
-export class SwarmRepositoryEnhanced extends SwarmRepository {
+export class TeamRepositoryEnhanced extends TeamRepository {
   private txManager: TransactionManager | null = null;
 
   /**
@@ -57,14 +57,14 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
   }
 
   /**
-   * Find a swarm with version for optimistic locking
+   * Find a team with version for optimistic locking
    */
-  async findByIdWithVersion(id: string): Promise<SwarmWithVersion | null> {
+  async findByIdWithVersion(id: string): Promise<TeamWithVersion | null> {
     const pool = (this as unknown as { pool: PostgresPool }).pool;
     if (!pool) throw new Error('Repository not initialized');
 
-    const result = await pool.query<SwarmWithVersion & { version: number }>(
-      `SELECT *, COALESCE(version, 0) as version FROM swarms WHERE id = $1`,
+    const result = await pool.query<TeamWithVersion & { version: number }>(
+      `SELECT *, COALESCE(version, 0) as version FROM teams WHERE id = $1`,
       [id]
     );
 
@@ -72,33 +72,33 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
   }
 
   /**
-   * Update a swarm with optimistic locking
+   * Update a team with optimistic locking
    */
   async updateWithLock(
     id: string,
-    updates: SwarmUpdateInput,
+    updates: TeamUpdateInput,
     expectedVersion: number,
     options?: TransactionOptions
-  ): Promise<SwarmWithVersion> {
+  ): Promise<TeamWithVersion> {
     if (!this.txManager) throw new Error('Transaction manager not initialized');
 
     return this.txManager.withTransaction(async (client) => {
       // Check current version
       const currentResult = await client.query(
-        `SELECT status, COALESCE(version, 0) as version FROM swarms WHERE id = $1`,
+        `SELECT status, COALESCE(version, 0) as version FROM teams WHERE id = $1`,
         [id]
       );
 
       if (currentResult.rowCount === 0) {
-        throw new Error(`Swarm ${id} not found`);
+        throw new Error(`Team ${id} not found`);
       }
 
       const currentVersion = currentResult.rows[0].version as number;
       
       if (currentVersion !== expectedVersion) {
         throw new OptimisticLockError(
-          `Swarm ${id} was modified by another transaction`,
-          'swarms',
+          `Team ${id} was modified by another transaction`,
+          'teams',
           id,
           expectedVersion,
           currentVersion
@@ -107,7 +107,7 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
 
       // Validate status transition if status is being updated
       if (updates.status) {
-        const currentStatus = currentResult.rows[0].status as SwarmStatus;
+        const currentStatus = currentResult.rows[0].status as TeamStatus;
         this.validateStatusTransition(currentStatus, updates.status);
       }
 
@@ -148,59 +148,59 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
       values.push(expectedVersion);
 
       const query = `
-        UPDATE swarms 
+        UPDATE teams 
         SET ${updateClauses.join(', ')}
         WHERE id = $${paramIndex} AND COALESCE(version, 0) = $${paramIndex + 1}
         RETURNING *
       `;
 
-      const result = await client.query<SwarmWithVersion>(query, values);
+      const result = await client.query<TeamWithVersion>(query, values);
 
       if (result.rowCount === 0) {
         throw new OptimisticLockError(
-          `Swarm ${id} update conflict`,
-          'swarms',
+          `Team ${id} update conflict`,
+          'teams',
           id,
           expectedVersion
         );
       }
 
-      logger.debug(`[SwarmRepository] Updated swarm ${id} version ${expectedVersion} -> ${expectedVersion + 1}`);
+      logger.debug(`[TeamRepository] Updated team ${id} version ${expectedVersion} -> ${expectedVersion + 1}`);
       
       return result.rows[0];
     }, options);
   }
 
   /**
-   * Update swarm status with optimistic locking
+   * Update team status with optimistic locking
    */
   async updateStatusWithLock(
     id: string,
-    newStatus: SwarmStatus,
+    newStatus: TeamStatus,
     expectedVersion: number,
     options?: TransactionOptions
-  ): Promise<SwarmWithVersion> {
+  ): Promise<TeamWithVersion> {
     if (!this.txManager) throw new Error('Transaction manager not initialized');
 
     return this.txManager.withTransaction(async (client) => {
       const currentResult = await client.query<{
-        status: SwarmStatus;
+        status: TeamStatus;
         version: number;
       }>(
-        `SELECT status, COALESCE(version, 0) as version FROM swarms WHERE id = $1`,
+        `SELECT status, COALESCE(version, 0) as version FROM teams WHERE id = $1`,
         [id]
       );
 
       if (currentResult.rowCount === 0) {
-        throw new Error(`Swarm ${id} not found`);
+        throw new Error(`Team ${id} not found`);
       }
 
       const current = currentResult.rows[0];
       
       if (current.version !== expectedVersion) {
         throw new OptimisticLockError(
-          `Swarm ${id} was modified by another transaction`,
-          'swarms',
+          `Team ${id} was modified by another transaction`,
+          'teams',
           id,
           expectedVersion,
           current.version
@@ -222,8 +222,8 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
       values.push(id);
       values.push(expectedVersion);
 
-      const result = await client.query<SwarmWithVersion>(
-        `UPDATE swarms 
+      const result = await client.query<TeamWithVersion>(
+        `UPDATE teams 
          SET ${updates.join(', ')}
          WHERE id = $3 AND COALESCE(version, 0) = $4
          RETURNING *`,
@@ -232,25 +232,25 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
 
       if (result.rowCount === 0) {
         throw new OptimisticLockError(
-          `Swarm ${id} status update conflict`,
-          'swarms',
+          `Team ${id} status update conflict`,
+          'teams',
           id,
           expectedVersion
         );
       }
 
-      logger.debug(`[SwarmRepository] Swarm ${id} status ${current.status} -> ${newStatus}`);
+      logger.debug(`[TeamRepository] Team ${id} status ${current.status} -> ${newStatus}`);
       
       return result.rows[0];
     }, options);
   }
 
   /**
-   * Atomically increment agent count for a swarm
+   * Atomically increment agent count for a team
    * Safe for concurrent scaling operations
    */
   async incrementAgentCount(
-    swarmId: string,
+    teamId: string,
     status: 'running' | 'completed' | 'failed'
   ): Promise<void> {
     const pool = (this as unknown as { pool: PostgresPool }).pool;
@@ -265,21 +265,21 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
     const column = columnMap[status];
 
     await pool.query(
-      `UPDATE swarms 
+      `UPDATE teams 
        SET ${column} = ${column} + 1,
            total_agents = total_agents + 1,
            version = version + 1,
            updated_at = NOW()
        WHERE id = $1`,
-      [swarmId]
+      [teamId]
     );
   }
 
   /**
-   * Atomically decrement agent count for a swarm
+   * Atomically decrement agent count for a team
    */
   async decrementAgentCount(
-    swarmId: string,
+    teamId: string,
     fromStatus: 'running' | 'completed' | 'failed'
   ): Promise<void> {
     const pool = (this as unknown as { pool: PostgresPool }).pool;
@@ -294,13 +294,13 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
     const column = columnMap[fromStatus];
 
     await pool.query(
-      `UPDATE swarms 
+      `UPDATE teams 
        SET ${column} = GREATEST(0, ${column} - 1),
            total_agents = GREATEST(0, total_agents - 1),
            version = version + 1,
            updated_at = NOW()
        WHERE id = $1`,
-      [swarmId]
+      [teamId]
     );
   }
 
@@ -309,9 +309,9 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
    */
   async compareAndSwapStatus(
     id: string,
-    expectedStatus: SwarmStatus,
-    newStatus: SwarmStatus
-  ): Promise<SwarmWithVersion | null> {
+    expectedStatus: TeamStatus,
+    newStatus: TeamStatus
+  ): Promise<TeamWithVersion | null> {
     const pool = (this as unknown as { pool: PostgresPool }).pool;
     if (!pool) throw new Error('Repository not initialized');
 
@@ -327,8 +327,8 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
     values.push(id);
     values.push(expectedStatus);
 
-    const result = await pool.query<SwarmWithVersion>(
-      `UPDATE swarms 
+    const result = await pool.query<TeamWithVersion>(
+      `UPDATE teams 
        SET ${updates.join(', ')}
        WHERE id = $2 AND status = $3
        RETURNING *`,
@@ -339,7 +339,7 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
   }
 
   /**
-   * Delete a swarm and all its agents in a single transaction
+   * Delete a team and all its agents in a single transaction
    * Ensures referential integrity
    */
   async deleteWithAgents(
@@ -350,9 +350,9 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
     if (!this.txManager) throw new Error('Transaction manager not initialized');
 
     return this.txManager.withTransaction(async (client) => {
-      // Verify swarm exists and version matches
+      // Verify team exists and version matches
       const checkResult = await client.query(
-        `SELECT COALESCE(version, 0) as version FROM swarms WHERE id = $1`,
+        `SELECT COALESCE(version, 0) as version FROM teams WHERE id = $1`,
         [id]
       );
 
@@ -364,8 +364,8 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
       
       if (currentVersion !== expectedVersion) {
         throw new OptimisticLockError(
-          `Swarm ${id} was modified before deletion`,
-          'swarms',
+          `Team ${id} was modified before deletion`,
+          'teams',
           id,
           expectedVersion,
           currentVersion
@@ -373,40 +373,40 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
       }
 
       // Delete all associated agents first
-      await client.query('DELETE FROM agents WHERE swarm_id = $1', [id]);
+      await client.query('DELETE FROM agents WHERE team_id = $1', [id]);
 
-      // Delete the swarm
+      // Delete the team
       const result = await client.query(
-        'DELETE FROM swarms WHERE id = $1 AND COALESCE(version, 0) = $2',
+        'DELETE FROM teams WHERE id = $1 AND COALESCE(version, 0) = $2',
         [id, expectedVersion]
       );
 
       if (result.rowCount === 0) {
         throw new OptimisticLockError(
-          `Swarm ${id} was modified during deletion`,
-          'swarms',
+          `Team ${id} was modified during deletion`,
+          'teams',
           id,
           expectedVersion
         );
       }
 
-      logger.info(`[SwarmRepository] Deleted swarm ${id} and all associated agents`);
+      logger.info(`[TeamRepository] Deleted team ${id} and all associated agents`);
       
       return true;
     }, { isolationLevel: 'SERIALIZABLE', ...options });
   }
 
   /**
-   * Get swarm with accurate agent counts
+   * Get team with accurate agent counts
    * Uses a consistent snapshot
    */
-  async getWithAgentCounts(id: string): Promise<(SwarmWithVersion & SwarmAgentCount) | null> {
+  async getWithAgentCounts(id: string): Promise<(TeamWithVersion & TeamAgentCount) | null> {
     if (!this.txManager) throw new Error('Transaction manager not initialized');
 
     return this.txManager.withTransaction(async (client) => {
-      // Get swarm info
-      const swarmResult = await client.query<SwarmWithVersion>(
-        `SELECT *, COALESCE(version, 0) as version FROM swarms WHERE id = $1`,
+      // Get team info
+      const swarmResult = await client.query<TeamWithVersion>(
+        `SELECT *, COALESCE(version, 0) as version FROM teams WHERE id = $1`,
         [id]
       );
 
@@ -421,12 +421,12 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
       }>(
         `SELECT status, COUNT(*) as count 
          FROM agents 
-         WHERE swarm_id = $1 
+         WHERE team_id = $1 
          GROUP BY status`,
         [id]
       );
 
-      const counts: SwarmAgentCount = {
+      const counts: TeamAgentCount = {
         total: 0,
         running: 0,
         completed: 0,
@@ -452,14 +452,14 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
   /**
    * Validate status transition
    */
-  private validateStatusTransition(from: SwarmStatus, to: SwarmStatus): void {
+  private validateStatusTransition(from: TeamStatus, to: TeamStatus): void {
     if (from === to) return;
 
-    const allowedTransitions = VALID_SWARM_STATUS_TRANSITIONS[from];
+    const allowedTransitions = VALID_TEAM_STATUS_TRANSITIONS[from];
     
     if (!allowedTransitions.includes(to)) {
       throw new Error(
-        `Invalid swarm status transition: ${from} -> ${to}. ` +
+        `Invalid team status transition: ${from} -> ${to}. ` +
         `Allowed transitions from ${from}: ${allowedTransitions.join(', ') || 'none'}`
       );
     }
@@ -473,38 +473,38 @@ export class SwarmRepositoryEnhanced extends SwarmRepository {
     if (!pool) throw new Error('Repository not initialized');
 
     await pool.query(`
-      ALTER TABLE swarms 
+      ALTER TABLE teams 
       ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 0
     `);
 
     await pool.query(`
-      ALTER TABLE swarms 
+      ALTER TABLE teams 
       ADD COLUMN IF NOT EXISTS total_agents INTEGER DEFAULT 0
     `);
 
     await pool.query(`
-      ALTER TABLE swarms 
+      ALTER TABLE teams 
       ADD COLUMN IF NOT EXISTS running_agents INTEGER DEFAULT 0
     `);
 
     await pool.query(`
-      ALTER TABLE swarms 
+      ALTER TABLE teams 
       ADD COLUMN IF NOT EXISTS completed_agents INTEGER DEFAULT 0
     `);
 
     await pool.query(`
-      ALTER TABLE swarms 
+      ALTER TABLE teams 
       ADD COLUMN IF NOT EXISTS failed_agents INTEGER DEFAULT 0
     `);
 
     await pool.query(`
-      UPDATE swarms 
+      UPDATE teams 
       SET version = 0 
       WHERE version IS NULL
     `);
 
-    logger.info('[SwarmRepository] Ensured version and agent count columns exist');
+    logger.info('[TeamRepository] Ensured version and agent count columns exist');
   }
 }
 
-export default SwarmRepositoryEnhanced;
+export default TeamRepositoryEnhanced;

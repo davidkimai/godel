@@ -430,7 +430,7 @@ const theme: MarkdownTheme = {
 };
 ```
 
-## 7. Dash Integration Plan
+## 7. Godel Integration Plan
 
 ### Replace Ink with pi-tui
 
@@ -596,12 +596,12 @@ async function main() {
   
   tui.start();
   
-  // Connect to swarm service
-  const swarm = new SwarmClient();
-  swarm.onServiceUpdate = (services) => {
+  // Connect to team service
+  const team = new SwarmClient();
+  team.onServiceUpdate = (services) => {
     dashboard.updateServices(services);
   };
-  swarm.onLog = (line) => {
+  team.onLog = (line) => {
     dashboard.appendLog(line);
   };
 }

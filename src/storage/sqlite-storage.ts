@@ -1,13 +1,13 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
-import { AgentStorageInterface, AgentData, SwarmData } from './types';
+import { AgentStorageInterface, AgentData, TeamData } from './types';
 
 export class AgentSQLiteStorage implements AgentStorageInterface {
   private db: Database.Database;
   private initialized = false;
   
   constructor(dbPath?: string) {
-    const resolvedPath = dbPath || path.join(process.cwd(), 'dash.db');
+    const resolvedPath = dbPath || path.join(process.cwd(), 'godel.db');
     this.db = new Database(resolvedPath);
   }
   
@@ -27,7 +27,7 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
         metadata TEXT
       );
       
-      CREATE TABLE IF NOT EXISTS swarms (
+      CREATE TABLE IF NOT EXISTS teams (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         task TEXT NOT NULL,
@@ -39,7 +39,7 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
       );
       
       CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
-      CREATE INDEX IF NOT EXISTS idx_swarms_status ON swarms(status);
+      CREATE INDEX IF NOT EXISTS idx_teams_status ON teams(status);
     `);
     
     this.initialized = true;
@@ -140,9 +140,9 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
     }));
   }
   
-  // Swarm-specific operations
-  async createSwarm(data: SwarmData): Promise<string> {
-    return this.create('swarms', {
+  // Team-specific operations
+  async createTeam(data: TeamData): Promise<string> {
+    return this.create('teams', {
       name: data.name,
       task: data.task,
       status: data.status,
@@ -151,8 +151,8 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
     });
   }
   
-  async getSwarm(id: string): Promise<SwarmData | null> {
-    const row = await this.read('swarms', id) as Record<string, unknown> | null;
+  async getTeam(id: string): Promise<TeamData | null> {
+    const row = await this.read('teams', id) as Record<string, unknown> | null;
     if (!row) return null;
     
     return {
@@ -160,29 +160,29 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
       name: row['name'] as string,
       task: row['task'] as string,
       agentIds: JSON.parse(row['agent_ids'] as string),
-      status: row['status'] as SwarmData['status'],
+      status: row['status'] as TeamData['status'],
       createdAt: row['created_at'] as number,
       updatedAt: row['updated_at'] as number,
       metadata: row['metadata'] ? JSON.parse(row['metadata'] as string) : undefined
     };
   }
   
-  async updateSwarm(id: string, data: Partial<SwarmData>): Promise<void> {
-    await this.update('swarms', id, data as Record<string, unknown>);
+  async updateTeam(id: string, data: Partial<TeamData>): Promise<void> {
+    await this.update('teams', id, data as Record<string, unknown>);
   }
   
-  async deleteSwarm(id: string): Promise<void> {
-    await this.delete('swarms', id);
+  async deleteTeam(id: string): Promise<void> {
+    await this.delete('teams', id);
   }
   
-  async listSwarms(): Promise<SwarmData[]> {
-    const rows = await this.list('swarms') as Record<string, unknown>[];
+  async listTeams(): Promise<TeamData[]> {
+    const rows = await this.list('teams') as Record<string, unknown>[];
     return rows.map(row => ({
       id: row['id'] as string,
       name: row['name'] as string,
       task: row['task'] as string,
       agentIds: JSON.parse(row['agent_ids'] as string),
-      status: row['status'] as SwarmData['status'],
+      status: row['status'] as TeamData['status'],
       createdAt: row['created_at'] as number,
       updatedAt: row['updated_at'] as number,
       metadata: row['metadata'] ? JSON.parse(row['metadata'] as string) : undefined

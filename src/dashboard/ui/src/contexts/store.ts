@@ -9,7 +9,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import {
   Agent,
-  Swarm,
+  Team,
   Task,
   AgentEvent,
   CostMetrics,
@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>()(
       
       isAdmin: () => get().user?.role === UserRole.ADMIN
     }),
-    { name: 'dash-auth-store' }
+    { name: 'godel-auth-store' }
   )
 );
 
@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
 interface DashboardState {
   // Data
   agents: Agent[];
-  swarms: Swarm[];
+  teams: Team[];
   tasks: Task[];
   events: AgentEvent[];
   stats: DashboardStats | null;
@@ -96,32 +96,32 @@ interface DashboardState {
   
   // Loading states
   isLoadingAgents: boolean;
-  isLoadingSwarms: boolean;
+  isLoadingTeams: boolean;
   isLoadingEvents: boolean;
   
   // Actions
   setAgents: (agents: Agent[]) => void;
-  setSwarms: (swarms: Swarm[]) => void;
+  setTeams: (teams: Team[]) => void;
   setTasks: (tasks: Task[]) => void;
   setEvents: (events: AgentEvent[]) => void;
   addEvent: (event: AgentEvent) => void;
   updateAgent: (agent: Agent) => void;
-  updateSwarm: (swarm: Swarm) => void;
+  updateTeam: (team: Team) => void;
   removeAgent: (agentId: string) => void;
-  removeSwarm: (swarmId: string) => void;
+  removeTeam: (teamId: string) => void;
   setStats: (stats: DashboardStats) => void;
   setCostMetrics: (metrics: CostMetrics) => void;
   
   setLoadingAgents: (loading: boolean) => void;
-  setLoadingSwarms: (loading: boolean) => void;
+  setLoadingTeams: (loading: boolean) => void;
   setLoadingEvents: (loading: boolean) => void;
   
   // Getters
   getAgentById: (id: string) => Agent | undefined;
-  getSwarmById: (id: string) => Swarm | undefined;
-  getAgentsBySwarm: (swarmId: string) => Agent[];
+  getTeamById: (id: string) => Team | undefined;
+  getAgentsByTeam: (teamId: string) => Agent[];
   getTasksByAgent: (agentId: string) => Task[];
-  getEventsBySwarm: (swarmId: string) => AgentEvent[];
+  getEventsByTeam: (teamId: string) => AgentEvent[];
   getEventsByAgent: (agentId: string) => AgentEvent[];
 }
 
@@ -129,18 +129,18 @@ export const useDashboardStore = create<DashboardState>()(
   devtools(
     (set, get) => ({
       agents: [],
-      swarms: [],
+      teams: [],
       tasks: [],
       events: [],
       stats: null,
       costMetrics: null,
       
       isLoadingAgents: false,
-      isLoadingSwarms: false,
+      isLoadingTeams: false,
       isLoadingEvents: false,
       
       setAgents: (agents) => set({ agents }),
-      setSwarms: (swarms) => set({ swarms }),
+      setTeams: (teams) => set({ teams }),
       setTasks: (tasks) => set({ tasks }),
       setEvents: (events) => set({ events }),
       
@@ -158,39 +158,39 @@ export const useDashboardStore = create<DashboardState>()(
         return { agents: [...state.agents, agent] };
       }),
       
-      updateSwarm: (swarm) => set((state) => {
-        const index = state.swarms.findIndex(s => s.id === swarm.id);
+      updateTeam: (team) => set((state) => {
+        const index = state.teams.findIndex(s => s.id === team.id);
         if (index >= 0) {
-          const swarms = [...state.swarms];
-          swarms[index] = swarm;
-          return { swarms };
+          const teams = [...state.teams];
+          teams[index] = team;
+          return { teams };
         }
-        return { swarms: [...state.swarms, swarm] };
+        return { teams: [...state.teams, team] };
       }),
       
       removeAgent: (agentId) => set((state) => ({
         agents: state.agents.filter(a => a.id !== agentId)
       })),
       
-      removeSwarm: (swarmId) => set((state) => ({
-        swarms: state.swarms.filter(s => s.id !== swarmId)
+      removeTeam: (teamId) => set((state) => ({
+        teams: state.teams.filter(s => s.id !== teamId)
       })),
       
       setStats: (stats) => set({ stats }),
       setCostMetrics: (metrics) => set({ costMetrics: metrics }),
       
       setLoadingAgents: (loading) => set({ isLoadingAgents: loading }),
-      setLoadingSwarms: (loading) => set({ isLoadingSwarms: loading }),
+      setLoadingTeams: (loading) => set({ isLoadingTeams: loading }),
       setLoadingEvents: (loading) => set({ isLoadingEvents: loading }),
       
       getAgentById: (id) => get().agents.find(a => a.id === id),
-      getSwarmById: (id) => get().swarms.find(s => s.id === id),
-      getAgentsBySwarm: (swarmId) => get().agents.filter(a => a.swarmId === swarmId),
+      getTeamById: (id) => get().teams.find(s => s.id === id),
+      getAgentsByTeam: (teamId) => get().agents.filter(a => a.teamId === teamId),
       getTasksByAgent: (agentId) => get().tasks.filter(t => t.agentId === agentId),
-      getEventsBySwarm: (swarmId) => get().events.filter(e => e.swarmId === swarmId),
+      getEventsByTeam: (teamId) => get().events.filter(e => e.teamId === teamId),
       getEventsByAgent: (agentId) => get().events.filter(e => e.agentId === agentId)
     }),
-    { name: 'dash-dashboard-store' }
+    { name: 'godel-dashboard-store' }
   )
 );
 
@@ -222,23 +222,23 @@ interface UIState {
   // View State
   view: ViewState;
   setView: (view: Partial<ViewState>) => void;
-  toggleSwarmExpanded: (swarmId: string) => void;
+  toggleTeamExpanded: (teamId: string) => void;
   setSelectedAgent: (agentId: string | null) => void;
-  setSelectedSwarm: (swarmId: string | null) => void;
+  setSelectedTeam: (teamId: string | null) => void;
   setViewMode: (mode: ViewState['viewMode']) => void;
 }
 
 const defaultFilters: FilterState = {
   status: 'all',
-  swarmId: 'all',
+  teamId: 'all',
   search: '',
   timeRange: '24h'
 };
 
 const defaultView: ViewState = {
-  expandedSwarms: new Set(),
+  expandedTeams: new Set(),
   selectedAgent: null,
-  selectedSwarm: null,
+  selectedTeam: null,
   viewMode: 'grid'
 };
 
@@ -297,22 +297,22 @@ export const useUIStore = create<UIState>()(
           view: { ...state.view, ...view }
         })),
         
-        toggleSwarmExpanded: (swarmId) => set((state) => {
-          const expanded = new Set(state.view.expandedSwarms);
-          if (expanded.has(swarmId)) {
-            expanded.delete(swarmId);
+        toggleTeamExpanded: (teamId) => set((state) => {
+          const expanded = new Set(state.view.expandedTeams);
+          if (expanded.has(teamId)) {
+            expanded.delete(teamId);
           } else {
-            expanded.add(swarmId);
+            expanded.add(teamId);
           }
-          return { view: { ...state.view, expandedSwarms: expanded } };
+          return { view: { ...state.view, expandedTeams: expanded } };
         }),
         
         setSelectedAgent: (agentId) => set((state) => ({
           view: { ...state.view, selectedAgent: agentId }
         })),
         
-        setSelectedSwarm: (swarmId) => set((state) => ({
-          view: { ...state.view, selectedSwarm: swarmId }
+        setSelectedTeam: (teamId) => set((state) => ({
+          view: { ...state.view, selectedTeam: teamId }
         })),
         
         setViewMode: (mode) => set((state) => ({
@@ -320,7 +320,7 @@ export const useUIStore = create<UIState>()(
         }))
       }),
       {
-        name: 'dash-ui-storage',
+        name: 'godel-ui-storage',
         partialize: (state) => ({
           sidebarOpen: state.sidebarOpen,
           darkMode: state.darkMode,
@@ -366,6 +366,6 @@ export const useRealtimeStore = create<RealtimeState>()(
         }));
       }
     }),
-    { name: 'dash-realtime-store' }
+    { name: 'godel-realtime-store' }
   )
 );

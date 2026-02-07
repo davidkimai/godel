@@ -86,8 +86,8 @@ openclaw:
 
 eventBus:
   type: redis
-  streamKey: dash:events
-  consumerGroup: dash:consumers
+  streamKey: godel:events
+  consumerGroup: godel:consumers
   compressionThreshold: 1024
   maxStreamLength: 1000000
   maxQueuedEvents: 50000

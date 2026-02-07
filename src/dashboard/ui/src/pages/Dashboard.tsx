@@ -57,7 +57,7 @@ const StatCard: React.FC<{
 
 const Dashboard: React.FC = () => {
   const { agents } = useAgentsRealtime();
-  const { swarms } = useSwarmsRealtime();
+  const { teams } = useSwarmsRealtime();
   const { metrics } = useMetricsRealtime();
 
   // Calculate stats
@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-100">Dashboard Overview</h2>
-          <p className="text-gray-400 mt-1">Real-time swarm monitoring and visualization</p>
+          <p className="text-gray-400 mt-1">Real-time team monitoring and visualization</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <Clock className="w-4 h-4" />
@@ -90,8 +90,8 @@ const Dashboard: React.FC = () => {
           color="bg-blue-500/10"
         />
         <StatCard
-          title="Active Swarms"
-          value={swarms.length}
+          title="Active Teams"
+          value={teams.length}
           icon={<Zap className="w-6 h-6 text-purple-400" />}
           trend={{ value: 5, positive: true }}
           color="bg-purple-500/10"

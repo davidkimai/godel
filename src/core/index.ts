@@ -1,12 +1,12 @@
 /**
  * @fileoverview Core Engine Module - SPEC_v2.md Implementation
  *
- * Central orchestration module for Godel multi-agent system. Provides swarm
+ * Central orchestration module for Godel multi-agent system. Provides team
  * management, agent lifecycle, state persistence, health monitoring, and
  * federation capabilities.
  *
  * Core Components:
- * - SwarmManager: Create/destroy/scale/status swarms
+ * - TeamManager: Create/destroy/scale/status teams
  * - AgentLifecycle: spawn/kill/pause/resume/retry agents
  * - OpenClawCore: Core primitive for OpenClaw integration
  * - BudgetController: Budget limits and enforcement
@@ -18,7 +18,7 @@
  * - VerificationPipeline: Build/test/rollback
  * - AgentEventBus: Granular event streaming
  * - SessionTree: Tree-structured session storage
- * - SwarmOrchestrator: Enhanced orchestrator with events + branching
+ * - TeamOrchestrator: Enhanced orchestrator with events + branching
  *
  * New Modules:
  * - Worktree: Git worktree management for parallel sessions
@@ -37,7 +37,7 @@
 // Core Modules
 // =============================================================================
 
-// Note: './swarm' types are extended in './swarm-orchestrator', use orchestrator exports
+// Note: './team' types are extended in './team-orchestrator', use orchestrator exports
 export * from './lifecycle';
 export * from './openclaw';
 
@@ -49,7 +49,7 @@ export * from './event-bus';
 export * from './event-bus-redis';
 export * from './event-bus-redis-optimized';
 export * from './session-tree';
-export * from './swarm-orchestrator';
+export * from './team-orchestrator';
 
 // =============================================================================
 // Performance Optimizations
@@ -115,7 +115,7 @@ export {
 export type {
   SystemState,
   AgentState,
-  SwarmState,
+  TeamState,
   RecoveryResult,
 } from './state-manager';
 
@@ -210,32 +210,32 @@ export type {
 export {
   DecisionEngine,
   decisionEngine,
-  authorizeSwarm,
+  authorizeTeam,
   canAutoApprove,
   getAuthorizationStatus,
   AuthorizationTier,
 } from './decision-engine';
 export type {
-  SwarmAuthorization,
+  TeamAuthorization,
   DecisionRequest,
 } from './decision-engine';
 
 // =============================================================================
-// Swarm Executor
+// Team Executor
 // =============================================================================
 
 export {
-  SwarmExecutor,
-  swarmExecutor,
-  executeSwarm,
-  getSwarmStatus,
+  TeamExecutor,
+  teamExecutor,
+  executeTeam,
+  getTeamStatus,
   getExecutionMetrics,
-} from './swarm-executor';
+} from './team-executor';
 export type {
-  SwarmExecutionContext,
+  TeamExecutionContext,
   AgentExecutionResult,
   ExecutionMetrics,
-} from './swarm-executor';
+} from './team-executor';
 
 // =============================================================================
 // Bug Monitor
@@ -326,8 +326,8 @@ export const CORE_VERSION = '2.0.0';
 /** Core module name */
 export const CORE_MODULE_NAME = '@godel/core';
 
-/** Default swarm configuration */
-export const DEFAULT_SWARM_CONFIG = {
+/** Default team configuration */
+export const DEFAULT_TEAM_CONFIG = {
   maxAgents: 10,
   maxBudget: 100,
   timeoutMs: 300000,
@@ -336,8 +336,8 @@ export const DEFAULT_SWARM_CONFIG = {
 
 /** System limits */
 export const SYSTEM_LIMITS = {
-  maxSwarms: 100,
-  maxAgentsPerSwarm: 50,
+  maxTeams: 100,
+  maxAgentsPerTeam: 50,
   maxConcurrentSessions: 1000,
   maxBudgetUsd: 1000,
 } as const;
@@ -360,7 +360,7 @@ export function getCoreModuleInfo(): {
     name: CORE_MODULE_NAME,
     version: CORE_VERSION,
     components: [
-      'swarm-management',
+      'team-management',
       'agent-lifecycle',
       'openclaw-core',
       'budget-controller',
@@ -371,7 +371,7 @@ export function getCoreModuleInfo(): {
       'metrics-collector',
       'verification-pipeline',
       'decision-engine',
-      'swarm-executor',
+      'team-executor',
       'bug-monitor',
       'worktree',
       'federation',
@@ -392,7 +392,7 @@ export function isComponentAvailable(component: string): boolean {
     'openclaw',
     'event-bus',
     'session-tree',
-    'swarm-orchestrator',
+    'team-orchestrator',
     'state-persistence',
     'budget-controller',
     'state-manager',
@@ -402,7 +402,7 @@ export function isComponentAvailable(component: string): boolean {
     'metrics',
     'verification',
     'decision-engine',
-    'swarm-executor',
+    'team-executor',
     'bug-monitor',
     'llm',
     'worktree',
@@ -433,7 +433,7 @@ export async function checkCoreHealth(): Promise<{
   components['openclaw'] = true;
   components['event-bus'] = true;
   components['session-tree'] = true;
-  components['swarm-orchestrator'] = true;
+  components['team-orchestrator'] = true;
   components['state-persistence'] = true;
   components['budget-controller'] = true;
   components['state-manager'] = true;
@@ -443,7 +443,7 @@ export async function checkCoreHealth(): Promise<{
   components['metrics'] = true;
   components['verification'] = true;
   components['decision-engine'] = true;
-  components['swarm-executor'] = true;
+  components['team-executor'] = true;
   components['bug-monitor'] = true;
   components['worktree'] = true;
   components['federation'] = true;

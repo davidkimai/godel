@@ -1,15 +1,15 @@
 openapi: 3.1.0
 info:
-  title: Dash API
+  title: Godel API
   description: Multi-agent orchestration platform API for managing agents, swarms, sessions, and workflows
   version: 3.0.0
   contact:
-    name: Dash Support
-    url: https://github.com/jasontang/clawd/projects/dash
+    name: Godel Support
+    url: https://github.com/davidkimai/godel
 servers:
   - url: http://localhost:7373
     description: Local development server
-  - url: https://api.dash.example.com
+  - url: http://localhost:7373
     description: Production server
 
 tags:

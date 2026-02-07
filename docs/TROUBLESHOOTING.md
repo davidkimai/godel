@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Common issues, error codes, and debugging techniques for Dash.
+Common issues, error codes, and debugging techniques for Godel.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ npx @jtan15010/godel <command>
 sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
 ```
 
-#### "Cannot find module '@dash/core' or similar"
+#### "Cannot find module '@godel/core' or similar"
 
 **Cause**: Build artifacts missing or out of date
 
@@ -87,17 +87,17 @@ git worktree list
 git worktree prune
 ```
 
-#### "Error: Cannot find .dash directory"
+#### "Error: Cannot find .godel directory"
 
-**Cause**: Dash configuration directory missing
+**Cause**: Godel configuration directory missing
 
 **Solutions**:
 ```bash
-# Create .dash directory
+# Create .godel directory
 mkdir -p .godel/logs
 
 # Set proper permissions
-chmod 755 .dash
+chmod 755 .godel
 
 # Initialize state
 mkdir -p .godel/logs
@@ -191,9 +191,9 @@ ls -la .claude-worktrees/
 **Solutions**:
 ```bash
 # Increase timeout
-dash agents spawn "task" --timeout 600000  # 10 minutes
+godel agents spawn "task" --timeout 600000  # 10 minutes
 
-# Or in swarm config
+# Or in team config
 spec:
   safety:
     maxExecutionTime: 600000
@@ -206,45 +206,45 @@ spec:
 **Solutions**:
 ```bash
 # Check current usage
-dash budget status
+godel budget status
 
 # Increase budget
-dash budget set --amount 100.00
+godel budget set --amount 100.00
 
 # Adjust thresholds
 # In .env:
 GODEL_BUDGET_TOTAL=2.0
 ```
 
-### Swarm Issues
+### Team Issues
 
-#### "Swarm creation failed" or "Max swarms reached"
+#### "Team creation failed" or "Max teams reached"
 
-**Cause**: Too many active swarms or configuration issue
+**Cause**: Too many active teams or configuration issue
 
 **Solutions**:
 ```bash
-# List active swarms
-dash swarm list
+# List active teams
+godel team list
 
-# Destroy old swarms
-dash swarm destroy <swarm-id>
+# Destroy old teams
+godel team destroy <team-id>
 
 # Increase limit in .env
 GODEL_MAX_SWARMS=10
 ```
 
-#### "No agents spawned in swarm"
+#### "No agents spawned in team"
 
 **Cause**: Agent spawning failed or initial agents set to 0
 
 **Solutions**:
 ```bash
-# Check swarm config
-dash swarm status <swarm-id>
+# Check team config
+godel team status <team-id>
 
 # Recreate with initial agents
-dash swarm create --name test --task "test" --initial-agents 5
+godel team create --name test --task "test" --initial-agents 5
 ```
 
 ### Workflow Issues
@@ -256,7 +256,7 @@ dash swarm create --name test --task "test" --initial-agents 5
 **Solutions**:
 ```bash
 # Validate workflow YAML
-dash workflow validate workflow.yaml
+godel workflow validate workflow.yaml
 
 # Check for:
 # - Duplicate step IDs
@@ -272,14 +272,14 @@ dash workflow validate workflow.yaml
 **Solutions**:
 ```bash
 # Check workflow status
-dash workflow status <workflow-id>
+godel workflow status <workflow-id>
 
 # Cancel and retry
-dash workflow cancel <workflow-id>
-dash workflow run workflow.yaml
+godel workflow cancel <workflow-id>
+godel workflow run workflow.yaml
 
 # Check agent logs
-dash logs tail --agent <agent-id>
+godel logs tail --agent <agent-id>
 ```
 
 ---
@@ -298,9 +298,9 @@ dash logs tail --agent <agent-id>
 | `E010` | `AGENT_SPAWN_FAILED` | Failed to create agent | Check worktree permissions |
 | `E011` | `AGENT_TIMEOUT` | Agent execution timeout | Increase timeout |
 | `E012` | `AGENT_KILLED` | Agent was forcibly terminated | Check memory/CPU |
-| `E020` | `SWARM_CREATE_FAILED` | Failed to create swarm | Check max swarms limit |
-| `E021` | `SWARM_NOT_FOUND` | Swarm ID not found | List swarms with `dash swarm list` |
-| `E022` | `MAX_SWARMS_REACHED` | Too many active swarms | Destroy old swarms |
+| `E020` | `SWARM_CREATE_FAILED` | Failed to create team | Check max teams limit |
+| `E021` | `SWARM_NOT_FOUND` | Team ID not found | List teams with `godel team list` |
+| `E022` | `MAX_SWARMS_REACHED` | Too many active teams | Destroy old teams |
 | `E030` | `WORKFLOW_INVALID` | Workflow validation failed | Check YAML syntax |
 | `E031` | `WORKFLOW_CIRCULAR_DEP` | Circular dependency detected | Fix step dependencies |
 | `E032` | `WORKFLOW_TIMEOUT` | Workflow execution timeout | Increase timeout |
@@ -344,7 +344,7 @@ dash logs tail --agent <agent-id>
 export GODEL_LOG_LEVEL=debug
 
 # Method 2: CLI flag
-dash --log-level debug <command>
+godel --log-level debug <command>
 
 # Method 3: Configuration file
 echo "GODEL_LOG_LEVEL=debug" >> .env
@@ -364,7 +364,7 @@ echo "GODEL_LOG_LEVEL=debug" >> .env
 
 ```bash
 # Debug agent spawning
-dash --log-level debug agents spawn "test task"
+godel --log-level debug agents spawn "test task"
 
 # Expected debug output:
 # [DEBUG] Loading configuration from /path/.env
@@ -378,7 +378,7 @@ dash --log-level debug agents spawn "test task"
 
 ```bash
 # Maximum verbosity
-dash --verbose <command>
+godel --verbose <command>
 
 # Shows:
 # - Full stack traces
@@ -396,7 +396,7 @@ dash --verbose <command>
 .godel/logs/
 ├── orchestrator.log      # Main orchestrator activity
 ├── monitor.log          # Build/test monitoring
-├── watchdog.log         # Swarm health checks
+├── watchdog.log         # Team health checks
 ├── reports.log          # Progress reports
 ├── events.log           # Event stream
 └── agents/
@@ -440,29 +440,29 @@ dash --verbose <command>
 
 ```bash
 # Search for errors
-dash logs query --level error --since 1h
+godel logs query --level error --since 1h
 
 # Search for specific agent
-dash logs query --agent agent-xxx --since 24h
+godel logs query --agent agent-xxx --since 24h
 
 # Search for specific pattern
-dash logs query --grep "budget exceeded"
+godel logs query --grep "budget exceeded"
 
 # Export logs
-dash logs query --since 7d --format json > logs.json
+godel logs query --since 7d --format json > logs.json
 ```
 
 ### Analyzing with jq
 
 ```bash
 # Parse JSON logs
-dash logs query --format json | jq '.[] | select(.level == "ERROR")'
+godel logs query --format json | jq '.[] | select(.level == "ERROR")'
 
 # Count errors by type
-dash logs query --format json | jq -r '.message' | sort | uniq -c
+godel logs query --format json | jq -r '.message' | sort | uniq -c
 
 # Find slow operations
-dash logs query --format json | jq '.[] | select(.durationMs > 60000)'
+godel logs query --format json | jq '.[] | select(.durationMs > 60000)'
 ```
 
 ### Log Rotation
@@ -485,7 +485,7 @@ Logs are automatically rotated when they reach 10MB. Old logs are compressed:
 1. **Documentation**: Check the [docs/](docs/) directory
 2. **Examples**: Review [examples/](examples/) for working code
 3. **CLI Help**: Use `--help` flag for any command
-4. **Status Check**: Run `dash status` for system health
+4. **Status Check**: Run `godel status` for system health
 
 ### Community Support
 
@@ -505,7 +505,7 @@ When reporting bugs, please include:
 
 ```markdown
 **Environment:**
-- Dash version: `dash --version`
+- Godel version: `godel --version`
 - Node.js version: `node --version`
 - OS: macOS/Linux/Windows
 
@@ -533,14 +533,14 @@ When reporting bugs, please include:
 
 ### Emergency Recovery
 
-If Dash is completely broken:
+If Godel is completely broken:
 
 ```bash
-# 1. Stop all Dash processes
-pkill -f "dash"
+# 1. Stop all Godel processes
+pkill -f "godel"
 
 # 2. Backup state
-cp -r .dash .dash.backup
+cp -r .godel .godel.backup
 
 # 3. Clean worktrees
 git worktree prune
@@ -551,13 +551,13 @@ rm -rf .godel/logs/*
 
 # 5. Restart
 npm run build
-dash status
+godel status
 ```
 
 ### Professional Support
 
 For enterprise support:
-- Email: support@dash-ai.io
+- Email: support@godel-ai.io
 - Include your organization and support tier
 
 ---

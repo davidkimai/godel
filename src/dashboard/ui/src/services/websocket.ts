@@ -1,12 +1,12 @@
 /**
  * WebSocket Service
  * 
- * Real-time WebSocket connection management for the Dash Dashboard
+ * Real-time WebSocket connection management for the Godel Dashboard
  * Uses httpOnly cookies for authentication (no localStorage).
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { Agent, Swarm, AgentEvent, CostMetrics, WebSocketMessage } from '../types';
+import type { Agent, Team, AgentEvent, CostMetrics, WebSocketMessage } from '../types';
 import { WebSocketMessageType } from '../types';
 
 // Simple logger for browser environment
@@ -286,17 +286,17 @@ class WebSocketService {
   }
 
   // Subscription helpers
-  subscribeToSwarm(swarmId: string): void {
+  subscribeToTeam(teamId: string): void {
     this.send({
       type: WebSocketMessageType.SUBSCRIBE,
-      payload: { swarmId }
+      payload: { teamId }
     });
   }
 
-  unsubscribeFromSwarm(swarmId: string): void {
+  unsubscribeFromTeam(teamId: string): void {
     this.send({
       type: WebSocketMessageType.UNSUBSCRIBE,
-      payload: { swarmId }
+      payload: { teamId }
     });
   }
 
@@ -445,31 +445,31 @@ export function useAgentUpdates(): { agents: Agent[]; updateAgent: (agent: Agent
   return { agents, updateAgent };
 }
 
-export function useSwarmUpdates(): { swarms: Swarm[]; updateSwarm: (swarm: Swarm) => void } {
-  const [swarms, setSwarms] = useState<Swarm[]>([]);
+export function useTeamUpdates(): { teams: Team[]; updateTeam: (team: Team) => void } {
+  const [teams, setTeams] = useState<Team[]>([]);
   const { subscribe } = useWebSocket();
 
-  const updateSwarm = useCallback((swarm: Swarm) => {
-    setSwarms(prev => {
-      const index = prev.findIndex(s => s.id === swarm.id);
+  const updateTeam = useCallback((team: Team) => {
+    setTeams(prev => {
+      const index = prev.findIndex(s => s.id === team.id);
       if (index >= 0) {
         const updated = [...prev];
-        updated[index] = swarm;
+        updated[index] = team;
         return updated;
       }
-      return [...prev, swarm];
+      return [...prev, team];
     });
   }, []);
 
   useEffect(() => {
-    return subscribe(WebSocketMessageType.SWARM_UPDATE, (message) => {
-      if (message.swarm) {
-        updateSwarm(message.swarm);
+    return subscribe(WebSocketMessageType.TEAM_UPDATE, (message) => {
+      if (message.team) {
+        updateTeam(message.team);
       }
     });
-  }, [subscribe, updateSwarm]);
+  }, [subscribe, updateTeam]);
 
-  return { swarms, updateSwarm };
+  return { teams, updateTeam };
 }
 
 export function useCostUpdates(): CostMetrics | null {

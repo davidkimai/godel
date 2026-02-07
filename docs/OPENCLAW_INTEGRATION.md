@@ -2,14 +2,14 @@
 
 ## Overview
 
-The OpenClaw integration enables OpenClaw to use Dash as its native orchestration platform. This allows OpenClaw users to spawn and manage Dash agent swarms directly from OpenClaw, with real-time event streaming between the two platforms.
+The OpenClaw integration enables OpenClaw to use Godel as its native orchestration platform. This allows OpenClaw users to spawn and manage Godel agent teams directly from OpenClaw, with real-time event streaming between the two platforms.
 
 ## Architecture
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   OpenClaw  │ ───► │   Adapter    │ ───► │    Dash     │
-│  (sessions) │      │  (Protocol   │      │   (swarms)  │
+│   OpenClaw  │ ───► │   Adapter    │ ───► │    Godel     │
+│  (sessions) │      │  (Protocol   │      │   (teams)  │
 │             │ ◄─── │  Translation)│ ◄─── │             │
 └─────────────┘      └──────────────┘      └─────────────┘
         │                                            │
@@ -22,9 +22,9 @@ The OpenClaw integration enables OpenClaw to use Dash as its native orchestratio
 
 ### Components
 
-1. **OpenClaw Adapter** - Translates OpenClaw protocol to Dash API
-2. **Event Bridge** - Real-time event streaming from Dash to OpenClaw
-3. **Dash Orchestration Skill** - OpenClaw-native commands for Dash
+1. **OpenClaw Adapter** - Translates OpenClaw protocol to Godel API
+2. **Event Bridge** - Real-time event streaming from Godel to OpenClaw
+3. **Godel Orchestration Skill** - OpenClaw-native commands for Godel
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ DASH_API_KEY=dash_live_your_64_character_hex_key_here
 
 # OpenClaw Integration
 OPENCLAW_DASH_ADAPTER_ENABLED=true
-OPENCLAW_EVENT_WEBHOOK_URL=https://your-openclaw-instance.com/webhooks/dash
+OPENCLAW_EVENT_WEBHOOK_URL=https://your-openclaw-instance.com/webhooks/godel
 ```
 
 ### 2. Generate API Key
@@ -49,7 +49,7 @@ OPENCLAW_EVENT_WEBHOOK_URL=https://your-openclaw-instance.com/webhooks/dash
 node -e "console.log('dash_live_' + require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### 3. Start Dash
+### 3. Start Godel
 
 ```bash
 npm run start
@@ -75,7 +75,7 @@ curl -X POST http://localhost:7373/api/v1/agents \
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DASH_API_URL` | Yes | - | URL of the Dash API |
+| `DASH_API_URL` | Yes | - | URL of the Godel API |
 | `DASH_API_KEY` | Yes | - | API key for authentication |
 | `OPENCLAW_DASH_ADAPTER_ENABLED` | No | `true` | Enable the adapter |
 | `OPENCLAW_EVENT_WEBHOOK_URL` | No | - | Webhook URL for events |
@@ -113,26 +113,26 @@ interface EventBridgeConfig {
 ### From OpenClaw
 
 ```
-# Spawn a code review swarm
-/dash spawn code-review --files "src/**/*.ts" --agents 5
+# Spawn a code review team
+/godel spawn code-review --files "src/**/*.ts" --agents 5
 
 # Check status
-/dash status agent-abc123
+/godel status agent-abc123
 
 # View logs
-/dash logs agent-abc123 --follow
+/godel logs agent-abc123 --follow
 
 # Kill agent
-/dash kill agent-abc123 --force
+/godel kill agent-abc123 --force
 
 # List all agents
-/dash list
+/godel list
 ```
 
 ### From JavaScript/TypeScript
 
 ```typescript
-import { getOpenClawAdapter } from '@dash/integrations/openclaw';
+import { getOpenClawAdapter } from '@godel/integrations/openclaw';
 
 const adapter = getOpenClawAdapter({
   dashApiUrl: 'http://localhost:7373',
@@ -161,7 +161,7 @@ await adapter.killAgent('session-123');
 ### Event Streaming
 
 ```typescript
-import { getOpenClawEventBridge } from '@dash/integrations/openclaw';
+import { getOpenClawEventBridge } from '@godel/integrations/openclaw';
 
 const bridge = getOpenClawEventBridge({
   webhookUrl: 'https://your-webhook.com/events',
@@ -228,11 +228,11 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
 
 ## Event Format
 
-### Dash to OpenClaw Event
+### Godel to OpenClaw Event
 
 ```json
 {
-  "source": "dash",
+  "source": "godel",
   "type": "agent.spawned",
   "timestamp": "2026-02-03T10:00:00Z",
   "sessionKey": "openclaw-session-123",
@@ -243,7 +243,7 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
   },
   "metadata": {
     "dashAgentId": "agent-abc123",
-    "dashSwarmId": "swarm-xyz789",
+    "dashSwarmId": "team-xyz789",
     "topic": "agent.agent-abc123.events"
   }
 }
@@ -253,12 +253,12 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
 
 ### Connection Issues
 
-**Problem**: `Connection refused` when connecting to Dash
+**Problem**: `Connection refused` when connecting to Godel
 
 **Solutions**:
-1. Verify Dash is running: `curl http://localhost:7373/health`
+1. Verify Godel is running: `curl http://localhost:7373/health`
 2. Check `DASH_API_URL` is correct
-3. Verify network connectivity between OpenClaw and Dash
+3. Verify network connectivity between OpenClaw and Godel
 4. Check firewall rules
 
 ### Authentication Errors
@@ -276,11 +276,11 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
 **Problem**: Agents fail to spawn
 
 **Solutions**:
-1. Check Dash logs: `docker-compose logs dash`
+1. Check Godel logs: `docker-compose logs godel`
 2. Verify sufficient resources (memory, CPU)
 3. Check if requested model is available
 4. Review task description validity
-5. Check swarm limits not exceeded
+5. Check team limits not exceeded
 
 ### Event Streaming Issues
 
@@ -288,7 +288,7 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
 
 **Solutions**:
 1. Verify `OPENCLAW_EVENT_WEBHOOK_URL` is configured
-2. Check webhook endpoint is accessible from Dash
+2. Check webhook endpoint is accessible from Godel
 3. Review webhook server logs
 4. Check event filter configuration
 5. Verify webhook authentication token
@@ -302,7 +302,7 @@ bridge.subscribeToEventTypes(['agent.completed'], (event) => {
 2. Reduce event filter scope
 3. Check database connection pool
 4. Monitor resource usage
-5. Scale Dash horizontally if needed
+5. Scale Godel horizontally if needed
 
 ## Testing
 
@@ -324,24 +324,24 @@ npm test -- --testPathPattern=openclaw --coverage
 ### Manual Testing
 
 ```bash
-# 1. Start Dash
+# 1. Start Godel
 npm run start
 
-# 2. Configure OpenClaw with Dash skill
+# 2. Configure OpenClaw with Godel skill
 openclaw config set DASH_API_URL http://localhost:7373
 openclaw config set DASH_API_KEY your-api-key
 
 # 3. Spawn agent from OpenClaw
-openclaw /dash spawn code-review --task "Review this code"
+openclaw /godel spawn code-review --task "Review this code"
 
-# 4. Verify agent spawned in Dash
+# 4. Verify agent spawned in Godel
 swarmctl agent list
 
 # 5. Watch events flow
 # Events should appear in OpenClaw
 
 # 6. Kill agent
-openclaw /dash kill agent-xyz
+openclaw /godel kill agent-xyz
 ```
 
 ## Security Considerations
@@ -369,9 +369,9 @@ openclaw /dash kill agent-xyz
 
 ## Migration Guide
 
-### From Direct Dash API
+### From Direct Godel API
 
-If you're currently using the Dash API directly:
+If you're currently using the Godel API directly:
 
 1. Replace direct API calls with adapter methods
 2. Add session-to-agent mapping
@@ -382,7 +382,7 @@ If you're currently using the Dash API directly:
 
 When migrating from other orchestration platforms:
 
-1. Map existing agent types to Dash equivalents
+1. Map existing agent types to Godel equivalents
 2. Convert configuration formats
 3. Set up event bridge for monitoring
 4. Test thoroughly before production
@@ -401,9 +401,9 @@ To contribute to the OpenClaw integration:
 
 For support and questions:
 
-- GitHub Issues: [github.com/your-org/dash/issues](https://github.com/your-org/dash/issues)
-- Documentation: [docs.dash.dev/openclaw](https://docs.dash.dev/openclaw)
-- Discord: [dash.dev/discord](https://dash.dev/discord)
+- GitHub Issues: [github.com/your-org/godel/issues](https://github.com/your-org/godel/issues)
+- Documentation: [docs.godel.dev/openclaw](https://docs.godel.dev/openclaw)
+- Discord: [godel.dev/discord](https://godel.dev/discord)
 
 ## License
 

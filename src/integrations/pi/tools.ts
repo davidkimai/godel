@@ -5,7 +5,7 @@
  * Provides a centralized mechanism for tool registration, policy-based access control,
  * audit logging, and execution routing.
  *
- * @module @dash/integrations/pi/tools
+ * @module @godel/integrations/pi/tools
  *
  * @example
  * ```typescript

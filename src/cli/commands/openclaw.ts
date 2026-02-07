@@ -2,13 +2,13 @@
  * OpenClaw CLI Command - Manage OpenClaw Gateway integration
  * 
  * Commands:
- * - dash openclaw connect [--host HOST] [--port PORT] [--token TOKEN]
- * - dash openclaw status
- * - dash openclaw sessions list [--active] [--kind main|group|thread]
- * - dash openclaw sessions history <session-key> [--limit N]
- * - dash openclaw spawn --task "..." [--model MODEL] [--budget AMOUNT]
- * - dash openclaw send --session SESSION "message"
- * - dash openclaw kill <session-key> [--force]
+ * - godel openclaw connect [--host HOST] [--port PORT] [--token TOKEN]
+ * - godel openclaw status
+ * - godel openclaw sessions list [--active] [--kind main|group|thread]
+ * - godel openclaw sessions history <session-key> [--limit N]
+ * - godel openclaw spawn --task "..." [--model MODEL] [--budget AMOUNT]
+ * - godel openclaw send --session SESSION "message"
+ * - godel openclaw kill <session-key> [--force]
  * 
  * Per OPENCLAW_INTEGRATION_SPEC.md section 5.1
  */
@@ -176,14 +176,14 @@ function getGatewayClient(): GatewayClient {
       // The caller should handle connection
       return globalGatewayClient;
     }
-    throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+    throw new Error('Not connected to OpenClaw Gateway. Run "godel openclaw connect" first.');
   }
   return globalGatewayClient;
 }
 
 function getSessionManager(): SessionManager {
   if (!globalSessionManager) {
-    throw new Error('Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+    throw new Error('Not connected to OpenClaw Gateway. Run "godel openclaw connect" first.');
   }
   return globalSessionManager;
 }
@@ -376,7 +376,7 @@ export function registerOpenClawCommand(program: Command): void {
         if (!persistedState?.connected) {
           logger.info('🔌 OpenClaw Gateway Status\n');
           logger.info('✗ Not connected');
-          logger.info('\n💡 Run "dash openclaw connect" to connect');
+          logger.info('\n💡 Run "godel openclaw connect" to connect');
           process.exit(1);
         }
 
@@ -450,7 +450,7 @@ export function registerOpenClawCommand(program: Command): void {
         }
 
         if (!persistedState?.connected) {
-          logger.error('openclaw', '❌ Not connected to OpenClaw Gateway. Run "dash openclaw connect" first.');
+          logger.error('openclaw', '❌ Not connected to OpenClaw Gateway. Run "godel openclaw connect" first.');
           process.exit(1);
         }
 
@@ -468,7 +468,7 @@ export function registerOpenClawCommand(program: Command): void {
         
         if (!sessions || sessions.length === 0) {
           logger.info('📭 No sessions found');
-          logger.info('💡 Use "dash openclaw spawn" to create a session');
+          logger.info('💡 Use "godel openclaw spawn" to create a session');
           return;
         }
 
@@ -584,7 +584,7 @@ export function registerOpenClawCommand(program: Command): void {
           // Use mock client
           const mockClient = getMockClient();
           const spawnOptions: SessionSpawnOptions = {
-            agentId: `dash-agent-${Date.now()}`,
+            agentId: `godel-agent-${Date.now()}`,
             model: options.model,
             task: options.task,
             context: {
@@ -614,7 +614,7 @@ export function registerOpenClawCommand(program: Command): void {
           logger.info(`✓ Model: ${options.model}`);
           logger.info(`✓ Budget: $${budget}`);
           logger.info(`✓ Status: idle (awaiting task)`);
-          logger.info(`\n💡 Use "dash openclaw send --session ${sessionId} <message>" to send a task`);
+          logger.info(`\n💡 Use "godel openclaw send --session ${sessionId} <message>" to send a task`);
           return;
         }
 
@@ -634,7 +634,7 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info(`✓ Model: ${options.model}`);
         logger.info(`✓ Budget: $${budget}`);
         logger.info(`✓ Status: ${execution.status} (awaiting task)`);
-        logger.info(`\n💡 Use "dash openclaw send --session ${execution.sessionKey} <message>" to send a task`);
+        logger.info(`\n💡 Use "godel openclaw send --session ${execution.sessionKey} <message>" to send a task`);
       } catch (error) {
         logger.error('openclaw', '❌ Failed to spawn agent');
         logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -747,7 +747,7 @@ export function registerOpenClawCommand(program: Command): void {
   // ============================================================================
   openclaw
     .command('bridge')
-    .description('Manage the OpenClaw-Dash event bridge')
+    .description('Manage the OpenClaw-Godel event bridge')
     .option('--start', 'Start the event bridge')
     .option('--stop', 'Stop the event bridge')
     .option('--status', 'Check bridge status')
@@ -839,7 +839,7 @@ export function registerOpenClawCommand(program: Command): void {
 
         // No action specified
         logger.info('🌉 OpenClaw Event Bridge\n');
-        logger.info('Usage: dash openclaw bridge <action> [options]');
+        logger.info('Usage: godel openclaw bridge <action> [options]');
         logger.info('\nActions:');
         logger.info('  --start          Start the event bridge');
         logger.info('  --stop           Stop the event bridge');
@@ -849,9 +849,9 @@ export function registerOpenClawCommand(program: Command): void {
         logger.info('  --filter         Comma-separated event types to filter');
         logger.info('  --batch-interval Batch interval in milliseconds');
         logger.info('\nExamples:');
-        logger.info('  dash openclaw bridge --start --webhook-url http://localhost:8080/webhook');
-        logger.info('  dash openclaw bridge --status');
-        logger.info('  dash openclaw bridge --stop');
+        logger.info('  godel openclaw bridge --start --webhook-url http://localhost:8080/webhook');
+        logger.info('  godel openclaw bridge --status');
+        logger.info('  godel openclaw bridge --stop');
       } catch (error) {
         logger.error('openclaw', '❌ Bridge command failed');
         logger.error(`   Error: ${error instanceof Error ? error.message : String(error)}`);

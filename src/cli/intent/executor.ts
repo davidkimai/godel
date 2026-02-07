@@ -1,8 +1,8 @@
 /**
- * @fileoverview Intent Executor - Intent execution engine for agent swarms
+ * @fileoverview Intent Executor - Intent execution engine for agent teams
  * 
  * This module provides the execution engine that transforms parsed intents
- * into running agent swarms. It handles swarm configuration, worktree setup,
+ * into running agent teams. It handles team configuration, worktree setup,
  * progress streaming, and result aggregation.
  * 
  * @module @godel/cli/intent/executor
@@ -19,11 +19,11 @@ import {
   ProgressCallback,
   ExecutorConfig,
   ComplexityLevel,
-  SWARM_CONFIGS,
+  TEAM_CONFIGS,
   ESTIMATED_DURATIONS,
-  SwarmConfiguration,
+  TeamConfiguration,
 } from './types';
-import { SwarmConfig } from '../../core/swarm';
+import { TeamConfig } from '../../core/team';
 import { WorktreeConfig, DependencyConfig, CleanupStrategy } from '../../core/worktree/types';
 
 // ============================================================================
@@ -50,7 +50,7 @@ export class IntentExecutor extends EventEmitter {
   }
 
   /**
-   * Execute an intent by creating and managing an agent swarm.
+   * Execute an intent by creating and managing an agent team.
    * 
    * @param intent - Parsed intent to execute
    * @param options - Optional execution overrides
@@ -98,16 +98,16 @@ export class IntentExecutor extends EventEmitter {
         worktreeId = await this.setupWorktree(context, plan.worktreeConfig);
       }
       
-      // Create and configure swarm
-      const swarmId = await this.createSwarm(context, plan);
+      // Create and configure team
+      const teamId = await this.createTeam(context, plan);
       
       // Update context
-      context.swarmId = swarmId;
+      context.teamId = teamId;
       context.worktreeId = worktreeId;
       context.status = 'running';
       
-      // Execute swarm
-      const result = await this.executeSwarm(context, plan);
+      // Execute team
+      const result = await this.executeTeam(context, plan);
       
       // Calculate final metrics
       context.metrics.endTime = new Date();
@@ -125,7 +125,7 @@ export class IntentExecutor extends EventEmitter {
           : `Execution failed: ${result.error}`,
         data: { 
           executionId, 
-          swarmId, 
+          teamId, 
           worktreeId,
           metrics: context.metrics,
         },
@@ -136,7 +136,7 @@ export class IntentExecutor extends EventEmitter {
       
       return {
         success: result.success,
-        swarmId,
+        teamId,
         worktreeId,
         output: result.output,
         error: result.error,
@@ -162,7 +162,7 @@ export class IntentExecutor extends EventEmitter {
       
       return {
         success: false,
-        swarmId: context.swarmId,
+        teamId: context.teamId,
         worktreeId: context.worktreeId,
         error: errorMessage,
         metrics: context.metrics,
@@ -227,11 +227,11 @@ export class IntentExecutor extends EventEmitter {
     intent: Intent,
     config: ExecutorConfig
   ): ExecutionPlan {
-    // Get base swarm config for complexity level
-    const baseConfig = SWARM_CONFIGS[intent.complexity];
+    // Get base team config for complexity level
+    const baseConfig = TEAM_CONFIGS[intent.complexity];
     
-    // Create swarm configuration
-    const swarmConfig: SwarmConfiguration = {
+    // Create team configuration
+    const teamConfig: TeamConfiguration = {
       ...baseConfig,
       name: `intent-${intent.type}-${Date.now()}`,
       task: this.buildTaskDescription(intent),
@@ -254,7 +254,7 @@ export class IntentExecutor extends EventEmitter {
     }
     
     return {
-      swarmConfig,
+      teamConfig,
       worktreeConfig,
       estimatedDuration: ESTIMATED_DURATIONS[intent.complexity],
     };
@@ -327,9 +327,9 @@ export class IntentExecutor extends EventEmitter {
   }
 
   /**
-   * Create and configure the agent swarm.
+   * Create and configure the agent team.
    */
-  private async createSwarm(
+  private async createTeam(
     context: ExecutionContext,
     plan: ExecutionPlan
   ): Promise<string> {
@@ -337,26 +337,26 @@ export class IntentExecutor extends EventEmitter {
       type: 'progress',
       timestamp: new Date(),
       progress: 15,
-      message: `Creating swarm: ${plan.swarmConfig.name}`,
+      message: `Creating team: ${plan.teamConfig.name}`,
       data: { 
-        strategy: plan.swarmConfig.strategy,
-        agentCount: plan.swarmConfig.initialAgents,
+        strategy: plan.teamConfig.strategy,
+        agentCount: plan.teamConfig.initialAgents,
       },
     });
     
-    // In a real implementation, this would integrate with the swarm manager
-    // For now, return a simulated swarm ID
-    const swarmId = `swarm-${uuidv4().slice(0, 8)}`;
+    // In a real implementation, this would integrate with the team manager
+    // For now, return a simulated team ID
+    const teamId = `team-${uuidv4().slice(0, 8)}`;
     
     // Simulate agent spawning
-    for (const role of plan.swarmConfig.roles) {
+    for (const role of plan.teamConfig.roles) {
       for (let i = 0; i < role.count; i++) {
         context.metrics.agentsSpawned++;
         
         this.emitProgress(context, {
           type: 'agent_spawned',
           timestamp: new Date(),
-          progress: 15 + (context.metrics.agentsSpawned / plan.swarmConfig.initialAgents) * 10,
+          progress: 15 + (context.metrics.agentsSpawned / plan.teamConfig.initialAgents) * 10,
           message: `Spawned ${role.role} agent ${i + 1}/${role.count}`,
           data: { 
             role: role.role, 
@@ -370,26 +370,26 @@ export class IntentExecutor extends EventEmitter {
       }
     }
     
-    return swarmId;
+    return teamId;
   }
 
   /**
-   * Execute the swarm and collect results.
+   * Execute the team and collect results.
    */
-  private async executeSwarm(
+  private async executeTeam(
     context: ExecutionContext,
     plan: ExecutionPlan
   ): Promise<{ success: boolean; output?: string; error?: string }> {
-    const { swarmConfig, estimatedDuration } = plan;
+    const { teamConfig, estimatedDuration } = plan;
     
     this.emitProgress(context, {
       type: 'progress',
       timestamp: new Date(),
       progress: 25,
-      message: 'Executing swarm...',
+      message: 'Executing team...',
       data: { 
         estimatedDuration: `${estimatedDuration} minutes`,
-        strategy: swarmConfig.strategy,
+        strategy: teamConfig.strategy,
       },
     });
     
@@ -417,20 +417,20 @@ export class IntentExecutor extends EventEmitter {
     }
     
     // Simulate agent completions
-    for (let i = 0; i < swarmConfig.initialAgents; i++) {
+    for (let i = 0; i < teamConfig.initialAgents; i++) {
       context.metrics.tasksCompleted++;
       
       this.emitProgress(context, {
         type: 'agent_completed',
         timestamp: new Date(),
-        progress: 95 + (i / swarmConfig.initialAgents) * 5,
+        progress: 95 + (i / teamConfig.initialAgents) * 5,
         message: `Agent ${i + 1} completed`,
         data: { agentIndex: i },
       });
     }
     
     // Simulate cost
-    context.metrics.totalCost = Math.random() * swarmConfig.budget!.amount * 0.5;
+    context.metrics.totalCost = Math.random() * teamConfig.budget!.amount * 0.5;
     
     return {
       success: true,
@@ -476,7 +476,7 @@ interface ExecutionContext {
   intent: Intent;
   config: ExecutorConfig;
   status: 'starting' | 'running' | 'completed' | 'failed' | 'cancelled';
-  swarmId?: string;
+  teamId?: string;
   worktreeId?: string;
   metrics: ExecutionMetrics & { progress?: number };
 }
@@ -517,9 +517,9 @@ export function createExecutor(config: Partial<ExecutorConfig>): IntentExecutor 
  * @returns Execution plan
  */
 export function generatePlan(intent: Intent): ExecutionPlan {
-  const baseConfig = SWARM_CONFIGS[intent.complexity];
+  const baseConfig = TEAM_CONFIGS[intent.complexity];
   
-  const swarmConfig: SwarmConfiguration = {
+  const teamConfig: TeamConfiguration = {
     ...baseConfig,
     name: `intent-${intent.type}-${Date.now()}`,
     task: `${intent.type}: ${intent.subject}`,
@@ -536,7 +536,7 @@ export function generatePlan(intent: Intent): ExecutionPlan {
   };
   
   return {
-    swarmConfig,
+    teamConfig,
     estimatedDuration: ESTIMATED_DURATIONS[intent.complexity],
   };
 }

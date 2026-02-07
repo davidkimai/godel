@@ -1,10 +1,10 @@
 /**
- * Swarm Skill Integration
+ * Team Skill Integration
  * 
- * Integrates the Agent Skills system with Godel swarms, enabling:
- * - Skills shared across swarm agents
+ * Integrates the Agent Skills system with Godel teams, enabling:
+ * - Skills shared across team agents
  * - Skill-specific agent roles
- * - Dynamic skill loading during swarm execution
+ * - Dynamic skill loading during team execution
  */
 
 import { logger } from '../../utils/logger';
@@ -12,8 +12,8 @@ import { EventEmitter } from 'events';
 import { SkillRegistry } from './registry';
 import {
   LoadedSkill,
-  SwarmSkillContext,
-  SwarmSkillConfig,
+  TeamSkillContext,
+  TeamSkillConfig,
   SkillAgentRole,
   SkillMatch,
   SkillEvent,
@@ -30,7 +30,7 @@ export interface SkillEnabledAgent {
   id: string;
   role?: string;
   activeSkills: string[];
-  context: SwarmSkillContext;
+  context: TeamSkillContext;
 }
 
 /**
@@ -45,14 +45,14 @@ export interface SkillShareEvent {
 }
 
 /**
- * Skill-aware swarm configuration
+ * Skill-aware team configuration
  */
-export interface SkillAwareSwarmConfig {
-  /** Base swarm configuration */
-  swarmId: string;
+export interface SkillAwareTeamConfig {
+  /** Base team configuration */
+  teamId: string;
   task: string;
-  /** Skill configuration for this swarm */
-  skillConfig: SwarmSkillConfig;
+  /** Skill configuration for this team */
+  skillConfig: TeamSkillConfig;
   /** Agent role definitions */
   roles?: SkillAgentRole[];
   /** Enable dynamic skill discovery */
@@ -60,14 +60,14 @@ export interface SkillAwareSwarmConfig {
 }
 
 // ============================================================================
-// Swarm Skill Manager
+// Team Skill Manager
 // ============================================================================
 
-export class SwarmSkillManager extends EventEmitter {
+export class TeamSkillManager extends EventEmitter {
   private registry: SkillRegistry;
-  private swarmContexts: Map<string, SwarmSkillContext> = new Map();
+  private swarmContexts: Map<string, TeamSkillContext> = new Map();
   private agentSkills: Map<string, Set<string>> = new Map();
-  private agentSwarms: Map<string, string> = new Map(); // agentId -> swarmId
+  private agentTeams: Map<string, string> = new Map(); // agentId -> teamId
   private eventEmitter: EventEmitter = new EventEmitter();
 
   constructor(registry: SkillRegistry) {
@@ -80,12 +80,12 @@ export class SwarmSkillManager extends EventEmitter {
   // ============================================================================
 
   /**
-   * Initialize skills for a new swarm
+   * Initialize skills for a new team
    */
-  async initializeSwarm(config: SkillAwareSwarmConfig): Promise<SwarmSkillContext> {
-    const { swarmId, task, skillConfig } = config;
+  async initializeTeam(config: SkillAwareTeamConfig): Promise<TeamSkillContext> {
+    const { teamId, task, skillConfig } = config;
 
-    logger.info(`Initializing skills for swarm ${swarmId}`);
+    logger.info(`Initializing skills for team ${teamId}`);
 
     // Auto-load skills based on task
     let autoLoadedSkills: SkillMatch[] = [];
@@ -99,19 +99,19 @@ export class SwarmSkillManager extends EventEmitter {
       await this.registry.activate(skillName);
     }
 
-    // Create swarm context
-    const context: SwarmSkillContext = {
-      swarmId,
-      agentId: 'swarm-coordinator',
+    // Create team context
+    const context: TeamSkillContext = {
+      teamId,
+      agentId: 'team-coordinator',
       task,
       availableSkills: this.registry.getAll(),
       activeSkills: this.registry.getActiveSkills(),
     };
 
-    this.swarmContexts.set(swarmId, context);
+    this.swarmContexts.set(teamId, context);
 
-    this.emit('swarm.initialized', {
-      swarmId,
+    this.emit('team.initialized', {
+      teamId,
       autoLoaded: autoLoadedSkills.map((m) => m.skill.name),
       sharedSkills: skillConfig.sharedSkills,
     });
@@ -120,17 +120,17 @@ export class SwarmSkillManager extends EventEmitter {
   }
 
   /**
-   * Register an agent with the swarm
+   * Register an agent with the team
    */
   async registerAgent(
-    swarmId: string,
+    teamId: string,
     agentId: string,
     role?: string,
-    config?: SwarmSkillConfig
+    config?: TeamSkillConfig
   ): Promise<SkillEnabledAgent> {
-    const swarmContext = this.swarmContexts.get(swarmId);
+    const swarmContext = this.swarmContexts.get(teamId);
     if (!swarmContext) {
-      throw new Error(`Swarm ${swarmId} not initialized`);
+      throw new Error(`Team ${teamId} not initialized`);
     }
 
     // Get skills for this agent's role
@@ -141,16 +141,16 @@ export class SwarmSkillManager extends EventEmitter {
       await this.registry.activate(skillName);
     }
 
-    // Track agent's skills and swarm
+    // Track agent's skills and team
     const agentSkillSet = new Set<string>([
       ...(config?.sharedSkills || []),
       ...roleSkills,
     ]);
     this.agentSkills.set(agentId, agentSkillSet);
-    this.agentSwarms.set(agentId, swarmId);
+    this.agentTeams.set(agentId, teamId);
 
     // Create agent context
-    const agentContext: SwarmSkillContext = {
+    const agentContext: TeamSkillContext = {
       ...swarmContext,
       agentId,
       activeSkills: this.registry.getActiveSkills().filter((s) =>
@@ -166,7 +166,7 @@ export class SwarmSkillManager extends EventEmitter {
     };
 
     this.emit('agent.registered', {
-      swarmId,
+      teamId,
       agentId,
       role,
       skills: Array.from(agentSkillSet),
@@ -223,10 +223,10 @@ export class SwarmSkillManager extends EventEmitter {
   }
 
   /**
-   * Broadcast skills to all agents in a swarm
+   * Broadcast skills to all agents in a team
    */
   async broadcastSkills(
-    swarmId: string,
+    teamId: string,
     sourceAgentId: string,
     skillNames: string[]
   ): Promise<void> {
@@ -235,8 +235,8 @@ export class SwarmSkillManager extends EventEmitter {
       return;
     }
 
-    // Get all agents in swarm
-    const swarmAgents = this.getSwarmAgents(swarmId);
+    // Get all agents in team
+    const swarmAgents = this.getTeamAgents(teamId);
 
     for (const agentId of swarmAgents) {
       if (agentId !== sourceAgentId) {
@@ -276,15 +276,15 @@ export class SwarmSkillManager extends EventEmitter {
   // ============================================================================
 
   /**
-   * Dynamically load skills during swarm execution
+   * Dynamically load skills during team execution
    */
   async dynamicLoad(
-    swarmId: string,
+    teamId: string,
     agentId: string,
     context: string
   ): Promise<SkillMatch[]> {
-    const swarmConfig = this.swarmContexts.get(swarmId);
-    if (!swarmConfig) {
+    const teamConfig = this.swarmContexts.get(teamId);
+    if (!teamConfig) {
       return [];
     }
 
@@ -306,7 +306,7 @@ export class SwarmSkillManager extends EventEmitter {
 
     if (activated.length > 0) {
       this.emit('skills.dynamically.loaded', {
-        swarmId,
+        teamId,
         agentId,
         skills: activated.map((m) => m.skill.name),
         context,
@@ -335,7 +335,7 @@ export class SwarmSkillManager extends EventEmitter {
   /**
    * Get skills for an agent's role
    */
-  getRoleSkills(role: string, config: SwarmSkillConfig): LoadedSkill[] {
+  getRoleSkills(role: string, config: TeamSkillConfig): LoadedSkill[] {
     const skillNames = config.roleSkills[role] || [];
     return skillNames
       .map((name) => this.registry.get(name))
@@ -348,7 +348,7 @@ export class SwarmSkillManager extends EventEmitter {
   async assignRole(
     agentId: string,
     role: string,
-    config: SwarmSkillConfig
+    config: TeamSkillConfig
   ): Promise<void> {
     const skillNames = config.roleSkills[role] || [];
     const agentSkills = this.agentSkills.get(agentId);
@@ -368,12 +368,12 @@ export class SwarmSkillManager extends EventEmitter {
   // ============================================================================
 
   /**
-   * Get all agents in a swarm
+   * Get all agents in a team
    */
-  private getSwarmAgents(swarmId: string): string[] {
+  private getTeamAgents(teamId: string): string[] {
     const agents: string[] = [];
-    for (const [agentId, agentSwarmId] of this.agentSwarms) {
-      if (agentSwarmId === swarmId) {
+    for (const [agentId, agentTeamId] of this.agentTeams) {
+      if (agentTeamId === teamId) {
         agents.push(agentId);
       }
     }
@@ -393,10 +393,10 @@ export class SwarmSkillManager extends EventEmitter {
   }
 
   /**
-   * Get active skills for a swarm
+   * Get active skills for a team
    */
-  getSwarmActiveSkills(swarmId: string): LoadedSkill[] {
-    const context = this.swarmContexts.get(swarmId);
+  getTeamActiveSkills(teamId: string): LoadedSkill[] {
+    const context = this.swarmContexts.get(teamId);
     if (!context) return [];
 
     return context.activeSkills;
@@ -407,33 +407,33 @@ export class SwarmSkillManager extends EventEmitter {
   // ============================================================================
 
   /**
-   * Clean up a swarm's skill resources
+   * Clean up a team's skill resources
    */
-  async cleanupSwarm(swarmId: string): Promise<void> {
-    // Deactivate all swarm-specific skills
-    const context = this.swarmContexts.get(swarmId);
+  async cleanupTeam(teamId: string): Promise<void> {
+    // Deactivate all team-specific skills
+    const context = this.swarmContexts.get(teamId);
     if (context) {
       for (const skill of context.activeSkills) {
         await this.registry.deactivate(skill.name);
       }
     }
 
-    // Remove agent registrations for this swarm
+    // Remove agent registrations for this team
     const agentsToRemove: string[] = [];
-    for (const [agentId, agentSwarmId] of this.agentSwarms) {
-      if (agentSwarmId === swarmId) {
+    for (const [agentId, agentTeamId] of this.agentTeams) {
+      if (agentTeamId === teamId) {
         agentsToRemove.push(agentId);
       }
     }
     for (const agentId of agentsToRemove) {
       this.agentSkills.delete(agentId);
-      this.agentSwarms.delete(agentId);
+      this.agentTeams.delete(agentId);
     }
 
-    this.swarmContexts.delete(swarmId);
+    this.swarmContexts.delete(teamId);
 
-    this.emit('swarm.cleaned_up', { swarmId });
-    logger.info(`Cleaned up skills for swarm ${swarmId}`);
+    this.emit('team.cleaned_up', { teamId });
+    logger.info(`Cleaned up skills for team ${teamId}`);
   }
 }
 
@@ -441,20 +441,20 @@ export class SwarmSkillManager extends EventEmitter {
 // Singleton
 // ============================================================================
 
-let globalSwarmSkillManager: SwarmSkillManager | null = null;
+let globalTeamSkillManager: TeamSkillManager | null = null;
 
-export function getGlobalSwarmSkillManager(registry?: SkillRegistry): SwarmSkillManager {
-  if (!globalSwarmSkillManager) {
+export function getGlobalTeamSkillManager(registry?: SkillRegistry): TeamSkillManager {
+  if (!globalTeamSkillManager) {
     if (!registry) {
-      throw new Error('SwarmSkillManager requires registry on first initialization');
+      throw new Error('TeamSkillManager requires registry on first initialization');
     }
-    globalSwarmSkillManager = new SwarmSkillManager(registry);
+    globalTeamSkillManager = new TeamSkillManager(registry);
   }
-  return globalSwarmSkillManager;
+  return globalTeamSkillManager;
 }
 
-export function resetGlobalSwarmSkillManager(): void {
-  globalSwarmSkillManager = null;
+export function resetGlobalTeamSkillManager(): void {
+  globalTeamSkillManager = null;
 }
 
-export default SwarmSkillManager;
+export default TeamSkillManager;

@@ -189,7 +189,7 @@ export class ApiKeyStore extends EventEmitter {
   }
 
   private generatePlaintextKey(): string {
-    const prefix = 'dash';
+    const prefix = 'godel';
     const random = require('crypto').randomBytes(32).toString('base64url');
     return `${prefix}_${random}`;
   }

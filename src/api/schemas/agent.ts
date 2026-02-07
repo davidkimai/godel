@@ -51,7 +51,16 @@ export const AgentContextSchema = z.object({
 // Agent Code Schema
 // ============================================================================
 
-export const FileNodeSchema = z.object({
+export type FileNode = {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: Record<string, FileNode>;
+  exports?: string[];
+  imports?: string[];
+};
+
+export const FileNodeSchema: z.ZodType<FileNode> = z.object({
   name: z.string(),
   path: z.string(),
   type: z.enum(['file', 'directory']),
@@ -153,7 +162,7 @@ export const AgentSchema = z.object({
   spawnedAt: TimestampSchema.describe('When the agent was spawned'),
   completedAt: OptionalTimestampSchema.describe('When the agent completed'),
   runtime: z.number().describe('Total runtime in milliseconds'),
-  swarmId: z.string().optional().describe('Swarm identifier'),
+  teamId: z.string().optional().describe('Team identifier'),
   parentId: z.string().optional().describe('Parent agent ID'),
   childIds: z.array(z.string()).default([]).describe('Child agent IDs'),
   context: AgentContextSchema.describe('Context information'),
@@ -175,7 +184,7 @@ export const CreateAgentSchema = z.object({
   label: z.string().optional().describe('Human-readable label'),
   model: z.string().min(1).describe('Model identifier (e.g., kimi-k2.5, gpt-4o)'),
   task: z.string().min(1).describe('Initial task description'),
-  swarmId: z.string().optional().describe('Swarm to join'),
+  teamId: z.string().optional().describe('Team to join'),
   parentId: z.string().optional().describe('Parent agent ID'),
   maxRetries: z.number().int().min(0).max(10).default(3).describe('Maximum retry attempts'),
   budgetLimit: z.number().positive().optional().describe('Budget limit in USD'),
@@ -231,7 +240,7 @@ export const AgentTraceSchema = z.object({
 export const ListAgentsQuerySchema = z.object({
   status: AgentStatusSchema.optional().describe('Filter by status'),
   lifecycleState: LifecycleStateSchema.optional().describe('Filter by lifecycle state'),
-  swarmId: z.string().optional().describe('Filter by swarm ID'),
+  teamId: z.string().optional().describe('Filter by team ID'),
   model: z.string().optional().describe('Filter by model'),
   cursor: z.string().optional().describe('Pagination cursor'),
   limit: z.coerce.number().int().min(1).max(500).default(50)

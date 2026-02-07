@@ -13,7 +13,7 @@ export type EntityType = 'agent' | 'task' | 'system';
 
 export interface Event {
   id: string;
-  swarm_id?: string;
+  team_id?: string;
   agent_id?: string;
   type: string;
   payload: Record<string, unknown>;
@@ -26,7 +26,7 @@ export interface Event {
 
 export interface EventCreateInput {
   source?: string;
-  swarm_id?: string;
+  team_id?: string;
   agent_id?: string;
   type: string;
   payload?: Record<string, unknown>;
@@ -38,10 +38,10 @@ export interface EventCreateInput {
 }
 
 export interface EventFilter {
-  swarm_id?: string;
+  team_id?: string;
   agent_id?: string;
-  /** @deprecated Use swarm_id instead */
-  swarmId?: string;
+  /** @deprecated Use team_id instead */
+  teamId?: string;
   /** @deprecated Use agent_id instead */
   agentId?: string;
   types?: string[];
@@ -63,7 +63,7 @@ export interface EventStats24h {
   type: string;
   event_count: number;
   unique_agents: number;
-  unique_swarms: number;
+  unique_teams: number;
   first_occurrence: Date;
   last_occurrence: Date;
 }
@@ -92,12 +92,12 @@ export class EventRepository {
     try {
       const result = await this.pool!.query<EventRow>(
         `INSERT INTO events (
-          swarm_id, agent_id, type, payload, timestamp,
+          team_id, agent_id, type, payload, timestamp,
           correlation_id, parent_event_id, entity_type, severity
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
         [
-          input.swarm_id || null,
+          input.team_id || null,
           input.agent_id || null,
           input.type,
           JSON.stringify(input.payload || {}),
@@ -118,11 +118,11 @@ export class EventRepository {
       // Legacy schema compatibility (event_type/source columns).
       const fallback = await this.pool!.query<EventRow>(
         `INSERT INTO events (
-          swarm_id, agent_id, event_type, source, payload, timestamp
+          team_id, agent_id, event_type, source, payload, timestamp
         ) VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *`,
         [
-          input.swarm_id || null,
+          input.team_id || null,
           input.agent_id || null,
           input.type,
           JSON.stringify({
@@ -173,17 +173,17 @@ export class EventRepository {
   }
 
   /**
-   * Find events by swarm ID
+   * Find events by team ID
    */
-  async findBySwarmId(swarmId: string, limit: number = 100): Promise<Event[]> {
+  async findByTeamId(teamId: string, limit: number = 100): Promise<Event[]> {
     this.ensureInitialized();
     
     const result = await this.pool!.query<EventRow>(
       `SELECT * FROM events 
-       WHERE swarm_id = $1 
+       WHERE team_id = $1 
        ORDER BY timestamp DESC 
        LIMIT $2`,
-      [swarmId, limit]
+      [teamId, limit]
     );
 
     return result.rows.map(row => this.mapRow(row));
@@ -298,7 +298,7 @@ export class EventRepository {
       type: row.type,
       event_count: parseInt(String(row.event_count), 10),
       unique_agents: parseInt(String(row.unique_agents), 10),
-      unique_swarms: parseInt(String(row.unique_swarms), 10),
+      unique_teams: parseInt(String(row.unique_teams), 10),
       first_occurrence: new Date(row.first_occurrence),
       last_occurrence: new Date(row.last_occurrence),
     }));
@@ -328,12 +328,12 @@ export class EventRepository {
       for (const input of inputs) {
         const result = await client.query<EventRow>(
           `INSERT INTO events (
-            swarm_id, agent_id, type, payload, timestamp,
+            team_id, agent_id, type, payload, timestamp,
             correlation_id, parent_event_id, entity_type, severity
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING *`,
           [
-            input.swarm_id || null,
+            input.team_id || null,
             input.agent_id || null,
             input.type,
             JSON.stringify(input.payload || {}),
@@ -385,7 +385,7 @@ export class EventRepository {
       // For task events, we might store task_id in payload or have a separate column
       conditions.push(`payload->>'task_id' = $${paramIndex++}`);
     } else {
-      conditions.push(`swarm_id = $${paramIndex++}`);
+      conditions.push(`team_id = $${paramIndex++}`);
     }
     values.push(entityId);
 
@@ -429,12 +429,12 @@ export class EventRepository {
     let paramIndex = 1;
 
     // Support both snake_case and camelCase (camelCase is deprecated)
-    const swarmId = filter.swarm_id ?? filter.swarmId;
+    const teamId = filter.team_id ?? filter.teamId;
     const agentId = filter.agent_id ?? filter.agentId;
 
-    if (swarmId) {
-      conditions.push(`swarm_id = $${paramIndex++}`);
-      values.push(swarmId);
+    if (teamId) {
+      conditions.push(`team_id = $${paramIndex++}`);
+      values.push(teamId);
     }
     if (agentId) {
       conditions.push(`agent_id = $${paramIndex++}`);
@@ -479,7 +479,7 @@ export class EventRepository {
 
     return {
       id: row.id,
-      swarm_id: row.swarm_id || undefined,
+      team_id: row.team_id || undefined,
       agent_id: row.agent_id || undefined,
       type,
       payload: this.parseJson(row.payload),
@@ -507,7 +507,7 @@ export class EventRepository {
 // Database row types
 interface EventRow {
   id: string;
-  swarm_id?: string;
+  team_id?: string;
   agent_id?: string;
   type?: string;
   event_type?: string;
@@ -524,7 +524,7 @@ interface EventStats24hRow {
   type: string;
   event_count: number | string;
   unique_agents: number | string;
-  unique_swarms: number | string;
+  unique_teams: number | string;
   first_occurrence: string;
   last_occurrence: string;
 }

@@ -236,7 +236,7 @@ export abstract class EventSourcedAggregate {
    * @param type - Event type
    * @returns Handler function or undefined
    */
-  protected abstract getEventHandler(type: string): EventHandler | undefined;
+  protected abstract getEventHandler(type: string): EventHandler<unknown> | undefined;
 
   /**
    * Validate current state (throw if invalid)
@@ -543,7 +543,7 @@ export class AgentAggregate extends EventSourcedAggregate {
   // Event Handlers
   // ============================================================================
 
-  protected getEventHandler(type: string): EventHandler | undefined {
+  protected getEventHandler(type: string): EventHandler<unknown> | undefined {
     const handlers: Record<string, EventHandler> = {
       'agent.initialized': () => {
         this.state = 'initializing';

@@ -41,7 +41,7 @@ export { DEFAULT_SANDBOX_CONFIG } from './extension-api';
 // Constants
 // ============================================================================
 
-const EXTENSIONS_DIR = path.join(os.homedir(), '.dash', 'extensions');
+const EXTENSIONS_DIR = path.join(os.homedir(), '.godel', 'extensions');
 const DEFAULT_HOT_RELOAD_OPTIONS: HotReloadOptions = {
   enabled: true,
   debounceMs: 500,
@@ -155,9 +155,9 @@ function createSandboxedAPI(
   return {
     on: baseAPI.on,
     
-    registerTool: (tool: ToolDefinition) => {
+    registerTool: (<TParams extends TSchema = TSchema, TDetails = unknown>(tool: ToolDefinition<TParams, TDetails>) => {
       // Wrap tool execution with permission checks
-      const wrappedTool: ToolDefinition = {
+      const wrappedTool: ToolDefinition<TParams, TDetails> = {
         ...tool,
         execute: async (toolCallId, params, ctx, onUpdate) => {
           // Check tool-specific permissions
@@ -183,8 +183,8 @@ function createSandboxedAPI(
         },
       };
       
-      baseAPI.registerTool(wrappedTool as any);
-    },
+      baseAPI.registerTool(wrappedTool);
+    }) as <TParams extends TSchema = TSchema, TDetails = unknown>(tool: ToolDefinition<TParams, TDetails>) => void,
     
     registerCommand: baseAPI.registerCommand,
     
@@ -213,7 +213,7 @@ function createJITI(_cwd: string) {
     tryNative: true,
     alias: {
       '@godel/core': path.resolve(projectRoot, 'src/core'),
-      '@dash/api': path.resolve(projectRoot, 'src/api'),
+      '@godel/api': path.resolve(projectRoot, 'src/api'),
     },
   });
 }
@@ -484,7 +484,7 @@ export class ExtensionLoader {
     }
     
     // 2. Project-local extensions: ./.godel/extensions/
-    const localExtDir = path.join(this.options.cwd, '.dash', 'extensions');
+    const localExtDir = path.join(this.options.cwd, '.godel', 'extensions');
     if (fs.existsSync(localExtDir)) {
       discoverExtensionsInDir(localExtDir).forEach(addPath);
     }

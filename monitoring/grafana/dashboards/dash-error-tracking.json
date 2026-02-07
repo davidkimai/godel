@@ -1,9 +1,9 @@
 {
   "dashboard": {
     "id": null,
-    "uid": "dash-error-tracking",
-    "title": "Dash - Error Tracking",
-    "tags": ["dash", "errors", "reliability", "debugging"],
+    "uid": "godel-error-tracking",
+    "title": "Godel - Error Tracking",
+    "tags": ["godel", "errors", "reliability", "debugging"],
     "timezone": "browser",
     "schemaVersion": 38,
     "refresh": "15s",
@@ -260,7 +260,7 @@
       },
       {
         "id": 12,
-        "title": "Agent Failures by Swarm",
+        "title": "Agent Failures by Team",
         "type": "piechart",
         "targets": [
           {
@@ -292,7 +292,7 @@
       },
       {
         "id": 14,
-        "title": "Swarm Failure Rate",
+        "title": "Team Failure Rate",
         "type": "timeseries",
         "targets": [
           {

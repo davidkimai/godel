@@ -1,6 +1,6 @@
 # @dash/ai
 
-Unified LLM API for Dash with provider failover and swarm-aware model selection.
+Unified LLM API for Godel with provider failover and swarm-aware model selection.
 
 ## Installation
 

@@ -2,14 +2,14 @@
  * Workflow CLI Commands
  * 
  * Commands:
- * - swarmctl workflow list              List available workflow templates
- * - swarmctl workflow show <id>         Show workflow details
- * - swarmctl workflow run <id>          Execute a workflow with inputs
- * - swarmctl workflow ps                List running instances
- * - swarmctl workflow status <id>       Show instance status
- * - swarmctl workflow cancel <id>       Cancel workflow
- * - swarmctl workflow validate <file>   Validate workflow JSON
- * - swarmctl workflow export <id>       Export workflow visualization
+ * - godel workflow list              List available workflow templates
+ * - godel workflow show <id>         Show workflow details
+ * - godel workflow run <id>          Execute a workflow with inputs
+ * - godel workflow ps                List running instances
+ * - godel workflow status <id>       Show instance status
+ * - godel workflow cancel <id>       Cancel workflow
+ * - godel workflow validate <file>   Validate workflow JSON
+ * - godel workflow export <id>       Export workflow visualization
  */
 
 import { logger } from '../../utils/logger';
@@ -347,8 +347,8 @@ export function createWorkflowCommand(): Command {
             
             logger.info('\n' + '─'.repeat(80));
             logger.info(`\nTotal: ${templates.length} templates\n`);
-            logger.info('💡 Use "swarmctl workflow show <id>" for details');
-            logger.info('💡 Use "swarmctl workflow run <id>" to execute\n');
+            logger.info('💡 Use "godel workflow show <id>" for details');
+            logger.info('💡 Use "godel workflow run <id>" to execute\n');
           }
         } catch (error) {
           logger.error('❌ Failed to list workflows:', error instanceof Error ? error.message : String(error));
@@ -436,8 +436,8 @@ export function createWorkflowCommand(): Command {
               }
             }
 
-            logger.info('\n💡 Use "swarmctl workflow run ' + id + ' --input ..." to execute');
-            logger.info('💡 Use "swarmctl workflow export ' + id + ' --format mermaid" to visualize\n');
+            logger.info('\n💡 Use "godel workflow run ' + id + ' --input ..." to execute');
+            logger.info('💡 Use "godel workflow export ' + id + ' --format mermaid" to visualize\n');
           }
         } catch (error) {
           logger.error('❌ Failed to show workflow:', error instanceof Error ? error.message : String(error));
@@ -514,7 +514,7 @@ export function createWorkflowCommand(): Command {
               const v = template.variables.find(v => v.name === name);
               logger.info(`     - ${name}: ${v?.description || ''}`);
             }
-            logger.info(`\n💡 Usage: swarmctl workflow run ${id} --input ${missingRequired[0]}=value`);
+            logger.info(`\n💡 Usage: godel workflow run ${id} --input ${missingRequired[0]}=value`);
             process.exit(1);
           }
 
@@ -542,8 +542,8 @@ export function createWorkflowCommand(): Command {
           logger.info(`   Inputs: ${JSON.stringify(inputs)}`);
 
           if (options.async) {
-            logger.info(`\n💡 Use "swarmctl workflow status ${instanceId}" to check status`);
-            logger.info(`   Use "swarmctl workflow ps" to list running instances\n`);
+            logger.info(`\n💡 Use "godel workflow status ${instanceId}" to check status`);
+            logger.info(`   Use "godel workflow ps" to list running instances\n`);
             return;
           }
 
@@ -672,7 +672,7 @@ export function createWorkflowCommand(): Command {
 
             logger.info('─'.repeat(100));
             logger.info(`\nTotal: ${instances.length} instances`);
-            logger.info('💡 Use "swarmctl workflow status <id>" for details\n');
+            logger.info('💡 Use "godel workflow status <id>" for details\n');
           }
         } catch (error) {
           logger.error('❌ Failed to list instances:', error instanceof Error ? error.message : String(error));

@@ -50,7 +50,7 @@ export async function instrumentQuery<T>(
 
   const attributes = {
     'db.system': 'postgresql',
-    'db.name': options?.database || getBaggage('db.name') || 'dash',
+    'db.name': options?.database || getBaggage('db.name') || 'godel',
     'db.statement': sanitizedSql,
     'db.operation': operation,
     'db.sql.table': table,
@@ -113,7 +113,7 @@ export async function instrumentTransaction<T>(
 ): Promise<T> {
   const attributes = {
     'db.system': 'postgresql',
-    'db.name': options?.database || getBaggage('db.name') || 'dash',
+    'db.name': options?.database || getBaggage('db.name') || 'godel',
     'db.transaction.isolation_level': options?.isolationLevel || 'default',
     'db.transaction.readonly': options?.readonly || false,
   };
@@ -194,7 +194,7 @@ export async function instrumentPoolAcquire<T>(
  */
 export function instrumentPoolRelease(fn: () => void): void {
   const { trace } = require('@opentelemetry/api');
-  const tracer = trace.getTracer('dash-database');
+  const tracer = trace.getTracer('godel-database');
   
   const span = tracer.startSpan(SPAN_NAMES.DB_POOL_RELEASE, {
     kind: SpanKind.CLIENT,
@@ -412,7 +412,7 @@ export function logDatabaseEvent(
   data?: Record<string, unknown>
 ): void {
   const traceId = getCurrentTraceId();
-  const dbName = getBaggage('db.name') || 'dash';
+  const dbName = getBaggage('db.name') || 'godel';
   
   logger.info(`[DBTracing] ${eventType}`, {
     event: eventType,

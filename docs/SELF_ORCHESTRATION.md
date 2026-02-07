@@ -1,9 +1,9 @@
-# Self-Orchestration System for Dash
+# Self-Orchestration System for Godel
 
 ## Overview
 
 A self-managing orchestration system that:
-- Assesses Dash project status every 10 minutes
+- Assesses Godel project status every 10 minutes
 - Launches recursive critique subagents to prevent false positives
 - Implements feedback loops for continuous improvement
 - Queries itself using the `/interview` skill pattern
@@ -115,13 +115,13 @@ A self-managing orchestration system that:
 
 ### System Cron
 ```bash
-*/10 * * * * /Users/jasontang/clawd/projects/dash/scripts/self-orchestration.sh
+*/10 * * * * /Users/jasontang/clawd/projects/godel/scripts/self-orchestration.sh
 ```
 
 ### OpenClaw Cron
 ```json
 {
-  "name": "dash-self-orchestrator",
+  "name": "godel-self-orchestrator",
   "schedule": { "everyMs": 600000, "kind": "every" },
   "payload": { "kind": "systemEvent", "text": "SELF_ORCHESTRATION_TRIGGER..." },
   "sessionTarget": "main"
@@ -232,7 +232,7 @@ cat logs/next-steps-$(date +%Y-%m-%d).txt
 - Error frequency
 - Recovery time
 
-## Integration with Dash
+## Integration with Godel
 
 ### Phase 4 Integration
 ```bash
@@ -249,7 +249,7 @@ cat logs/critique-report-*.json | jq '.findings.pimono'
 ### Subagent Health
 ```bash
 # Monitor subagent status
-ps aux | grep "codex.*dash-phase"
+ps aux | grep "codex.*godel-phase"
 ```
 
 ## Troubleshooting
@@ -300,4 +300,4 @@ cat logs/interview-*.md
 
 ---
 
-*This self-orchestration system enables Dash to self-manage, self-assess, and continuously improve.*
+*This self-orchestration system enables Godel to self-manage, self-assess, and continuously improve.*

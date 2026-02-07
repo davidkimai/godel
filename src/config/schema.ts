@@ -1,7 +1,7 @@
 /**
  * Configuration Schema
  * 
- * Zod validation schema for the Dash configuration system.
+ * Zod validation schema for the Godel configuration system.
  * Provides runtime validation with helpful error messages.
  */
 
@@ -50,9 +50,9 @@ export const databaseSchema = z.object({
     if (val && val.length > 0) return val;
     const host = process.env['POSTGRES_HOST'] || 'localhost';
     const port = process.env['POSTGRES_PORT'] || '5432';
-    const db = process.env['POSTGRES_DB'] || 'dash';
-    const user = process.env['POSTGRES_USER'] || 'dash';
-    const password = process.env['POSTGRES_PASSWORD'] || 'dash';
+    const db = process.env['POSTGRES_DB'] || 'godel';
+    const user = process.env['POSTGRES_USER'] || 'godel';
+    const password = process.env['POSTGRES_PASSWORD'] || 'godel';
     return `postgresql://${user}:${password}@${host}:${port}/${db}`;
   }),
   // Optimized defaults for 50+ concurrent agents
@@ -99,8 +99,8 @@ export const authSchema = z.object({
   apiKeys: z.union([
     z.string().transform((val) => val.split(',').map((s) => s.trim()).filter(Boolean)),
     z.array(z.string()),
-  ]).default(['dash-api-key']),
-  jwtSecret: z.string().default('change-me-in-production'),
+  ]).default([]),
+  jwtSecret: z.string().min(32, 'JWT secret must be at least 32 characters').default('development-only-min-32-chars'),
   tokenExpirySeconds: z.coerce.number().default(3600),
   refreshTokenExpirySeconds: z.coerce.number().default(604800),
   enableApiKeyAuth: z.boolean().default(true),
@@ -110,6 +110,33 @@ export const authSchema = z.object({
   {
     message: 'At least one authentication method must be enabled',
     path: ['enableApiKeyAuth'],
+  }
+).refine(
+  (data) => {
+    // SECURITY: In production, require actual API keys (not empty)
+    if (process.env['NODE_ENV'] === 'production' && data.enableApiKeyAuth) {
+      return data.apiKeys.length > 0 && !data.apiKeys.includes('godel-api-key');
+    }
+    return true;
+  },
+  {
+    message: 'Production requires properly configured API keys. Set GODEL_API_KEY environment variable.',
+    path: ['apiKeys'],
+  }
+).refine(
+  (data) => {
+    // SECURITY: In production, require strong JWT secret
+    if (process.env['NODE_ENV'] === 'production' && data.enableJwtAuth) {
+      const isDefault = data.jwtSecret === 'change-me-in-production' || 
+                       data.jwtSecret === 'development-only-min-32-chars' ||
+                       data.jwtSecret.includes('MUST_BE_CONFIGURED');
+      return !isDefault && data.jwtSecret.length >= 32;
+    }
+    return true;
+  },
+  {
+    message: 'Production requires a strong JWT secret (min 32 chars). Set GODEL_JWT_SECRET environment variable.',
+    path: ['jwtSecret'],
   }
 );
 
@@ -123,9 +150,9 @@ export const loggingSchema = z.object({
   level: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
   format: z.enum(['json', 'pretty', 'compact']).default('pretty'),
   destination: z.enum(['stdout', 'stderr', 'file', 'loki', 'multiple']).default('stdout'),
-  filePath: z.string().optional().default('./logs/dash.log'),
+  filePath: z.string().optional().default('./logs/godel.log'),
   lokiUrl: z.string().optional().default('http://localhost:3100'),
-  serviceName: z.string().default('dash'),
+  serviceName: z.string().default('godel'),
   includeTimestamp: z.boolean().default(true),
   includeSourceLocation: z.boolean().default(false),
 });
@@ -203,8 +230,8 @@ export type OpenClawSchema = z.infer<typeof openclawSchema>;
 
 export const eventBusSchema = z.object({
   type: z.enum(['memory', 'redis']).default('redis'),
-  streamKey: z.string().default('dash:events'),
-  consumerGroup: z.string().default('dash:consumers'),
+  streamKey: z.string().default('godel:events'),
+  consumerGroup: z.string().default('godel:consumers'),
   compressionThreshold: z.coerce.number().default(1024),
   maxStreamLength: z.coerce.number().default(100000),
   maxQueuedEvents: z.coerce.number().default(10000),

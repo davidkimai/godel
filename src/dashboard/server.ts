@@ -12,7 +12,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { AgentEventBus, AgentEvent, Subscription } from '../core/event-bus';
 import { SessionTree, BranchComparison } from '../core/session-tree';
-import { SwarmOrchestrator } from '../core/swarm-orchestrator';
+import { TeamOrchestrator } from '../core/team-orchestrator';
 import { logger } from '../utils/logger';
 import { PrometheusMetrics, createHealthRouter, HealthCheckConfig } from '../metrics';
 import { AgentStatus } from '../models/agent';
@@ -42,7 +42,7 @@ export interface DashboardConfig {
 export interface DashboardClient {
   id: string;
   ws: WebSocket;
-  subscribedSwarms: Set<string>;
+  subscribedTeams: Set<string>;
   subscribedSessions: Set<string>;
   subscribedAgents: Set<string>;
   lastHeartbeat: number;
@@ -75,8 +75,8 @@ export interface TreeVisualization {
 export interface DashboardOverview {
   totalAgents: number;
   activeAgents: number;
-  totalSwarms: number;
-  activeSwarms: number;
+  totalTeams: number;
+  activeTeams: number;
   totalCost: number;
   eventsPerSecond: number;
   systemHealth: 'healthy' | 'degraded' | 'critical';
@@ -84,7 +84,7 @@ export interface DashboardOverview {
   recentEvents: number;
 }
 
-export interface SwarmDashboardInfo {
+export interface TeamDashboardInfo {
   id: string;
   name: string;
   status: string;
@@ -102,7 +102,7 @@ export interface AgentDashboardInfo {
   label?: string;
   status: string;
   model: string;
-  swarmId: string;
+  teamId: string;
   swarmName: string;
   task: string;
   runtime: number;
@@ -118,7 +118,7 @@ export interface AgentDashboardInfo {
 export class DashboardServer extends EventEmitter {
   private config: DashboardConfig;
   private eventBus: AgentEventBus;
-  private orchestrator: SwarmOrchestrator;
+  private orchestrator: TeamOrchestrator;
   private sessionTree: SessionTree;
   private metrics: PrometheusMetrics;
 
@@ -135,7 +135,7 @@ export class DashboardServer extends EventEmitter {
 
   constructor(
     eventBus: AgentEventBus,
-    orchestrator: SwarmOrchestrator,
+    orchestrator: TeamOrchestrator,
     sessionTree: SessionTree,
     config?: Partial<DashboardConfig>
   ) {
@@ -258,22 +258,22 @@ export class DashboardServer extends EventEmitter {
       }
     });
 
-    // GET /api/dashboard/swarms - Swarm list with dashboard info
-    this.app.get('/api/dashboard/swarms', (_req: Request, res: Response) => {
+    // GET /api/dashboard/teams - Team list with dashboard info
+    this.app.get('/api/dashboard/teams', (_req: Request, res: Response) => {
       try {
-        const swarms = this.getSwarmDashboardInfo();
-        res.json({ success: true, data: { swarms, total: swarms.length } });
+        const teams = this.getTeamDashboardInfo();
+        res.json({ success: true, data: { teams, total: teams.length } });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to get swarms', { error });
-        res.status(500).json({ success: false, error: 'Failed to get swarm list' });
+        logger.error('[DashboardServer] Failed to get teams', { error });
+        res.status(500).json({ success: false, error: 'Failed to get team list' });
       }
     });
 
     // GET /api/dashboard/agents - Agent statuses
     this.app.get('/api/dashboard/agents', (req: Request, res: Response) => {
       try {
-        const swarmId = req.query['swarmId'] as string | undefined;
-        const agents = this.getAgentDashboardInfo(swarmId);
+        const teamId = req.query['teamId'] as string | undefined;
+        const agents = this.getAgentDashboardInfo(teamId);
         res.json({ success: true, data: { agents, total: agents.length } });
       } catch (error) {
         logger.error('[DashboardServer] Failed to get agents', { error });
@@ -285,10 +285,10 @@ export class DashboardServer extends EventEmitter {
     this.app.get('/api/dashboard/events', (req: Request, res: Response) => {
       try {
         const limit = parseInt(req.query['limit'] as string) || 50;
-        const swarmId = req.query['swarmId'] as string | undefined;
+        const teamId = req.query['teamId'] as string | undefined;
         const agentId = req.query['agentId'] as string | undefined;
         
-        const events = this.getRecentEvents(limit, swarmId, agentId);
+        const events = this.getRecentEvents(limit, teamId, agentId);
         res.json({ success: true, data: { events, total: events.length } });
       } catch (error) {
         logger.error('[DashboardServer] Failed to get events', { error });
@@ -308,38 +308,38 @@ export class DashboardServer extends EventEmitter {
     });
 
     // =========================================================================
-    // Legacy Swarm API Endpoints
+    // Legacy Team API Endpoints
     // =========================================================================
 
-    // Get all swarms
-    this.app.get('/api/swarms', (_req: Request, res: Response) => {
-      const swarms = this.orchestrator.listActiveSwarms().map((swarm) => ({
-        id: swarm.id,
-        name: swarm.name,
-        status: swarm.status,
-        agentCount: swarm.agents.length,
-        metrics: swarm.metrics,
-        budget: swarm.budget,
-        currentBranch: swarm.currentBranch,
-        hasBranching: swarm.config.enableBranching,
-        hasEventStreaming: swarm.config.enableEventStreaming,
+    // Get all teams
+    this.app.get('/api/teams', (_req: Request, res: Response) => {
+      const teams = (this.orchestrator as any).listActiveTeams().map((team) => ({
+        id: team.id,
+        name: team.name,
+        status: team.status,
+        agentCount: team.agents.length,
+        metrics: team.metrics,
+        budget: team.budget,
+        currentBranch: (team as any).currentBranch,
+        hasBranching: (team as any).config.enableBranching,
+        hasEventStreaming: (team as any).config.enableEventStreaming,
       }));
-      res.json({ swarms });
+      res.json({ teams });
     });
 
-    // Get specific swarm
-    this.app.get('/api/swarms/:id', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
-      if (!swarm) {
-        res.status(404).json({ error: 'Swarm not found' });
+    // Get specific team
+    this.app.get('/api/teams/:id', (req: Request, res: Response) => {
+      const team = this.orchestrator.getTeam(req.params['id'] as string);
+      if (!team) {
+        res.status(404).json({ error: 'Team not found' });
         return;
       }
 
-      const status = this.orchestrator.getStatus(swarm.id);
-      const agents = this.orchestrator.getSwarmAgents(swarm.id);
+      const status = (this.orchestrator as any).getStatus(team.id);
+      const agents = (this.orchestrator as any).getTeamAgents(team.id);
 
       res.json({
-        ...swarm,
+        ...team,
         statusInfo: status,
         agents: agents.map((a) => ({
           id: a.id,
@@ -352,16 +352,16 @@ export class DashboardServer extends EventEmitter {
       });
     });
 
-    // Create new swarm
-    this.app.post('/api/swarms', async (req: Request, res: Response) => {
+    // Create new team
+    this.app.post('/api/teams', async (req: Request, res: Response) => {
       try {
         const { name, config } = req.body;
         if (!name) {
-          res.status(400).json({ error: 'Swarm name is required' });
+          res.status(400).json({ error: 'Team name is required' });
           return;
         }
 
-        const swarmConfig = {
+        const teamConfig = {
           name,
           task: config?.task || '',
           initialAgents: config?.initialAgents || 1,
@@ -374,67 +374,67 @@ export class DashboardServer extends EventEmitter {
           ...config,
         };
 
-        const swarm = await this.orchestrator.create(swarmConfig);
-        res.status(201).json({ success: true, data: swarm });
+        const team = await (this.orchestrator as any).create(teamConfig);
+        res.status(201).json({ success: true, data: team });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to create swarm', { error });
+        logger.error('[DashboardServer] Failed to create team', { error });
         res.status(500).json({ 
-          error: error instanceof Error ? error.message : 'Failed to create swarm' 
+          error: error instanceof Error ? error.message : 'Failed to create team' 
         });
       }
     });
 
-    // Update swarm
-    this.app.put('/api/swarms/:id', async (req: Request, res: Response) => {
+    // Update team
+    this.app.put('/api/teams/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const updates = req.body;
         
-        const swarm = (this.orchestrator as any).getSwarm ? (this.orchestrator as any).getSwarm(id) : null;
-        if (!swarm) {
-          res.status(404).json({ error: 'Swarm not found' });
+        const team = (this.orchestrator as any).getTeam ? (this.orchestrator as any).getTeam(id) : null;
+        if (!team) {
+          res.status(404).json({ error: 'Team not found' });
           return;
         }
 
         // Apply updates
-        if (updates.name) swarm.name = updates.name;
+        if (updates.name) team.name = updates.name;
         if (updates.config) {
-          swarm.config = { ...swarm.config, ...updates.config };
+          (team as any).config = { ...(team as any).config, ...updates.config };
         }
 
-        res.json({ success: true, data: swarm });
+        res.json({ success: true, data: team });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to update swarm', { error });
-        res.status(500).json({ error: 'Failed to update swarm' });
+        logger.error('[DashboardServer] Failed to update team', { error });
+        res.status(500).json({ error: 'Failed to update team' });
       }
     });
 
-    // Start swarm
-    this.app.post('/api/swarms/:id/start', async (req: Request, res: Response) => {
+    // Start team
+    this.app.post('/api/teams/:id/start', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         await (this.orchestrator as any).start ? (this.orchestrator as any).start(id) : Promise.resolve();
-        res.json({ success: true, message: 'Swarm started' });
+        res.json({ success: true, message: 'Team started' });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to start swarm', { error });
-        res.status(500).json({ error: 'Failed to start swarm' });
+        logger.error('[DashboardServer] Failed to start team', { error });
+        res.status(500).json({ error: 'Failed to start team' });
       }
     });
 
-    // Stop swarm
-    this.app.post('/api/swarms/:id/stop', async (req: Request, res: Response) => {
+    // Stop team
+    this.app.post('/api/teams/:id/stop', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         await (this.orchestrator as any).stop ? (this.orchestrator as any).stop(id) : Promise.resolve();
-        res.json({ success: true, message: 'Swarm stopped' });
+        res.json({ success: true, message: 'Team stopped' });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to stop swarm', { error });
-        res.status(500).json({ error: 'Failed to stop swarm' });
+        logger.error('[DashboardServer] Failed to stop team', { error });
+        res.status(500).json({ error: 'Failed to stop team' });
       }
     });
 
-    // Scale swarm
-    this.app.post('/api/swarms/:id/scale', async (req: Request, res: Response) => {
+    // Scale team
+    this.app.post('/api/teams/:id/scale', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { targetSize } = req.body;
@@ -445,95 +445,95 @@ export class DashboardServer extends EventEmitter {
         }
 
         await (this.orchestrator as any).scale ? (this.orchestrator as any).scale(id as string, targetSize) : Promise.resolve();
-        res.json({ success: true, message: `Swarm scaled to ${targetSize} agents` });
+        res.json({ success: true, message: `Team scaled to ${targetSize} agents` });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to scale swarm', { error });
-        res.status(500).json({ error: 'Failed to scale swarm' });
+        logger.error('[DashboardServer] Failed to scale team', { error });
+        res.status(500).json({ error: 'Failed to scale team' });
       }
     });
 
-    // Pause swarm
-    this.app.post('/api/swarms/:id/pause', async (req: Request, res: Response) => {
+    // Pause team
+    this.app.post('/api/teams/:id/pause', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         await (this.orchestrator as any).pause ? (this.orchestrator as any).pause(id) : Promise.resolve();
-        res.json({ success: true, message: 'Swarm paused' });
+        res.json({ success: true, message: 'Team paused' });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to pause swarm', { error });
-        res.status(500).json({ error: 'Failed to pause swarm' });
+        logger.error('[DashboardServer] Failed to pause team', { error });
+        res.status(500).json({ error: 'Failed to pause team' });
       }
     });
 
-    // Resume swarm
-    this.app.post('/api/swarms/:id/resume', async (req: Request, res: Response) => {
+    // Resume team
+    this.app.post('/api/teams/:id/resume', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         await (this.orchestrator as any).resume ? (this.orchestrator as any).resume(id) : Promise.resolve();
-        res.json({ success: true, message: 'Swarm resumed' });
+        res.json({ success: true, message: 'Team resumed' });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to resume swarm', { error });
-        res.status(500).json({ error: 'Failed to resume swarm' });
+        logger.error('[DashboardServer] Failed to resume team', { error });
+        res.status(500).json({ error: 'Failed to resume team' });
       }
     });
 
-    // Destroy swarm
-    this.app.delete('/api/swarms/:id', async (req: Request, res: Response) => {
+    // Destroy team
+    this.app.delete('/api/teams/:id', async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         await (this.orchestrator as any).destroy ? (this.orchestrator as any).destroy(id) : Promise.resolve();
-        res.json({ success: true, message: 'Swarm destroyed' });
+        res.json({ success: true, message: 'Team destroyed' });
       } catch (error) {
-        logger.error('[DashboardServer] Failed to destroy swarm', { error });
-        res.status(500).json({ error: 'Failed to destroy swarm' });
+        logger.error('[DashboardServer] Failed to destroy team', { error });
+        res.status(500).json({ error: 'Failed to destroy team' });
       }
     });
 
-    // Get swarm events
-    this.app.get('/api/swarms/:id/events', (req: Request, res: Response) => {
+    // Get team events
+    this.app.get('/api/teams/:id/events', (req: Request, res: Response) => {
       const id = req.params['id'] as string;
       const limit = parseInt(req.query['limit'] as string) || 100;
       
-      const events = this.eventBus.getEvents({ swarmId: id }).slice(0, limit);
+      const events = this.eventBus.getEvents({ teamId: id }).slice(0, limit);
       res.json({ events });
     });
 
     // Get session tree
-    this.app.get('/api/swarms/:id/tree', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
-      if (!swarm || !swarm.config.enableBranching) {
-        res.status(404).json({ error: 'Swarm tree not found or branching not enabled' });
+    this.app.get('/api/teams/:id/tree', (req: Request, res: Response) => {
+      const team = this.orchestrator.getTeam(req.params['id'] as string);
+      if (!team || !(team as any).config.enableBranching) {
+        res.status(404).json({ error: 'Team tree not found or branching not enabled' });
         return;
       }
 
-      const visualization = this.buildTreeVisualization(swarm.sessionTreeId || '');
+      const visualization = this.buildTreeVisualization((team as any).sessionTreeId || '');
       res.json(visualization);
     });
 
     // Get branches
-    this.app.get('/api/swarms/:id/branches', (req: Request, res: Response) => {
-      const swarm = this.orchestrator.getSwarm(req.params['id'] as string);
-      if (!swarm || !swarm.config.enableBranching) {
-        res.status(404).json({ error: 'Swarm branches not found or branching not enabled' });
+    this.app.get('/api/teams/:id/branches', (req: Request, res: Response) => {
+      const team = this.orchestrator.getTeam(req.params['id'] as string);
+      if (!team || !(team as any).config.enableBranching) {
+        res.status(404).json({ error: 'Team branches not found or branching not enabled' });
         return;
       }
 
       try {
-        // We need to access the session tree for this swarm
-        const tree = (this.orchestrator as any).getSessionTreeForSwarm?.(swarm);
+        // We need to access the session tree for this team
+        const tree = (this.orchestrator as any).getSessionTreeForTeam?.(team);
         if (!tree) {
           res.status(404).json({ error: 'Session tree not found' });
           return;
         }
 
         const branches = tree.listBranches();
-        res.json({ branches, currentBranch: swarm.currentBranch });
+        res.json({ branches, currentBranch: (team as any).currentBranch });
       } catch (error) {
         res.status(500).json({ error: 'Failed to get branches' });
       }
     });
 
     // Compare branches
-    this.app.post('/api/swarms/:id/compare', (req: Request, res: Response) => {
+    this.app.post('/api/teams/:id/compare', (req: Request, res: Response) => {
       const { id } = req.params;
       const { branchIds } = req.body;
 
@@ -543,7 +543,7 @@ export class DashboardServer extends EventEmitter {
       }
 
       try {
-        const comparison = this.orchestrator.compareBranches(id as string, branchIds);
+        const comparison = (this.orchestrator as any).compareBranches(id as string, branchIds);
         res.json(comparison);
       } catch (error) {
         res.status(500).json({
@@ -553,7 +553,7 @@ export class DashboardServer extends EventEmitter {
     });
 
     // Create branch
-    this.app.post('/api/swarms/:id/branches', async (req: Request, res: Response) => {
+    this.app.post('/api/teams/:id/branches', async (req: Request, res: Response) => {
       const { id } = req.params;
       const { name, description, fromEntryId } = req.body;
 
@@ -565,9 +565,9 @@ export class DashboardServer extends EventEmitter {
       try {
         let entryId: string;
         if (fromEntryId) {
-          entryId = await this.orchestrator.createBranchAt(id as string, fromEntryId, name, description);
+          entryId = await (this.orchestrator as any).createBranchAt(id as string, fromEntryId, name, description);
         } else {
-          entryId = await this.orchestrator.createBranch(id as string, name, description);
+          entryId = await (this.orchestrator as any).createBranch(id as string, name, description);
         }
         res.json({ entryId, name, description });
       } catch (error) {
@@ -578,7 +578,7 @@ export class DashboardServer extends EventEmitter {
     });
 
     // Switch branch
-    this.app.post('/api/swarms/:id/switch-branch', async (req: Request, res: Response) => {
+    this.app.post('/api/teams/:id/switch-branch', async (req: Request, res: Response) => {
       const { id } = req.params;
       const { branchName } = req.body;
 
@@ -588,7 +588,7 @@ export class DashboardServer extends EventEmitter {
       }
 
       try {
-        await this.orchestrator.switchBranch(id as string, branchName);
+        await (this.orchestrator as any).switchBranch(id as string, branchName);
         res.json({ success: true, currentBranch: branchName });
       } catch (error) {
         res.status(500).json({
@@ -681,16 +681,16 @@ export class DashboardServer extends EventEmitter {
   // =========================================================================
 
   private getDashboardOverview(): DashboardOverview {
-    const swarms = this.orchestrator.listActiveSwarms();
-    const allAgents = swarms.flatMap(s => 
-      this.orchestrator.getSwarmAgents(s.id)
+    const teams = (this.orchestrator as any).listActiveTeams();
+    const allAgents = teams.flatMap(s => 
+      (this.orchestrator as any).getTeamAgents(s.id)
     );
 
     const activeAgents = allAgents.filter(a => 
       a.status === (AgentStatus as any).RUNNING || a.status === (AgentStatus as any).BUSY
     );
 
-    const activeSwarms = swarms.filter(s => 
+    const activeTeams = teams.filter(s => 
       s.status === 'active' || s.status === 'scaling'
     );
 
@@ -704,8 +704,8 @@ export class DashboardServer extends EventEmitter {
     return {
       totalAgents: allAgents.length,
       activeAgents: activeAgents.length,
-      totalSwarms: swarms.length,
-      activeSwarms: activeSwarms.length,
+      totalTeams: teams.length,
+      activeTeams: activeTeams.length,
       totalCost,
       eventsPerSecond: this.calculateEventsPerSecond(),
       systemHealth: this.calculateSystemHealth(activeAgents.length, allAgents.length),
@@ -714,42 +714,42 @@ export class DashboardServer extends EventEmitter {
     };
   }
 
-  private getSwarmDashboardInfo(): SwarmDashboardInfo[] {
-    return this.orchestrator.listActiveSwarms().map(swarm => {
-      const agents = this.orchestrator.getSwarmAgents(swarm.id);
-      const progress = swarm.metrics.totalAgents > 0
-        ? (swarm.metrics.completedAgents + swarm.metrics.failedAgents) / swarm.metrics.totalAgents
+  private getTeamDashboardInfo(): TeamDashboardInfo[] {
+    return (this.orchestrator as any).listActiveTeams().map(team => {
+      const agents = (this.orchestrator as any).getTeamAgents(team.id);
+      const progress = team.metrics.totalAgents > 0
+        ? (team.metrics.completedAgents + team.metrics.failedAgents) / team.metrics.totalAgents
         : 0;
 
       return {
-        id: swarm.id,
-        name: swarm.name,
-        status: swarm.status,
+        id: team.id,
+        name: team.name,
+        status: team.status,
         agentCount: agents.length,
-        budgetRemaining: swarm.budget.remaining,
-        budgetConsumed: swarm.budget.consumed,
+        budgetRemaining: team.budget.remaining,
+        budgetConsumed: team.budget.consumed,
         progress: Math.round(progress * 100),
-        strategy: swarm.config.strategy,
-        createdAt: swarm.createdAt.toISOString(),
-        currentBranch: swarm.currentBranch,
+        strategy: (team as any).config.strategy,
+        createdAt: team.createdAt.toISOString(),
+        currentBranch: (team as any).currentBranch,
       };
     });
   }
 
-  private getAgentDashboardInfo(swarmId?: string): AgentDashboardInfo[] {
-    const swarms = swarmId 
-      ? [this.orchestrator.getSwarm(swarmId)].filter(Boolean)
-      : this.orchestrator.listActiveSwarms();
+  private getAgentDashboardInfo(teamId?: string): AgentDashboardInfo[] {
+    const teams = teamId 
+      ? [this.orchestrator.getTeam(teamId)].filter(Boolean)
+      : (this.orchestrator as any).listActiveTeams();
 
-    return swarms.flatMap(swarm => {
-      const agents = this.orchestrator.getSwarmAgents(swarm.id);
+    return teams.flatMap(team => {
+      const agents = (this.orchestrator as any).getTeamAgents(team.id);
       return agents.map(agent => ({
         id: agent.id,
         label: (agent as any).label || 'unnamed',
         status: agent.status,
         model: (agent as any).model || 'unknown',
-        swarmId: swarm.id,
-        swarmName: swarm.name,
+        teamId: team.id,
+        swarmName: team.name,
         task: (agent as any).task || '',
         runtime: (agent as any).runtime || 0,
         cost: (agent as any).cost || 0,
@@ -759,21 +759,21 @@ export class DashboardServer extends EventEmitter {
     });
   }
 
-  private getRecentEvents(limit: number, swarmId?: string, agentId?: string): AgentEvent[] {
+  private getRecentEvents(limit: number, teamId?: string, agentId?: string): AgentEvent[] {
     const filter: any = {};
     if (limit) filter['limit'] = limit;
-    if (swarmId) filter.swarmId = swarmId;
+    if (teamId) filter.teamId = teamId;
     if (agentId) filter.agentId = agentId;
     
     return (this.eventBus as any).getEvents ? (this.eventBus as any).getEvents(filter) : [];
   }
 
   private getDashboardMetrics(): any {
-    const swarms = this.orchestrator.listActiveSwarms();
-    const allAgents = swarms.flatMap(s => this.orchestrator.getSwarmAgents(s.id));
+    const teams = (this.orchestrator as any).listActiveTeams();
+    const allAgents = teams.flatMap(s => (this.orchestrator as any).getTeamAgents(s.id));
     
-    const totalBudget = swarms.reduce((sum, s) => sum + s.budget.allocated, 0);
-    const consumedBudget = swarms.reduce((sum, s) => sum + s.budget.consumed, 0);
+    const totalBudget = teams.reduce((sum, s) => sum + s.budget.allocated, 0);
+    const consumedBudget = teams.reduce((sum, s) => sum + s.budget.consumed, 0);
     const totalCost = allAgents.reduce((sum, a) => sum + ((a as any).cost || 0), 0);
 
     const byModel = allAgents.reduce((acc, a) => {
@@ -782,7 +782,7 @@ export class DashboardServer extends EventEmitter {
       return acc;
     }, {} as Record<string, number>);
 
-    const bySwarm = swarms.reduce((acc, s) => {
+    const byTeam = teams.reduce((acc, s) => {
       acc[s.name] = s.budget.consumed;
       return acc;
     }, {} as Record<string, number>);
@@ -795,9 +795,9 @@ export class DashboardServer extends EventEmitter {
       hourlyRate: this.calculateHourlyRate(allAgents),
       burnRate: consumedBudget / (process.uptime() / 3600) || 0,
       byModel,
-      bySwarm,
+      byTeam,
       agentCount: allAgents.length,
-      swarmCount: swarms.length,
+      swarmCount: teams.length,
     };
   }
 
@@ -948,7 +948,7 @@ export class DashboardServer extends EventEmitter {
       const client: DashboardClient = {
         id: clientId,
         ws,
-        subscribedSwarms: new Set(),
+        subscribedTeams: new Set(),
         subscribedSessions: new Set(),
         subscribedAgents: new Set(),
         lastHeartbeat: Date.now(),
@@ -996,7 +996,7 @@ export class DashboardServer extends EventEmitter {
   }
 
   private isValidWebSocketPath(pathname: string): boolean {
-    const validPaths = ['/events', '/ws', '/ws/events', '/ws/metrics', '/ws/swarms'];
+    const validPaths = ['/events', '/ws', '/ws/events', '/ws/metrics', '/ws/teams'];
     return validPaths.includes(pathname);
   }
 
@@ -1014,12 +1014,12 @@ export class DashboardServer extends EventEmitter {
           data: this.getDashboardMetrics(),
         });
         break;
-      case '/ws/swarms':
-        client.subscriptions.add('swarms');
-        // Send initial swarm list
+      case '/ws/teams':
+        client.subscriptions.add('teams');
+        // Send initial team list
         this.sendToClient(client, {
-          type: 'swarms',
-          data: this.getSwarmDashboardInfo(),
+          type: 'teams',
+          data: this.getTeamDashboardInfo(),
         });
         break;
       default:
@@ -1032,11 +1032,11 @@ export class DashboardServer extends EventEmitter {
   private handleClientMessage(client: DashboardClient, message: any): void {
     switch (message.type) {
       case 'subscribe':
-        if (message.swarmId) {
-          client.subscribedSwarms.add(message.swarmId);
+        if (message.teamId) {
+          client.subscribedTeams.add(message.teamId);
           this.sendToClient(client, {
             type: 'subscribed',
-            swarmId: message.swarmId,
+            teamId: message.teamId,
           });
         }
         if (message.sessionId) {
@@ -1048,8 +1048,8 @@ export class DashboardServer extends EventEmitter {
         break;
 
       case 'unsubscribe':
-        if (message.swarmId) {
-          client.subscribedSwarms.delete(message.swarmId);
+        if (message.teamId) {
+          client.subscribedTeams.delete(message.teamId);
         }
         if (message.sessionId) {
           client.subscribedSessions.delete(message.sessionId);
@@ -1079,17 +1079,17 @@ export class DashboardServer extends EventEmitter {
         break;
 
       case 'get_branches':
-        if (message.swarmId) {
-          const swarm = this.orchestrator.getSwarm(message.swarmId);
-          if (swarm?.config.enableBranching) {
+        if (message.teamId) {
+          const team = this.orchestrator.getTeam(message.teamId);
+          if ((team as any)?.config.enableBranching) {
             try {
-              const tree = (this.orchestrator as any).getSessionTreeForSwarm?.(swarm);
+              const tree = (this.orchestrator as any).getSessionTreeForTeam?.(team);
               if (tree) {
                 this.sendToClient(client, {
                   type: 'branches_data',
-                  swarmId: message.swarmId,
+                  teamId: message.teamId,
                   branches: tree.listBranches(),
-                  currentBranch: swarm.currentBranch,
+                  currentBranch: (team as any).currentBranch,
                 });
               }
             } catch (error) {
@@ -1103,12 +1103,12 @@ export class DashboardServer extends EventEmitter {
         break;
 
       case 'switch_branch':
-        if (message.swarmId && message.branchName) {
-          this.orchestrator.switchBranch(message.swarmId, message.branchName)
+        if (message.teamId && message.branchName) {
+          (this.orchestrator as any).switchBranch(message.teamId, message.branchName)
             .then(() => {
               this.sendToClient(client, {
                 type: 'branch_switched',
-                swarmId: message.swarmId,
+                teamId: message.teamId,
                 branchName: message.branchName,
               });
             })
@@ -1135,10 +1135,10 @@ export class DashboardServer extends EventEmitter {
         });
         break;
 
-      case 'get_swarms':
+      case 'get_teams':
         this.sendToClient(client, {
-          type: 'swarms',
-          data: this.getSwarmDashboardInfo(),
+          type: 'teams',
+          data: this.getTeamDashboardInfo(),
         });
         break;
 
@@ -1175,7 +1175,7 @@ export class DashboardServer extends EventEmitter {
       // Broadcast to appropriate clients based on subscriptions
       for (const client of this.clients.values()) {
         // Check subscription filters
-        if (event.swarmId && !client.subscribedSwarms.has(event.swarmId) && client.subscribedSwarms.size > 0) {
+        if (event.teamId && !client.subscribedTeams.has(event.teamId) && client.subscribedTeams.size > 0) {
           continue;
         }
         if (event.agentId && !client.subscribedAgents.has(event.agentId) && client.subscribedAgents.size > 0) {
@@ -1250,11 +1250,11 @@ export class DashboardServer extends EventEmitter {
         (client) => client.subscriptions.has('metrics')
       );
 
-      // Broadcast swarm updates
-      const swarmsData = this.getSwarmDashboardInfo();
+      // Broadcast team updates
+      const teamsData = this.getTeamDashboardInfo();
       this.broadcast(
-        { type: 'swarms_update', data: swarmsData },
-        (client) => client.subscriptions.has('swarms')
+        { type: 'teams_update', data: teamsData },
+        (client) => client.subscriptions.has('teams')
       );
     }, 15000); // Every 15 seconds
   }
@@ -1341,7 +1341,7 @@ let globalDashboardServer: DashboardServer | null = null;
 
 export function getGlobalDashboardServer(
   eventBus?: AgentEventBus,
-  orchestrator?: SwarmOrchestrator,
+  orchestrator?: TeamOrchestrator,
   sessionTree?: SessionTree,
   config?: Partial<DashboardConfig>
 ): DashboardServer {

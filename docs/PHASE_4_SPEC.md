@@ -35,7 +35,7 @@
 
 ## 🚀 SUBAGENTS TO LAUNCH
 
-### Subagent 1: dash-test-stabilizer
+### Subagent 1: godel-test-stabilizer
 
 **Mission:** Fix failing tests and achieve >80% coverage
 
@@ -57,7 +57,7 @@
 
 **Codex Command:**
 ```bash
-codex --approval-mode full-auto "Fix 224 failing tests in dash project.
+codex --approval-mode full-auto "Fix 224 failing tests in godel project.
 Focus on:
 1. Timeouts - increase values, fix async
 2. Mocking - correct setup/teardown
@@ -74,7 +74,7 @@ SUCCESS CRITERIA:
 
 ---
 
-### Subagent 2: dash-console-cleanup
+### Subagent 2: godel-console-cleanup
 
 **Mission:** Remove console.log statements from archived worktrees
 
@@ -91,7 +91,7 @@ SUCCESS CRITERIA:
 
 **Codex Command:**
 ```bash
-codex --approval-mode full-auto "Remove console.log from archived worktrees in dash project.
+codex --approval-mode full-auto "Remove console.log from archived worktrees in godel project.
 
 FIND: grep -r "console.log" --include="*.ts" .
 COUNT: Report total by worktree
@@ -111,9 +111,9 @@ SUCCESS CRITERIA:
 
 ---
 
-### Subagent 3: dash-pi-mono-core
+### Subagent 3: godel-pi-mono-core
 
-**Mission:** Implement pi-mono primitives as core Dash architecture
+**Mission:** Implement pi-mono primitives as core Godel architecture
 
 **Deliverables:**
 1. **Unified LLM API** (Priority 1)
@@ -145,7 +145,7 @@ SUCCESS CRITERIA:
 
 **Codex Command:**
 ```bash
-codex --approval-mode full-auto "Implement pi-mono primitives in dash project.
+codex --approval-mode full-auto "Implement pi-mono primitives in godel project.
 
 Reference: docs/PI_MONO_PRIMITIVES.md
 
@@ -169,9 +169,9 @@ SUCCESS CRITERIA:
 
 ---
 
-### Subagent 4: dash-deploy-production
+### Subagent 4: godel-deploy-production
 
-**Mission:** Deploy Dash to production
+**Mission:** Deploy Godel to production
 
 **Deliverables:**
 1. **Staging Deployment**
@@ -191,7 +191,7 @@ SUCCESS CRITERIA:
 
 **Codex Command:**
 ```bash
-codex --approval-mode full-auto "Deploy dash to production.
+codex --approval-mode full-auto "Deploy godel to production.
 
 Steps:
 1. Review DEPLOYMENT.md

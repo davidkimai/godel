@@ -72,7 +72,7 @@ metadata:
     app.kubernetes.io/name: godel-godelboard
     app.kubernetes.io/component: config
 data:
-  DASHBOARD_TITLE: "Dash Operations Center"
+  DASHBOARD_TITLE: "Godel Operations Center"
   DASHBOARD_REFRESH_INTERVAL: "5000"
   DASHBOARD_MAX_LOG_LINES: "1000"
   DASHBOARD_METRICS_ENABLED: "true"

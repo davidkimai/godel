@@ -1,14 +1,14 @@
 /**
  * API Client Library
  * 
- * Provides a unified client for interacting with the Dash API.
+ * Provides a unified client for interacting with the Godel API.
  * Supports both direct core module access and HTTP API (when available).
  */
 
 import type { Agent, CreateAgentOptions } from '../../models/agent';
 import type { Task, CreateTaskOptions } from '../../models/task';
 import type { Event, CreateEventOptions } from '../../models/event';
-import type { Swarm, SwarmConfig, SwarmStatusInfo } from '../../core/swarm';
+import type { Team, TeamConfig, TeamStatusInfo } from '../../core/team';
 import type { Message, MessageFilter } from '../../bus/index';
 import type { AgentState, RetryOptions, LifecycleMetrics } from '../../core/lifecycle';
 import type { Workflow, WorkflowExecution, WorkflowLog } from '../../workflow/types';
@@ -47,16 +47,16 @@ export interface ListOptions {
 // ============================================================================
 
 export interface DashApiClient {
-  // Swarm operations
-  listSwarms(options?: ListOptions): Promise<ApiResponse<PaginatedResponse<Swarm>>>;
-  getSwarm(id: string): Promise<ApiResponse<Swarm>>;
-  createSwarm(config: SwarmConfig): Promise<ApiResponse<Swarm>>;
-  scaleSwarm(id: string, targetSize: number): Promise<ApiResponse<Swarm>>;
-  destroySwarm(id: string, force?: boolean): Promise<ApiResponse<void>>;
-  getSwarmStatus(id: string): Promise<ApiResponse<SwarmStatusInfo>>;
+  // Team operations
+  listTeams(options?: ListOptions): Promise<ApiResponse<PaginatedResponse<Team>>>;
+  getTeam(id: string): Promise<ApiResponse<Team>>;
+  createTeam(config: TeamConfig): Promise<ApiResponse<Team>>;
+  scaleTeam(id: string, targetSize: number): Promise<ApiResponse<Team>>;
+  destroyTeam(id: string, force?: boolean): Promise<ApiResponse<void>>;
+  getTeamStatus(id: string): Promise<ApiResponse<TeamStatusInfo>>;
   
   // Agent operations
-  listAgents(options?: ListOptions & { swarmId?: string; status?: string }): Promise<ApiResponse<PaginatedResponse<Agent>>>;
+  listAgents(options?: ListOptions & { teamId?: string; status?: string }): Promise<ApiResponse<PaginatedResponse<Agent>>>;
   getAgent(id: string): Promise<ApiResponse<Agent>>;
   spawnAgent(options: CreateAgentOptions): Promise<ApiResponse<Agent>>;
   killAgent(id: string, force?: boolean): Promise<ApiResponse<void>>;
@@ -97,8 +97,8 @@ export interface DashApiClient {
     totalAgents: number;
     completedAgents: number;
     failedAgents: number;
-    activeSwarms: number;
-    totalSwarms: number;
+    activeTeams: number;
+    totalTeams: number;
     eventsProcessed: number;
     messagesPublished: number;
     averageRuntime: number;
@@ -135,13 +135,13 @@ export interface DashApiClient {
 // Direct Core Client (uses core modules directly)
 // ============================================================================
 
-import { getGlobalSwarmManager, type SwarmManager } from '../../core/swarm';
+import { getGlobalTeamManager, type TeamManager } from '../../core/team';
 import { getGlobalLifecycle, type AgentLifecycle } from '../../core/lifecycle';
 import { getGlobalBus, type MessageBus, type Subscription } from '../../bus/index';
 import { memoryStore, initDatabase } from '../../storage';
 import { AgentRepository } from '../../storage/repositories/AgentRepository';
 import { EventRepository, type Event as DbEvent } from '../../storage/repositories/EventRepository';
-import { SwarmRepository } from '../../storage/repositories/SwarmRepository';
+import { TeamRepository } from '../../storage/repositories/TeamRepository';
 import { AgentStatus } from '../../models/agent';
 import { TaskStatus } from '../../models/task';
 import { resolve } from 'path';
@@ -203,19 +203,19 @@ class InMemoryTaskStore {
 }
 
 export class DirectDashClient implements DashApiClient {
-  private swarmManager: SwarmManager | null = null;
+  private swarmManager: TeamManager | null = null;
   private lifecycle: AgentLifecycle | null = null;
   private messageBus: MessageBus | null = null;
   private agentRepo: AgentRepository | null = null;
   private eventRepo: EventRepository | null = null;
-  private swarmRepo: SwarmRepository | null = null;
+  private swarmRepo: TeamRepository | null = null;
   private taskStore: InMemoryTaskStore;
   private initialized = false;
   private initializePromise: Promise<void> | null = null;
   private dbPath: string;
   private subscriptions: Map<string, Subscription> = new Map();
 
-  constructor(dbPath: string = './dash.db') {
+  constructor(dbPath: string = './godel.db') {
     this.dbPath = dbPath;
     this.taskStore = new InMemoryTaskStore();
   }
@@ -229,7 +229,7 @@ export class DirectDashClient implements DashApiClient {
 
     this.initializePromise = (async () => {
       // Ensure data directory exists
-      const dataDir = resolve(process.cwd(), '.dash');
+      const dataDir = resolve(process.cwd(), '.godel');
       if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true });
       }
@@ -246,14 +246,14 @@ export class DirectDashClient implements DashApiClient {
       this.lifecycle = getGlobalLifecycle(memoryStore.agents, this.messageBus);
       await this.lifecycle.start();
 
-      // Initialize swarm manager
-      this.swarmManager = getGlobalSwarmManager(this.lifecycle, this.messageBus, memoryStore.agents);
+      // Initialize team manager
+      this.swarmManager = getGlobalTeamManager(this.lifecycle, this.messageBus, memoryStore.agents);
       this.swarmManager.start();
 
       // Initialize repositories
       this.agentRepo = new AgentRepository();
       this.eventRepo = new EventRepository();
-      this.swarmRepo = new SwarmRepository();
+      this.swarmRepo = new TeamRepository();
 
       this.initialized = true;
     })();
@@ -266,24 +266,24 @@ export class DirectDashClient implements DashApiClient {
   }
 
   // ============================================================================
-  // Swarm Operations
+  // Team Operations
   // ============================================================================
 
-  async listSwarms(options: ListOptions = {}): Promise<ApiResponse<PaginatedResponse<Swarm>>> {
+  async listTeams(options: ListOptions = {}): Promise<ApiResponse<PaginatedResponse<Team>>> {
     await this.initialize();
-    const swarms = this.swarmManager!.listSwarms();
-    const total = swarms.length;
+    const teams = this.swarmManager!.listTeams();
+    const total = teams.length;
     
     const page = options.page || 1;
     const pageSize = options.pageSize || 50;
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
-    const paginatedSwarms = swarms.slice(start, end);
+    const paginatedTeams = teams.slice(start, end);
     
     return {
       success: true,
       data: {
-        items: paginatedSwarms,
+        items: paginatedTeams,
         total,
         page,
         pageSize,
@@ -292,56 +292,56 @@ export class DirectDashClient implements DashApiClient {
     };
   }
 
-  async getSwarm(id: string): Promise<ApiResponse<Swarm>> {
+  async getTeam(id: string): Promise<ApiResponse<Team>> {
     await this.initialize();
-    const swarm = this.swarmManager!.getSwarm(id);
+    const team = this.swarmManager!.getTeam(id);
     
-    if (!swarm) {
+    if (!team) {
       return {
         success: false,
-        error: { code: 'NOT_FOUND', message: `Swarm ${id} not found` },
+        error: { code: 'NOT_FOUND', message: `Team ${id} not found` },
       };
     }
     
-    return { success: true, data: swarm };
+    return { success: true, data: team };
   }
 
-  async createSwarm(config: SwarmConfig): Promise<ApiResponse<Swarm>> {
+  async createTeam(config: TeamConfig): Promise<ApiResponse<Team>> {
     await this.initialize();
     
     try {
-      const swarm = await this.swarmManager!.create(config);
-      return { success: true, data: swarm };
+      const team = await this.swarmManager!.create(config);
+      return { success: true, data: team };
     } catch (error) {
       return {
         success: false,
         error: { 
           code: 'CREATE_FAILED', 
-          message: error instanceof Error ? error.message : 'Failed to create swarm' 
+          message: error instanceof Error ? error.message : 'Failed to create team' 
         },
       };
     }
   }
 
-  async scaleSwarm(id: string, targetSize: number): Promise<ApiResponse<Swarm>> {
+  async scaleTeam(id: string, targetSize: number): Promise<ApiResponse<Team>> {
     await this.initialize();
     
     try {
       await this.swarmManager!.scale(id, targetSize);
-      const swarm = this.swarmManager!.getSwarm(id);
-      return { success: true, data: swarm! };
+      const team = this.swarmManager!.getTeam(id);
+      return { success: true, data: team! };
     } catch (error) {
       return {
         success: false,
         error: { 
           code: 'SCALE_FAILED', 
-          message: error instanceof Error ? error.message : 'Failed to scale swarm' 
+          message: error instanceof Error ? error.message : 'Failed to scale team' 
         },
       };
     }
   }
 
-  async destroySwarm(id: string, force?: boolean): Promise<ApiResponse<void>> {
+  async destroyTeam(id: string, force?: boolean): Promise<ApiResponse<void>> {
     await this.initialize();
     
     try {
@@ -352,13 +352,13 @@ export class DirectDashClient implements DashApiClient {
         success: false,
         error: { 
           code: 'DESTROY_FAILED', 
-          message: error instanceof Error ? error.message : 'Failed to destroy swarm' 
+          message: error instanceof Error ? error.message : 'Failed to destroy team' 
         },
       };
     }
   }
 
-  async getSwarmStatus(id: string): Promise<ApiResponse<SwarmStatusInfo>> {
+  async getTeamStatus(id: string): Promise<ApiResponse<TeamStatusInfo>> {
     await this.initialize();
     
     try {
@@ -369,7 +369,7 @@ export class DirectDashClient implements DashApiClient {
         success: false,
         error: { 
           code: 'STATUS_FAILED', 
-          message: error instanceof Error ? error.message : 'Failed to get swarm status' 
+          message: error instanceof Error ? error.message : 'Failed to get team status' 
         },
       };
     }
@@ -379,7 +379,7 @@ export class DirectDashClient implements DashApiClient {
   // Agent Operations
   // ============================================================================
 
-  async listAgents(options: ListOptions & { swarmId?: string; status?: string } = {}): Promise<ApiResponse<PaginatedResponse<Agent>>> {
+  async listAgents(options: ListOptions & { teamId?: string; status?: string } = {}): Promise<ApiResponse<PaginatedResponse<Agent>>> {
     await this.initialize();
     
     // Get all agents from lifecycle
@@ -387,8 +387,8 @@ export class DirectDashClient implements DashApiClient {
     let agents = states.map(s => s.agent);
     
     // Apply filters
-    if (options.swarmId) {
-      agents = agents.filter(a => a.swarmId === options.swarmId);
+    if (options.teamId) {
+      agents = agents.filter(a => a.teamId === options.teamId);
     }
     if (options.status) {
       agents = agents.filter(a => a.status === options.status);
@@ -435,7 +435,7 @@ export class DirectDashClient implements DashApiClient {
       // Persist agent to database
       try {
         await this.agentRepo!.create({
-          swarm_id: agent.swarmId,
+          team_id: agent.teamId,
           label: agent.label,
           status: AgentStatus.PENDING,
           model: agent.model,
@@ -868,8 +868,8 @@ export class DirectDashClient implements DashApiClient {
     totalAgents: number;
     completedAgents: number;
     failedAgents: number;
-    activeSwarms: number;
-    totalSwarms: number;
+    activeTeams: number;
+    totalTeams: number;
     eventsProcessed: number;
     messagesPublished: number;
     averageRuntime: number;
@@ -878,8 +878,8 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     const lifecycleMetrics = this.lifecycle!.getMetrics();
-    const swarms = this.swarmManager!.listSwarms();
-    const activeSwarms = this.swarmManager!.listActiveSwarms();
+    const teams = this.swarmManager!.listTeams();
+    const activeTeams = this.swarmManager!.listActiveTeams();
     
     const totalAgents = lifecycleMetrics.totalSpawned;
     const completedAgents = lifecycleMetrics.totalCompleted;
@@ -903,8 +903,8 @@ export class DirectDashClient implements DashApiClient {
         totalAgents,
         completedAgents,
         failedAgents: lifecycleMetrics.totalFailed,
-        activeSwarms: activeSwarms.length,
-        totalSwarms: swarms.length,
+        activeTeams: activeTeams.length,
+        totalTeams: teams.length,
         eventsProcessed: totalAgents * 5,
         messagesPublished: totalAgents * 10,
         averageRuntime,
@@ -930,7 +930,7 @@ export class DirectDashClient implements DashApiClient {
     // Check lifecycle
     checks['lifecycle'] = { status: this.lifecycle ? 'healthy' : 'unhealthy' };
     
-    // Check swarm manager
+    // Check team manager
     checks['swarmManager'] = { status: this.swarmManager ? 'healthy' : 'unhealthy' };
     
     // Check message bus

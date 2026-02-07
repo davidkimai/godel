@@ -1,4 +1,4 @@
-# DASH PRODUCTION READINESS TECH SPECS & PHASED ROADMAP
+# GODEL PRODUCTION READINESS TECH SPECS & PHASED ROADMAP
 ## Technical Specification v1.0 - February 4, 2026
 
 ---
@@ -521,15 +521,15 @@ export default logger;
 
 ```bash
 # Every 15 minutes - Progress check
-*/15 * * * * cd /Users/jasontang/clawd/projects/dash && \
+*/15 * * * * cd /Users/jasontang/clawd/projects/godel && \
   bash scripts/check-production-readiness.sh
 
 # Every hour - Commit check
-0 * * * * cd /Users/jasontang/clawd/projects/dash && \
+0 * * * * cd /Users/jasontang/clawd/projects/godel && \
   bash scripts/auto-commit.sh "auto: $(date +%H:%M)"
 
 # Every 4 hours - Backup
-0 */4 * * * cd /Users/jasontang/clawd/projects/dash && \
+0 */4 * * * cd /Users/jasontang/clawd/projects/godel && \
   bash scripts/backup.sh
 ```
 
@@ -585,7 +585,7 @@ bash scripts/git-status-check.sh
 - Data loss
 
 ### Rollback Procedure
-1. Trigger: `dash rollback --to-version v1.x.x`
+1. Trigger: `godel rollback --to-version v1.x.x`
 2. Database: Run down migrations
 3. Config: Restore previous configuration
 4. Verify: Health checks pass

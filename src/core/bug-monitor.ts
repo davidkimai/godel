@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
-import { decisionEngine, authorizeSwarm, DecisionRequest } from './decision-engine';
-import { swarmExecutor } from './swarm-executor';
+import { decisionEngine, authorizeTeam, DecisionRequest } from './decision-engine';
+import { teamExecutor } from './team-executor';
 
 // ============================================================================
 // BUG MONITOR TYPES
@@ -38,7 +38,7 @@ export interface BugReport {
   suggestedFix?: string;
   autoFixAttempted: boolean;
   autoFixSuccess?: boolean;
-  swarmId?: string;
+  teamId?: string;
   retryCount: number;
 }
 
@@ -159,7 +159,7 @@ export class BugMonitor extends EventEmitter {
   }
 
   /**
-   * Attempt to auto-fix a bug using a swarm
+   * Attempt to auto-fix a bug using a team
    */
   async attemptAutoFix(bug: BugReport): Promise<boolean> {
     if (bug.autoFixAttempted && bug.retryCount >= this.config.autoFixMaxRetries) {
@@ -173,9 +173,9 @@ export class BugMonitor extends EventEmitter {
     bug.autoFixAttempted = true;
     bug.retryCount++;
 
-    // Create decision request for the fix swarm
+    // Create decision request for the fix team
     const request: DecisionRequest = {
-      swarmId: bug.id,
+      teamId: bug.id,
       estimatedCost: Math.min(this.config.autoFixMaxCost, 5.0),
       agentCount: 3,
       operationType: 'fix',
@@ -186,7 +186,7 @@ export class BugMonitor extends EventEmitter {
     };
 
     // Check authorization
-    const auth = authorizeSwarm(request);
+    const auth = authorizeTeam(request);
 
     if (!auth.allowed) {
       logger.warn('bug-monitor', 'Auto-fix not authorized', {
@@ -198,11 +198,11 @@ export class BugMonitor extends EventEmitter {
       return false;
     }
 
-    // Execute fix swarm (simulated)
+    // Execute fix team (simulated)
     try {
-      logger.info('bug-monitor', 'Executing auto-fix swarm', { bugId: bug.id });
+      logger.info('bug-monitor', 'Executing auto-fix team', { bugId: bug.id });
 
-      // In real implementation, this would spawn a fix swarm
+      // In real implementation, this would spawn a fix team
       // For now, simulate the fix
       await this.simulateFix(bug);
 

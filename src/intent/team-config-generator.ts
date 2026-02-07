@@ -1,16 +1,16 @@
 /**
- * @fileoverview Swarm Config Generator - Automatic swarm configuration from intent
+ * @fileoverview Team Config Generator - Automatic team configuration from intent
  * 
- * This module generates optimal swarm configurations based on parsed intent
+ * This module generates optimal team configurations based on parsed intent
  * and complexity analysis.
  * 
- * @module @godel/intent/swarm-config-generator
+ * @module @godel/intent/team-config-generator
  */
 
 import {
   ParsedIntent,
-  SwarmComplexity,
-  SwarmConfiguration,
+  TeamComplexity,
+  TeamConfiguration,
   AgentConfig,
   AgentType,
   TaskType,
@@ -126,10 +126,10 @@ class DefaultTemplateLibrary implements WorkflowTemplateLibrary {
 }
 
 // ============================================================================
-// SWARM CONFIG GENERATOR CLASS
+// TEAM CONFIG GENERATOR CLASS
 // ============================================================================
 
-export class SwarmConfigGenerator {
+export class TeamConfigGenerator {
   private templates: WorkflowTemplateLibrary;
 
   constructor(templates?: WorkflowTemplateLibrary) {
@@ -137,14 +137,14 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate swarm configuration from intent and complexity.
+   * Generate team configuration from intent and complexity.
    * 
    * @param intent - Parsed intent
    * @param complexity - Complexity assessment
-   * @returns Swarm configuration
+   * @returns Team configuration
    */
-  async generate(intent: ParsedIntent, complexity: SwarmComplexity): Promise<SwarmConfiguration> {
-    const config: SwarmConfiguration = {
+  async generate(intent: ParsedIntent, complexity: TeamComplexity): Promise<TeamConfiguration> {
+    const config: TeamConfiguration = {
       name: this.generateName(intent),
       description: this.generateDescription(intent, complexity),
       agents: [],
@@ -157,28 +157,28 @@ export class SwarmConfigGenerator {
     // Generate agents based on task type
     switch (intent.taskType) {
       case 'refactor':
-        config.agents = this.generateRefactorSwarm(complexity, intent);
+        config.agents = this.generateRefactorTeam(complexity, intent);
         break;
       case 'implement':
-        config.agents = this.generateImplementationSwarm(complexity, intent);
+        config.agents = this.generateImplementationTeam(complexity, intent);
         break;
       case 'fix':
-        config.agents = this.generateBugFixSwarm(complexity, intent);
+        config.agents = this.generateBugFixTeam(complexity, intent);
         break;
       case 'test':
-        config.agents = this.generateTestSwarm(complexity, intent);
+        config.agents = this.generateTestTeam(complexity, intent);
         break;
       case 'review':
-        config.agents = this.generateReviewSwarm(complexity, intent);
+        config.agents = this.generateReviewTeam(complexity, intent);
         break;
       case 'document':
-        config.agents = this.generateDocumentSwarm(complexity, intent);
+        config.agents = this.generateDocumentTeam(complexity, intent);
         break;
       case 'analyze':
-        config.agents = this.generateAnalysisSwarm(complexity, intent);
+        config.agents = this.generateAnalysisTeam(complexity, intent);
         break;
       default:
-        config.agents = this.generateGenericSwarm(complexity);
+        config.agents = this.generateGenericTeam(complexity);
     }
 
     // Calculate estimates
@@ -189,9 +189,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate refactoring swarm configuration.
+   * Generate refactoring team configuration.
    */
-  private generateRefactorSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateRefactorTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     const agents: AgentConfig[] = [];
 
     // Always need an architect for design decisions
@@ -229,9 +229,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate implementation swarm configuration.
+   * Generate implementation team configuration.
    */
-  private generateImplementationSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateImplementationTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     const agents: AgentConfig[] = [];
 
     // Architect for design
@@ -279,9 +279,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate bug fix swarm configuration.
+   * Generate bug fix team configuration.
    */
-  private generateBugFixSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateBugFixTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     return [
       {
         role: 'Bug Investigator',
@@ -316,9 +316,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate test swarm configuration.
+   * Generate test team configuration.
    */
-  private generateTestSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateTestTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     const agents: AgentConfig[] = [];
 
     // Test lead for strategy
@@ -344,9 +344,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate review swarm configuration.
+   * Generate review team configuration.
    */
-  private generateReviewSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateReviewTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     return [
       {
         role: 'Lead Reviewer',
@@ -368,9 +368,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate documentation swarm configuration.
+   * Generate documentation team configuration.
    */
-  private generateDocumentSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateDocumentTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     return [
       {
         role: 'Technical Writer',
@@ -397,9 +397,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate analysis swarm configuration.
+   * Generate analysis team configuration.
    */
-  private generateAnalysisSwarm(complexity: SwarmComplexity, intent: ParsedIntent): AgentConfig[] {
+  private generateAnalysisTeam(complexity: TeamComplexity, intent: ParsedIntent): AgentConfig[] {
     return [
       {
         role: 'Principal Analyst',
@@ -420,9 +420,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate generic swarm configuration.
+   * Generate generic team configuration.
    */
-  private generateGenericSwarm(complexity: SwarmComplexity): AgentConfig[] {
+  private generateGenericTeam(complexity: TeamComplexity): AgentConfig[] {
     return [
       {
         role: 'Task Coordinator',
@@ -444,7 +444,7 @@ export class SwarmConfigGenerator {
   /**
    * Calculate worker count based on complexity.
    */
-  private calculateWorkerCount(complexity: SwarmComplexity, min: number, max: number): number {
+  private calculateWorkerCount(complexity: TeamComplexity, min: number, max: number): number {
     // Base count on file count
     const baseCount = Math.ceil(complexity.metrics.fileCount / 5);
     
@@ -470,7 +470,7 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate swarm name.
+   * Generate team name.
    */
   private generateName(intent: ParsedIntent): string {
     const taskNames: Record<TaskType, string> = {
@@ -487,9 +487,9 @@ export class SwarmConfigGenerator {
   }
 
   /**
-   * Generate swarm description.
+   * Generate team description.
    */
-  private generateDescription(intent: ParsedIntent, complexity: SwarmComplexity): string {
+  private generateDescription(intent: ParsedIntent, complexity: TeamComplexity): string {
     let desc = `${intent.taskType} task targeting ${intent.target}`;
     
     if (intent.focus) {
@@ -516,7 +516,7 @@ export class SwarmConfigGenerator {
   /**
    * Estimate time for execution.
    */
-  private estimateTime(agents: AgentConfig[], complexity: SwarmComplexity): number {
+  private estimateTime(agents: AgentConfig[], complexity: TeamComplexity): number {
     // Base time
     const baseTime = 10; // 10 minutes
     
@@ -536,12 +536,12 @@ export class SwarmConfigGenerator {
 // ============================================================================
 
 /**
- * Generate swarm configuration.
+ * Generate team configuration.
  */
-export async function generateSwarmConfig(
+export async function generateTeamConfig(
   intent: ParsedIntent,
-  complexity: SwarmComplexity
-): Promise<SwarmConfiguration> {
-  const generator = new SwarmConfigGenerator();
+  complexity: TeamComplexity
+): Promise<TeamConfiguration> {
+  const generator = new TeamConfigGenerator();
   return generator.generate(intent, complexity);
 }

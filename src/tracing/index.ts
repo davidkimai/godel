@@ -1,7 +1,7 @@
 /**
  * Tracing Module
  * 
- * Distributed tracing support for Dash using OpenTelemetry and Jaeger.
+ * Distributed tracing support for Godel using OpenTelemetry and Jaeger.
  * 
  * @example
  * ```typescript
@@ -9,7 +9,7 @@
  * 
  * // Initialize tracing
  * initializeTracing({
- *   serviceName: 'dash-orchestrator',
+ *   serviceName: 'godel-orchestrator',
  *   samplingRatio: 0.01,
  * });
  * 

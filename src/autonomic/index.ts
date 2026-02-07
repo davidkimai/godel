@@ -1,5 +1,5 @@
 /**
- * Autonomic Maintenance Swarm
+ * Autonomic Maintenance Team
  * 
  * Self-maintaining maintenance system for Godel.
  * Automatically detects, diagnoses, and fixes errors.
@@ -15,19 +15,19 @@ export { ErrorListenerService } from './error-listener';
 export { TestWriterAgent } from './test-writer';
 export { PatchAgent } from './patch-agent';
 export { PRAgent } from './pr-agent';
-export { MaintenanceSwarmOrchestrator } from './orchestrator';
+export { MaintenanceTeamOrchestrator } from './orchestrator';
 
 // Factory function for easy instantiation
 import { AgentEventBus } from '../core/event-bus';
-import { MaintenanceSwarmOrchestrator } from './orchestrator';
+import { MaintenanceTeamOrchestrator } from './orchestrator';
 
 /**
- * Create and start the autonomic maintenance swarm
+ * Create and start the autonomic maintenance team
  */
-export async function createAutonomicSwarm(
+export async function createAutonomicTeam(
   eventBus: AgentEventBus
-): Promise<MaintenanceSwarmOrchestrator> {
-  const orchestrator = new MaintenanceSwarmOrchestrator({ eventBus });
+): Promise<MaintenanceTeamOrchestrator> {
+  const orchestrator = new MaintenanceTeamOrchestrator({ eventBus });
   await orchestrator.start();
   return orchestrator;
 }
@@ -35,19 +35,19 @@ export async function createAutonomicSwarm(
 /**
  * Get the singleton orchestrator instance
  */
-let globalOrchestrator: MaintenanceSwarmOrchestrator | null = null;
+let globalOrchestrator: MaintenanceTeamOrchestrator | null = null;
 
 export function getGlobalOrchestrator(
   eventBus?: AgentEventBus
-): MaintenanceSwarmOrchestrator | null {
+): MaintenanceTeamOrchestrator | null {
   if (!globalOrchestrator && eventBus) {
-    globalOrchestrator = new MaintenanceSwarmOrchestrator({ eventBus });
+    globalOrchestrator = new MaintenanceTeamOrchestrator({ eventBus });
   }
   return globalOrchestrator;
 }
 
 export function setGlobalOrchestrator(
-  orchestrator: MaintenanceSwarmOrchestrator | null
+  orchestrator: MaintenanceTeamOrchestrator | null
 ): void {
   globalOrchestrator = orchestrator;
 }

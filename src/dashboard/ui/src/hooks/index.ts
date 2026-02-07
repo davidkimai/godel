@@ -7,7 +7,7 @@
 export {
   useWebSocket,
   useAgentsRealtime,
-  useSwarmsRealtime,
+  useTeamsRealtime,
   useEventsRealtime,
   useMetricsRealtime,
   useConnectionStatus

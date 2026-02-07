@@ -209,7 +209,7 @@ godel_proxy_cost_total{provider="anthropic"}
 
 ### Grafana Dashboard
 
-Import dashboard from `monitoring/grafana/dashboards/dash-overview.json`
+Import dashboard from `monitoring/grafana/dashboards/godel-overview.json`
 
 ### Alerting Rules
 

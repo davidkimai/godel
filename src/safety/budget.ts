@@ -1,7 +1,7 @@
 /**
  * Budget Tracking Module
  *
- * Provides budget tracking per task, agent, swarm, and project.
+ * Provides budget tracking per task, agent, team, and project.
  * Tracks token usage and cost calculation with threshold monitoring.
  * Budget configurations are persisted to disk for cross-session survival.
  */
@@ -18,7 +18,7 @@ import { checkThresholds, executeThresholdAction, ThresholdConfig, ThresholdChec
 // ============================================================================
 
 // Budget storage location (in user's home directory for persistence)
-const BUDGETS_DIR = path.join(os.homedir(), '.config', 'dash');
+const BUDGETS_DIR = path.join(os.homedir(), '.config', 'godel');
 const BUDGETS_FILE = path.join(BUDGETS_DIR, 'budgets.json');
 
 // Persisted data structure
@@ -33,7 +33,7 @@ interface PersistedBudgets {
 // Types & Interfaces
 // ============================================================================
 
-export type BudgetType = 'task' | 'agent' | 'swarm' | 'project';
+export type BudgetType = 'task' | 'agent' | 'team' | 'project';
 export type BudgetPeriod = 'daily' | 'weekly' | 'monthly';
 
 export interface TokenCount {
@@ -50,7 +50,7 @@ export interface CostBreakdown {
 
 export interface BudgetConfig {
   type: BudgetType;
-  scope: string; // taskId, agentId, swarmId, or projectId
+  scope: string; // taskId, agentId, teamId, or projectId
   maxTokens: number;
   maxCost: number;
   period?: BudgetPeriod;
@@ -68,7 +68,7 @@ export interface BudgetTracking {
   id: string;
   agentId: string;
   taskId: string;
-  swarmId?: string;
+  teamId?: string;
   projectId: string;
   model: string;
 
@@ -312,7 +312,7 @@ export function getBudgetConfig(typeOrScope: BudgetType | string, scope?: string
 
   // Single argument form: getBudgetConfig(scope) - try all types
   const scopeStr = typeOrScope as string;
-  const types: BudgetType[] = ['task', 'agent', 'swarm', 'project'];
+  const types: BudgetType[] = ['task', 'agent', 'team', 'project'];
   for (const t of types) {
     const key = `${t}:${scopeStr}`;
     const config = budgetConfigs.get(key);
@@ -430,7 +430,7 @@ export function startBudgetTracking(
   taskId: string,
   projectId: string,
   model: string,
-  swarmId?: string
+  teamId?: string
 ): BudgetTracking;
 export function startBudgetTracking(params: {
   agentId: string;
@@ -438,16 +438,16 @@ export function startBudgetTracking(params: {
   projectId: string;
   model: string;
   budgetConfig?: Partial<BudgetConfig>;
-  swarmId?: string;
+  teamId?: string;
 }): BudgetTracking;
 export function startBudgetTracking(
-  agentIdOrParams: string | { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string },
+  agentIdOrParams: string | { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; teamId?: string },
   taskIdArg?: string,
   projectIdArg?: string,
   modelArg?: string,
-  swarmIdArg?: string
+  teamIdArg?: string
 ): BudgetTracking {
-  let params: { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; swarmId?: string };
+  let params: { agentId: string; taskId: string; projectId: string; model: string; budgetConfig?: Partial<BudgetConfig>; teamId?: string };
 
   if (typeof agentIdOrParams === 'object') {
     params = agentIdOrParams;
@@ -457,17 +457,17 @@ export function startBudgetTracking(
       taskId: taskIdArg || '',
       projectId: projectIdArg || '',
       model: modelArg || 'unknown',
-      swarmId: swarmIdArg,
+      teamId: teamIdArg,
     };
   }
 
-  const { agentId, taskId, projectId, model, swarmId, budgetConfig } = params;
+  const { agentId, taskId, projectId, model, teamId, budgetConfig } = params;
 
   // Find the most specific budget config
   let config = 
     getBudgetConfig('task', taskId) ||
     getBudgetConfig('agent', agentId) ||
-    (swarmId && getBudgetConfig('swarm', swarmId)) ||
+    (teamId && getBudgetConfig('team', teamId)) ||
     getBudgetConfig('project', projectId) ||
     getDefaultBudgetConfig();
 
@@ -480,7 +480,7 @@ export function startBudgetTracking(
     id: generateId(),
     agentId,
     taskId,
-    swarmId,
+    teamId,
     projectId,
     model,
     tokensUsed: { prompt: 0, completion: 0, total: 0 },

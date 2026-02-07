@@ -172,7 +172,7 @@ export class PostgresEventStore implements EventStore {
     return {
       id: event.id,
       type: event.type,
-      source: event.agent_id || event.swarm_id || 'system',
+      source: event.agent_id || event.team_id || 'system',
       timestamp: event.timestamp.getTime(),
       payload: event.payload,
       metadata: {

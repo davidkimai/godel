@@ -4,11 +4,11 @@
 **Status:** DRAFT
 **Created:** 2026-02-04
 **Based on:** PRD-002
-**Owner:** Dash v2.0 - Core Integration
+**Owner:** Godel v2.0 - Core Integration
 
 ## 1. Overview
 
-This document provides detailed technical specifications for integrating `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core primitives of Dash.
+This document provides detailed technical specifications for integrating `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core primitives of Godel.
 
 ## 2. Data Types
 
@@ -144,7 +144,7 @@ export interface ToolCall {
 // src/context/types.ts
 
 /**
- * Extended context with Dash metadata
+ * Extended context with Godel metadata
  */
 export interface DashContext {
   /** System prompt */
@@ -396,7 +396,7 @@ export class UnifiedModel extends EventEmitter {
   }
   
   /**
-   * Convert Dash context to pi-ai context
+   * Convert Godel context to pi-ai context
    */
   private toPiContext(context: DashContext): Context {
     return {
@@ -415,7 +415,7 @@ export class UnifiedModel extends EventEmitter {
   }
   
   /**
-   * Map pi-ai events to Dash events
+   * Map pi-ai events to Godel events
    */
   private mapEvent(event: any, context: DashContext): StreamEvent {
     return event;

@@ -1,26 +1,26 @@
 /**
- * Swarm Commands
+ * Team Commands
  * 
  * Commands:
- * - dash swarm create -n <name> -t <task>
- * - dash swarm list
- * - dash swarm status [id]
+ * - godel team create -n <name> -t <task>
+ * - godel team list
+ * - godel team status [id]
  */
 
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 
 export function swarmCommand(): Command {
-  const cmd = new Command('swarm')
-    .description('Manage agent swarms')
+  const cmd = new Command('team')
+    .description('Manage agent teams')
     .configureHelp({ sortOptions: true });
   
-  // swarm create
+  // team create
   cmd.addCommand(
     new Command('create')
-      .description('Create a new swarm')
-      .option('-n, --name <name>', 'Swarm name (required)', '')
-      .option('-t, --task <task>', 'Initial task for swarm (required)', '')
+      .description('Create a new team')
+      .option('-n, --name <name>', 'Team name (required)', '')
+      .option('-t, --task <task>', 'Initial task for team (required)', '')
       .option('-a, --agents <count>', 'Number of agents', '3')
       .option('--provider <provider>', 'Default LLM provider', 'anthropic')
       .option('--model <model>', 'Default model', 'claude-sonnet-4-20250514')
@@ -38,14 +38,14 @@ export function swarmCommand(): Command {
           logger.info('❌  Validation failed:\n');
           errors.forEach(e => logger.info(`   ${e}`));
           logger.info('\n💡  Usage examples:');
-          logger.info('   dash swarm create -n "my-swarm" -t "Analyze this codebase"');
-          logger.info('   dash swarm create --name research --task "Research AI agents"');
-          logger.info('   dash swarm create -n test -t "Run tests" -a 2');
+          logger.info('   godel team create -n "my-team" -t "Analyze this codebase"');
+          logger.info('   godel team create --name research --task "Research AI agents"');
+          logger.info('   godel team create -n test -t "Run tests" -a 2');
           process.exit(1);
         }
         
-        // Create swarm stub
-        logger.info(`✅  Swarm created: ${options.name}`);
+        // Create team stub
+        logger.info(`✅  Team created: ${options.name}`);
         logger.info(`   Name: ${options.name}`);
         logger.info(`   Task: ${options.task}`);
         logger.info(`   Agents: ${options.agents}`);
@@ -56,25 +56,25 @@ export function swarmCommand(): Command {
       })
   );
   
-  // swarm list
+  // team list
   cmd.addCommand(
     new Command('list')
-      .description('List all swarms')
+      .description('List all teams')
       .option('--json', 'Output as JSON')
       .action(async (options) => {
-        const swarms: any[] = [];
+        const teams: any[] = [];
         
         if (options.json) {
-          logger.info(JSON.stringify(swarms, null, 2));
+          logger.info(JSON.stringify(teams, null, 2));
         } else {
-          logger.info('=== Swarms ===');
-          if (swarms.length === 0) {
-            logger.info('No swarms found');
+          logger.info('=== Teams ===');
+          if (teams.length === 0) {
+            logger.info('No teams found');
           } else {
-            swarms.forEach(swarm => {
-              logger.info(`- ${swarm.id}: ${swarm.name} (${swarm.status})`);
-              logger.info(`  Task: ${swarm.task}`);
-              logger.info(`  Agents: ${swarm.agentIds.length}`);
+            teams.forEach(team => {
+              logger.info(`- ${team.id}: ${team.name} (${team.status})`);
+              logger.info(`  Task: ${team.task}`);
+              logger.info(`  Agents: ${team.agentIds.length}`);
             });
           }
         }
@@ -83,18 +83,18 @@ export function swarmCommand(): Command {
       })
   );
   
-  // swarm status
+  // team status
   cmd.addCommand(
     new Command('status [id]')
-      .description('Show swarm status')
+      .description('Show team status')
       .action(async (id) => {
         if (!id) {
-          logger.info('❌  Swarm ID required');
-          logger.info('💡  Usage: dash swarm status <id>');
+          logger.info('❌  Team ID required');
+          logger.info('💡  Usage: godel team status <id>');
           process.exit(1);
         }
         
-        logger.info(`=== Swarm: ${id} ===`);
+        logger.info(`=== Team: ${id} ===`);
         logger.info(`Status: pending`);
         
         process.exit(0);
@@ -105,7 +105,7 @@ export function swarmCommand(): Command {
 }
 
 // Alias for compatibility with existing code
-export function registerSwarmCommand(program: Command): void {
+export function registerTeamCommand(program: Command): void {
   program.addCommand(swarmCommand());
 }
 

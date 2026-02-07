@@ -1,7 +1,7 @@
 /**
  * Workflow Event Bus Integration
  * 
- * Integrates the workflow engine with the Dash event bus for:
+ * Integrates the workflow engine with the Godel event bus for:
  * - Publishing workflow events
  * - Subscribing to workflow events
  * - Tracking workflow metrics
@@ -70,7 +70,7 @@ export function createWorkflowEventBusIntegration(
       type: 'tool_call_end', // Reuse existing type for compatibility
       timestamp: Date.now(),
       agentId: 'workflow-engine',
-      swarmId: event.workflowId,
+      teamId: event.workflowId,
       correlationId: event.executionId,
       tool: 'workflow_event',
       result: agentEvent,

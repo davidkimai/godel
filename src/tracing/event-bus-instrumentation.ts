@@ -57,7 +57,7 @@ export async function instrumentEventPublish<T>(
   agentId: string,
   fn: () => Promise<T>,
   options?: {
-    swarmId?: string;
+    teamId?: string;
     sessionId?: string;
     correlationId?: string;
     priority?: 'low' | 'medium' | 'high' | 'critical';
@@ -66,7 +66,7 @@ export async function instrumentEventPublish<T>(
   const attributes = {
     'event.type': eventType,
     'event.agent_id': agentId,
-    'event.swarm_id': options?.swarmId || '',
+    'event.team_id': options?.teamId || '',
     'event.session_id': options?.sessionId || '',
     'event.correlation_id': options?.correlationId || '',
     'event.priority': options?.priority || 'medium',
@@ -117,7 +117,7 @@ export function instrumentEventSubscription(
   fn: () => void
 ): void {
   const { trace } = require('@opentelemetry/api');
-  const tracer = trace.getTracer('dash-event-bus');
+  const tracer = trace.getTracer('godel-event-bus');
   
   const span = tracer.startSpan(SPAN_NAMES.EVENT_SUBSCRIBE, {
     kind: SpanKind.INTERNAL,
@@ -155,7 +155,7 @@ export async function instrumentEventProcessing<T>(
     'event.id': event.id,
     'event.type': event.type,
     'event.agent_id': event.agentId,
-    'event.swarm_id': event['swarmId'] || '',
+    'event.team_id': event['teamId'] || '',
     'event.session_id': event['sessionId'] || '',
     'event.correlation_id': event['correlationId'] || '',
     'event.timestamp': event.timestamp,

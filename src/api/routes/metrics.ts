@@ -43,7 +43,7 @@ export async function metricsRoutes(fastify: FastifyInstance) {
             completed: 0,
             failed: 0,
           },
-          swarms: {
+          teams: {
             total: 0,
             active: 0,
           },
@@ -101,7 +101,7 @@ export async function metricsRoutes(fastify: FastifyInstance) {
                       failed: { type: 'number' },
                     },
                   },
-                  swarms: {
+                  teams: {
                     type: 'object',
                     properties: {
                       total: { type: 'number' },
@@ -151,7 +151,7 @@ export async function metricsRoutes(fastify: FastifyInstance) {
             completed: 0,
             failed: 0,
           },
-          swarms: {
+          teams: {
             total: 0,
             active: 0,
           },

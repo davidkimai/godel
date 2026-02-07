@@ -43,7 +43,7 @@ import type { CostMetrics, CostBreakdown } from '../types/index';
 // ============================================================================
 
 export function CostsPage(): React.ReactElement {
-  const { agents, swarms } = useDashboardStore();
+  const { agents, teams } = useDashboardStore();
   const [costMetrics, setLocalCostMetrics] = useState<CostMetrics | null>(null);
   const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +58,7 @@ export function CostsPage(): React.ReactElement {
       const cost = agent.cost || 0;
       acc.total += cost;
       acc.byModel[agent.model] = (acc.byModel[agent.model] || 0) + cost;
-      acc.bySwarm[agent.swarmId] = (acc.bySwarm[agent.swarmId] || 0) + cost;
+      acc.bySwarm[agent.teamId] = (acc.bySwarm[agent.teamId] || 0) + cost;
       return acc;
     }, {
       total: 0,
@@ -249,14 +249,14 @@ export function CostsPage(): React.ReactElement {
         </Card>
       </div>
 
-      {/* Cost by Swarm */}
-      <Card title="Cost by Swarm">
+      {/* Cost by Team */}
+      <Card title="Cost by Team">
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={swarms.slice(0, 10).map(swarm => ({
-                name: swarm.name.slice(0, 15),
-                cost: agentCosts.bySwarm[swarm.id] || 0
+              data={teams.slice(0, 10).map(team => ({
+                name: team.name.slice(0, 15),
+                cost: agentCosts.bySwarm[team.id] || 0
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" />

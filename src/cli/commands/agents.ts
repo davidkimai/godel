@@ -1,20 +1,20 @@
 /**
- * Agents Command v2 - Manage AI agents with Swarm and Lifecycle integration
+ * Agents Command v2 - Manage AI agents with Team and Lifecycle integration
  * 
  * Commands:
- * - dash agents list [--format table|json] [--swarm <id>]
- * - dash agents spawn <task> [--model <model>] [--swarm <id>]
- * - dash agents pause <agent-id>
- * - dash agents resume <agent-id>
- * - dash agents kill <agent-id> [--force]
- * - dash agents status <agent-id>
- * - dash agents retry <agent-id> [--model <model>]
+ * - godel agents list [--format table|json] [--team <id>]
+ * - godel agents spawn <task> [--model <model>] [--team <id>]
+ * - godel agents pause <agent-id>
+ * - godel agents resume <agent-id>
+ * - godel agents kill <agent-id> [--force]
+ * - godel agents status <agent-id>
+ * - godel agents retry <agent-id> [--model <model>]
  */
 
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 import { getGlobalLifecycle, type RetryOptions, type AgentState } from '../../core/lifecycle';
-import { getGlobalSwarmManager } from '../../core/swarm';
+import { getGlobalTeamManager } from '../../core/team';
 import { getGlobalBus } from '../../bus/index';
 import { memoryStore } from '../../storage/memory';
 import { AgentStatus } from '../../models/agent';
@@ -23,7 +23,7 @@ import { getGlobalSQLiteStorage } from '../../storage/sqlite';
 
 // Initialize database for persistence
 async function initDatabase() {
-  return getGlobalSQLiteStorage({ dbPath: './dash.db' });
+  return getGlobalSQLiteStorage({ dbPath: './godel.db' });
 }
 
 export function registerAgentsCommand(program: Command): void {
@@ -38,19 +38,19 @@ export function registerAgentsCommand(program: Command): void {
     .command('list')
     .description('List all agents')
     .option('-f, --format <format>', 'Output format (table|json)', 'table')
-    .option('-s, --swarm <swarmId>', 'Filter by swarm ID')
+    .option('-s, --team <teamId>', 'Filter by team ID')
     .option('--status <status>', 'Filter by status (pending|running|paused|completed|failed|killed)')
     .action(async (options) => {
       try {
         // PERFORMANCE ROUND 2: Use lightweight storage query instead of full repository
-        const storage = await getGlobalSQLiteStorage({ dbPath: './dash.db' });
+        const storage = await getGlobalSQLiteStorage({ dbPath: './godel.db' });
         
         // PERFORMANCE: Use lightweight query that only selects needed columns
         let agents = storage.getAgentListLightweight();
 
         // Apply filters in-memory (fast since we have lightweight objects)
-        if (options.swarm) {
-          agents = agents.filter((a) => a.swarmId === options.swarm);
+        if (options.team) {
+          agents = agents.filter((a) => a.teamId === options.team);
         }
         if (options.status) {
           agents = agents.filter((a) => a.status === options.status);
@@ -58,7 +58,7 @@ export function registerAgentsCommand(program: Command): void {
 
         if (agents.length === 0) {
           logger.info('📭 No agents found');
-          logger.info('💡 Use "dash agents spawn" or "dash swarm create" to create agents');
+          logger.info('💡 Use "godel agents spawn" or "godel team create" to create agents');
           return;
         }
 
@@ -68,7 +68,7 @@ export function registerAgentsCommand(program: Command): void {
             status: a.status,
             model: a.model,
             task: a.task,
-            swarmId: a.swarmId,
+            teamId: a.teamId,
             createdAt: a.spawnedAt,
             runtime: a.runtime,
             retryCount: a.retryCount,
@@ -79,12 +79,12 @@ export function registerAgentsCommand(program: Command): void {
 
         // Table format
         logger.info('🤖 Agents:\n');
-        logger.info('ID                   Swarm                Status     Model           Runtime  Retries');
+        logger.info('ID                   Team                Status     Model           Runtime  Retries');
         logger.info('───────────────────  ───────────────────  ─────────  ──────────────  ───────  ───────');
 
         for (const agent of agents) {
-          const swarmName = agent.swarmId 
-            ? agent.swarmId.slice(0, 19)
+          const swarmName = agent.teamId 
+            ? agent.teamId.slice(0, 19)
             : 'none';
           
           const runtime = agent.runtime 
@@ -118,7 +118,7 @@ export function registerAgentsCommand(program: Command): void {
     .argument('<task>', 'Task description')
     .option('-m, --model <model>', 'Model to use', 'kimi-k2.5')
     .option('-l, --label <label>', 'Agent label')
-    .option('-s, --swarm <swarmId>', 'Add to existing swarm')
+    .option('-s, --team <teamId>', 'Add to existing team')
     .option('-p, --parent <parentId>', 'Parent agent ID (for hierarchical spawning)')
     .option('-r, --retries <count>', 'Max retry attempts', '3')
     .option('-b, --budget <limit>', 'Budget limit (USD)')
@@ -132,7 +132,7 @@ export function registerAgentsCommand(program: Command): void {
           logger.info(`   Task: ${task}`);
           logger.info(`   Model: ${options.model}`);
           logger.info(`   Label: ${options.label || '(auto)'}`);
-          logger.info(`   Swarm: ${options.swarm || '(none)'}`);
+          logger.info(`   Team: ${options.team || '(none)'}`);
           logger.info(`   Parent: ${options.parent || '(none)'}`);
           logger.info(`   Max Retries: ${options.retries}`);
           if (options.budget) logger.info(`   Budget: $${options.budget} USD`);
@@ -150,12 +150,12 @@ export function registerAgentsCommand(program: Command): void {
 
         await lifecycle.start();
 
-        // Validate swarm if specified
-        if (options.swarm) {
-          const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
-          const swarm = swarmManager.getSwarm(options.swarm);
-          if (!swarm) {
-            logger.error(`❌ Swarm ${options.swarm} not found`);
+        // Validate team if specified
+        if (options.team) {
+          const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
+          const team = swarmManager.getTeam(options.team);
+          if (!team) {
+            logger.error(`❌ Team ${options.team} not found`);
             process.exit(2);
           }
         }
@@ -165,7 +165,7 @@ export function registerAgentsCommand(program: Command): void {
           task,
           model: options.model,
           label: options.label,
-          swarmId: options.swarm,
+          teamId: options.team,
           parentId: options.parent,
           maxRetries: parseInt(options.retries, 10),
           budgetLimit: options.budget ? parseFloat(options.budget) : undefined,
@@ -180,7 +180,7 @@ export function registerAgentsCommand(program: Command): void {
           status: 'running',
           model: agent.model,
           task: agent.task,
-          swarm_id: agent.swarmId,
+          team_id: agent.teamId,
           parent_id: agent.parentId,
           max_retries: agent.maxRetries,
           metadata: agent.metadata,
@@ -190,10 +190,10 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`   ID: ${agent.id}`);
         logger.info(`   Status: ${agent.status}`);
         logger.info(`   Model: ${agent.model}`);
-        if (options.swarm) {
-          logger.info(`   Swarm: ${options.swarm}`);
+        if (options.team) {
+          logger.info(`   Team: ${options.team}`);
         }
-        logger.info(`\n💡 Use 'dash agents status ${agent.id}' to check progress`);
+        logger.info(`\n💡 Use 'godel agents status ${agent.id}' to check progress`);
 
       } catch (error) {
         logger.error('❌ Failed to spawn agent:', error instanceof Error ? error.message : String(error));
@@ -337,7 +337,7 @@ export function registerAgentsCommand(program: Command): void {
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
         await lifecycle.start();
-        const swarmManager = getGlobalSwarmManager(lifecycle, messageBus, memoryStore.agents);
+        const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
 
         const state = lifecycle.getState(agentId);
         if (!state) {
@@ -348,7 +348,7 @@ export function registerAgentsCommand(program: Command): void {
         if (options.format === 'json') {
           const output = {
             ...state,
-            swarm: state.agent.swarmId ? swarmManager.getSwarm(state.agent.swarmId) : null,
+            team: state.agent.teamId ? swarmManager.getTeam(state.agent.teamId) : null,
           };
           logger.info(JSON.stringify(output, null, 2));
           return;
@@ -360,9 +360,9 @@ export function registerAgentsCommand(program: Command): void {
         logger.info(`   Model:        ${state.agent.model}`);
         logger.info(`   Task:         ${state.agent.task}`);
         
-        if (state.agent.swarmId) {
-          const swarm = swarmManager.getSwarm(state.agent.swarmId);
-          logger.info(`   Swarm:        ${swarm?.name || state.agent.swarmId}`);
+        if (state.agent.teamId) {
+          const team = swarmManager.getTeam(state.agent.teamId);
+          logger.info(`   Team:        ${team?.name || state.agent.teamId}`);
         }
         
         if (state.agent.parentId) {

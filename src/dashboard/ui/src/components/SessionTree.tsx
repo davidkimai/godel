@@ -121,7 +121,7 @@ export function SessionTree({
           <GitBranch className="w-12 h-12 text-slate-700 mb-3" />
           <p className="text-slate-500">No session tree available</p>
           <p className="text-sm text-slate-600 mt-1">
-            Branching is not enabled for this swarm
+            Branching is not enabled for this team
           </p>
         </div>
       </Card>

@@ -1,5 +1,5 @@
 name: feature-implementation
-description: Template for implementing new features using parallel agent swarms
+description: Template for implementing new features using parallel agent teams
 patterns:
   - implement {{description}}
   - add {{description}} feature

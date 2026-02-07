@@ -207,7 +207,7 @@ export const ListTasksQuerySchema = z.object({
   status: TaskStatusSchema.optional().describe('Filter by status'),
   assigneeId: z.string().optional().describe('Filter by assignee'),
   priority: TaskPrioritySchema.optional().describe('Filter by priority'),
-  swarmId: z.string().optional().describe('Filter by swarm'),
+  teamId: z.string().optional().describe('Filter by team'),
   cursor: z.string().optional().describe('Pagination cursor'),
   limit: z.coerce.number().int().min(1).max(500).default(50)
     .describe('Number of items per page'),

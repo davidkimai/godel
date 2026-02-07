@@ -13,7 +13,7 @@
 2. [Skills System Analysis](#2-skills-system-analysis)
 3. [Session Management Analysis](#3-session-management-analysis)
 4. [Mode Architecture](#4-mode-architecture)
-5. [Integration Recommendations for Dash](#5-integration-recommendations-for-dash)
+5. [Integration Recommendations for Godel](#5-integration-recommendations-for-godel)
 
 ---
 
@@ -861,15 +861,15 @@ export class AgentSession {
 
 ---
 
-## 5. Integration Recommendations for Dash
+## 5. Integration Recommendations for Godel
 
-### 5.1 Extension System for Dash Agents
+### 5.1 Extension System for Godel Agents
 
 **Recommended Pattern: Agent-as-Extension Model**
 
 ```typescript
-// Dash agents could be implemented as pi-coding-agent extensions
-dash-agent/
+// Godel agents could be implemented as pi-coding-agent extensions
+godel-agent/
 ├── package.json          # With "pi" manifest
 ├── src/
 │   ├── index.ts         # Extension entry point
@@ -882,15 +882,15 @@ dash-agent/
 **Key Integration Points:**
 
 ```typescript
-// 1. Register Dash agent as an extension
+// 1. Register Godel agent as an extension
 export default function dashAgentExtension(pi: ExtensionAPI) {
-  // Register Dash-specific tools
+  // Register Godel-specific tools
   pi.registerTool({
     name: "dash_query",
-    description: "Query the Dash knowledge graph",
+    description: "Query the Godel knowledge graph",
     parameters: Type.Object({ query: Type.String() }),
     execute: async (id, params, signal, onUpdate, ctx) => {
-      // Execute against Dash backend
+      // Execute against Godel backend
     },
   });
   
@@ -900,10 +900,10 @@ export default function dashAgentExtension(pi: ExtensionAPI) {
   });
   
   // 3. Custom commands for agent management
-  pi.registerCommand("dash", {
-    description: "Dash agent commands",
+  pi.registerCommand("godel", {
+    description: "Godel agent commands",
     handler: async (args, ctx) => {
-      // Handle /dash commands
+      // Handle /godel commands
     },
   });
 }
@@ -940,9 +940,9 @@ When invoked, perform a comprehensive security audit:
 **Dynamic Skill Discovery:**
 
 ```typescript
-// Dash could expose agent capabilities as skills
+// Godel could expose agent capabilities as skills
 pi.on("resources_discover", async (event, ctx) => {
-  // Query Dash registry for available agent capabilities
+  // Query Godel registry for available agent capabilities
   const capabilities = await dashRegistry.queryCapabilities();
   
   return {
@@ -957,9 +957,9 @@ pi.on("resources_discover", async (event, ctx) => {
 ```typescript
 // Map skills to specialized agents
 const skillAgentMap = {
-  "security-audit": "dash-security-agent",
-  "performance-optimize": "dash-perf-agent",
-  "refactor": "dash-refactor-agent",
+  "security-audit": "godel-security-agent",
+  "performance-optimize": "godel-perf-agent",
+  "refactor": "godel-refactor-agent",
 };
 
 pi.on("input", async (event, ctx) => {
@@ -1074,12 +1074,12 @@ pi.on("session_before_compact", async (event, ctx) => {
 });
 ```
 
-### 5.5 Recommended Architecture for Dash
+### 5.5 Recommended Architecture for Godel
 
 ```
-Dash System Architecture
+Godel System Architecture
 ├── Agent Runtime (pi-coding-agent based)
-│   ├── Extension Loader          # Load Dash agents as extensions
+│   ├── Extension Loader          # Load Godel agents as extensions
 │   ├── Session Manager           # Tree-structured agent sessions
 │   ├── Skill Registry            # Agent capabilities as skills
 │   └── Compaction Engine         # Agent memory management
@@ -1128,7 +1128,7 @@ The pi-mono coding-agent provides a mature, well-architected foundation for buil
 3. **Session Management**: Tree-structured conversations with branching, compaction, and full persistence
 4. **Mode Architecture**: Clean separation between interactive, CLI, and API modes sharing a common core
 
-These patterns are directly applicable to Dash's 50-agent architecture, providing:
+These patterns are directly applicable to Godel's 50-agent architecture, providing:
 - Agent isolation via extensions
 - Capability sharing via skills
 - Lineage tracking via session trees
@@ -1137,4 +1137,4 @@ These patterns are directly applicable to Dash's 50-agent architecture, providin
 
 ---
 
-*Analysis generated for Dash project integration planning.*
+*Analysis generated for Godel project integration planning.*

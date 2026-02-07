@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getWebSocketService, WebSocketService } from '../services/websocket';
-import { WebSocketMessage, WebSocketMessageType, Agent, Swarm, AgentEvent, CostMetrics } from '../types';
+import { WebSocketMessage, WebSocketMessageType, Agent, Team, AgentEvent, CostMetrics } from '../types';
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
@@ -111,24 +111,24 @@ export function useAgentsRealtime(): { agents: Agent[]; isLoading: boolean } {
   return { agents, isLoading };
 }
 
-export function useSwarmsRealtime(): { swarms: Swarm[]; isLoading: boolean } {
-  const [swarms, setSwarms] = useState<Swarm[]>([]);
+export function useTeamsRealtime(): { teams: Team[]; isLoading: boolean } {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { subscribe, connected } = useWebSocket();
 
   useEffect(() => {
     if (!connected) return;
 
-    const unsubscribe = subscribe(WebSocketMessageType.SWARM_UPDATE, (message) => {
-      if (message.swarm) {
-        setSwarms(prev => {
-          const index = prev.findIndex(s => s.id === message.swarm!.id);
+    const unsubscribe = subscribe(WebSocketMessageType.TEAM_UPDATE, (message) => {
+      if (message.team) {
+        setTeams(prev => {
+          const index = prev.findIndex(s => s.id === message.team!.id);
           if (index >= 0) {
             const updated = [...prev];
-            updated[index] = message.swarm!;
+            updated[index] = message.team!;
             return updated;
           }
-          return [...prev, message.swarm!];
+          return [...prev, message.team!];
         });
         setIsLoading(false);
       }
@@ -137,7 +137,7 @@ export function useSwarmsRealtime(): { swarms: Swarm[]; isLoading: boolean } {
     return unsubscribe;
   }, [subscribe, connected]);
 
-  return { swarms, isLoading };
+  return { teams, isLoading };
 }
 
 export function useEventsRealtime(maxEvents = 100): { 

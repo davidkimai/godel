@@ -19,9 +19,9 @@ import {
 // CONSTANTS
 // ============================================================================
 
-const RESOURCE_PREFIX = 'dash:scheduler:resources';
-const NODE_PREFIX = 'dash:scheduler:nodes';
-const AGENT_PREFIX = 'dash:scheduler:agents';
+const RESOURCE_PREFIX = 'godel:scheduler:resources';
+const NODE_PREFIX = 'godel:scheduler:nodes';
+const AGENT_PREFIX = 'godel:scheduler:agents';
 const HEARTBEAT_TTL_SECONDS = 60;
 
 // ============================================================================

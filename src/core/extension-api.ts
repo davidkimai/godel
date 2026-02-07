@@ -1,7 +1,7 @@
 /**
  * Extension API types and interfaces for Godel
  * 
- * Based on pi-mono's extension architecture, adapted for Godel's swarm orchestration.
+ * Based on pi-mono's extension architecture, adapted for Godel's team orchestration.
  */
 
 import { Static, TSchema } from '@sinclair/typebox';
@@ -21,7 +21,7 @@ export interface AgentStartEvent extends ExtensionEvent {
   type: 'agent_start';
   agentId: string;
   task: string;
-  swarmId?: string;
+  teamId?: string;
 }
 
 export interface AgentCompleteEvent extends ExtensionEvent {
@@ -38,18 +38,18 @@ export interface AgentErrorEvent extends ExtensionEvent {
   error: string;
 }
 
-/** Swarm lifecycle events */
-export interface SwarmStartEvent extends ExtensionEvent {
+/** Team lifecycle events */
+export interface TeamStartEvent extends ExtensionEvent {
   type: 'swarm_start';
-  swarmId: string;
+  teamId: string;
   name: string;
   task: string;
   agentCount: number;
 }
 
-export interface SwarmCompleteEvent extends ExtensionEvent {
+export interface TeamCompleteEvent extends ExtensionEvent {
   type: 'swarm_complete';
-  swarmId: string;
+  teamId: string;
   results: unknown[];
   totalCost?: number;
 }
@@ -84,8 +84,8 @@ export type GodelExtensionEvent =
   | AgentStartEvent
   | AgentCompleteEvent
   | AgentErrorEvent
-  | SwarmStartEvent
-  | SwarmCompleteEvent
+  | TeamStartEvent
+  | TeamCompleteEvent
   | ToolCallEvent
   | ToolResultEvent
   | CommandExecuteEvent;
@@ -98,8 +98,8 @@ export type GodelExtensionEvent =
 export interface ToolContext {
   /** Agent ID executing the tool */
   agentId?: string;
-  /** Swarm ID if running in a swarm */
-  swarmId?: string;
+  /** Team ID if running in a team */
+  teamId?: string;
   /** Current working directory */
   cwd: string;
   /** Signal for cancellation */
@@ -245,10 +245,10 @@ export interface ExtensionAPI {
   on(event: 'agent_complete', handler: EventHandler<AgentCompleteEvent>): void;
   /** Subscribe to agent error events */
   on(event: 'agent_error', handler: EventHandler<AgentErrorEvent>): void;
-  /** Subscribe to swarm start events */
-  on(event: 'swarm_start', handler: EventHandler<SwarmStartEvent>): void;
-  /** Subscribe to swarm complete events */
-  on(event: 'swarm_complete', handler: EventHandler<SwarmCompleteEvent>): void;
+  /** Subscribe to team start events */
+  on(event: 'swarm_start', handler: EventHandler<TeamStartEvent>): void;
+  /** Subscribe to team complete events */
+  on(event: 'swarm_complete', handler: EventHandler<TeamCompleteEvent>): void;
   /** Subscribe to tool call events */
   on(event: 'tool_call', handler: EventHandler<ToolCallEvent>): void;
   /** Subscribe to tool result events */

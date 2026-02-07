@@ -1,5 +1,5 @@
 # PI-MONO CORE INTEGRATION SPEC
-## Making pi-mono the Foundation of Dash
+## Making pi-mono the Foundation of Godel
 
 **Reference:** https://github.com/badlogic/pi-mono
 **Created:** 2026-02-04 03:35 CST
@@ -12,7 +12,7 @@
 Pi-mono by badlogic (Mario Zechner) is the most powerful agent harness available. As Tobi Lutke said:
 > "Pi is the most interesting agent harness. Tiny core, able to write plugins for itself as you use it. It RLs itself into the agent you want."
 
-**Dash will adopt pi-mono primitives as its core architecture.**
+**Godel will adopt pi-mono primitives as its core architecture.**
 
 ---
 
@@ -34,7 +34,7 @@ Pi-mono by badlogic (Mario Zechner) is the most powerful agent harness available
 
 ### 2. @mariozechner/pi-coding-agent (Terminal Harness)
 **Priority:** P0 - Core
-**Purpose:** The CLI harness for Dash agents
+**Purpose:** The CLI harness for Godel agents
 
 | Feature | Description |
 |---------|-------------|
@@ -74,11 +74,11 @@ Pi-mono by badlogic (Mario Zechner) is the most powerful agent harness available
 
 ---
 
-## 🏗️ DASH ARCHITECTURE WITH PI-MONO
+## 🏗️ GODEL ARCHITECTURE WITH PI-MONO
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     DASH PLATFORM                          │
+│                     GODEL PLATFORM                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌─────────────────────────────────────────────────────┐    │
@@ -162,8 +162,8 @@ src/
 │       ├── status-line.ts
 │       └── message-display.ts
 │
-└── orchestration/               # Dash-specific orchestration
-    ├── swarm-manager.ts         # Agent swarms
+└── orchestration/               # Godel-specific orchestration
+    ├── team-manager.ts         # Agent teams
     ├── worktree-manager.ts      # Parallel worktrees
     └── cron-orchestrator.ts     # Cron-driven operation
 ```
@@ -199,7 +199,7 @@ export { agentLoop, agentLoopContinue } from '@mariozechner/pi-agent';
 
 **Deliverables:**
 1. Install `@mariozechner/pi-agent`
-2. Create Dash Agent class extending pi-agent
+2. Create Godel Agent class extending pi-agent
 3. Implement event streaming system
 4. Add steering/follow-up support
 5. Bridge tools to agent context
@@ -219,11 +219,11 @@ export { createAgentSession } from '@mariozechner/pi-coding-agent';
 4. Create extension API
 5. Build terminal UI components
 
-### Phase D: Dash Orchestration (Week 4)
-**Goal:** Swarm orchestration on top of pi-mono
+### Phase D: Godel Orchestration (Week 4)
+**Goal:** Team orchestration on top of pi-mono
 
 **Deliverables:**
-1. Swarm manager (parallel agents)
+1. Team manager (parallel agents)
 2. Worktree orchestration
 3. Cron-driven automation
 4. Mission Control UI integration
@@ -332,17 +332,17 @@ export class DashAgent extends Agent {
         messages: []
       },
       transformContext: async (messages) => {
-        // Dash-specific context pruning
-        return pruneForDash(messages);
+        // Godel-specific context pruning
+        return pruneForGodel(messages);
       },
       convertToLlm: (messages) => {
-        // Dash-specific message conversion
+        // Godel-specific message conversion
         return messages.filter(m => ['user', 'assistant', 'toolResult'].includes(m.role));
       }
     });
   }
   
-  // Dash-specific methods
+  // Godel-specific methods
   async spawnSubagent(prompt: string): Promise<string> {
     // Spawn another agent for parallel work
     const subagent = new DashAgent({ ... });
@@ -446,7 +446,7 @@ export class SkillsLoader {
 - [ ] Implement event streaming
 - [ ] Add steering/follow-up support
 - [ ] Bridge built-in tools (read, write, edit, bash)
-- [ ] Add custom Dash tools
+- [ ] Add custom Godel tools
 
 ### pi-coding-agent Integration
 - [ ] Install `@mariozechner/pi-coding-agent`
@@ -456,8 +456,8 @@ export class SkillsLoader {
 - [ ] Build terminal UI components
 - [ ] Add themes support
 
-### Dash Orchestration
-- [ ] Swarm manager for parallel agents
+### Godel Orchestration
+- [ ] Team manager for parallel agents
 - [ ] Worktree orchestration
 - [ ] Cron-driven automation
 - [ ] Mission Control integration
@@ -488,4 +488,4 @@ export class SkillsLoader {
 
 ---
 
-*This spec makes pi-mono primitives the foundation of Dash, enabling the "malleable software" experience Tobi described.*
+*This spec makes pi-mono primitives the foundation of Godel, enabling the "malleable software" experience Tobi described.*

@@ -2,7 +2,7 @@
  * Skill Registry - Agent Skills Management
  * 
  * Manages the lifecycle of skills including loading, activation,
- * auto-loading based on context, and integration with the swarm.
+ * auto-loading based on context, and integration with the team.
  */
 
 import { logger } from '../../utils/logger';
@@ -20,8 +20,8 @@ import {
   SkillEvent,
   SkillEventType,
   ISkillRegistry,
-  SwarmSkillContext,
-  SwarmSkillConfig,
+  TeamSkillContext,
+  TeamSkillConfig,
 } from './types';
 import {
   loadAllSkills,
@@ -36,8 +36,8 @@ import {
 // ============================================================================
 
 export const DEFAULT_REGISTRY_CONFIG: SkillRegistryConfig = {
-  userSkillsDir: join(homedir(), '.dash', 'skills'),
-  projectSkillsDir: join(process.cwd(), '.dash', 'skills'),
+  userSkillsDir: join(homedir(), '.godel', 'skills'),
+  projectSkillsDir: join(process.cwd(), '.godel', 'skills'),
   builtinSkillsDir: join(process.cwd(), 'skills'),
   skillPaths: [],
   autoLoad: true,
@@ -445,18 +445,18 @@ export class SkillRegistry extends EventEmitter implements ISkillRegistry {
   }
 
   // ============================================================================
-  // Swarm Integration
+  // Team Integration
   // ============================================================================
 
   /**
-   * Create skill context for a swarm agent
+   * Create skill context for a team agent
    */
-  createSwarmContext(
-    swarmId: string,
+  createTeamContext(
+    teamId: string,
     agentId: string,
     task: string,
-    config?: SwarmSkillConfig
-  ): SwarmSkillContext {
+    config?: TeamSkillConfig
+  ): TeamSkillContext {
     // Auto-load if enabled
     if (config?.autoLoad ?? this.config.autoLoad) {
       this.autoLoad(task);
@@ -476,7 +476,7 @@ export class SkillRegistry extends EventEmitter implements ISkillRegistry {
     }
 
     return {
-      swarmId,
+      teamId,
       agentId,
       task,
       availableSkills,

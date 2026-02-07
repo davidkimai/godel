@@ -1,6 +1,6 @@
 # PostgreSQL Database Layer
 
-Dash now supports PostgreSQL as the primary persistence layer for swarm/agent/state data.
+Godel now supports PostgreSQL as the primary persistence layer for team/agent/state data.
 
 ## Overview
 
@@ -37,9 +37,9 @@ Update your `.env` file:
 ```env
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=dash
-POSTGRES_USER=dash
-POSTGRES_PASSWORD=dash
+POSTGRES_DB=godel
+POSTGRES_USER=godel
+POSTGRES_PASSWORD=godel
 POSTGRES_SSL=false
 
 # Pool Settings
@@ -53,7 +53,7 @@ POSTGRES_MAX_POOL_SIZE=20
 
 | Table | Description |
 |-------|-------------|
-| `swarms` | Swarm configurations and metadata |
+| `teams` | Team configurations and metadata |
 | `agents` | Agent state and lifecycle |
 | `events` | Event log (time-series) |
 | `sessions` | Session tree data |
@@ -64,7 +64,7 @@ POSTGRES_MAX_POOL_SIZE=20
 
 | View | Description |
 |------|-------------|
-| `swarm_summary` | Swarm stats with agent counts and budget |
+| `swarm_summary` | Team stats with agent counts and budget |
 | `agent_activity` | Agent activity with duration |
 | `event_stats_24h` | 24-hour event statistics |
 
@@ -79,20 +79,20 @@ const repo = new SwarmRepository();
 await repo.initialize();
 
 // Create
-const swarm = await repo.create({
-  name: 'My Swarm',
+const team = await repo.create({
+  name: 'My Team',
   config: { maxAgents: 10 }
 });
 
 // Read
-const found = await repo.findById(swarm.id);
+const found = await repo.findById(team.id);
 const all = await repo.list({ limit: 10 });
 
 // Update
-await repo.update(swarm.id, { status: 'paused' });
+await repo.update(team.id, { status: 'paused' });
 
 // Delete
-await repo.delete(swarm.id);
+await repo.delete(team.id);
 ```
 
 ### AgentRepository
@@ -181,7 +181,7 @@ await repo.initialize();
 // Create budget
 const budget = await repo.create({
   swarm_id: swarmId,
-  scope_type: 'swarm',
+  scope_type: 'team',
   scope_id: swarmId,
   allocated: 100.00,
   currency: 'USD',
@@ -347,13 +347,13 @@ import { SQLiteStorage } from './src/storage/sqlite';
 import { SwarmRepository, AgentRepository } from './src/storage';
 
 async function migrate() {
-  const sqlite = new SQLiteStorage({ dbPath: './dash.db' });
+  const sqlite = new SQLiteStorage({ dbPath: './godel.db' });
   await sqlite.initialize();
   
   const swarmRepo = new SwarmRepository();
   await swarmRepo.initialize();
   
-  // Migrate swarms
+  // Migrate teams
   const oldSwarms = await sqlite.getAllSwarms();
   for (const old of oldSwarms) {
     await swarmRepo.create({

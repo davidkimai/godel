@@ -1,9 +1,9 @@
 import { logger } from '../utils/logger';
 /**
- * Dash Logging Module
+ * Godel Logging Module
  * 
  * Provides structured logging, log aggregation, and error pattern detection
- * for the Dash orchestration platform.
+ * for the Godel orchestration platform.
  * 
  * @example
  * ```typescript
@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
  * const logger = getLogger({ level: LogLevel.INFO });
  * 
  * // Create agent-specific logger
- * const agentLogger = createAgentLogger('agent-123', 'swarm-456');
+ * const agentLogger = createAgentLogger('agent-123', 'team-456');
  * agentLogger.info('Agent started', { task: 'data-processing' });
  * 
  * // With context

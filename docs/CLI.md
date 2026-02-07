@@ -24,8 +24,8 @@ godel [options] [command]
 
 | Command | Description |
 |---------|-------------|
-| `swarm` | Manage agent swarms |
-| `dashboard` | Launch the Dash TUI dashboard |
+| `team` | Manage agent teams |
+| `dashboard` | Launch the Godel TUI dashboard |
 | `agents` | Manage AI agents |
 | `openclaw` | Manage OpenClaw Gateway integration |
 | `clawhub` | Manage skills from ClawHub registry |
@@ -43,20 +43,20 @@ godel [options] [command]
 
 ---
 
-## `swarm` - Manage Agent Swarms
+## `team` - Manage Agent Teams
 
-### `swarm create`
-Create a new swarm of agents.
+### `team create`
+Create a new team of agents.
 
 ```bash
-godel swarm create --name <name> --task <task> [options]
+godel team create --name <name> --task <task> [options]
 ```
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-n, --name <name>` | **(Required)** Swarm name | - |
+| `-n, --name <name>` | **(Required)** Team name | - |
 | `-t, --task <task>` | **(Required)** Task description | - |
 | `-i, --initial-agents <count>` | Initial number of agents | `5` |
 | `-m, --max-agents <count>` | Maximum number of agents | `50` |
@@ -71,11 +71,11 @@ godel swarm create --name <name> --task <task> [options]
 **Examples:**
 
 ```bash
-# Create a basic swarm
-godel swarm create --name "analysis-swarm" --task "Analyze user feedback"
+# Create a basic team
+godel team create --name "analysis-team" --task "Analyze user feedback"
 
 # Create with custom settings
-godel swarm create \
+godel team create \
   --name "code-review" \
   --task "Review all TypeScript files" \
   --initial-agents 10 \
@@ -84,23 +84,23 @@ godel swarm create \
   --budget 50.00
 
 # Preview configuration
-godel swarm create --name "test" --task "test task" --dry-run
+godel team create --name "test" --task "test task" --dry-run
 ```
 
 ---
 
-### `swarm destroy`
-Destroy a swarm and all its agents.
+### `team destroy`
+Destroy a team and all its agents.
 
 ```bash
-godel swarm destroy <swarm-id> [options]
+godel team destroy <team-id> [options]
 ```
 
 **Arguments:**
 
 | Argument | Description |
 |----------|-------------|
-| `swarm-id` | Swarm ID to destroy |
+| `team-id` | Team ID to destroy |
 
 **Options:**
 
@@ -113,52 +113,52 @@ godel swarm destroy <swarm-id> [options]
 
 ```bash
 # Destroy with confirmation prompt
-godel swarm destroy swarm-abc-123
+godel team destroy team-abc-123
 
 # Force destroy
-godel swarm destroy swarm-abc-123 --force --yes
+godel team destroy team-abc-123 --force --yes
 ```
 
 ---
 
-### `swarm scale`
-Scale a swarm to a target number of agents.
+### `team scale`
+Scale a team to a target number of agents.
 
 ```bash
-godel swarm scale <swarm-id> <target-size>
+godel team scale <team-id> <target-size>
 ```
 
 **Arguments:**
 
 | Argument | Description |
 |----------|-------------|
-| `swarm-id` | Swarm ID to scale |
+| `team-id` | Team ID to scale |
 | `target-size` | Target number of agents |
 
 **Examples:**
 
 ```bash
 # Scale up to 20 agents
-godel swarm scale swarm-abc-123 20
+godel team scale team-abc-123 20
 
 # Scale down to 3 agents
-godel swarm scale swarm-abc-123 3
+godel team scale team-abc-123 3
 ```
 
 ---
 
-### `swarm status`
-Get swarm status.
+### `team status`
+Get team status.
 
 ```bash
-godel swarm status [swarm-id] [options]
+godel team status [team-id] [options]
 ```
 
 **Arguments:**
 
 | Argument | Description |
 |----------|-------------|
-| `swarm-id` | Swarm ID (shows all if omitted) |
+| `team-id` | Team ID (shows all if omitted) |
 
 **Options:**
 
@@ -169,40 +169,40 @@ godel swarm status [swarm-id] [options]
 **Examples:**
 
 ```bash
-# Show all swarms
-godel swarm status
+# Show all teams
+godel team status
 
-# Show specific swarm
-godel swarm status swarm-abc-123
+# Show specific team
+godel team status team-abc-123
 
 # Output as JSON
-godel swarm status swarm-abc-123 --format json
+godel team status team-abc-123 --format json
 ```
 
 ---
 
-### `swarm list`
-List all swarms.
+### `team list`
+List all teams.
 
 ```bash
-godel swarm list [options]
+godel team list [options]
 ```
 
 **Options:**
 
 | Option | Description |
 |--------|-------------|
-| `-a, --active` | Show only active swarms |
+| `-a, --active` | Show only active teams |
 | `-f, --format <format>` | Output format: `table` or `json` | `table` |
 
 **Examples:**
 
 ```bash
-# List all swarms
-godel swarm list
+# List all teams
+godel team list
 
-# List only active swarms as JSON
-godel swarm list --active --format json
+# List only active teams as JSON
+godel team list --active --format json
 ```
 
 ---
@@ -221,7 +221,7 @@ godel agents list [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-f, --format <format>` | Output format: `table` or `json` | `table` |
-| `-s, --swarm <swarmId>` | Filter by swarm ID | - |
+| `-s, --team <swarmId>` | Filter by team ID | - |
 | `--status <status>` | Filter by status: `pending`, `running`, `paused`, `completed`, `failed`, `killed` | - |
 
 **Examples:**
@@ -230,8 +230,8 @@ godel agents list [options]
 # List all agents
 godel agents list
 
-# Filter by swarm
-godel agents list --swarm swarm-abc-123
+# Filter by team
+godel agents list --team team-abc-123
 
 # Filter by status
 godel agents list --status running
@@ -261,7 +261,7 @@ godel agents spawn <task> [options]
 |--------|-------------|---------|
 | `-m, --model <model>` | Model to use | `kimi-k2.5` |
 | `-l, --label <label>` | Agent label | - |
-| `-s, --swarm <swarmId>` | Add to existing swarm | - |
+| `-s, --team <swarmId>` | Add to existing team | - |
 | `-p, --parent <parentId>` | Parent agent ID (for hierarchical spawning) | - |
 | `-r, --retries <count>` | Max retry attempts | `3` |
 | `-b, --budget <limit>` | Budget limit (USD) | - |
@@ -280,8 +280,8 @@ godel agents spawn "Analyze codebase" \
   --retries 5 \
   --budget 10.00
 
-# Spawn into a swarm
-godel agents spawn "Sub-task" --swarm swarm-abc-123
+# Spawn into a team
+godel agents spawn "Sub-task" --team team-abc-123
 
 # Preview configuration
 godel agents spawn "test task" --dry-run
@@ -1362,7 +1362,7 @@ godel self-improve report
 
 ## `status` - System Status
 
-Show Dash system status and overview.
+Show Godel system status and overview.
 
 ```bash
 godel status [options]
@@ -1388,7 +1388,7 @@ godel status --format json
 | Variable | Description |
 |----------|-------------|
 | `OPENCLAW_GATEWAY_TOKEN` | Authentication token for OpenClaw Gateway |
-| `GODEL_API_KEY` | API key for Dash API server |
+| `GODEL_API_KEY` | API key for Godel API server |
 
 ---
 

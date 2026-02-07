@@ -110,8 +110,8 @@ export class BudgetManager {
    * Register a budget
    */
   registerBudget(config: BudgetConfig): void {
-    this.budgets.set(config.swarmId, config);
-    this.budgetStates.set(config.swarmId, {
+    this.budgets.set(config.teamId, config);
+    this.budgetStates.set(config.teamId, {
       currentCost: 0,
       lastAlertLevel: null,
       lastAlertAt: null,
@@ -122,17 +122,17 @@ export class BudgetManager {
   /**
    * Unregister a budget
    */
-  unregisterBudget(swarmId: string): void {
-    this.budgets.delete(swarmId);
-    this.budgetStates.delete(swarmId);
+  unregisterBudget(teamId: string): void {
+    this.budgets.delete(teamId);
+    this.budgetStates.delete(teamId);
   }
 
   /**
-   * Update current cost for a swarm
+   * Update current cost for a team
    */
-  updateCost(swarmId: string, currentCost: number): CostAlert | null {
-    const state = this.budgetStates.get(swarmId);
-    const budget = this.budgets.get(swarmId);
+  updateCost(teamId: string, currentCost: number): CostAlert | null {
+    const state = this.budgetStates.get(teamId);
+    const budget = this.budgets.get(teamId);
     
     if (!state || !budget) {
       return null;
@@ -149,15 +149,15 @@ export class BudgetManager {
     }
 
     // Check alert thresholds
-    return this.checkAlertThresholds(swarmId, currentCost, budget, state);
+    return this.checkAlertThresholds(teamId, currentCost, budget, state);
   }
 
   /**
    * Check if budget is exceeded
    */
-  isBudgetExceeded(swarmId: string): boolean {
-    const state = this.budgetStates.get(swarmId);
-    const budget = this.budgets.get(swarmId);
+  isBudgetExceeded(teamId: string): boolean {
+    const state = this.budgetStates.get(teamId);
+    const budget = this.budgets.get(teamId);
     
     if (!state || !budget) {
       return false;
@@ -170,13 +170,13 @@ export class BudgetManager {
   /**
    * Check if scaling should be blocked due to budget
    */
-  shouldBlockScaling(swarmId: string, proposedAgentCount: number, durationHours: number = 1): {
+  shouldBlockScaling(teamId: string, proposedAgentCount: number, durationHours: number = 1): {
     blocked: boolean;
     reason?: string;
     projectedCost: number;
   } {
-    const state = this.budgetStates.get(swarmId);
-    const budget = this.budgets.get(swarmId);
+    const state = this.budgetStates.get(teamId);
+    const budget = this.budgets.get(teamId);
     
     if (!state || !budget) {
       return { blocked: false, projectedCost: state?.currentCost || 0 };
@@ -203,9 +203,9 @@ export class BudgetManager {
   /**
    * Get budget utilization percentage
    */
-  getBudgetUtilization(swarmId: string): number {
-    const state = this.budgetStates.get(swarmId);
-    const budget = this.budgets.get(swarmId);
+  getBudgetUtilization(teamId: string): number {
+    const state = this.budgetStates.get(teamId);
+    const budget = this.budgets.get(teamId);
     
     if (!state || !budget || budget.totalBudget === 0) {
       return 0;
@@ -217,7 +217,7 @@ export class BudgetManager {
   /**
    * Get budget summary
    */
-  getBudgetSummary(swarmId: string): {
+  getBudgetSummary(teamId: string): {
     totalBudget: number;
     currentCost: number;
     remaining: number;
@@ -229,8 +229,8 @@ export class BudgetManager {
     periodStart: Date;
     periodEnd: Date;
   } | null {
-    const state = this.budgetStates.get(swarmId);
-    const budget = this.budgets.get(swarmId);
+    const state = this.budgetStates.get(teamId);
+    const budget = this.budgets.get(teamId);
     
     if (!state || !budget) {
       return null;
@@ -274,9 +274,9 @@ export class BudgetManager {
    * Get all registered budgets
    */
   getBudgets(): Array<{ config: BudgetConfig; state: BudgetState }> {
-    return Array.from(this.budgets.entries()).map(([swarmId, config]) => ({
+    return Array.from(this.budgets.entries()).map(([teamId, config]) => ({
       config,
-      state: this.budgetStates.get(swarmId)!,
+      state: this.budgetStates.get(teamId)!,
     }));
   }
 
@@ -342,7 +342,7 @@ export class BudgetManager {
   }
 
   private checkAlertThresholds(
-    swarmId: string,
+    teamId: string,
     currentCost: number,
     budget: BudgetConfig,
     state: BudgetState
@@ -375,8 +375,8 @@ export class BudgetManager {
       const message = this.generateAlertMessage(alertLevel, percentageUsed, budget, currentCost);
 
       const alert: CostAlert = {
-        id: `alert-${Date.now()}-${swarmId}`,
-        swarmId,
+        id: `alert-${Date.now()}-${teamId}`,
+        teamId,
         level: alertLevel,
         currentCost,
         budgetLimit: budget.totalBudget,

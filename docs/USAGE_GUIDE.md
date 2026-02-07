@@ -96,21 +96,21 @@ godel agent spawn --runtime pi --model claude-sonnet-4-5 "Implement auth"
 godel agent spawn --runtime pi --label "security-review" "Check for vulnerabilities"
 ```
 
-### Spawning into Swarms
+### Spawning into Teams
 
 ```bash
-# Create a Pi-based swarm
-godel swarm create \
+# Create a Pi-based team
+godel team create \
   --name "feature-team" \
   --runtime pi \
   --coordinator-model claude-opus-4 \
   --worker-model claude-sonnet-4-5 \
   --task "Build new feature"
 
-# Add agents to existing swarm
+# Add agents to existing team
 godel agent spawn \
   --runtime pi \
-  --swarm swarm-abc123 \
+  --team team-abc123 \
   "Implement API endpoint"
 ```
 
@@ -382,8 +382,8 @@ godel agent list --label security-audit
 # Set per-agent budget
 godel agent spawn --runtime pi --budget 5.00 "Expensive task"
 
-# Set per-swarm budget
-godel swarm create --runtime pi --budget 50.00 --name "big-project"
+# Set per-team budget
+godel team create --runtime pi --budget 50.00 --name "big-project"
 ```
 
 ### 4. Use Worktrees for Isolation
@@ -424,23 +424,23 @@ done
 wait
 
 # Compare results
-godel swarm aggregate --compare-results
+godel team aggregate --compare-results
 ```
 
-### Pattern 2: Hierarchical Swarms
+### Pattern 2: Hierarchical Teams
 
-Create specialized sub-swarms:
+Create specialized sub-teams:
 
 ```bash
 # Main coordinator (powerful model)
-godel swarm create \
+godel team create \
   --name "main-coordinator" \
   --runtime pi \
   --coordinator-model claude-opus-4 \
   --task "Coordinate development"
 
-# Worker swarm (fast models)
-godel swarm create \
+# Worker team (fast models)
+godel team create \
   --name "workers" \
   --runtime pi \
   --worker-model claude-haiku-3-5 \
@@ -518,8 +518,8 @@ pi "Design gRPC services"
 # Spawn agent
 godel agent spawn --runtime pi [options] <task>
 
-# Create swarm
-godel swarm create --runtime pi [options] --task <task>
+# Create team
+godel team create --runtime pi [options] --task <task>
 
 # List Pi sessions
 godel pi sessions list

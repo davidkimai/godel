@@ -3,11 +3,11 @@
 **Version:** 1.0.0
 **Status:** DRAFT
 **Created:** 2026-02-04
-**Owner:** Dash v2.0 - Core Integration
+**Owner:** Godel v2.0 - Core Integration
 
 ## Objective
 
-Integrate `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core primitives of Dash, enabling:
+Integrate `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core primitives of Godel, enabling:
 - Unified multi-provider LLM API (OpenAI, Anthropic, Google, etc.)
 - Production-grade coding agent capabilities
 - Session management with tree-structured history
@@ -49,9 +49,9 @@ Integrate `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core prim
    - Tree-structured history
    - MCP-like extensibility
 
-3. **Dash Integration**
+3. **Godel Integration**
    - Replace custom LLM calls with pi-ai
-   - Wrap pi-coding-agent for Dash CLI
+   - Wrap pi-coding-agent for Godel CLI
    - Share session context between systems
    - Unified authentication
 
@@ -66,7 +66,7 @@ Integrate `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core prim
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        DASH CORE                                │
+│                        GODEL CORE                                │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐  ┌─────────────────────────────────────┐  │
 │  │  Agent Manager  │  │      pi-ai Integration              │  │
@@ -77,7 +77,7 @@ Integrate `@mariozechner/pi-ai` and `@mariozechner/pi-coding-agent` as core prim
 │  └─────────────────┘  │  │ - complete(model, context)    │  │  │
 │                       │  └───────────────────────────────┘  │  │
 │  ┌─────────────────┐  │  ┌───────────────────────────────┐  │  │
-│  │  Swarm Manager  │  │  │ Provider Registry             │  │  │
+│  │  Team Manager  │  │  │ Provider Registry             │  │  │
 │  │                 │  │  │ - OpenAI, Anthropic, Google  │  │  │
 │  │ - Orchestrate  │  │  │ - Groq, Mistral, Cerebras    │  │  │
 │  │ - Coordinate   │  │  │ - Custom providers            │  │  │
@@ -690,7 +690,7 @@ class CostTracker {
 1. Should we support all pi-ai providers or a subset?
 2. How to handle provider-specific options (thinking, etc.)?
 3. Should we integrate pi's compaction strategy?
-4. How to sync Dash session context with pi sessions?
+4. How to sync Godel session context with pi sessions?
 
 ## References
 

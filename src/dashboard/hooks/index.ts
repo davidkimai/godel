@@ -2,4 +2,4 @@
  * Dashboard Hooks - Export all hooks
  */
 
-export { useWebSocket, useAgentStatus, useBudget, useEventStream, useSwarmStatus } from './useWebSocket';
+export { useWebSocket, useAgentStatus, useBudget, useEventStream, useTeamStatus } from './useWebSocket';

@@ -1,12 +1,12 @@
 /**
- * Self-Improvement Swarm Configuration
+ * Self-Improvement Team Configuration
  * 
- * This swarm uses Dash's own infrastructure to recursively improve itself.
+ * This team uses Godel's own infrastructure to recursively improve itself.
  * Each agent has a specific role in the feedback loop.
  */
 
 export interface SelfImprovementConfig {
-  // Budget limits (using Dash's safety features)
+  // Budget limits (using Godel's safety features)
   maxBudgetUSD: number;
   maxTokensPerAgent: number;
   
@@ -52,8 +52,8 @@ export const SELF_IMPROVEMENT_CONFIG: SelfImprovementConfig = {
   }
 };
 
-// Swarm definitions for recursive self-improvement
-export const SELF_IMPROVEMENT_SWARMS = {
+// Team definitions for recursive self-improvement
+export const SELF_IMPROVEMENT_TEAMS = {
   codeQuality: {
     name: 'self-improvement-code-quality',
     agents: [

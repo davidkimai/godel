@@ -29,7 +29,7 @@ export const BUILTIN_ROLES: AgentRole[] = [
     id: 'coordinator',
     name: 'Coordinator',
     description: 'Orchestrates multi-agent workflows, delegates tasks, coordinates communication',
-    systemPrompt: `You are the Coordinator of an agent swarm. Your responsibilities:
+    systemPrompt: `You are the Coordinator of an agent team. Your responsibilities:
 - Break down complex tasks into subtasks
 - Delegate work to Worker agents
 - Monitor progress and adjust plans

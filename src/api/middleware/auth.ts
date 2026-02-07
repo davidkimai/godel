@@ -15,7 +15,7 @@ const validSessions = new Map<string, number>();
 
 // API key format: dash_<prefix>_<32-char-hex>
 const API_KEY_PATTERN = /^dash_[a-z]+_[a-f0-9]{64}$/;
-const API_KEY_PREFIX = 'dash';
+const API_KEY_PREFIX = 'godel';
 const PUBLIC_PATH_PREFIXES = [
   '/health',
   '/api/auth',

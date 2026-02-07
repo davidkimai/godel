@@ -125,15 +125,15 @@ export {
 } from './schemas/agent';
 
 export {
-  CreateSwarmSchema,
-  UpdateSwarmSchema,
-  SwarmSchema,
-  SwarmListResponseSchema,
-  type CreateSwarm,
-  type UpdateSwarm,
-  type Swarm,
-  type SwarmListResponse,
-} from './schemas/swarm';
+  CreateTeamSchema,
+  UpdateTeamSchema,
+  TeamSchema,
+  TeamListResponseSchema,
+  type CreateTeam,
+  type UpdateTeam,
+  type Team,
+  type TeamListResponse,
+} from './schemas/team';
 
 export {
   CreateTaskSchema,

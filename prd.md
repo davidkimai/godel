@@ -1,4 +1,4 @@
-# Dash Production Readiness Document (PRD) v2.0
+# Godel Production Readiness Document (PRD) v2.0
 ## Meta-Orchestrator Platform for 10-50+ OpenClaw Sessions
 
 **Version:** 2.0  
@@ -37,7 +37,7 @@
 
 ### 1.1 Product Vision
 
-Dash is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw gateway sessions with enterprise reliability, observability, and operational efficiency. Dash operates as the central nervous system for AI agent swarms, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous OpenClaw instances.
+Godel is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw gateway sessions with enterprise reliability, observability, and operational efficiency. Godel operates as the central nervous system for AI agent teams, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous OpenClaw instances.
 
 ### 1.2 Target Market & Use Cases
 
@@ -61,8 +61,8 @@ Dash is a **production-grade meta-orchestration control plane** designed to mana
 - Agentic AI Market: $7.06B (2025) → $93.20B (2032) at 44.6% CAGR
 - 62% of organizations anticipate >100% ROI from agentic AI implementation
 
-**Dash Differentiators:**
-| Capability | Traditional Orchestrators | AI-Native Platforms | Dash Advantage |
+**Godel Differentiators:**
+| Capability | Traditional Orchestrators | AI-Native Platforms | Godel Advantage |
 |------------|---------------------------|---------------------|----------------|
 | Session-Aware Routing | Basic load balancing | Token-based routing | OpenClaw-native session affinity with priority-safe dispatch |
 | Priority Queue Semantics | FIFO/LIFO only | Manual prioritization | Four-tier priority (critical/high/medium/low) with strict ordering |
@@ -87,31 +87,31 @@ Dash is a **production-grade meta-orchestration control plane** designed to mana
 
 ### Interview-Driven Design Philosophy
 
-Based on recursive self-interview exploring what would constitute an *ideal* agent-first orchestration platform, the following principles and features define the north star for Dash:
+Based on recursive self-interview exploring what would constitute an *ideal* agent-first orchestration platform, the following principles and features define the north star for Godel:
 
 #### The Core Paradigm Shift: From "Tools" to "Teammates"
 
-**Current State (Without Dash):**
+**Current State (Without Godel):**
 - AI agents are "tools" I operate manually
 - Context switching between 5+ terminal windows
 - I am the bottleneck, constantly checking "did it finish?"
 - Every failure requires my immediate attention
 
-**Ideal State (With Dash):**
+**Ideal State (With Godel):**
 - Agents are "teammates" that coordinate autonomously
 - Single dashboard, unified context, zero switching
 - System self-manages, escalates only when truly stuck
 - I focus on direction, not execution details
 
 **The Metaphor:**
-> "Dash is not a faster horse—it's a car. You don't manage the engine, transmission, and wheels separately. You say 'take me to San Francisco' and the system figures out the rest."
+> "Godel is not a faster horse—it's a car. You don't manage the engine, transmission, and wheels separately. You say 'take me to San Francisco' and the system figures out the rest."
 
 #### The "Intent-Based" Interface
 
 **Current Friction:**
 ```bash
 # Today's reality (high cognitive load)
-dash task create \
+godel task create \
   --agent agent-7 \
   --priority high \
   --worktree /path/to/repo \
@@ -123,7 +123,7 @@ dash task create \
 **Ideal Experience:**
 ```bash
 # Tomorrow's reality (intent-based)
-dash do "Add Google OAuth login with security best practices"
+godel do "Add Google OAuth login with security best practices"
 
 # Or via web UI: type and submit
 ```
@@ -135,7 +135,7 @@ dash do "Add Google OAuth login with security best practices"
 - Quality gates (security review before merge)
 - Rollback strategy if issues detected
 
-#### The Self-Healing Swarm Architecture
+#### The Self-Healing Team Architecture
 
 **What Makes It "Agent-First":**
 
@@ -158,7 +158,7 @@ dash do "Add Google OAuth login with security best practices"
 ```
 User: "Refactor the payment module to use Stripe"
 
-Dash Orchestrates:
+Godel Orchestrates:
 ├── Agent-A (Architecture): Design new payment flow
 ├── Agent-B (Backend): Implement Stripe API integration
 ├── Agent-C (Frontend): Update checkout components
@@ -173,23 +173,23 @@ Failure Scenario:
         └── Task continues without human intervention
 ```
 
-#### The Perfect Day with Ideal Dash
+#### The Perfect Day with Ideal Godel
 
 | Time | Activity | System State | Human Experience |
 |------|----------|--------------|------------------|
-| **8:00 AM** | Morning standup | Dashboard shows overnight progress: 23 tasks completed, 3 pending review | Confidence: "The swarm worked while I slept" |
+| **8:00 AM** | Morning standup | Dashboard shows overnight progress: 23 tasks completed, 3 pending review | Confidence: "The team worked while I slept" |
 | **9:30 AM** | Sprint planning | Natural language input: "Build user profile feature" → System generates task breakdown | Agency: "I direct, system executes" |
-| **10:00 AM** | Deep work | Agents swarm in parallel, real-time progress visualization | Flow: "No interruptions, full focus" |
+| **10:00 AM** | Deep work | Agents team in parallel, real-time progress visualization | Flow: "No interruptions, full focus" |
 | **12:00 PM** | Issue detected | 1 agent stuck on edge case → Auto-escalation to specialist agent → Resolved | Trust: "System handles problems gracefully" |
 | **2:00 PM** | Review | Side-by-side diffs, batch approvals, one-click merge | Delight: "Quality output, minimal effort" |
 | **5:00 PM** | EOD | Summary: 47 tasks, $23 LLM cost, 99.7% success, 0 human interventions | Peace: "Everything just works" |
 
 #### Differentiation: The "Invisible Orchestrator"
 
-| Competitor | Their Approach | Dash's Ideal |
+| Competitor | Their Approach | Godel's Ideal |
 |------------|---------------|--------------|
 | **Gas Town** | Terminal-native, manual coordination | Web-first, autonomous coordination |
-| **Conductor** | Mac-only, isolated workspaces | Cross-platform, unified swarm |
+| **Conductor** | Mac-only, isolated workspaces | Cross-platform, unified team |
 | **Loom** | Enterprise server-side | Developer-friendly, open core |
 | **CrewAI** | Framework for coding | Runtime for execution |
 | **Temporal** | Workflow-as-code | Intent-as-workflow |
@@ -199,7 +199,7 @@ Failure Scenario:
 
 #### Anti-Features: The "Don't" List
 
-| Anti-Pattern | Why It Kills Productivity | Dash's Approach |
+| Anti-Pattern | Why It Kills Productivity | Godel's Approach |
 |--------------|---------------------------|-----------------|
 | **Configuration Hell** | 47 YAML files, endless env vars | Sensible defaults, convention over configuration |
 | **Opaque Failures** | "Error 500", no context, lost work | Full trace, root cause analysis, automatic retry |
@@ -213,7 +213,7 @@ Failure Scenario:
 
 **Phase 1: Intent Dispatch** (Now)
 ```bash
-dash do "Fix the flaky test in auth module"
+godel do "Fix the flaky test in auth module"
 # System: identifies test, finds agent with context, executes, reports
 ```
 
@@ -231,7 +231,7 @@ Future dispatch: TypeScript tasks → Agent-7 (higher probability)
 
 **Phase 4: Visual Workflow** (Q4)
 - Drag-and-drop pipeline builder
-- Real-time swarm visualization (like Kubernetes dashboard)
+- Real-time team visualization (like Kubernetes dashboard)
 - Interactive debugging: pause, inspect, resume agent execution
 
 **Phase 5: Predictive Orchestration** (Future)
@@ -262,7 +262,7 @@ Shall I start the next epic early?"
 
 #### The Success Metrics That Matter
 
-Beyond technical metrics (latency, throughput), the ideal Dash is measured by:
+Beyond technical metrics (latency, throughput), the ideal Godel is measured by:
 
 | Metric | Target | Why It Matters |
 |--------|--------|----------------|
@@ -278,7 +278,7 @@ Beyond technical metrics (latency, throughput), the ideal Dash is measured by:
 
 ### Non-Negotiables
 
-These principles are foundational to Dash's design. Violating them would compromise the product's core value.
+These principles are foundational to Godel's design. Violating them would compromise the product's core value.
 
 | Principle | Description | Why Non-Negotiable |
 |-----------|-------------|-------------------|
@@ -319,25 +319,25 @@ When faced with architectural decisions, use this priority order:
 - **Strengths:** Deep AWS integration, visual workflow design, state machine semantics
 - **Limitations:** AWS-only, limited AI agent awareness, no session persistence, expensive at scale
 - **Pricing:** $0.025 per 1,000 state transitions
-- **Gap for Dash:** No native understanding of OpenClaw session lifecycle, no priority queue semantics
+- **Gap for Godel:** No native understanding of OpenClaw session lifecycle, no priority queue semantics
 
 **Temporal.io**
 - **Strengths:** Durable execution, strong consistency, multi-language SDKs
 - **Limitations:** General-purpose (not AI-optimized), complex setup, requires workflow code changes
 - **Pricing:** $0.000001 per action (cloud) or self-hosted
-- **Gap for Dash:** No built-in agent-specific routing, no session affinity for AI coding agents
+- **Gap for Godel:** No built-in agent-specific routing, no session affinity for AI coding agents
 
 **Cadence (Uber)**
 - **Strengths:** Battle-tested at scale, open-source, durable execution
 - **Limitations:** Heavy infrastructure requirements, steep learning curve
 - **Pricing:** Self-hosted only
-- **Gap for Dash:** Not designed for AI agent workloads, no awareness of LLM context windows
+- **Gap for Godel:** Not designed for AI agent workloads, no awareness of LLM context windows
 
 **Nomad + Kubernetes Jobs**
 - **Strengths:** Container-native, flexible scheduling, mature ecosystem
 - **Limitations:** Treats agents as stateless containers, no session persistence, no priority queues
 - **Pricing:** Infrastructure cost only
-- **Gap for Dash:** No understanding of OpenClaw protocol, no session-level management
+- **Gap for Godel:** No understanding of OpenClaw protocol, no session-level management
 
 #### 2.1.2 AI-Native Orchestration Platforms
 
@@ -345,29 +345,29 @@ When faced with architectural decisions, use this priority order:
 - **Strengths:** Graph-based agent workflows, LangChain ecosystem integration
 - **Limitations:** Python-only, focused on LLM chains not coding agents, no session persistence
 - **Pricing:** Open source + LangSmith cloud
-- **Gap for Dash:** No OpenClaw integration, designed for conversational agents not coding
+- **Gap for Godel:** No OpenClaw integration, designed for conversational agents not coding
 
 **CrewAI**
 - **Strengths:** Multi-agent collaboration, role-based agents
 - **Limitations:** Early stage, limited scalability, no production-grade queue management
 - **Pricing:** Open source
-- **Gap for Dash:** Not designed for 10-50 concurrent sessions, no federation capabilities
+- **Gap for Godel:** Not designed for 10-50 concurrent sessions, no federation capabilities
 
 **AutoGPT / AgentGPT**
 - **Strengths:** Autonomous agent loops, broad capability
 - **Limitations:** Unreliable for production, no orchestration layer, no priority management
 - **Pricing:** Open source (API costs only)
-- **Gap for Dash:** Dash provides the production orchestration AutoGPT lacks
+- **Gap for Godel:** Godel provides the production orchestration AutoGPT lacks
 
 **Danswer**
 - **Strengths:** Enterprise search with AI, document Q&A
 - **Limitations:** Focused on search/retrieval, not general agent orchestration
 - **Pricing:** Open source + enterprise license
-- **Gap for Dash:** Different problem domain (RAG vs. coding agent orchestration)
+- **Gap for Godel:** Different problem domain (RAG vs. coding agent orchestration)
 
 ### 2.2 Feature Comparison Matrix
 
-| Feature | Dash | Temporal | AWS Step Functions | LangGraph | Kubernetes Jobs |
+| Feature | Godel | Temporal | AWS Step Functions | LangGraph | Kubernetes Jobs |
 |---------|------|----------|-------------------|-----------|-----------------|
 | Priority Queues (4-tier) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Session Affinity | ✅ | ⚠️ | ❌ | ❌ | ❌ |
@@ -391,8 +391,8 @@ When faced with architectural decisions, use this priority order:
 - Temporal Cloud: ~$1 per million actions
 - Self-hosted orchestrators: Infrastructure cost + operational overhead
 
-**Dash Value Proposition:**
-Dash operates as a control plane overlay—customers bring their own OpenClaw gateways and infrastructure. The value is in:
+**Godel Value Proposition:**
+Godel operates as a control plane overlay—customers bring their own OpenClaw gateways and infrastructure. The value is in:
 1. **Operational efficiency:** Reduced engineering time managing agent fleets
 2. **Resource optimization:** Better utilization of existing OpenClaw capacity
 3. **Reliability:** Reduced failed tasks and manual intervention
@@ -400,7 +400,7 @@ Dash operates as a control plane overlay—customers bring their own OpenClaw ga
 **Recommended Pricing Model:**
 - **Open Source Core:** Full functionality, self-hosted
 - **Enterprise Add-ons:** Advanced observability, multi-region federation, support SLA
-- **Managed Service (Future):** Hosted Dash control plane with usage-based pricing
+- **Managed Service (Future):** Hosted Godel control plane with usage-based pricing
 
 ---
 
@@ -408,7 +408,7 @@ Dash operates as a control plane overlay—customers bring their own OpenClaw ga
 
 **Features Adapted from Competitors:**
 
-| Feature | Source | Adaptation Notes | Dash Enhancement |
+| Feature | Source | Adaptation Notes | Godel Enhancement |
 |---------|--------|------------------|------------------|
 | Git Worktree Isolation | Gas Town Hooks, Conductor | Extend with dependency sharing | Automated cleanup, shared caches |
 | Ephemeral Workers | Gas Town Polecats | Add to task queue system | Pool-based pre-warming |
@@ -423,8 +423,8 @@ Dash operates as a control plane overlay—customers bring their own OpenClaw ga
 | Diff Viewer | Conductor | Web-based viewer | Hunk-level accept/reject |
 | Session Persistence | Gas Town Hooks | Checkpoint system | Migration, archival |
 
-**Dash Differentiation Strategy:**
-1. **Integration Depth:** While competitors offer isolated features, Dash provides unified orchestration across all capabilities
+**Godel Differentiation Strategy:**
+1. **Integration Depth:** While competitors offer isolated features, Godel provides unified orchestration across all capabilities
 2. **OpenClaw Native:** Deep integration with OpenClaw/Pi ecosystem vs. generic implementations
 3. **Enterprise Ready:** Security, multi-tenancy, and compliance built-in from the start
 4. **Observability:** End-to-end tracing across all agent interactions
@@ -435,7 +435,7 @@ Dash operates as a control plane overlay—customers bring their own OpenClaw ga
 
 ### 3.1 Current State Challenges
 
-Dash currently contains the right building blocks (queueing, routing, API, OpenClaw integration, scaling modules) but has reliability and contract-consistency gaps that create deployment risk under concurrency:
+Godel currently contains the right building blocks (queueing, routing, API, OpenClaw integration, scaling modules) but has reliability and contract-consistency gaps that create deployment risk under concurrency:
 
 **Critical Gaps Identified:**
 
@@ -496,7 +496,7 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 ### 4.1 Primary Goals
 
 **Goal 1: Reliable Concurrency at Scale**
-- Make Dash reliably orchestrate 10-50+ concurrent OpenClaw sessions with deterministic queue and lifecycle behavior
+- Make Godel reliably orchestrate 10-50+ concurrent OpenClaw sessions with deterministic queue and lifecycle behavior
 - Success Criteria: Zero task loss under normal operations, <0.1% task loss during degraded conditions
 
 **Goal 2: Stable API Contract**
@@ -535,12 +535,12 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 
 ## 4.5 Developer Journey Map
 
-### Emotional Journey Through Dash Adoption
+### Emotional Journey Through Godel Adoption
 
 | Phase | Emotional State | Touchpoints | Success Metrics |
 |-------|-----------------|-------------|-----------------|
 | **Discovery** | Curiosity | GitHub README, docs landing, Hacker News | Time to first read < 5 min |
-| **Installation** | Anxiety → Relief | `npm install -g dash`, `dash onboard` | Install success rate > 95% |
+| **Installation** | Anxiety → Relief | `npm install -g godel`, `godel onboard` | Install success rate > 95% |
 | **First Task** | Apprehension → Surprise | CLI submission, dashboard loading | First task completes < 30s |
 | **Multi-Agent** | Confidence → Delight | 10+ agents running, all succeed | Zero manual intervention |
 | **Production** | Trust | 24/7 operation, alerts, runbooks | MTTR < 5 min, MTBF > 7 days |
@@ -548,14 +548,14 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 
 ### Key "Aha" Moments
 
-1. **The Swarm:** "I submitted 20 tasks, went to get coffee, came back to all completed"
+1. **The Team:** "I submitted 20 tasks, went to get coffee, came back to all completed"
 2. **The Recovery:** "Agent crashed but task resumed from checkpoint automatically"
 3. **The Visibility:** "I can see exactly what every agent is doing in real-time"
 4. **The Savings:** "My LLM costs dropped 40% with smart routing"
 
 ### Pain Points to Address
 
-| Pain Point | Current State (Without Dash) | Future State (With Dash) |
+| Pain Point | Current State (Without Godel) | Future State (With Godel) |
 |------------|------------------------------|--------------------------|
 | Context Switching | 5+ terminal windows, lost track | Single dashboard, unified view |
 | Task Orphans | "Did that agent finish?" | Clear status, automatic retry |
@@ -782,7 +782,7 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 - [ ] Routing policy supports tenant affinity, session affinity, and failover
 - [ ] Backpressure and max-concurrency policy documented and enforceable
 - [ ] Auto-scaling triggers defined for instance pool size
-- [ ] Health check protocol between Dash and OpenClaw instances
+- [ ] Health check protocol between Godel and OpenClaw instances
 - [ ] Non-goals and staged rollout plan documented
 
 **Technical Implementation:**
@@ -792,7 +792,7 @@ Without hardening queue semantics, auth validation, API compatibility, observabi
 
 **Federation Topology:**
 ```
-Dash Control Plane
+Godel Control Plane
     ├── OpenClaw Pool A (Region: us-east, Capacity: 20 instances)
     ├── OpenClaw Pool B (Region: us-west, Capacity: 15 instances)
     └── OpenClaw Pool C (Region: eu-west, Capacity: 15 instances)
@@ -829,11 +829,11 @@ Dash Control Plane
 ---
 
 ### US-011: OpenClaw Daemon Operational Startup
-**Description:** As an operator, I want Dash to recover from missing local gateway processes by starting OpenClaw daemon commands automatically (when enabled) so orchestration remains operational.
+**Description:** As an operator, I want Godel to recover from missing local gateway processes by starting OpenClaw daemon commands automatically (when enabled) so orchestration remains operational.
 
 **Acceptance Criteria:**
-- [x] Dash supports configurable daemon start command override
-- [x] Dash probes common command variants (`openclaws`, `openclaw`, `openclawd`) when override is not provided
+- [x] Godel supports configurable daemon start command override
+- [x] Godel probes common command variants (`openclaws`, `openclaw`, `openclawd`) when override is not provided
 - [x] Startup retry/probe windows are configurable via OpenClaw config/env
 - [ ] Graceful degradation when daemon start fails (queue tasks for later)
 - [ ] Live integration test validates auto-start behavior against a real gateway lifecycle
@@ -910,7 +910,7 @@ openclaw:
 
 **Acceptance Criteria:**
 - [ ] Automatic git worktree creation per session
-- [ ] Worktree naming convention: `<repo>-dash-<session-id>`
+- [ ] Worktree naming convention: `<repo>-godel-<session-id>`
 - [ ] Shared dependencies (node_modules, .venv) via symlinks or shared paths
 - [ ] Automatic cleanup of worktrees on session completion
 - [ ] Worktree state persistence across session restarts
@@ -929,14 +929,14 @@ openclaw:
 
 ---
 
-### US-015: Ephemeral Worker Swarm ("Polecats")
+### US-015: Ephemeral Worker Team ("Polecats")
 **Description:** As a platform operator, I want to spin up ephemeral worker agents that complete a single task and terminate, enabling efficient work-swarming patterns.
 
 **Acceptance Criteria:**
 - [ ] One-shot task execution with automatic session cleanup
 - [ ] Configurable worker lifespan (task-bound, time-bound, or manual)
 - [ ] Worker pools with pre-warmed sessions for low latency
-- [ ] Automatic result aggregation from swarm workers
+- [ ] Automatic result aggregation from team workers
 - [ ] Resource limits per worker (CPU, memory, time)
 - [ ] Naming convention and recycling for worker identities
 
@@ -1205,7 +1205,7 @@ openclaw:
 ---
 
 ### US-026: Pi Registry and Instance Discovery
-**Description:** As a platform operator, I want automatic discovery and registration of Pi instances so that Dash can dynamically scale across multiple Pi providers and instances.
+**Description:** As a platform operator, I want automatic discovery and registration of Pi instances so that Godel can dynamically scale across multiple Pi providers and instances.
 
 **Acceptance Criteria:**
 - [ ] PiRegistry component supports multiple discovery strategies (static, OpenClaw Gateway, Kubernetes, auto-spawn)
@@ -1364,7 +1364,7 @@ API must offer compatibility endpoints for both `/api` and `/api/v1` during migr
 | Endpoint | `/api/v1` | `/api` | Status |
 |----------|-----------|--------|--------|
 | GET /health | ✅ | ✅ | Active |
-| GET /swarms | ✅ | ✅ | Active |
+| GET /teams | ✅ | ✅ | Active |
 | POST /tasks | ✅ | ✅ | Active |
 | GET /agents | ✅ | ✅ | Active |
 
@@ -1584,8 +1584,8 @@ jwt:
   secret_length: 256 bits minimum
   access_token_ttl: 15 minutes
   refresh_token_ttl: 7 days
-  issuer: "dash"
-  audience: "dash-api"
+  issuer: "godel"
+  audience: "godel-api"
   required_claims:
     - sub (user id)
     - iss (issuer)
@@ -1826,17 +1826,17 @@ Regulatory compliance preparation.
 ```yaml
 openapi: 3.1.0
 info:
-  title: Dash API
+  title: Godel API
   version: 1.0.0
   description: Meta-orchestrator API for OpenClaw session management
   contact:
-    name: Dash Team
-    email: api@dash.dev
+    name: Godel Team
+    email: api@godel.dev
 
 servers:
   - url: http://localhost:7373/api/v1
     description: Local development
-  - url: https://api.dash.dev/v1
+  - url: https://api.godel.dev/v1
     description: Production
 
 security:
@@ -2265,36 +2265,36 @@ CREATE POLICY tenant_isolation_sessions ON sessions
 
 **Queue Keys:**
 ```
-dash:{tenant}:queue:critical    # Sorted set: score = timestamp, member = task_id
-dash:{tenant}:queue:high        # Sorted set: score = timestamp, member = task_id
-dash:{tenant}:queue:medium      # Sorted set: score = timestamp, member = task_id
-dash:{tenant}:queue:low         # Sorted set: score = timestamp, member = task_id
-dash:{tenant}:queue:pending     # Set: all pending task_ids
-dash:{tenant}:queue:assigned    # Hash: task_id -> agent_id
-dash:{tenant}:queue:running     # Hash: task_id -> {agent_id, started_at}
-dash:{tenant}:queue:scheduled   # Sorted set: score = scheduled_at, member = task_id
-dash:{tenant}:queue:dead_letter # List: failed task_ids
+godel:{tenant}:queue:critical    # Sorted set: score = timestamp, member = task_id
+godel:{tenant}:queue:high        # Sorted set: score = timestamp, member = task_id
+godel:{tenant}:queue:medium      # Sorted set: score = timestamp, member = task_id
+godel:{tenant}:queue:low         # Sorted set: score = timestamp, member = task_id
+godel:{tenant}:queue:pending     # Set: all pending task_ids
+godel:{tenant}:queue:assigned    # Hash: task_id -> agent_id
+godel:{tenant}:queue:running     # Hash: task_id -> {agent_id, started_at}
+godel:{tenant}:queue:scheduled   # Sorted set: score = scheduled_at, member = task_id
+godel:{tenant}:queue:dead_letter # List: failed task_ids
 ```
 
 **Agent State:**
 ```
-dash:{tenant}:agent:{id}:load        # String: current load
-dash:{tenant}:agent:{id}:status      # String: idle|busy|offline|error
-dash:{tenant}:agent:{id}:heartbeat   # String: ISO timestamp
-dash:{tenant}:agents:idle            # Set: idle agent_ids
-dash:{tenant}:agents:busy            # Set: busy agent_ids
+godel:{tenant}:agent:{id}:load        # String: current load
+godel:{tenant}:agent:{id}:status      # String: idle|busy|offline|error
+godel:{tenant}:agent:{id}:heartbeat   # String: ISO timestamp
+godel:{tenant}:agents:idle            # Set: idle agent_ids
+godel:{tenant}:agents:busy            # Set: busy agent_ids
 ```
 
 **Session State:**
 ```
-dash:{tenant}:session:{id}:status    # String: session status
-dash:{tenant}:session:{id}:agent     # String: assigned agent_id
-dash:{tenant}:sessions:active        # Set: active session_ids
+godel:{tenant}:session:{id}:status    # String: session status
+godel:{tenant}:session:{id}:agent     # String: assigned agent_id
+godel:{tenant}:sessions:active        # Set: active session_ids
 ```
 
 **Rate Limiting:**
 ```
-dash:ratelimit:{key}                 # String: request count with TTL
+godel:ratelimit:{key}                 # String: request count with TTL
 ```
 
 ---
@@ -2374,7 +2374,7 @@ dash_errors_total:
   "timestamp": "2026-01-15T10:30:00.000Z",
   "level": "info",
   "message": "Task assigned to agent",
-  "service": "dash-api",
+  "service": "godel-api",
   "version": "1.0.0",
   "trace_id": "abc123",
   "span_id": "def456",
@@ -2421,7 +2421,7 @@ dash_errors_total:
   for: 1m
   
 - alert: DatabaseConnectionFailure
-  expr: up{job="dash-api"} == 0
+  expr: up{job="godel-api"} == 0
   for: 30s
 ```
 
@@ -2606,7 +2606,7 @@ DASH_HOST=0.0.0.0
 DASH_NODE_ENV=production
 
 # Database
-DASH_DATABASE_URL=postgresql://user:pass@localhost:5432/dash
+DASH_DATABASE_URL=postgresql://user:pass@localhost:5432/godel
 DASH_DATABASE_POOL_SIZE=20
 
 # Redis
@@ -2615,8 +2615,8 @@ DASH_REDIS_CLUSTER=false
 
 # Auth
 DASH_JWT_SECRET=<256-bit-secret>
-DASH_JWT_ISSUER=dash
-DASH_JWT_AUDIENCE=dash-api
+DASH_JWT_ISSUER=godel
+DASH_JWT_AUDIENCE=godel-api
 
 # OpenClaw
 DASH_OPENCLAW_COMMAND=openclaw
@@ -2734,17 +2734,17 @@ DASH_TRACING_ENABLED=true
 **Code Rollback:**
 ```bash
 # Kubernetes
-kubectl rollout undo deployment/dash-api
+kubectl rollout undo deployment/godel-api
 
 # Docker Compose
-docker-compose pull dash-api:previous
+docker-compose pull godel-api:previous
 docker-compose up -d
 
 # Manual
-systemctl stop dash
-cd /opt/dash && git checkout <previous-tag>
+systemctl stop godel
+cd /opt/godel && git checkout <previous-tag>
 npm install && npm run build
-systemctl start dash
+systemctl start godel
 ```
 
 **Database Rollback:**
@@ -2954,13 +2954,13 @@ pg_restore --target-time "2026-01-15 10:00:00" backup.dump
 
 | Term | Definition |
 |------|------------|
-| **Agent** | A Dash-managed entity that executes tasks via OpenClaw sessions |
+| **Agent** | A Godel-managed entity that executes tasks via OpenClaw sessions |
 | **Dead Letter Queue (DLQ)** | Storage for tasks that failed permanently after max retries |
 | **Federation** | Management of multiple OpenClaw instances as a unified pool |
 | **OpenClaw** | Gateway software that hosts AI agent sessions |
-| **Session** | A connection between Dash and an OpenClaw gateway session |
+| **Session** | A connection between Godel and an OpenClaw gateway session |
 | **Session Affinity** | Routing preference to keep related tasks on the same agent |
-| **Swarm** | A group of related tasks or sessions working together |
+| **Team** | A group of related tasks or sessions working together |
 | **Task** | A unit of work to be executed by an agent |
 
 ### Appendix B: Acronyms

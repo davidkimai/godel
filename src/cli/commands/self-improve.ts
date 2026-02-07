@@ -2,9 +2,9 @@
  * Self-Improvement CLI Command
  * 
  * Commands:
- * - dash self-improve run         Run self-improvement cycle
- * - dash self-improve status      Check improvement status
- * - dash self-improve report      Generate improvement report
+ * - godel self-improve run         Run self-improvement cycle
+ * - godel self-improve status      Check improvement status
+ * - godel self-improve report      Generate improvement report
  */
 
 import { logger } from '../../utils/logger';
@@ -20,7 +20,7 @@ import {
 export function registerSelfImproveCommand(program: Command): void {
   program
     .command('self-improve')
-    .description('Run Dash self-improvement cycles using Dash infrastructure')
+    .description('Run Godel self-improvement cycles using Godel infrastructure')
     .addCommand(
       new Command('run')
         .description('Run self-improvement cycle')

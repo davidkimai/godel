@@ -1,4 +1,4 @@
-# SPEC: Dash Production Readiness - OpenClaw Integration
+# SPEC: Godel Production Readiness - OpenClaw Integration
 
 **Version:** 1.0  
 **Date:** February 3, 2026  
@@ -10,14 +10,14 @@
 
 ## Overview
 
-Build seamless integration between Dash and OpenClaw, enabling OpenClaw to use Dash as its native orchestration platform.
+Build seamless integration between Godel and OpenClaw, enabling OpenClaw to use Godel as its native orchestration platform.
 
-**Goal:** OpenClaw users can spawn Dash agents and swarms natively.
+**Goal:** OpenClaw users can spawn Godel agents and teams natively.
 
 **PRD Success Criteria:**
-1. ✅ OpenClaw spawns 100 Dash agents simultaneously without errors
-2. ✅ Events from Dash agents appear in OpenClaw within 500ms
-3. ✅ `/dash spawn` command works in OpenClaw
+1. ✅ OpenClaw spawns 100 Godel agents simultaneously without errors
+2. ✅ Events from Godel agents appear in OpenClaw within 500ms
+3. ✅ `/godel spawn` command works in OpenClaw
 4. ✅ Full integration test suite passes
 5. ✅ Production deployment to OpenClaw infrastructure successful
 
@@ -27,8 +27,8 @@ Build seamless integration between Dash and OpenClaw, enabling OpenClaw to use D
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   OpenClaw  │ ───► │   Adapter    │ ───► │    Dash     │
-│  (sessions) │      │  (Protocol   │      │   (swarms)  │
+│   OpenClaw  │ ───► │   Adapter    │ ───► │    Godel     │
+│  (sessions) │      │  (Protocol   │      │   (teams)  │
 │             │ ◄─── │  Translation)│ ◄─── │             │
 └─────────────┘      └──────────────┘      └─────────────┘
         │                                            │
@@ -43,7 +43,7 @@ Build seamless integration between Dash and OpenClaw, enabling OpenClaw to use D
 
 ## Component 1: OpenClaw Adapter
 
-**Purpose:** Translate OpenClaw protocol to Dash API
+**Purpose:** Translate OpenClaw protocol to Godel API
 
 ### File: `src/integrations/openclaw/adapter.ts`
 
@@ -59,7 +59,7 @@ export interface OpenClawAdapterConfig {
 
 export class OpenClawAdapter {
   private config: OpenClawAdapterConfig;
-  private agentIdMap: Map<string, string>;  // OpenClaw session -> Dash agent
+  private agentIdMap: Map<string, string>;  // OpenClaw session -> Godel agent
   
   constructor(config: OpenClawAdapterConfig) {
     this.config = config;
@@ -67,7 +67,7 @@ export class OpenClawAdapter {
   }
   
   /**
-   * Spawn an agent in Dash from OpenClaw session
+   * Spawn an agent in Godel from OpenClaw session
    */
   async spawnAgent(openclawSessionKey: string, options: {
     agentType: string;
@@ -75,7 +75,7 @@ export class OpenClawAdapter {
     model?: string;
     timeout?: number;
   }): Promise<{ dashAgentId: string; status: string }> {
-    // Create swarm for this agent
+    // Create team for this agent
     const swarmResult = await swarmctl.createSwarm({
       name: `openclaw-${openclawSessionKey}`,
       type: options.agentType,
@@ -86,13 +86,13 @@ export class OpenClawAdapter {
       }
     });
     
-    // Spawn agent in swarm
+    // Spawn agent in team
     const agentResult = await swarmctl.spawnAgent({
       swarmId: swarmResult.id,
       type: options.agentType
     });
     
-    // Map OpenClaw session to Dash agent
+    // Map OpenClaw session to Godel agent
     this.agentIdMap.set(openclawSessionKey, agentResult.id);
     
     // Set up event forwarding
@@ -105,13 +105,13 @@ export class OpenClawAdapter {
   }
   
   /**
-   * Send message to Dash agent from OpenClaw
+   * Send message to Godel agent from OpenClaw
    */
   async sendMessage(openclawSessionKey: string, message: string): Promise<void> {
     const dashAgentId = this.agentIdMap.get(openclawSessionKey);
     
     if (!dashAgentId) {
-      throw new Error(`No Dash agent mapped for session ${openclawSessionKey}`);
+      throw new Error(`No Godel agent mapped for session ${openclawSessionKey}`);
     }
     
     await swarmctl.sendMessage({
@@ -121,7 +121,7 @@ export class OpenClawAdapter {
   }
   
   /**
-   * Kill Dash agent from OpenClaw
+   * Kill Godel agent from OpenClaw
    */
   async killAgent(openclawSessionKey: string): Promise<void> {
     const dashAgentId = this.agentIdMap.get(openclawSessionKey);
@@ -135,7 +135,7 @@ export class OpenClawAdapter {
   }
   
   /**
-   * Get status of Dash agent
+   * Get status of Godel agent
    */
   async getStatus(openclawSessionKey: string): Promise<{
     status: string;
@@ -176,7 +176,7 @@ export class OpenClawAdapter {
     openclawSessionKey: string,
     dashAgentId: string
   ): Promise<void> {
-    // Subscribe to Dash events for this agent
+    // Subscribe to Godel events for this agent
     // Forward relevant events to OpenClaw
   }
 }
@@ -184,50 +184,50 @@ export class OpenClawAdapter {
 
 ---
 
-## Component 2: OpenClaw-Dash Skill
+## Component 2: OpenClaw-Godel Skill
 
-**Purpose:** Provide OpenClaw-native commands for Dash
+**Purpose:** Provide OpenClaw-native commands for Godel
 
-### File: `skills/dash-orchestration/SKILL.md`
+### File: `skills/godel-orchestration/SKILL.md`
 
 ```markdown
-# Dash Orchestration Skill
+# Godel Orchestration Skill
 
 ## Description
 
-Spawn and manage agent swarms using Dash from within OpenClaw.
+Spawn and manage agent teams using Godel from within OpenClaw.
 
 ## Capabilities
 
-- Spawn parallel agent swarms
+- Spawn parallel agent teams
 - Monitor agent progress
 - Kill agents
 - Stream results
 
 ## Usage
 
-### Spawn a swarm
+### Spawn a team
 
 ```
-/dash spawn code-review --files "src/**/*.ts"
+/godel spawn code-review --files "src/**/*.ts"
 ```
 
 ### Check status
 
 ```
-/dash status swarm-abc123
+/godel status team-abc123
 ```
 
 ### Kill an agent
 
 ```
-/dash kill agent-xyz789
+/godel kill agent-xyz789
 ```
 
 ### View logs
 
 ```
-/dash logs agent-xyz789 --follow
+/godel logs agent-xyz789 --follow
 ```
 
 ## Configuration
@@ -238,11 +238,11 @@ Requires:
 
 ## Examples
 
-### Code Review Swarm
+### Code Review Team
 
 Spawn 5 agents to review code in parallel:
 ```
-/dash spawn code-review \
+/godel spawn code-review \
   --agents 5 \
   --strategy parallel \
   --files "src/**/*.ts"
@@ -252,21 +252,21 @@ Spawn 5 agents to review code in parallel:
 
 Run comprehensive security audit:
 ```
-/dash spawn security-audit \
+/godel spawn security-audit \
   --scope full \
   --tools dependency,static,secrets
 ```
 ```
 
-### File: `skills/dash-orchestration/index.ts`
+### File: `skills/godel-orchestration/index.ts`
 
 ```typescript
 import { Skill, CommandContext } from '@openclaw/core';
 import { OpenClawAdapter } from '@/integrations/openclaw/adapter';
 
 export class DashOrchestrationSkill implements Skill {
-  name = 'dash-orchestration';
-  description = 'Spawn and manage agent swarms with Dash';
+  name = 'godel-orchestration';
+  description = 'Spawn and manage agent teams with Godel';
   
   private adapter: OpenClawAdapter;
   
@@ -290,18 +290,18 @@ export class DashOrchestrationSkill implements Skill {
     const parser = new ArgumentParser();
     parser.add_argument('--agents', { type: 'int', default: 1 });
     parser.add_argument('--strategy', { default: 'parallel' });
-    parser.add_argument('type', { help: 'Swarm type' });
+    parser.add_argument('type', { help: 'Team type' });
     
     const parsed = parser.parse_args(args);
     
-    // Create swarm via adapter
+    // Create team via adapter
     const result = await this.adapter.spawnAgent(context.sessionKey, {
       agentType: parsed.type,
       task: context.input,
       model: context.model
     });
     
-    context.reply(`Spawned Dash agent: ${result.dashAgentId}`);
+    context.reply(`Spawned Godel agent: ${result.dashAgentId}`);
     context.reply(`Status: ${result.status}`);
     
     // Stream progress
@@ -323,25 +323,25 @@ export class DashOrchestrationSkill implements Skill {
   }
   
   private async logs(context: CommandContext, args: string[]): Promise<void> {
-    // Stream logs from Dash to OpenClaw
+    // Stream logs from Godel to OpenClaw
   }
   
   private async list(context: CommandContext): Promise<void> {
     const agents = await this.adapter.listAgents();
     
     if (agents.length === 0) {
-      context.reply('No active Dash agents');
+      context.reply('No active Godel agents');
       return;
     }
     
-    context.reply('Active Dash agents:');
+    context.reply('Active Godel agents:');
     for (const agent of agents) {
       context.reply(`- ${agent.dashAgentId} (${agent.status})`);
     }
   }
   
   private async streamProgress(context: CommandContext, agentId: string): Promise<void> {
-    // Set up event stream from Dash
+    // Set up event stream from Godel
     // Forward to OpenClaw
   }
 }
@@ -351,7 +351,7 @@ export class DashOrchestrationSkill implements Skill {
 
 ## Component 3: Event Bridge
 
-**Purpose:** Real-time event streaming from Dash to OpenClaw
+**Purpose:** Real-time event streaming from Godel to OpenClaw
 
 ### File: `src/integrations/openclaw/event-bridge.ts`
 
@@ -376,7 +376,7 @@ export class OpenClawEventBridge extends EventEmitter {
   }
   
   async start(): Promise<void> {
-    // Subscribe to all Dash events
+    // Subscribe to all Godel events
     const unsubscribe = this.config.dashEventBus.subscribe('*', (event) => {
       this.handleDashEvent(event);
     });
@@ -398,7 +398,7 @@ export class OpenClawEventBridge extends EventEmitter {
       return;
     }
     
-    // Transform Dash event to OpenClaw format
+    // Transform Godel event to OpenClaw format
     const openclawEvent = this.transformEvent(event);
     
     // Forward to OpenClaw
@@ -410,7 +410,7 @@ export class OpenClawEventBridge extends EventEmitter {
   
   private transformEvent(dashEvent: any): any {
     return {
-      source: 'dash',
+      source: 'godel',
       type: dashEvent.type,
       timestamp: dashEvent.timestamp,
       data: dashEvent.payload,
@@ -427,7 +427,7 @@ export class OpenClawEventBridge extends EventEmitter {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Dash-Event': 'true'
+          'X-Godel-Event': 'true'
         },
         body: JSON.stringify(event)
       });
@@ -468,7 +468,7 @@ DASH_API_KEY=your-api-key
 
 # OpenClaw Integration
 OPENCLAW_DASH_ADAPTER_ENABLED=true
-OPENCLAW_EVENT_WEBHOOK_URL=https://openclaw.example.com/webhooks/dash
+OPENCLAW_EVENT_WEBHOOK_URL=https://openclaw.example.com/webhooks/godel
 OPENCLAW_EVENT_FILTER=agent.spawned,agent.completed,agent.failed
 ```
 
@@ -478,10 +478,10 @@ Add to OpenClaw's gateway config:
 
 ```yaml
 skills:
-  - name: dash-orchestration
-    path: /path/to/dash/skills/dash-orchestration
+  - name: godel-orchestration
+    path: /path/to/godel/skills/godel-orchestration
     config:
-      dash_api_url: http://dash:7373
+      dash_api_url: http://godel:7373
       dash_api_key: ${DASH_API_KEY}
 ```
 
@@ -511,7 +511,7 @@ describe('OpenClawAdapter', () => {
 
 ```typescript
 // tests/integrations/openclaw/integration.test.ts
-describe('OpenClaw-Dash Integration', () => {
+describe('OpenClaw-Godel Integration', () => {
   it('should complete full flow', async () => {
     // Spawn agent from OpenClaw
     // Wait for completion
@@ -524,10 +524,10 @@ describe('OpenClaw-Dash Integration', () => {
 
 ## Success Criteria
 
-- [ ] OpenClaw can spawn Dash agents
-- [ ] OpenClaw can send messages to Dash agents
-- [ ] OpenClaw can kill Dash agents
-- [ ] Events stream from Dash to OpenClaw in real-time
+- [ ] OpenClaw can spawn Godel agents
+- [ ] OpenClaw can send messages to Godel agents
+- [ ] OpenClaw can kill Godel agents
+- [ ] Events stream from Godel to OpenClaw in real-time
 - [ ] Skill commands work in OpenClaw
 - [ ] Full integration test passes
 
@@ -537,8 +537,8 @@ describe('OpenClaw-Dash Integration', () => {
 
 1. `src/integrations/openclaw/adapter.ts`
 2. `src/integrations/openclaw/event-bridge.ts`
-3. `skills/dash-orchestration/SKILL.md`
-4. `skills/dash-orchestration/index.ts`
+3. `skills/godel-orchestration/SKILL.md`
+4. `skills/godel-orchestration/index.ts`
 5. `tests/integrations/openclaw/*.test.ts`
 6. `docs/OPENCLAW_INTEGRATION.md`
 
@@ -547,24 +547,24 @@ describe('OpenClaw-Dash Integration', () => {
 ## Acceptance Test
 
 ```bash
-# 1. Start Dash
+# 1. Start Godel
 npm run start
 
-# 2. Configure OpenClaw with Dash skill
+# 2. Configure OpenClaw with Godel skill
 openclaw config set DASH_API_URL http://localhost:7373
 openclaw config set DASH_API_KEY test-key
 
 # 3. Spawn agent from OpenClaw
-openclaw /dash spawn code-review --task "Review this code"
+openclaw /godel spawn code-review --task "Review this code"
 
-# 4. Verify agent spawned in Dash
+# 4. Verify agent spawned in Godel
 swarmctl agent list
 
 # 5. Watch events flow
 # Events should appear in OpenClaw
 
 # 6. Kill agent
-openclaw /dash kill agent-xyz
+openclaw /godel kill agent-xyz
 
 # All steps should complete successfully
 ```

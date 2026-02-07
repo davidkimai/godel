@@ -1,4 +1,4 @@
-export * from './SwarmRepository';
+export * from './TeamRepository';
 export * from './AgentRepository';
 export * from './EventRepository';
 export * from './SessionRepository';

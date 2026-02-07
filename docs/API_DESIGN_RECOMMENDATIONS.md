@@ -1,6 +1,6 @@
 # API Design Recommendations
 
-**Purpose:** Complete API design guide for Dash REST API  
+**Purpose:** Complete API design guide for Godel REST API  
 **Target:** Fastify-based implementation with OpenAPI generation
 
 ---
@@ -21,7 +21,7 @@ src/api/
 ├── routes/                # Route definitions
 │   ├── index.ts
 │   ├── agents.ts
-│   ├── swarms.ts
+│   ├── teams.ts
 │   ├── tasks.ts
 │   ├── events.ts
 │   ├── bus.ts
@@ -33,7 +33,7 @@ src/api/
 │   └── error-handler.ts
 ├── schemas/               # Zod schemas
 │   ├── agent.ts
-│   ├── swarm.ts
+│   ├── team.ts
 │   ├── common.ts
 │   └── index.ts
 └── types.ts               # TypeScript types
@@ -96,7 +96,7 @@ interface ResponseLinks {
   },
   "links": {
     "self": "/api/agents/agent-xyz789",
-    "swarm": "/api/swarms/swarm-abc123"
+    "team": "/api/teams/team-abc123"
   }
 }
 ```
@@ -109,7 +109,7 @@ interface ResponseLinks {
     "code": "AGENT_NOT_FOUND",
     "message": "Agent agent-xyz789 not found",
     "details": { "agentId": "agent-xyz789" },
-    "help": "https://docs.dash.dev/errors/AGENT_NOT_FOUND"
+    "help": "https://docs.godel.dev/errors/AGENT_NOT_FOUND"
   },
   "meta": {
     "timestamp": "2024-01-15T10:00:00Z",
@@ -329,7 +329,7 @@ const app = fastify({ logger: true });
 await app.register(swagger, {
   openapi: {
     info: {
-      title: 'Dash API',
+      title: 'Godel API',
       description: 'Agent orchestration platform API',
       version: '3.0.0'
     },
@@ -551,7 +551,7 @@ export async function createServer() {
   await app.register(swagger, {
     openapi: {
       info: {
-        title: 'Dash API',
+        title: 'Godel API',
         version: '3.0.0',
         description: 'Agent orchestration platform'
       }
@@ -583,7 +583,7 @@ async function main() {
     host: '0.0.0.0'
   });
   
-  console.log(`Dash API running on http://localhost:7373`);
+  console.log(`Godel API running on http://localhost:7373`);
   console.log(`API docs available at http://localhost:7373/api/docs`);
 }
 
@@ -607,7 +607,7 @@ test('POST /api/agents', async (t) => {
     url: '/api/agents',
     headers: { 'X-API-Key': 'test-key' },
     payload: {
-      swarmId: 'swarm-test',
+      swarmId: 'team-test',
       config: { strategy: 'round-robin' }
     }
   });
@@ -616,7 +616,7 @@ test('POST /api/agents', async (t) => {
   
   const body = JSON.parse(response.payload);
   t.equal(body.success, true);
-  t.has(body.data, { swarmId: 'swarm-test', status: 'spawning' });
+  t.has(body.data, { swarmId: 'team-test', status: 'spawning' });
   t.has(body.links, { self: /\/api\/agents\/agent-/ });
 });
 ```

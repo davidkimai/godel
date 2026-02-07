@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge } from './Layout';
 import { cn, formatCurrency, formatNumber } from '../types/index';
-import type { Agent, Swarm } from '../types/index';
+import type { Agent, Team } from '../types/index';
 
 // ============================================================================
 // Types
@@ -45,7 +45,7 @@ type TimeRange = '1h' | '24h' | '7d' | '30d' | 'all';
 
 interface CostChartProps {
   agents: Agent[];
-  swarms: Swarm[];
+  teams: Team[];
   className?: string;
   showControls?: boolean;
   defaultChartType?: ChartType;
@@ -75,7 +75,7 @@ interface CostMetrics {
 
 export function CostChart({
   agents,
-  swarms,
+  teams,
   className,
   showControls = true,
   defaultChartType = 'area',
@@ -84,7 +84,7 @@ export function CostChart({
   const [chartType, setChartType] = useState<ChartType>(defaultChartType);
   const [timeRange, setTimeRange] = useState<TimeRange>(defaultTimeRange);
 
-  const metrics = useMemo(() => calculateMetrics(agents, swarms, timeRange), [agents, swarms, timeRange]);
+  const metrics = useMemo(() => calculateMetrics(agents, teams, timeRange), [agents, teams, timeRange]);
 
   const chartColors = {
     primary: '#10b981', // emerald-500
@@ -389,20 +389,20 @@ export function CostChart({
           </div>
         </div>
 
-        {/* By Swarm */}
+        {/* By Team */}
         <div>
-          <h4 className="text-sm font-medium text-slate-400 mb-3">By Swarm</h4>
+          <h4 className="text-sm font-medium text-slate-400 mb-3">By Team</h4>
           <div className="space-y-2">
             {Object.entries(metrics.bySwarm)
               .sort(([, a], [, b]) => b - a)
               .slice(0, 5)
-              .map(([swarm, cost], index) => (
-                <div key={swarm} className="flex items-center gap-3">
+              .map(([team, cost], index) => (
+                <div key={team} className="flex items-center gap-3">
                   <div 
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: pieColors[index % pieColors.length] }}
                   />
-                  <span className="flex-1 text-sm text-slate-300 truncate">{swarm}</span>
+                  <span className="flex-1 text-sm text-slate-300 truncate">{team}</span>
                   <span className="text-sm font-medium text-white">{formatCurrency(cost)}</span>
                   <span className="text-xs text-slate-500 w-12 text-right">
                     {metrics.totalSpent > 0 ? ((cost / metrics.totalSpent) * 100).toFixed(1) : 0}%
@@ -478,7 +478,7 @@ function MetricCard({ label, value, trend, color }: MetricCardProps): React.Reac
 // Helper Functions
 // ============================================================================
 
-function calculateMetrics(agents: Agent[], swarms: Swarm[], timeRange: TimeRange): CostMetrics {
+function calculateMetrics(agents: Agent[], teams: Team[], timeRange: TimeRange): CostMetrics {
   // Calculate total spent
   const totalSpent = agents.reduce((sum, a) => sum + (a.cost || 0), 0);
 
@@ -489,9 +489,9 @@ function calculateMetrics(agents: Agent[], swarms: Swarm[], timeRange: TimeRange
     return acc;
   }, {} as Record<string, number>);
 
-  // Calculate costs by swarm
-  const bySwarm = swarms.reduce((acc, s) => {
-    const swarmAgents = agents.filter(a => a.swarmId === s.id);
+  // Calculate costs by team
+  const bySwarm = teams.reduce((acc, s) => {
+    const swarmAgents = agents.filter(a => a.teamId === s.id);
     const cost = swarmAgents.reduce((sum, a) => sum + (a.cost || 0), 0);
     acc[s.name] = cost;
     return acc;

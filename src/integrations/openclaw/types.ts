@@ -591,7 +591,7 @@ export const DEFAULT_GATEWAY_OPTIONS: GatewayClientOptions = {
  */
 export interface OpenClawEvent {
   /** Event source */
-  source: 'dash';
+  source: 'godel';
   /** Event type */
   type: string;
   /** Event timestamp */
@@ -623,7 +623,7 @@ export interface GodelEvent {
     source?: string;
     priority?: string;
     agentId?: string;
-    swarmId?: string;
+    teamId?: string;
     [key: string]: unknown;
   };
 }
@@ -644,14 +644,14 @@ export interface EventTransformer {
 export const DefaultEventTransformer: EventTransformer = {
   toOpenClaw(godelEvent: GodelEvent): OpenClawEvent {
     return {
-      source: 'dash',
+      source: 'godel',
       type: godelEvent.type,
       timestamp: godelEvent.timestamp,
       sessionKey: godelEvent.metadata?.['sessionKey'] as string || 'unknown',
       data: godelEvent.payload,
       metadata: {
         godelAgentId: godelEvent.metadata?.['agentId'],
-        godelSwarmId: godelEvent.metadata?.['swarmId'],
+        godelTeamId: godelEvent.metadata?.['teamId'],
         topic: godelEvent.topic,
         messageId: godelEvent.id,
         ...godelEvent.metadata,

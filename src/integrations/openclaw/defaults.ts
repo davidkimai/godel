@@ -515,7 +515,7 @@ export const SECURITY_PROFILES: Record<string, SecurityProfile> = {
 // ============================================================================
 
 /**
- * Options for permission inheritance in swarms
+ * Options for permission inheritance in teams
  */
 export interface PermissionInheritanceOptions {
   /** Whether child agents inherit parent permissions */
@@ -533,7 +533,7 @@ export interface PermissionInheritanceOptions {
 }
 
 /**
- * Default permission inheritance settings for swarms
+ * Default permission inheritance settings for teams
  */
 export const DEFAULT_INHERITANCE_OPTIONS: PermissionInheritanceOptions = {
   inheritPermissions: true,

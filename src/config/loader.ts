@@ -101,15 +101,15 @@ function loadConfigFiles(
   const results: Array<{ config: Record<string, unknown>; source: string; warning?: string }> = [];
   
   const envFiles = [
-    `${configDir}/dash.${env}.yaml`,
-    `${configDir}/dash.${env}.yml`,
-    `${configDir}/dash.${env}.json`,
+    `${configDir}/godel.${env}.yaml`,
+    `${configDir}/godel.${env}.yml`,
+    `${configDir}/godel.${env}.json`,
   ];
   
   const baseFiles = [
-    `${configDir}/dash.yaml`,
-    `${configDir}/dash.yml`,
-    `${configDir}/dash.json`,
+    `${configDir}/godel.yaml`,
+    `${configDir}/godel.yml`,
+    `${configDir}/godel.json`,
   ];
   
   // Load environment-specific config (higher priority)

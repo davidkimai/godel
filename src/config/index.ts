@@ -2,7 +2,7 @@ import { logger } from '../utils/logger';
 /**
  * Configuration System
  * 
- * Comprehensive configuration management for Dash with:
+ * Comprehensive configuration management for Godel with:
  * - Multiple config sources (env vars, files, defaults)
  * - Zod schema validation
  * - Environment-specific configs

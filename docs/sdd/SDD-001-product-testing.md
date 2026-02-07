@@ -7,7 +7,7 @@
 
 ## Objective
 
-Define comprehensive testing strategy based on Dash architecture components.
+Define comprehensive testing strategy based on Godel architecture components.
 
 ## System Under Test
 
@@ -17,7 +17,7 @@ Define comprehensive testing strategy based on Dash architecture components.
 |-------|-------------|---------------|
 | **CLI Layer** | Command Parser, Router, Output Formatter | HIGH |
 | **API Gateway** | REST Endpoints, WebSocket, Rate Limiter, Auth | HIGH |
-| **Core Services** | Agent Manager, Swarm Manager, Workflow Engine | HIGH |
+| **Core Services** | Agent Manager, Team Manager, Workflow Engine | HIGH |
 | **Infrastructure** | PostgreSQL, Redis, SQLite, Git Worktrees | MEDIUM |
 
 ### Test Categories
@@ -37,7 +37,7 @@ Define comprehensive testing strategy based on Dash architecture components.
 | CLI-001 | Command Parser | `--version` | `2.0.0` | | PENDING |
 | CLI-002 | Command Parser | `--help` | Help output | | PENDING |
 | CLI-003 | Agent Manager | `agent list` | JSON array | | PENDING |
-| CLI-004 | Swarm Manager | `swarm list` | JSON array | | PENDING |
+| CLI-004 | Team Manager | `team list` | JSON array | | PENDING |
 | CLI-005 | Status | `status` | Health output | | PENDING |
 | CLI-006 | Config | `config get` | Config values | | PENDING |
 
@@ -48,7 +48,7 @@ Define comprehensive testing strategy based on Dash architecture components.
 | API-001 | `/api/health` | GET | Health check | 200 OK | PENDING |
 | API-002 | `/api/agents` | GET | List agents | 200 + JSON | PENDING |
 | API-003 | `/api/agents` | POST | Create agent | 201 + JSON | PENDING |
-| API-004 | `/api/swarm` | GET | List swarms | 200 + JSON | PENDING |
+| API-004 | `/api/team` | GET | List teams | 200 + JSON | PENDING |
 | API-005 | `/api/status` | GET | System status | 200 + JSON | PENDING |
 | API-006 | WebSocket | WS | Event stream | Connected | PENDING |
 
@@ -57,7 +57,7 @@ Define comprehensive testing strategy based on Dash architecture components.
 | Test ID | Service | Test Case | Expected | Status |
 |---------|---------|-----------|----------|--------|
 | SVC-001 | Agent Manager | Spawn agent | Agent created | PENDING |
-| SVC-002 | Swarm Manager | Create swarm | Swarm created | PENDING |
+| SVC-002 | Team Manager | Create team | Team created | PENDING |
 | SVC-003 | Workflow Engine | Execute workflow | Completion | PENDING |
 | SVC-004 | Event Bus | Publish event | Event delivered | PENDING |
 | SVC-005 | Context Manager | Store context | Context saved | PENDING |
@@ -91,7 +91,7 @@ Define comprehensive testing strategy based on Dash architecture components.
 ## Test Data Requirements
 
 - Mock agents (5-10)
-- Mock swarms (2-3)
+- Mock teams (2-3)
 - Mock workflows (2-3)
 - Test API keys
 - Test configuration files

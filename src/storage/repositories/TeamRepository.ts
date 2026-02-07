@@ -1,19 +1,19 @@
 /**
- * Swarm Repository - PostgreSQL Implementation
+ * Team Repository - PostgreSQL Implementation
  * 
- * Full CRUD operations for swarms with PostgreSQL persistence.
+ * Full CRUD operations for teams with PostgreSQL persistence.
  */
 
 import { PostgresPool, getPool } from '../postgres/pool';
 import type { PostgresConfig } from '../postgres/config';
 
-export type SwarmStatus = 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed';
+export type TeamStatus = 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed';
 
-export interface Swarm {
+export interface Team {
   id: string;
   name: string;
   config: Record<string, unknown>;
-  status: SwarmStatus;
+  status: TeamStatus;
   budget_allocated?: number;
   budget_consumed?: number;
   created_at: Date;
@@ -21,11 +21,11 @@ export interface Swarm {
   completed_at?: Date;
 }
 
-export interface SwarmCreateInput {
+export interface TeamCreateInput {
   id?: string;
   name: string;
   config?: Record<string, unknown>;
-  status?: SwarmStatus;
+  status?: TeamStatus;
   agents?: string[];
   created_at?: Date;
   budget_allocated?: number;
@@ -38,25 +38,25 @@ export interface SwarmCreateInput {
   };
 }
 
-export interface SwarmUpdateInput {
+export interface TeamUpdateInput {
   name?: string;
   config?: Record<string, unknown>;
-  status?: SwarmStatus;
+  status?: TeamStatus;
   completed_at?: Date;
 }
 
-export interface SwarmFilter {
-  status?: SwarmStatus;
+export interface TeamFilter {
+  status?: TeamStatus;
   limit?: number;
   offset?: number;
   orderBy?: 'created_at' | 'updated_at' | 'name';
   orderDirection?: 'asc' | 'desc';
 }
 
-export interface SwarmSummary {
+export interface TeamSummary {
   id: string;
   name: string;
-  status: SwarmStatus;
+  status: TeamStatus;
   created_at: Date;
   config: Record<string, unknown>;
   running_agents: number;
@@ -66,7 +66,7 @@ export interface SwarmSummary {
   budget_percentage: number;
 }
 
-export class SwarmRepository {
+export class TeamRepository {
   private pool: PostgresPool | null = null;
   private config?: Partial<PostgresConfig>;
 
@@ -82,15 +82,15 @@ export class SwarmRepository {
   }
 
   /**
-   * Create a new swarm
+   * Create a new team
    */
-  async create(input: SwarmCreateInput): Promise<Swarm> {
+  async create(input: TeamCreateInput): Promise<Team> {
     this.ensureInitialized();
     
     const { name, config = {}, status = 'creating' } = input;
     
-    const result = await this.pool!.query<SwarmRow>(
-      `INSERT INTO swarms (name, config, status)
+    const result = await this.pool!.query<TeamRow>(
+      `INSERT INTO teams (name, config, status)
        VALUES ($1, $2, $3)
        RETURNING id, name, config, status, created_at, updated_at, completed_at`,
       [name, JSON.stringify(config), status]
@@ -100,14 +100,14 @@ export class SwarmRepository {
   }
 
   /**
-   * Find a swarm by ID
+   * Find a team by ID
    */
-  async findById(id: string): Promise<Swarm | null> {
+  async findById(id: string): Promise<Team | null> {
     this.ensureInitialized();
     
-    const result = await this.pool!.query<SwarmRow>(
+    const result = await this.pool!.query<TeamRow>(
       `SELECT id, name, config, status, created_at, updated_at, completed_at
-       FROM swarms 
+       FROM teams 
        WHERE id = $1`,
       [id]
     );
@@ -116,14 +116,14 @@ export class SwarmRepository {
   }
 
   /**
-   * Find a swarm by name
+   * Find a team by name
    */
-  async findByName(name: string): Promise<Swarm | null> {
+  async findByName(name: string): Promise<Team | null> {
     this.ensureInitialized();
     
-    const result = await this.pool!.query<SwarmRow>(
+    const result = await this.pool!.query<TeamRow>(
       `SELECT id, name, config, status, created_at, updated_at, completed_at
-       FROM swarms 
+       FROM teams 
        WHERE name = $1`,
       [name]
     );
@@ -132,9 +132,9 @@ export class SwarmRepository {
   }
 
   /**
-   * Update a swarm by ID
+   * Update a team by ID
    */
-  async update(id: string, input: SwarmUpdateInput): Promise<Swarm | null> {
+  async update(id: string, input: TeamUpdateInput): Promise<Team | null> {
     this.ensureInitialized();
     
     const updates: string[] = [];
@@ -164,24 +164,24 @@ export class SwarmRepository {
 
     values.push(id);
     const query = `
-      UPDATE swarms 
+      UPDATE teams 
       SET ${updates.join(', ')}, updated_at = NOW()
       WHERE id = $${paramIndex}
       RETURNING id, name, config, status, created_at, updated_at, completed_at
     `;
 
-    const result = await this.pool!.query<SwarmRow>(query, values);
+    const result = await this.pool!.query<TeamRow>(query, values);
     return result.rows.length > 0 ? this.mapRow(result.rows[0]) : null;
   }
 
   /**
-   * Delete a swarm by ID (cascades to agents and events)
+   * Delete a team by ID (cascades to agents and events)
    */
   async delete(id: string): Promise<boolean> {
     this.ensureInitialized();
     
     const result = await this.pool!.query(
-      'DELETE FROM swarms WHERE id = $1',
+      'DELETE FROM teams WHERE id = $1',
       [id]
     );
 
@@ -189,9 +189,9 @@ export class SwarmRepository {
   }
 
   /**
-   * List swarms with filtering and pagination
+   * List teams with filtering and pagination
    */
-  async list(filter: SwarmFilter = {}): Promise<Swarm[]> {
+  async list(filter: TeamFilter = {}): Promise<Team[]> {
     this.ensureInitialized();
     
     const conditions: string[] = [];
@@ -209,7 +209,7 @@ export class SwarmRepository {
     
     let query = `
       SELECT id, name, config, status, created_at, updated_at, completed_at
-      FROM swarms 
+      FROM teams 
       ${whereClause}
       ORDER BY ${orderBy} ${orderDirection}
     `;
@@ -224,14 +224,14 @@ export class SwarmRepository {
       values.push(filter.offset);
     }
 
-    const result = await this.pool!.query<SwarmRow>(query, values);
+    const result = await this.pool!.query<TeamRow>(query, values);
     return result.rows.map(row => this.mapRow(row));
   }
 
   /**
-   * Count swarms with optional filter
+   * Count teams with optional filter
    */
-  async count(filter: { status?: SwarmStatus } = {}): Promise<number> {
+  async count(filter: { status?: TeamStatus } = {}): Promise<number> {
     this.ensureInitialized();
     
     const conditions: string[] = [];
@@ -246,7 +246,7 @@ export class SwarmRepository {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     
     const result = await this.pool!.query<{ count: string }>(
-      `SELECT COUNT(*) as count FROM swarms ${whereClause}`,
+      `SELECT COUNT(*) as count FROM teams ${whereClause}`,
       values
     );
 
@@ -254,12 +254,12 @@ export class SwarmRepository {
   }
 
   /**
-   * Get swarm summary with agent counts and budget info
+   * Get team summary with agent counts and budget info
    */
-  async getSummary(id: string): Promise<SwarmSummary | null> {
+  async getSummary(id: string): Promise<TeamSummary | null> {
     this.ensureInitialized();
     
-    const result = await this.pool!.query<SwarmSummaryRow>(
+    const result = await this.pool!.query<TeamSummaryRow>(
       `SELECT * FROM swarm_summary WHERE id = $1`,
       [id]
     );
@@ -268,9 +268,9 @@ export class SwarmRepository {
   }
 
   /**
-   * List swarm summaries
+   * List team summaries
    */
-  async listSummaries(filter: SwarmFilter = {}): Promise<SwarmSummary[]> {
+  async listSummaries(filter: TeamFilter = {}): Promise<TeamSummary[]> {
     this.ensureInitialized();
     
     const conditions: string[] = [];
@@ -301,18 +301,18 @@ export class SwarmRepository {
       values.push(filter.offset);
     }
 
-    const result = await this.pool!.query<SwarmSummaryRow>(query, values);
+    const result = await this.pool!.query<TeamSummaryRow>(query, values);
     return result.rows.map(row => this.mapSummaryRow(row));
   }
 
   /**
-   * Check if a swarm exists
+   * Check if a team exists
    */
   async exists(id: string): Promise<boolean> {
     this.ensureInitialized();
     
     const result = await this.pool!.query<{ exists: boolean }>(
-      `SELECT EXISTS(SELECT 1 FROM swarms WHERE id = $1) as exists`,
+      `SELECT EXISTS(SELECT 1 FROM teams WHERE id = $1) as exists`,
       [id]
     );
 
@@ -320,13 +320,13 @@ export class SwarmRepository {
   }
 
   /**
-   * Update swarm status atomically
+   * Update team status atomically
    */
-  async updateStatus(id: string, status: SwarmStatus): Promise<Swarm | null> {
+  async updateStatus(id: string, status: TeamStatus): Promise<Team | null> {
     this.ensureInitialized();
     
-    const result = await this.pool!.query<SwarmRow>(
-      `UPDATE swarms 
+    const result = await this.pool!.query<TeamRow>(
+      `UPDATE teams 
        SET status = $1, updated_at = NOW()
        WHERE id = $2
        RETURNING id, name, config, status, created_at, updated_at, completed_at`,
@@ -342,27 +342,27 @@ export class SwarmRepository {
 
   private ensureInitialized(): void {
     if (!this.pool) {
-      throw new Error('SwarmRepository not initialized. Call initialize() first.');
+      throw new Error('TeamRepository not initialized. Call initialize() first.');
     }
   }
 
-  private mapRow(row: SwarmRow): Swarm {
+  private mapRow(row: TeamRow): Team {
     return {
       id: row.id,
       name: row.name,
       config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
-      status: row.status as SwarmStatus,
+      status: row.status as TeamStatus,
       created_at: new Date(row.created_at),
       updated_at: new Date(row.updated_at),
       completed_at: row.completed_at ? new Date(row.completed_at) : undefined,
     };
   }
 
-  private mapSummaryRow(row: SwarmSummaryRow): SwarmSummary {
+  private mapSummaryRow(row: TeamSummaryRow): TeamSummary {
     return {
       id: row.id,
       name: row.name,
-      status: row.status as SwarmStatus,
+      status: row.status as TeamStatus,
       created_at: new Date(row.created_at),
       config: typeof row.config === 'string' ? JSON.parse(row.config) : row.config,
       running_agents: parseInt(String(row.running_agents), 10),
@@ -375,7 +375,7 @@ export class SwarmRepository {
 }
 
 // Database row types
-interface SwarmRow {
+interface TeamRow {
   id: string;
   name: string;
   config: string | Record<string, unknown>;
@@ -385,7 +385,7 @@ interface SwarmRow {
   completed_at?: string;
 }
 
-interface SwarmSummaryRow {
+interface TeamSummaryRow {
   id: string;
   name: string;
   status: string;
@@ -398,4 +398,4 @@ interface SwarmSummaryRow {
   budget_percentage: number | string;
 }
 
-export default SwarmRepository;
+export default TeamRepository;

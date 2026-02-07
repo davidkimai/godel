@@ -1,7 +1,7 @@
 /**
- * Health Check Endpoint for Dash
+ * Health Check Endpoint for Godel
  * 
- * Provides comprehensive health checks for the Dash orchestration platform,
+ * Provides comprehensive health checks for the Godel orchestration platform,
  * including database connectivity, Redis, disk space, and memory usage.
  */
 

@@ -59,9 +59,9 @@ export function getPostgresConfig(): PostgresConfig {
   return {
     host: process.env['POSTGRES_HOST'] || 'localhost',
     port: parseInt(process.env['POSTGRES_PORT'] || '5432', 10),
-    database: process.env['POSTGRES_DB'] || 'dash',
-    user: process.env['POSTGRES_USER'] || 'dash',
-    password: process.env['POSTGRES_PASSWORD'] || 'dash',
+    database: process.env['POSTGRES_DB'] || 'godel',
+    user: process.env['POSTGRES_USER'] || 'godel',
+    password: process.env['POSTGRES_PASSWORD'] || 'godel',
     
     // Pool sizing optimized for 50+ concurrent agents
     // Uses Levenshtein formula: connections ≈ (cores * 2) + effective_spindle_count

@@ -151,7 +151,7 @@ export const ErrorCodes = {
   // 404 - Not Found
   NOT_FOUND: 'NOT_FOUND',
   AGENT_NOT_FOUND: 'AGENT_NOT_FOUND',
-  SWARM_NOT_FOUND: 'SWARM_NOT_FOUND',
+  TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
   TASK_NOT_FOUND: 'TASK_NOT_FOUND',
   
   // 409 - Conflict
@@ -183,7 +183,7 @@ export const ErrorCodeToStatus: Record<string, number> = {
   [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
   [ErrorCodes.NOT_FOUND]: 404,
   [ErrorCodes.AGENT_NOT_FOUND]: 404,
-  [ErrorCodes.SWARM_NOT_FOUND]: 404,
+  [ErrorCodes.TEAM_NOT_FOUND]: 404,
   [ErrorCodes.TASK_NOT_FOUND]: 404,
   [ErrorCodes.ALREADY_EXISTS]: 409,
   [ErrorCodes.DUPLICATE]: 409,

@@ -1,7 +1,7 @@
 /**
- * Swarms Page
+ * Teams Page
  * 
- * Swarm management with hierarchical views and operational controls
+ * Team management with hierarchical views and operational controls
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
@@ -35,14 +35,14 @@ import {
   getStatusColor,
   cn
 } from '../types/index';
-import type { Swarm, Agent, SwarmConfig } from '../types/index';
+import type { Team, Agent, SwarmConfig } from '../types/index';
 
 // ============================================================================
-// Swarms Page
+// Teams Page
 // ============================================================================
 
 export function SwarmsPage(): React.ReactElement {
-  const { swarms, agents, isLoadingSwarms, setSwarms, updateSwarm } = useDashboardStore();
+  const { teams, agents, isLoadingSwarms, setSwarms, updateSwarm } = useDashboardStore();
   const { view, toggleSwarmExpanded, setSelectedSwarm, filters, setFilter } = useUIStore();
   const { isAdmin } = useAuthStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,25 +50,25 @@ export function SwarmsPage(): React.ReactElement {
   const { addNotification } = useUIStore();
 
   // Subscribe to real-time updates
-  const { swarms: updatedSwarms } = useSwarmUpdates();
+  const { teams: updatedSwarms } = useSwarmUpdates();
 
   // Merge real-time updates
   useEffect(() => {
-    updatedSwarms.forEach(swarm => {
-      updateSwarm(swarm);
+    updatedSwarms.forEach(team => {
+      updateSwarm(team);
     });
   }, [updatedSwarms, updateSwarm]);
 
-  // Fetch swarms on mount
+  // Fetch teams on mount
   useEffect(() => {
     const fetchSwarms = async () => {
       try {
-        const data = await api.swarms.list();
+        const data = await api.teams.list();
         setSwarms(data);
       } catch (error) {
         addNotification({
           type: 'error',
-          message: 'Failed to load swarms',
+          message: 'Failed to load teams',
           dismissible: true
         });
       }
@@ -77,80 +77,80 @@ export function SwarmsPage(): React.ReactElement {
     fetchSwarms();
   }, [setSwarms, addNotification]);
 
-  // Filter swarms
+  // Filter teams
   const filteredSwarms = useMemo(() => {
-    return swarms.filter(swarm => {
-      if (filters.status !== 'all' && swarm.status !== (filters.status as unknown as SwarmState)) return false;
+    return teams.filter(team => {
+      if (filters.status !== 'all' && team.status !== (filters.status as unknown as SwarmState)) return false;
       if (filters.search) {
         const search = filters.search.toLowerCase();
         return (
-          swarm.name.toLowerCase().includes(search) ||
-          swarm.id.toLowerCase().includes(search)
+          team.name.toLowerCase().includes(search) ||
+          team.id.toLowerCase().includes(search)
         );
       }
       return true;
     });
-  }, [swarms, filters]);
+  }, [teams, filters]);
 
-  // Group agents by swarm
+  // Group agents by team
   const agentsBySwarm = useMemo(() => {
     return agents.reduce((acc, agent) => {
-      if (!acc[agent.swarmId]) acc[agent.swarmId] = [];
-      acc[agent.swarmId].push(agent);
+      if (!acc[agent.teamId]) acc[agent.teamId] = [];
+      acc[agent.teamId].push(agent);
       return acc;
     }, {} as Record<string, Agent[]>);
   }, [agents]);
 
-  const handleStartSwarm = async (swarmId: string) => {
+  const handleStartSwarm = async (teamId: string) => {
     try {
-      await api.swarms.start(swarmId);
-      addNotification({ type: 'success', message: 'Swarm started', dismissible: true });
+      await api.teams.start(teamId);
+      addNotification({ type: 'success', message: 'Team started', dismissible: true });
     } catch (error) {
-      addNotification({ type: 'error', message: 'Failed to start swarm', dismissible: true });
+      addNotification({ type: 'error', message: 'Failed to start team', dismissible: true });
     }
   };
 
-  const handleStopSwarm = async (swarmId: string) => {
+  const handleStopSwarm = async (teamId: string) => {
     try {
-      await api.swarms.stop(swarmId);
-      addNotification({ type: 'success', message: 'Swarm stopped', dismissible: true });
+      await api.teams.stop(teamId);
+      addNotification({ type: 'success', message: 'Team stopped', dismissible: true });
     } catch (error) {
-      addNotification({ type: 'error', message: 'Failed to stop swarm', dismissible: true });
+      addNotification({ type: 'error', message: 'Failed to stop team', dismissible: true });
     }
   };
 
-  const handleScaleSwarm = async (swarmId: string, delta: number) => {
-    const swarm = swarms.find(s => s.id === swarmId);
-    if (!swarm) return;
+  const handleScaleSwarm = async (teamId: string, delta: number) => {
+    const team = teams.find(s => s.id === teamId);
+    if (!team) return;
 
-    const newSize = swarm.agents.length + delta;
-    if (newSize < 1 || newSize > swarm.config.maxAgents) return;
+    const newSize = team.agents.length + delta;
+    if (newSize < 1 || newSize > team.config.maxAgents) return;
 
-    setScalingSwarm(swarmId);
+    setScalingSwarm(teamId);
     try {
-      await api.swarms.scale(swarmId, newSize);
+      await api.teams.scale(teamId, newSize);
       addNotification({ 
         type: 'success', 
-        message: `Swarm scaled to ${newSize} agents`, 
+        message: `Team scaled to ${newSize} agents`, 
         dismissible: true 
       });
     } catch (error) {
-      addNotification({ type: 'error', message: 'Failed to scale swarm', dismissible: true });
+      addNotification({ type: 'error', message: 'Failed to scale team', dismissible: true });
     } finally {
       setScalingSwarm(null);
     }
   };
 
-  const handleDestroySwarm = async (swarmId: string) => {
-    if (!confirm('Are you sure you want to destroy this swarm? This action cannot be undone.')) {
+  const handleDestroySwarm = async (teamId: string) => {
+    if (!confirm('Are you sure you want to destroy this team? This action cannot be undone.')) {
       return;
     }
 
     try {
-      await api.swarms.destroy(swarmId);
-      addNotification({ type: 'success', message: 'Swarm destroyed', dismissible: true });
+      await api.teams.destroy(teamId);
+      addNotification({ type: 'success', message: 'Team destroyed', dismissible: true });
     } catch (error) {
-      addNotification({ type: 'error', message: 'Failed to destroy swarm', dismissible: true });
+      addNotification({ type: 'error', message: 'Failed to destroy team', dismissible: true });
     }
   };
 
@@ -159,13 +159,13 @@ export function SwarmsPage(): React.ReactElement {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Swarms</h1>
-          <p className="text-slate-400 mt-1">Manage and monitor your agent swarms</p>
+          <h1 className="text-2xl font-bold text-white">Teams</h1>
+          <p className="text-slate-400 mt-1">Manage and monitor your agent teams</p>
         </div>
         
         {isAdmin() && (
           <Button onClick={() => setShowCreateModal(true)} icon={<Plus className="w-4 h-4" />}>
-            New Swarm
+            New Team
           </Button>
         )}
       </div>
@@ -176,7 +176,7 @@ export function SwarmsPage(): React.ReactElement {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
-            placeholder="Search swarms..."
+            placeholder="Search teams..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -195,34 +195,34 @@ export function SwarmsPage(): React.ReactElement {
         </select>
       </div>
 
-      {/* Swarms List */}
+      {/* Teams List */}
       <div className="space-y-4">
         {isLoadingSwarms ? (
           <LoadingSpinner className="py-12" />
         ) : filteredSwarms.length === 0 ? (
           <Card>
             <EmptyState
-              title="No swarms found"
-              description={filters.search ? 'Try adjusting your filters' : 'Create your first swarm to get started'}
+              title="No teams found"
+              description={filters.search ? 'Try adjusting your filters' : 'Create your first team to get started'}
               icon={<Hexagon className="w-12 h-12" />}
               action={isAdmin() && (
-                <Button onClick={() => setShowCreateModal(true)}>Create Swarm</Button>
+                <Button onClick={() => setShowCreateModal(true)}>Create Team</Button>
               )}
             />
           </Card>
         ) : (
-          filteredSwarms.map(swarm => (
+          filteredSwarms.map(team => (
             <SwarmCard
-              key={swarm.id}
-              swarm={swarm}
-              agents={agentsBySwarm[swarm.id] || []}
-              isExpanded={view.expandedSwarms.has(swarm.id)}
-              onToggleExpand={() => toggleSwarmExpanded(swarm.id)}
-              onStart={() => handleStartSwarm(swarm.id)}
-              onStop={() => handleStopSwarm(swarm.id)}
-              onScale={(delta) => handleScaleSwarm(swarm.id, delta)}
-              onDestroy={() => handleDestroySwarm(swarm.id)}
-              isScaling={scalingSwarm === swarm.id}
+              key={team.id}
+              team={team}
+              agents={agentsBySwarm[team.id] || []}
+              isExpanded={view.expandedSwarms.has(team.id)}
+              onToggleExpand={() => toggleSwarmExpanded(team.id)}
+              onStart={() => handleStartSwarm(team.id)}
+              onStop={() => handleStopSwarm(team.id)}
+              onScale={(delta) => handleScaleSwarm(team.id, delta)}
+              onDestroy={() => handleDestroySwarm(team.id)}
+              isScaling={scalingSwarm === team.id}
               isAdmin={isAdmin()}
             />
           ))
@@ -238,11 +238,11 @@ export function SwarmsPage(): React.ReactElement {
 }
 
 // ============================================================================
-// Swarm Card
+// Team Card
 // ============================================================================
 
 interface SwarmCardProps {
-  swarm: Swarm;
+  team: Team;
   agents: Agent[];
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -255,7 +255,7 @@ interface SwarmCardProps {
 }
 
 function SwarmCard({
-  swarm,
+  team,
   agents,
   isExpanded,
   onToggleExpand,
@@ -266,11 +266,11 @@ function SwarmCard({
   isScaling,
   isAdmin
 }: SwarmCardProps): React.ReactElement {
-  const progress = swarm.metrics.totalAgents > 0
-    ? (swarm.metrics.completedAgents + swarm.metrics.failedAgents) / swarm.metrics.totalAgents
+  const progress = team.metrics.totalAgents > 0
+    ? (team.metrics.completedAgents + team.metrics.failedAgents) / team.metrics.totalAgents
     : 0;
 
-  const isActive = swarm.status === SwarmState.ACTIVE || swarm.status === SwarmState.SCALING;
+  const isActive = team.status === SwarmState.ACTIVE || team.status === SwarmState.SCALING;
 
   return (
     <Card className={cn('overflow-hidden', isExpanded && 'ring-1 ring-emerald-500/30')}>
@@ -285,11 +285,11 @@ function SwarmCard({
             )}
           </button>
           
-          <div className={cn('w-3 h-3 rounded-full', getStatusColor(swarm.status))} />
+          <div className={cn('w-3 h-3 rounded-full', getStatusColor(team.status))} />
           
           <div>
-            <h3 className="font-semibold text-white">{swarm.name}</h3>
-            <p className="text-sm text-slate-500">ID: {swarm.id.slice(0, 8)}...</p>
+            <h3 className="font-semibold text-white">{team.name}</h3>
+            <p className="text-sm text-slate-500">ID: {team.id.slice(0, 8)}...</p>
           </div>
         </div>
 
@@ -298,11 +298,11 @@ function SwarmCard({
           <div className="hidden sm:flex items-center gap-4 text-sm">
             <div className="text-right">
               <p className="text-slate-400">Agents</p>
-              <p className="font-medium text-white">{agents.length} / {swarm.config.maxAgents}</p>
+              <p className="font-medium text-white">{agents.length} / {team.config.maxAgents}</p>
             </div>
             <div className="text-right">
               <p className="text-slate-400">Budget</p>
-              <p className="font-medium text-white">{formatCurrency(swarm.budget.remaining)}</p>
+              <p className="font-medium text-white">{formatCurrency(team.budget.remaining)}</p>
             </div>
           </div>
 
@@ -313,7 +313,7 @@ function SwarmCard({
                 <>
                   <button
                     onClick={() => onScale(1)}
-                    disabled={agents.length >= swarm.config.maxAgents || isScaling}
+                    disabled={agents.length >= team.config.maxAgents || isScaling}
                     className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400 disabled:opacity-50"
                     title="Scale up"
                   >
@@ -330,16 +330,16 @@ function SwarmCard({
                   <button
                     onClick={onStop}
                     className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-yellow-400"
-                    title="Pause swarm"
+                    title="Pause team"
                   >
                     <Pause className="w-4 h-4" />
                   </button>
                 </>
-              ) : swarm.status === SwarmState.PAUSED ? (
+              ) : team.status === SwarmState.PAUSED ? (
                 <button
                   onClick={onStart}
                   className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-emerald-400"
-                  title="Resume swarm"
+                  title="Resume team"
                 >
                   <Play className="w-4 h-4" />
                 </button>
@@ -348,7 +348,7 @@ function SwarmCard({
               <button
                 onClick={onDestroy}
                 className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-400"
-                title="Destroy swarm"
+                title="Destroy team"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -378,7 +378,7 @@ function SwarmCard({
             <h4 className="font-medium text-white mb-3">Agents ({agents.length})</h4>
             
             {agents.length === 0 ? (
-              <p className="text-slate-500 text-sm">No agents in this swarm</p>
+              <p className="text-slate-500 text-sm">No agents in this team</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {agents.map(agent => (
@@ -413,7 +413,7 @@ function AgentListItem({ agent }: { agent: Agent }): React.ReactElement {
 }
 
 // ============================================================================
-// Create Swarm Modal
+// Create Team Modal
 // ============================================================================
 
 function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElement {
@@ -431,18 +431,18 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
     setIsCreating(true);
 
     try {
-      const swarm = await api.swarms.create(name, {
+      const team = await api.teams.create(name, {
         task,
         initialAgents,
         maxAgents,
         strategy,
         name
       });
-      addNotification({ type: 'success', message: 'Swarm created successfully', dismissible: true });
+      addNotification({ type: 'success', message: 'Team created successfully', dismissible: true });
       onClose();
-      navigate(`/swarms/${swarm.id}`);
+      navigate(`/teams/${team.id}`);
     } catch (error) {
-      addNotification({ type: 'error', message: 'Failed to create swarm', dismissible: true });
+      addNotification({ type: 'error', message: 'Failed to create team', dismissible: true });
     } finally {
       setIsCreating(false);
     }
@@ -452,7 +452,7 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="w-full max-w-md bg-slate-900 rounded-lg border border-slate-800 shadow-xl">
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
-          <h2 className="text-lg font-semibold text-white">Create New Swarm</h2>
+          <h2 className="text-lg font-semibold text-white">Create New Team</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
@@ -463,7 +463,7 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="My Swarm"
+              placeholder="My Team"
               required
               className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
@@ -474,7 +474,7 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
             <textarea
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              placeholder="Describe the task for this swarm..."
+              placeholder="Describe the task for this team..."
               required
               rows={3}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -522,7 +522,7 @@ function CreateSwarmModal({ onClose }: { onClose: () => void }): React.ReactElem
 
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" isLoading={isCreating}>Create Swarm</Button>
+            <Button type="submit" isLoading={isCreating}>Create Team</Button>
           </div>
         </form>
       </div>

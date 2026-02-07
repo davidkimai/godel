@@ -1,8 +1,8 @@
-# DASH META-ORCHESTRATOR: STRATEGIC POSITIONING & COMPETITIVE ANALYSIS
+# GODEL META-ORCHESTRATOR: STRATEGIC POSITIONING & COMPETITIVE ANALYSIS
 
 ## Executive Summary
 
-Dash occupies a **unique position** in the agent orchestration landscape as a **meta-orchestrator** capable of managing **10-50+ OpenClaw instances simultaneously**. This document provides strategic analysis and positioning recommendations for the 50x scale frontier.
+Godel occupies a **unique position** in the agent orchestration landscape as a **meta-orchestrator** capable of managing **10-50+ OpenClaw instances simultaneously**. This document provides strategic analysis and positioning recommendations for the 50x scale frontier.
 
 ---
 
@@ -10,7 +10,7 @@ Dash occupies a **unique position** in the agent orchestration landscape as a **
 
 ### 1.1 Scale Ambition: 10-50+ OpenClaws
 
-| Metric | Traditional | Dash (Meta) |
+| Metric | Traditional | Godel (Meta) |
 |--------|-------------|--------------|
 | **OpenClaw Instances** | 1-2 | **10-50+** |
 | **Tasks/Minute** | 100-500 | **25,000+** |
@@ -18,17 +18,17 @@ Dash occupies a **unique position** in the agent orchestration landscape as a **
 | **Geographic Regions** | Single | **Multi-region** |
 | **Resource Pooling** | None | **Dynamic** |
 
-### 1.2 What Makes Dash Unique
+### 1.2 What Makes Godel Unique
 
-| Dimension | Traditional Orchestrators | Dash (Meta-Orchestrator) |
+| Dimension | Traditional Orchestrators | Godel (Meta-Orchestrator) |
 |-----------|---------------------------|--------------------------|
-| **Target** | Single LLM/agent | **10-50+ OpenClaw swarm** |
+| **Target** | Single LLM/agent | **10-50+ OpenClaw team** |
 | **Isolation** | Process/container | Complete workspace isolation |
-| **Federation** | Not supported | **Native multi-instance swarm** |
+| **Federation** | Not supported | **Native multi-instance team** |
 | **Channel Binding** | External | Built into OpenClaw |
 | **Tool Management** | External | Managed by OpenClaw |
 
-### 1.2 The OpenClaw -> Dash Relationship
+### 1.2 The OpenClaw -> Godel Relationship
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -36,7 +36,7 @@ Dash occupies a **unique position** in the agent orchestration landscape as a **
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │              DASH (Meta-Orchestrator)                    │   │
+│   │              GODEL (Meta-Orchestrator)                    │   │
 │   │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │   │
 │   │  │  Routing    │ │ Federation │ │ Lifecycle  │       │   │
 │   │  │  Engine    │ │ Controller │ │ Manager    │       │   │
@@ -77,7 +77,7 @@ Dash occupies a **unique position** in the agent orchestration landscape as a **
                                        │
        Traditional Orchestrators ────────┼───────► Flexibility
                                        │
-                                       │ Dash (Meta)
+                                       │ Godel (Meta)
                                        │
                                        │ Temporal
                                        │
@@ -89,29 +89,29 @@ Dash occupies a **unique position** in the agent orchestration landscape as a **
 
 ### 2.2 Feature Comparison
 
-| Feature | Dash + OpenClaw | Temporal | LangGraph | Conductor |
+| Feature | Godel + OpenClaw | Temporal | LangGraph | Conductor |
 |---------|----------------|----------|-----------|-----------|
-| **OpenClaw Swarm** | ✅ **10-50+ Native** | ❌ | ❌ | ❌ |
+| **OpenClaw Team** | ✅ **10-50+ Native** | ❌ | ❌ | ❌ |
 | **Multi-Instance Federation** | ✅ **Native** | ❌ | ❌ | ❌ |
 | **Workspace Isolation** | ✅ Git Worktrees | ❌ | Partial | ❌ |
 | **Channel Integration** | ✅ Built-in | ❌ | ❌ | ❌ |
 | **Tool Management** | ✅ OpenClaw | ❌ | External | Task-based |
 | **LLM Provider Agnostic** | ✅ All | ⚠️ SDK | ✅ | ❌ |
 | **Durable Execution** | ⚠️ | ✅ **Native** | ⚠️ | ⚠️ |
-| **Swarm Scalability** | **50+ OpenClaws** | Process-based | Process | Planet scale |
+| **Team Scalability** | **50+ OpenClaws** | Process-based | Process | Planet scale |
 | **Learning Curve** | Medium | High | Medium | High |
 
 ---
 
 ## 3. Unique Selling Propositions
 
-### 3.1 USP #1: 10-50+ OpenClaw Swarm Management
+### 3.1 USP #1: 10-50+ OpenClaw Team Management
 
 **Problem:** Managing multiple isolated agent systems is operationally complex.
 
-**Dash Solution:**
+**Godel Solution:**
 ```yaml
-# Single Dash deployment, managing 50 OpenClaws across regions
+# Single Godel deployment, managing 50 OpenClaws across regions
 deployment:
   regions:
     - name: us-east
@@ -131,9 +131,9 @@ deployment:
 
 **Problem:** Other orchestrators require separate deployments per tenant.
 
-**Dash Solution:**
+**Godel Solution:**
 ```yaml
-# Single Dash deployment, multiple tenants
+# Single Godel deployment, multiple tenants
 tenants:
   - id: tenant-a
     openclaw_instances: 2
@@ -150,13 +150,13 @@ tenants:
 
 **Problem:** Generic orchestrators don't understand messaging channels.
 
-**Dash + OpenClaw Solution:**
+**Godel + OpenClaw Solution:**
 ```
 Task: "Send update to customer on WhatsApp"
            │
            ▼
     ┌──────────────┐
-    │ Dash Router │
+    │ Godel Router │
     └──────┬───────┘
            │
            ├──▶ OpenClaw Instance (has WhatsApp channel bound)
@@ -175,7 +175,7 @@ Task: "Send update to customer on WhatsApp"
 
 **Problem:** Other orchestrators share resources.
 
-**Dash + OpenClaw Solution:**
+**Godel + OpenClaw Solution:**
 - Each OpenClaw instance gets isolated Git worktree
 - Each task can spawn ephemeral worktrees
 - Complete cleanup after task completion
@@ -186,7 +186,7 @@ Task: "Send update to customer on WhatsApp"
 
 ### 4.1 Primary Target: Enterprise AI Operations
 
-| Requirement | Dash Fit | Competitor Fit |
+| Requirement | Godel Fit | Competitor Fit |
 |------------|----------|----------------|
 | Multi-tenant SaaS | ✅ Excellent | ❌ Poor |
 | Channel integration (Slack/Teams) | ✅ Native | ❌ Requires custom |
@@ -195,7 +195,7 @@ Task: "Send update to customer on WhatsApp"
 
 ### 4.2 Secondary Target: AI Development Platforms
 
-| Requirement | Dash Fit | Competitor Fit |
+| Requirement | Godel Fit | Competitor Fit |
 |------------|----------|----------------|
 | Agent prototyping | ✅ CLI-first | ⚠️ Medium |
 | Team collaboration | ✅ Workspaces | ⚠️ Medium |
@@ -286,7 +286,7 @@ Task: "Send update to customer on WhatsApp"
 
 ## 9. Conclusion
 
-Dash as a meta-orchestrator for OpenClaw occupies a **unique market position** with no direct competitors. The key to success is:
+Godel as a meta-orchestrator for OpenClaw occupies a **unique market position** with no direct competitors. The key to success is:
 
 1. **Fix the tests** - establish credibility
 2. **Build federation** - deliver unique value

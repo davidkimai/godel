@@ -1,6 +1,6 @@
 # Session Tree Architecture
 
-The Session Tree module provides tree-structured session storage for Dash, enabling non-linear conversation history with branching, forking, and navigation.
+The Session Tree module provides tree-structured session storage for Godel, enabling non-linear conversation history with branching, forking, and navigation.
 
 ## Overview
 
@@ -210,11 +210,11 @@ Sessions are stored as JSONL (JSON Lines) files:
 ## Integration with SwarmOrchestrator
 
 ```typescript
-import { SwarmOrchestrator } from './core/swarm-orchestrator';
+import { SwarmOrchestrator } from './core/team-orchestrator';
 
-// Create swarm with branching enabled
-const swarm = await orchestrator.create({
-  name: 'optimization-swarm',
+// Create team with branching enabled
+const team = await orchestrator.create({
+  name: 'optimization-team',
   task: 'Optimize database queries',
   initialAgents: 2,
   maxAgents: 5,
@@ -224,14 +224,14 @@ const swarm = await orchestrator.create({
 });
 
 // Create branches for A/B testing
-await orchestrator.createBranch(swarm.id, 'approach-1', 'Use indexing');
-await orchestrator.createBranch(swarm.id, 'approach-2', 'Use caching');
+await orchestrator.createBranch(team.id, 'approach-1', 'Use indexing');
+await orchestrator.createBranch(team.id, 'approach-2', 'Use caching');
 
 // Agents work on different branches
 // ...
 
 // Compare results
-const comparison = orchestrator.compareBranches(swarm.id, ['approach-1', 'approach-2']);
+const comparison = orchestrator.compareBranches(team.id, ['approach-1', 'approach-2']);
 console.log(`Winner: ${comparison.winner}`);
 ```
 
@@ -240,11 +240,11 @@ console.log(`Winner: ${comparison.winner}`);
 The session tree is exposed via REST API:
 
 ```
-GET  /api/swarms/:id/tree          - Get tree visualization
-GET  /api/swarms/:id/branches      - List branches
-POST /api/swarms/:id/branches      - Create new branch
-POST /api/swarms/:id/switch-branch - Switch active branch
-POST /api/swarms/:id/compare       - Compare branches
+GET  /api/teams/:id/tree          - Get tree visualization
+GET  /api/teams/:id/branches      - List branches
+POST /api/teams/:id/branches      - Create new branch
+POST /api/teams/:id/switch-branch - Switch active branch
+POST /api/teams/:id/compare       - Compare branches
 ```
 
 ## Architecture Decisions

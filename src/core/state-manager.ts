@@ -5,7 +5,7 @@ import { join } from 'path';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-const CHECKPOINTS_DIR = '~/.config/dash/checkpoints';
+const CHECKPOINTS_DIR = '~/.config/godel/checkpoints';
 const KEEP_HOURS = 24; // Keep checkpoints for 24 hours
 
 // ============================================================================
@@ -18,7 +18,7 @@ export interface SystemState {
 
   // Operational state
   agents: AgentState[];
-  swarms: SwarmState[];
+  teams: TeamState[];
   budgets: BudgetState;
   budgetsConfig: Record<string, unknown>;
 
@@ -43,7 +43,7 @@ export interface AgentState {
   budget?: number;
 }
 
-export interface SwarmState {
+export interface TeamState {
   id: string;
   name: string;
   status: 'running' | 'completed' | 'failed' | 'pending';
@@ -76,7 +76,7 @@ export interface MetricSnapshot {
   buildDuration: number;
   errorCount: number;
   agentCount: number;
-  activeSwarms: number;
+  activeTeams: number;
   spend: number;
 }
 
@@ -134,7 +134,7 @@ export class StateManager {
    */
   async captureCurrentState(
     agents: AgentState[],
-    swarms: SwarmState[],
+    teams: TeamState[],
     budgets: BudgetState,
     budgetsConfig: Record<string, unknown>,
     metrics: MetricSnapshot[],
@@ -147,7 +147,7 @@ export class StateManager {
       version: '3.0.0',
       lastCheckpoint: new Date(),
       agents,
-      swarms,
+      teams,
       budgets,
       budgetsConfig,
       metrics,
@@ -178,7 +178,7 @@ export class StateManager {
     logger.info('state-manager', 'Checkpoint saved', {
       filepath,
       agentCount: state.agents.length,
-      swarmCount: state.swarms.length,
+      swarmCount: state.teams.length,
       totalSpend: state.budgets.totalSpend,
     });
 
@@ -299,7 +299,7 @@ export class StateManager {
     state: SystemState,
     options: {
       restartAgents?: boolean;
-      resumeSwarms?: boolean;
+      resumeTeams?: boolean;
       restoreBudgets?: boolean;
       replayActions?: boolean;
     } = {}
@@ -307,7 +307,7 @@ export class StateManager {
     const result: RecoveryResult = {
       success: true,
       agentsRestored: 0,
-      swarmsResumed: 0,
+      teamsResumed: 0,
       budgetsRestored: false,
       actionsReplayed: 0,
       errors: [],
@@ -327,15 +327,15 @@ export class StateManager {
       }
     }
 
-    // Resume swarms
-    if (options.resumeSwarms !== false) {
-      for (const swarm of state.swarms) {
-        if (swarm.status === 'running') {
+    // Resume teams
+    if (options.resumeTeams !== false) {
+      for (const team of state.teams) {
+        if (team.status === 'running') {
           try {
-            // In real implementation, resume swarm
-            result.swarmsResumed++;
+            // In real implementation, resume team
+            result.teamsResumed++;
           } catch (error) {
-            result.errors.push(`Failed to resume swarm ${swarm.id}: ${error}`);
+            result.errors.push(`Failed to resume team ${team.id}: ${error}`);
           }
         }
       }
@@ -368,7 +368,7 @@ export class StateManager {
     logger.info('state-manager', 'Recovery complete', {
       success: result.success,
       agentsRestored: result.agentsRestored,
-      swarmsResumed: result.swarmsResumed,
+      teamsResumed: result.teamsResumed,
       budgetsRestored: result.budgetsRestored,
       actionsReplayed: result.actionsReplayed,
       errors: result.errors.length,
@@ -408,7 +408,7 @@ export class StateManager {
 export interface RecoveryResult {
   success: boolean;
   agentsRestored: number;
-  swarmsResumed: number;
+  teamsResumed: number;
   budgetsRestored: boolean;
   actionsReplayed: number;
   errors: string[];
@@ -428,14 +428,14 @@ export const stateManager = new StateManager();
  */
 export async function saveState(
   agents: AgentState[],
-  swarms: SwarmState[],
+  teams: TeamState[],
   budgets: BudgetState,
   budgetsConfig: Record<string, unknown>
 ): Promise<string> {
   return stateManager.saveCheckpoint(
     await stateManager.captureCurrentState(
       agents,
-      swarms,
+      teams,
       budgets,
       budgetsConfig,
       [],

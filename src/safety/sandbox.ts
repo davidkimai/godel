@@ -1,5 +1,5 @@
 /**
- * Dash File Sandbox - Filesystem Security Restrictions
+ * Godel File Sandbox - Filesystem Security Restrictions
  * 
  * PRD Section 2.5: File Sandbox
  * 
@@ -32,7 +32,7 @@ export interface SandboxConfig {
 
 export interface SandboxContext {
   agentId: string;
-  swarmId: string;
+  teamId: string;
   baseDirectory: string;
   startTime: Date;
   operations: SandboxOperation[];
@@ -56,7 +56,7 @@ export interface SandboxResult {
 
 export interface ViolationReport {
   agentId: string;
-  swarmId: string;
+  teamId: string;
   operation: SandboxOperation;
   timestamp: Date;
   severity: 'warning' | 'critical';
@@ -64,8 +64,8 @@ export interface ViolationReport {
 
 const DEFAULT_CONFIG: SandboxConfig = {
   allowedDirectories: [
-    '/tmp/dash',
-    '/Users/jasontang/clawd/projects/dash/workspace'
+    '/tmp/godel',
+    '/Users/jasontang/clawd/projects/godel/workspace'
   ],
   maxFileSize: 100 * 1024 * 1024, // 100MB
   maxStoragePerAgent: 1024 * 1024 * 1024, // 1GB per agent
@@ -104,11 +104,11 @@ export class FileSandbox extends EventEmitter {
   /**
    * Create a sandbox context for an agent
    */
-  createContext(agentId: string, swarmId: string): SandboxContext {
+  createContext(agentId: string, teamId: string): SandboxContext {
     const baseDirectory = path.join(
       this.config.allowedDirectories[0],
-      'swarms',
-      swarmId,
+      'teams',
+      teamId,
       'agents',
       agentId
     );
@@ -118,15 +118,15 @@ export class FileSandbox extends EventEmitter {
 
     const context: SandboxContext = {
       agentId,
-      swarmId,
+      teamId,
       baseDirectory,
       startTime: new Date(),
       operations: [],
       storageUsed: this.getDirectorySize(baseDirectory)
     };
 
-    this.contexts.set(this.getContextKey(agentId, swarmId), context);
-    this.emit('context_created', { agentId, swarmId, baseDirectory });
+    this.contexts.set(this.getContextKey(agentId, teamId), context);
+    this.emit('context_created', { agentId, teamId, baseDirectory });
 
     return context;
   }
@@ -136,16 +136,16 @@ export class FileSandbox extends EventEmitter {
    */
   checkOperation(
     agentId: string,
-    swarmId: string,
+    teamId: string,
     operation: 'read' | 'write' | 'delete' | 'execute',
     filePath: string
   ): SandboxResult {
-    const contextKey = this.getContextKey(agentId, swarmId);
+    const contextKey = this.getContextKey(agentId, teamId);
     let context = this.contexts.get(contextKey);
 
     // Create context if it doesn't exist
     if (!context) {
-      context = this.createContext(agentId, swarmId);
+      context = this.createContext(agentId, teamId);
     }
 
     // Normalize and resolve path
@@ -197,33 +197,33 @@ export class FileSandbox extends EventEmitter {
   /**
    * Check if read operation is allowed
    */
-  canRead(agentId: string, swarmId: string, filePath: string): SandboxResult {
-    return this.checkOperation(agentId, swarmId, 'read', filePath);
+  canRead(agentId: string, teamId: string, filePath: string): SandboxResult {
+    return this.checkOperation(agentId, teamId, 'read', filePath);
   }
 
   /**
    * Check if write operation is allowed
    */
-  canWrite(agentId: string, swarmId: string, filePath: string): SandboxResult {
-    return this.checkOperation(agentId, swarmId, 'write', filePath);
+  canWrite(agentId: string, teamId: string, filePath: string): SandboxResult {
+    return this.checkOperation(agentId, teamId, 'write', filePath);
   }
 
   /**
    * Check if delete operation is allowed
    */
-  canDelete(agentId: string, swarmId: string, filePath: string): SandboxResult {
-    return this.checkOperation(agentId, swarmId, 'delete', filePath);
+  canDelete(agentId: string, teamId: string, filePath: string): SandboxResult {
+    return this.checkOperation(agentId, teamId, 'delete', filePath);
   }
 
   /**
    * Check if execute operation is allowed
    */
-  canExecute(agentId: string, swarmId: string, command: string): SandboxResult {
+  canExecute(agentId: string, teamId: string, command: string): SandboxResult {
     // Extract command name
     const commandName = path.basename(command).split('?')[0];
 
     if (!this.config.allowedCommands.includes(commandName)) {
-      const contextKey = this.getContextKey(agentId, swarmId);
+      const contextKey = this.getContextKey(agentId, teamId);
       const context = this.contexts.get(contextKey);
       if (context) {
         this.recordViolation(context, 'execute', command, false, 'Command not allowed');
@@ -236,7 +236,7 @@ export class FileSandbox extends EventEmitter {
     }
 
     // Record successful operation
-    const contextKey = this.getContextKey(agentId, swarmId);
+    const contextKey = this.getContextKey(agentId, teamId);
     const context = this.contexts.get(contextKey);
     if (context) {
       this.recordOperation(context, 'execute', command, true);
@@ -251,7 +251,7 @@ export class FileSandbox extends EventEmitter {
   /**
    * Check if file size limit would be exceeded
    */
-  checkFileSize(agentId: string, swarmId: string, size: number): SandboxResult {
+  checkFileSize(agentId: string, teamId: string, size: number): SandboxResult {
     if (size > this.config.maxFileSize) {
       return {
         allowed: false,
@@ -260,7 +260,7 @@ export class FileSandbox extends EventEmitter {
       };
     }
 
-    const contextKey = this.getContextKey(agentId, swarmId);
+    const contextKey = this.getContextKey(agentId, teamId);
     const context = this.contexts.get(contextKey);
 
     if (context && context.storageUsed + size > this.config.maxStoragePerAgent) {
@@ -277,8 +277,8 @@ export class FileSandbox extends EventEmitter {
   /**
    * Check if execution time limit would be exceeded
    */
-  checkExecutionTime(agentId: string, swarmId: string): SandboxResult {
-    const contextKey = this.getContextKey(agentId, swarmId);
+  checkExecutionTime(agentId: string, teamId: string): SandboxResult {
+    const contextKey = this.getContextKey(agentId, teamId);
     const context = this.contexts.get(contextKey);
 
     if (!context) {
@@ -301,12 +301,12 @@ export class FileSandbox extends EventEmitter {
   /**
    * Get relative path within sandbox
    */
-  getSandboxPath(agentId: string, swarmId: string, relativePath: string): string {
-    const contextKey = this.getContextKey(agentId, swarmId);
+  getSandboxPath(agentId: string, teamId: string, relativePath: string): string {
+    const contextKey = this.getContextKey(agentId, teamId);
     let context = this.contexts.get(contextKey);
 
     if (!context) {
-      context = this.createContext(agentId, swarmId);
+      context = this.createContext(agentId, teamId);
     }
 
     return path.join(context.baseDirectory, relativePath);
@@ -325,13 +325,13 @@ export class FileSandbox extends EventEmitter {
   /**
    * Get context statistics
    */
-  getStatistics(agentId?: string, swarmId?: string): {
+  getStatistics(agentId?: string, teamId?: string): {
     operations: number;
     violations: number;
     storageUsed: number;
     executionTime: number;
   } | null {
-    const contextKey = agentId && swarmId ? this.getContextKey(agentId, swarmId) : null;
+    const contextKey = agentId && teamId ? this.getContextKey(agentId, teamId) : null;
 
     if (contextKey) {
       const context = this.contexts.get(contextKey);
@@ -368,10 +368,10 @@ export class FileSandbox extends EventEmitter {
   /**
    * Cleanup context
    */
-  cleanup(agentId: string, swarmId: string): void {
-    const contextKey = this.getContextKey(agentId, swarmId);
+  cleanup(agentId: string, teamId: string): void {
+    const contextKey = this.getContextKey(agentId, teamId);
     this.contexts.delete(contextKey);
-    this.emit('context_cleaned', { agentId, swarmId });
+    this.emit('context_cleaned', { agentId, teamId });
   }
 
   /**
@@ -458,7 +458,7 @@ export class FileSandbox extends EventEmitter {
 
     const violation: ViolationReport = {
       agentId: context.agentId,
-      swarmId: context.swarmId,
+      teamId: context.teamId,
       operation,
       timestamp: new Date(),
       severity: error.toLowerCase().includes('traversal') ? 'critical' : 'warning'
@@ -493,8 +493,8 @@ export class FileSandbox extends EventEmitter {
   /**
    * Generate context key
    */
-  private getContextKey(agentId: string, swarmId: string): string {
-    return `${swarmId}:${agentId}`;
+  private getContextKey(agentId: string, teamId: string): string {
+    return `${teamId}:${agentId}`;
   }
 }
 

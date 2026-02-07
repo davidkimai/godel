@@ -1,6 +1,6 @@
 # Workflow Engine Documentation
 
-The Dash Workflow Engine is a DAG-based execution system that enables complex multi-step workflows with dependencies, parallel execution, conditional branching, and comprehensive state management.
+The Godel Workflow Engine is a DAG-based execution system that enables complex multi-step workflows with dependencies, parallel execution, conditional branching, and comprehensive state management.
 
 ## Table of Contents
 
@@ -21,7 +21,7 @@ The workflow engine provides:
 - **Conditional branching**: Skip or include steps based on runtime conditions
 - **Retry logic**: Automatic retry with configurable backoff strategies
 - **State persistence**: Store workflow definitions and execution state in PostgreSQL
-- **Event integration**: Emit events to the Dash event bus for monitoring
+- **Event integration**: Emit events to the Godel event bus for monitoring
 
 ## Workflow Definition
 

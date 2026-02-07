@@ -334,7 +334,7 @@ godel agent list
 - [ ] Security audit
 
 ### Week 3-4: Federation Engine
-- [ ] Swarm Router implementation
+- [ ] Team Router implementation
 - [ ] Load balancer
 - [ ] Health monitoring
 - [ ] Auto-scaling logic

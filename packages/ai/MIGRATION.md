@@ -1,13 +1,13 @@
 # Migration Guide: Unified LLM API
 
-This guide helps you migrate from the legacy Dash LLM integration to the new `@dash/ai` unified API.
+This guide helps you migrate from the legacy LLM integration to the new `@godel/ai` unified API.
 
 ## Overview
 
 The new `@dash/ai` package provides:
 - **Unified provider interface** - Use any LLM provider with the same API
 - **Automatic failover** - Switch providers on failure
-- **Cost tracking** - Integrated with Dash's budget system
+- **Cost tracking** - Integrated with Godel's budget system
 - **Model optimization** - Select best model for task type
 
 ## Migration Steps

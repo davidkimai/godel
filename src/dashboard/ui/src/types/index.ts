@@ -1,7 +1,7 @@
 /**
  * Dashboard Type Definitions
  * 
- * TypeScript types for the Dash Dashboard UI
+ * TypeScript types for the Godel Dashboard UI
  */
 
 // ============================================================================
@@ -27,7 +27,7 @@ export interface Agent {
   lifecycleState?: string;
   model: string;
   task: string;
-  swarmId: string;
+  teamId: string;
   spawnedAt: string;
   completedAt?: string;
   runtime: number;
@@ -55,10 +55,10 @@ export interface AgentMetrics {
 }
 
 // ============================================================================
-// Swarm Types
+// Team Types
 // ============================================================================
 
-export enum SwarmState {
+export enum TeamState {
   CREATING = 'creating',
   ACTIVE = 'active',
   SCALING = 'scaling',
@@ -68,7 +68,7 @@ export enum SwarmState {
   DESTROYED = 'destroyed'
 }
 
-export type SwarmStrategy = 'parallel' | 'map-reduce' | 'pipeline' | 'tree';
+export type TeamStrategy = 'parallel' | 'map-reduce' | 'pipeline' | 'tree';
 
 export interface BudgetConfig {
   amount: number;
@@ -77,12 +77,12 @@ export interface BudgetConfig {
   criticalThreshold: number;
 }
 
-export interface SwarmConfig {
+export interface TeamConfig {
   name: string;
   task: string;
   initialAgents: number;
   maxAgents: number;
-  strategy: SwarmStrategy;
+  strategy: TeamStrategy;
   model?: string;
   budget?: BudgetConfig;
   metadata?: Record<string, unknown>;
@@ -90,11 +90,11 @@ export interface SwarmConfig {
   enableBranching?: boolean;
 }
 
-export interface Swarm {
+export interface Team {
   id: string;
   name: string;
-  status: SwarmState;
-  config: SwarmConfig;
+  status: TeamState;
+  config: TeamConfig;
   agents: string[];
   createdAt: string;
   completedAt?: string;
@@ -112,10 +112,10 @@ export interface Swarm {
   currentBranch?: string;
 }
 
-export interface SwarmStatusInfo {
+export interface TeamStatusInfo {
   id: string;
   name: string;
-  status: SwarmState;
+  status: TeamState;
   agentCount: number;
   budgetRemaining: number;
   progress: number;
@@ -140,7 +140,7 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   agentId: string;
-  swarmId: string;
+  teamId: string;
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
@@ -164,13 +164,13 @@ export enum EventType {
   AGENT_KILLED = 'agent.killed',
   AGENT_PAUSED = 'agent.paused',
   AGENT_RESUMED = 'agent.resumed',
-  SWARM_CREATED = 'swarm.created',
-  SWARM_SCALED = 'swarm.scaled',
-  SWARM_COMPLETED = 'swarm.completed',
-  SWARM_FAILED = 'swarm.failed',
-  SWARM_DESTROYED = 'swarm.destroyed',
-  SWARM_BUDGET_WARNING = 'swarm.budget.warning',
-  SWARM_BUDGET_CRITICAL = 'swarm.budget.critical',
+  TEAM_CREATED = 'team.created',
+  TEAM_SCALED = 'team.scaled',
+  TEAM_COMPLETED = 'team.completed',
+  TEAM_FAILED = 'team.failed',
+  TEAM_DESTROYED = 'team.destroyed',
+  TEAM_BUDGET_WARNING = 'team.budget.warning',
+  TEAM_BUDGET_CRITICAL = 'team.budget.critical',
   TASK_CREATED = 'task.created',
   TASK_STARTED = 'task.started',
   TASK_COMPLETED = 'task.completed',
@@ -182,7 +182,7 @@ export enum EventType {
 export interface AgentEvent {
   id: string;
   type: EventType | string;
-  swarmId?: string;
+  teamId?: string;
   agentId?: string;
   taskId?: string;
   timestamp: string;
@@ -213,7 +213,7 @@ export interface CostMetrics {
 
 export interface CostBreakdown {
   byModel: Record<string, number>;
-  bySwarm: Record<string, number>;
+  byTeam: Record<string, number>;
   byAgent: Record<string, number>;
   byTime: Array<{
     timestamp: string;
@@ -234,7 +234,7 @@ export enum WebSocketMessageType {
   UNSUBSCRIBE = 'unsubscribe',
   EVENT = 'event',
   AGENT_UPDATE = 'agent_update',
-  SWARM_UPDATE = 'swarm_update',
+  TEAM_UPDATE = 'team_update',
   BUDGET_UPDATE = 'budget_update',
   ERROR = 'error'
 }
@@ -246,7 +246,7 @@ export interface WebSocketMessage {
   payload?: Record<string, unknown>;
   event?: AgentEvent;
   agent?: Agent;
-  swarm?: Swarm;
+  team?: Team;
   budget?: CostMetrics;
   error?: string;
 }
@@ -331,23 +331,23 @@ export interface AuthState {
 
 export interface DashboardStats {
   totalAgents: number;
-  activeSwarms: number;
+  activeTeams: number;
   totalCost: number;
   eventsPerSecond: number;
   systemHealth: 'healthy' | 'degraded' | 'critical';
 }
 
 export interface FilterState {
-  status: AgentStatus | SwarmState | 'all';
-  swarmId: string | 'all';
+  status: AgentStatus | TeamState | 'all';
+  teamId: string | 'all';
   search: string;
   timeRange: '1h' | '24h' | '7d' | '30d' | 'all';
 }
 
 export interface ViewState {
-  expandedSwarms: Set<string>;
+  expandedTeams: Set<string>;
   selectedAgent: string | null;
-  selectedSwarm: string | null;
+  selectedTeam: string | null;
   viewMode: 'grid' | 'list' | 'tree';
 }
 

@@ -14,7 +14,7 @@ server:
   timeoutMs: 5000
 
 database:
-  url: postgresql://dash:dash@localhost:5432/dash_test
+  url: postgresql://godel:godel@localhost:5432/dash_test
   poolSize: 2
   minPoolSize: 1
   maxPoolSize: 5
@@ -82,8 +82,8 @@ openclaw:
 
 eventBus:
   type: memory  # Use in-memory event bus for tests
-  streamKey: dash:events:test
-  consumerGroup: dash:consumers:test
+  streamKey: godel:events:test
+  consumerGroup: godel:consumers:test
   compressionThreshold: 1024
   maxStreamLength: 1000
   maxQueuedEvents: 100

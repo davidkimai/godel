@@ -181,18 +181,18 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ maxAlerts = 50 }) => {
         break;
       case EventType.SWARM_FAILED:
         severity = 'error';
-        title = 'Swarm Failed';
-        message = `Swarm ${event.swarmId?.slice(0, 8)}... has failed`;
+        title = 'Team Failed';
+        message = `Team ${event.teamId?.slice(0, 8)}... has failed`;
         break;
       case EventType.SWARM_BUDGET_WARNING:
         severity = 'warning';
         title = 'Budget Warning';
-        message = 'Swarm approaching budget limit';
+        message = 'Team approaching budget limit';
         break;
       case EventType.SWARM_BUDGET_CRITICAL:
         severity = 'critical';
         title = 'Budget Critical';
-        message = 'Swarm has exceeded critical budget threshold';
+        message = 'Team has exceeded critical budget threshold';
         break;
       case EventType.SYSTEM_ERROR:
         severity = 'critical';
@@ -220,7 +220,7 @@ export const AlertPanel: React.FC<AlertPanelProps> = ({ maxAlerts = 50 }) => {
       title,
       message,
       timestamp: new Date(event.timestamp).getTime(),
-      source: event.swarmId || event.agentId || 'system',
+      source: event.teamId || event.agentId || 'system',
       acknowledged: false,
       eventId: event.id
     };

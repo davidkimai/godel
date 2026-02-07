@@ -27,7 +27,7 @@ import type { Agent } from '../models/agent';
 
 export interface AgentTraceContext {
   agentId: string;
-  swarmId?: string;
+  teamId?: string;
   parentAgentId?: string;
   traceContext: EventContext;
 }
@@ -64,15 +64,15 @@ export async function instrumentAgentSpawn<T>(
     'agent.id': agent.id,
     'agent.model': agent.model,
     'agent.task': agent.task.slice(0, 100), // Truncate long tasks
-    'agent.swarm_id': agent['swarmId'] || '',
+    'agent.team_id': agent['teamId'] || '',
     'agent.parent_id': agent.parentId || '',
     'agent.label': agent.label || '',
   };
 
   // Set baggage for cross-cutting concerns
   setBaggage('agent.id', agent.id);
-  if (agent['swarmId']) {
-    setBaggage('swarm.id', agent['swarmId']);
+  if (agent['teamId']) {
+    setBaggage('team.id', agent['teamId']);
   }
 
   return withSpan(SPAN_NAMES.AGENT_SPAWN, async (span) => {
@@ -292,12 +292,12 @@ export function instrumentAgentLifecycle(lifecycle: AgentLifecycle): AgentLifecy
  */
 export function createAgentTraceContext(
   agentId: string,
-  swarmId?: string,
+  teamId?: string,
   parentAgentId?: string
 ): AgentTraceContext {
   return {
     agentId,
-    swarmId,
+    teamId,
     parentAgentId,
     traceContext: serializeContext(),
   };
@@ -310,8 +310,8 @@ export function restoreAgentTraceContext(ctx: AgentTraceContext): Context {
   const restoredContext = deserializeContext(ctx.traceContext);
   
   // Set additional baggage
-  if (ctx['swarmId']) {
-    setBaggage('swarm.id', ctx['swarmId']);
+  if (ctx['teamId']) {
+    setBaggage('team.id', ctx['teamId']);
   }
   if (ctx.parentAgentId) {
     setBaggage('agent.parent_id', ctx.parentAgentId);
@@ -333,12 +333,12 @@ export function logAgentEvent(
   data?: Record<string, unknown>
 ): void {
   const traceId = getCurrentTraceId();
-  const swarmId = getBaggage('swarm.id');
+  const teamId = getBaggage('team.id');
   
   logger.info(`[AgentTracing] ${eventType}`, {
     event: eventType,
     agent_id: agentId,
-    swarm_id: swarmId,
+    team_id: teamId,
     trace_id: traceId,
     ...data,
   });

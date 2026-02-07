@@ -1,11 +1,11 @@
 /**
  * Status Command - System Overview
  *
- * Shows Dash system status including:
+ * Shows Godel system status including:
  * - Version, uptime, memory, PID
  * - Optional OpenClaw details (graceful degradation)
  *
- * Usage: dash status [--simple] [--json]
+ * Usage: godel status [--simple] [--json]
  */
 
 import { logger } from '../../utils/logger';
@@ -42,7 +42,7 @@ export function statusCommand(): Command {
         return;
       }
       
-      logger.info('=== Dash Status ===');
+      logger.info('=== Godel Status ===');
       logger.info(`Version: ${basicStatus.version}`);
       logger.info(`Uptime: ${Math.floor(basicStatus.uptime / 60)}m ${Math.floor(basicStatus.uptime % 60)}s`);
       logger.info(`Memory: ${Math.round(basicStatus.memory.heapUsed / 1024 / 1024)}MB`);
@@ -64,11 +64,11 @@ export function statusCommand(): Command {
             }, null, 2));
           } else {
             logger.info('\n⚠️  OpenClaw: Not configured');
-            logger.info('   Run: dash init to configure');
+            logger.info('   Run: godel init to configure');
           }
         } catch (error) {
           logger.info('\n⚠️  OpenClaw: Not available');
-          logger.info('   Run: dash init to configure');
+          logger.info('   Run: godel init to configure');
         }
       }
       

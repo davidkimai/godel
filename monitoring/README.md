@@ -1,6 +1,6 @@
-# Dash Observability Stack
+# Godel Observability Stack
 
-This directory contains the complete Prometheus + Grafana monitoring stack for the Dash orchestration platform.
+This directory contains the complete Prometheus + Grafana monitoring stack for the Godel orchestration platform.
 
 ## Quick Start
 
@@ -35,30 +35,30 @@ docker-compose --profile full up -d
 
 The following dashboards are pre-configured and available in Grafana:
 
-### 1. Swarm Overview (`dash-swarm-overview`)
-High-level view of all swarms, agents, and events.
-- Active swarms and agent counts
+### 1. Team Overview (`godel-team-overview`)
+High-level view of all teams, agents, and events.
+- Active teams and agent counts
 - Success/failure rates
 - Budget utilization
 - Event processing rates
 
-### 2. Agent Performance (`dash-agent-performance`)
+### 2. Agent Performance (`godel-agent-performance`)
 Detailed agent execution metrics.
 - Execution latency (p50, p95, p99)
-- Throughput by swarm and model
+- Throughput by team and model
 - Failure rates and error patterns
 - Tool call performance
 - SLO tracking
 
-### 3. Cost Analysis (`dash-cost-analysis`)
+### 3. Cost Analysis (`godel-cost-analysis`)
 Budget and cost tracking.
 - Total spend and burn rate
-- Cost by swarm and strategy
+- Cost by team and strategy
 - Budget utilization with thresholds
 - Cost efficiency metrics
 - 30-day projections
 
-### 4. Error Tracking (`dash-error-tracking`)
+### 4. Error Tracking (`godel-error-tracking`)
 Error analysis and debugging.
 - Error rates by component and type
 - Agent failure tracking
@@ -66,7 +66,7 @@ Error analysis and debugging.
 - Top error sources
 - SLO violations
 
-### 5. Infrastructure (`dash-infrastructure`)
+### 5. Infrastructure (`godel-infrastructure`)
 System and infrastructure health.
 - CPU, memory, disk usage
 - Redis metrics (connections, memory, ops)
@@ -108,7 +108,7 @@ receivers:
     slack_configs:
       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
         channel: '#alerts'
-        title: 'Dash Alert'
+        title: 'Godel Alert'
         text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
 ```
 
@@ -121,7 +121,7 @@ Pre-computed aggregations in `prometheus/recording_rules.yml`:
 - `slo:dash_api_latency_p95:ratio_rate5m` - 95th percentile API latency
 - `slo:dash_agent_execution_p99:ratio_rate5m` - 99th percentile agent execution
 - `slo:dash_error_rate:ratio_rate5m` - Error rate for SLO calculation
-- `slo:dash_swarm_success_rate:ratio_rate5m` - Swarm success rate
+- `slo:dash_swarm_success_rate:ratio_rate5m` - Team success rate
 
 ### Error Budget
 - `error_budget:dash_monthly:allowed` - Monthly error budget
@@ -138,7 +138,7 @@ Pre-computed aggregations in `prometheus/recording_rules.yml`:
 
 ### Cost Analysis
 - `cost:dash_per_agent_execution` - Cost per agent execution
-- `cost:dash_per_successful_swarm` - Cost per successful swarm
+- `cost:dash_per_successful_swarm` - Cost per successful team
 - `cost:dash_hourly_projection` - Hourly cost projection
 - `cost:dash_daily_projection` - Daily cost projection
 - `cost:dash_efficiency_ratio` - Successes per dollar
@@ -173,8 +173,8 @@ docker run --rm -v dash_grafana-data:/data -v $(pwd):/backup alpine tar czf /bac
 
 ### Troubleshooting
 
-**Prometheus not scraping Dash**
-- Verify Dash is running on port 7373
+**Prometheus not scraping Godel**
+- Verify Godel is running on port 7373
 - Check `host.docker.internal` resolves correctly
 - Review Prometheus targets at http://localhost:9090/targets
 
@@ -196,9 +196,9 @@ Create a `.env` file in the monitoring directory:
 
 ```bash
 # Database credentials for exporters
-POSTGRES_USER=dash
+POSTGRES_USER=godel
 POSTGRES_PASSWORD=your_password
-POSTGRES_DB=dash
+POSTGRES_DB=godel
 REDIS_PASSWORD=
 
 # Grafana admin password
@@ -222,7 +222,7 @@ GF_SECURITY_ADMIN_PASSWORD=secure_password
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    Dash     │────▶│  Prometheus │────▶│   Grafana   │
+│    Godel     │────▶│  Prometheus │────▶│   Grafana   │
 │   :7373     │     │   :9090     │     │   :3000     │
 └─────────────┘     └─────────────┘     └─────────────┘
                            │

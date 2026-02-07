@@ -1,18 +1,18 @@
-# Dash Alert Runbook
+# Godel Alert Runbook
 
-This runbook provides step-by-step instructions for responding to Dash alerts.
+This runbook provides step-by-step instructions for responding to Godel alerts.
 
 ## Critical Alerts
 
 ### DashDown
 **Severity**: CRITICAL  
-**Description**: Dash orchestrator is unreachable
+**Description**: Godel orchestrator is unreachable
 
 **Impact**: Complete service outage
 
 **Diagnosis**:
 ```bash
-# Check if Dash process is running
+# Check if Godel process is running
 curl http://localhost:7373/health
 curl http://localhost:7373/metrics
 
@@ -363,4 +363,4 @@ dash queue status
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000
 - Alertmanager: http://localhost:9093
-- Dash API: http://localhost:7373
+- Godel API: http://localhost:7373

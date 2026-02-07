@@ -95,11 +95,11 @@ export interface ScaleDownPolicy {
 }
 
 /**
- * Complete scaling policy for a swarm
+ * Complete scaling policy for a team
  */
 export interface ScalingPolicy {
-  /** Swarm ID this policy applies to */
-  swarmId: string;
+  /** Team ID this policy applies to */
+  teamId: string;
   /** Minimum agent count */
   minAgents: number;
   /** Maximum agent count */
@@ -207,8 +207,8 @@ export interface CostTrackingConfig {
 export interface BudgetConfig {
   /** Budget ID */
   id: string;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Total budget allocated (USD) */
   totalBudget: number;
   /** Budget period (hourly, daily, weekly, monthly) */
@@ -238,8 +238,8 @@ export type CostAlertLevel = 'info' | 'warning' | 'critical' | 'exceeded';
 export interface CostAlert {
   /** Alert ID */
   id: string;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Alert level */
   level: CostAlertLevel;
   /** Current cost */
@@ -266,8 +266,8 @@ export interface CostAlert {
 export interface ScalingMetrics {
   /** Timestamp */
   timestamp: Date;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Current agent count */
   currentAgentCount: number;
   /** Queue depth */
@@ -312,8 +312,8 @@ export interface MetricHistoryEntry {
 export interface ScalingDecision {
   /** Decision timestamp */
   timestamp: Date;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Recommended action */
   action: ScalingAction;
   /** Target agent count */
@@ -348,8 +348,8 @@ export interface ScalingEvent {
   type: 'scaling.decision' | 'scaling.executed' | 'scaling.blocked' | 'scaling.error' | 'cost.alert';
   /** Timestamp */
   timestamp: Date;
-  /** Swarm ID */
-  swarmId: string;
+  /** Team ID */
+  teamId: string;
   /** Event payload */
   payload: ScalingDecision | CostAlert | { error: string; details?: unknown };
 }
@@ -410,8 +410,8 @@ export interface AutoScalerState {
 export interface IScalingDecisionRepository {
   /** Save a scaling decision */
   save(decision: ScalingDecision): Promise<void>;
-  /** Get decisions for a swarm */
-  getBySwarmId(swarmId: string, limit?: number): Promise<ScalingDecision[]>;
+  /** Get decisions for a team */
+  getByTeamId(teamId: string, limit?: number): Promise<ScalingDecision[]>;
   /** Get recent decisions */
   getRecent(since: Date): Promise<ScalingDecision[]>;
 }
@@ -421,11 +421,11 @@ export interface IScalingDecisionRepository {
  */
 export interface ICostTrackingRepository {
   /** Record cost snapshot */
-  recordCost(swarmId: string, cost: number, agentCount: number): Promise<void>;
+  recordCost(teamId: string, cost: number, agentCount: number): Promise<void>;
   /** Get cost history */
-  getCostHistory(swarmId: string, since: Date): Promise<{ timestamp: Date; cost: number; agentCount: number }[]>;
+  getCostHistory(teamId: string, since: Date): Promise<{ timestamp: Date; cost: number; agentCount: number }[]>;
   /** Get current period cost */
-  getCurrentPeriodCost(swarmId: string, period: BudgetConfig['period']): Promise<number>;
+  getCurrentPeriodCost(teamId: string, period: BudgetConfig['period']): Promise<number>;
 }
 
 // ============================================================================
@@ -474,7 +474,7 @@ export interface IAutoScaler extends EventEmitter {
   start(): Promise<void>;
   stop(): Promise<void>;
   registerPolicy(policy: ScalingPolicy): void;
-  unregisterPolicy(swarmId: string): void;
-  getDecisionHistory(swarmId: string): ScalingDecision[];
+  unregisterPolicy(teamId: string): void;
+  getDecisionHistory(teamId: string): ScalingDecision[];
   getHealth(): AutoScalerHealth;
 }

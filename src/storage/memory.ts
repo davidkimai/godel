@@ -35,7 +35,7 @@ export interface Storage<T> {
 export class AgentStorage implements Storage<Agent> {
   private agents: Map<string, Agent> = new Map();
   private byStatus: Map<AgentStatus, Set<string>> = new Map();
-  private bySwarm: Map<string, Set<string>> = new Map();
+  private byTeam: Map<string, Set<string>> = new Map();
   private byParent: Map<string, Set<string>> = new Map();
   private repository?: AgentRepository;
 
@@ -65,12 +65,12 @@ export class AgentStorage implements Storage<Agent> {
     }
     this.byStatus.get(agent.status)!.add(agent.id);
     
-    // Index by swarm
-    if (agent.swarmId) {
-      if (!this.bySwarm.has(agent.swarmId)) {
-        this.bySwarm.set(agent.swarmId, new Set());
+    // Index by team
+    if (agent.teamId) {
+      if (!this.byTeam.has(agent.teamId)) {
+        this.byTeam.set(agent.teamId, new Set());
       }
-      this.bySwarm.get(agent.swarmId)!.add(agent.id);
+      this.byTeam.get(agent.teamId)!.add(agent.id);
     }
     
     // Index by parent
@@ -99,7 +99,7 @@ export class AgentStorage implements Storage<Agent> {
     if (!agent) return undefined;
     
     const oldStatus = agent.status;
-    const oldSwarmId = agent.swarmId;
+    const oldTeamId = agent.teamId;
     const oldParentId = agent.parentId;
     
     const updated = { ...agent, ...data };
@@ -114,16 +114,16 @@ export class AgentStorage implements Storage<Agent> {
       this.byStatus.get(data.status)!.add(id);
     }
     
-    // Update swarm index if changed
-    if (data.swarmId !== oldSwarmId) {
-      if (oldSwarmId) {
-        this.bySwarm.get(oldSwarmId)?.delete(id);
+    // Update team index if changed
+    if (data.teamId !== oldTeamId) {
+      if (oldTeamId) {
+        this.byTeam.get(oldTeamId)?.delete(id);
       }
-      if (data.swarmId) {
-        if (!this.bySwarm.has(data.swarmId)) {
-          this.bySwarm.set(data.swarmId, new Set());
+      if (data.teamId) {
+        if (!this.byTeam.has(data.teamId)) {
+          this.byTeam.set(data.teamId, new Set());
         }
-        this.bySwarm.get(data.swarmId)!.add(id);
+        this.byTeam.get(data.teamId)!.add(id);
       }
     }
     
@@ -153,8 +153,8 @@ export class AgentStorage implements Storage<Agent> {
     this.agents.delete(id);
     this.byStatus.get(agent.status)?.delete(id);
     
-    if (agent.swarmId) {
-      this.bySwarm.get(agent.swarmId)?.delete(id);
+    if (agent.teamId) {
+      this.byTeam.get(agent.teamId)?.delete(id);
     }
     
     if (agent.parentId) {
@@ -188,10 +188,10 @@ export class AgentStorage implements Storage<Agent> {
   }
 
   /**
-   * Finds agents by swarm
+   * Finds agents by team
    */
-  findBySwarm(swarmId: string): Agent[] {
-    const ids = this.bySwarm.get(swarmId);
+  findByTeam(teamId: string): Agent[] {
+    const ids = this.byTeam.get(teamId);
     if (!ids) return [];
     return Array.from(ids).map(id => this.agents.get(id)!).filter(Boolean);
   }
@@ -211,7 +211,7 @@ export class AgentStorage implements Storage<Agent> {
   clear(): void {
     this.agents.clear();
     this.byStatus.clear();
-    this.bySwarm.clear();
+    this.byTeam.clear();
     this.byParent.clear();
   }
 }

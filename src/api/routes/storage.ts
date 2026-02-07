@@ -1,7 +1,7 @@
 /**
  * API Routes - SPEC-T2: PostgreSQL Integration
  * 
- * RESTful API endpoints for agents and swarms.
+ * RESTful API endpoints for agents and teams.
  * Uses hybrid storage (SQLite for dev, PostgreSQL for production).
  */
 
@@ -255,33 +255,33 @@ export async function storageRoutes(fastify: FastifyInstance) {
   });
 
   // ============================================================================
-  // GET /api/swarms - List all swarms
+  // GET /api/teams - List all teams
   // ============================================================================
-  fastify.get('/swarms', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/teams', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const s = await getStorage();
       
       if (s instanceof PostgresStorage) {
-        const swarms = await s.listSwarms();
-        return reply.send(swarms);
+        const teams = await s.listTeams();
+        return reply.send(teams);
       } else {
         const sqliteStorage = s as SQLiteStorage;
-        const swarms = sqliteStorage.getAllSwarms?.() || [];
-        return reply.send(swarms);
+        const teams = sqliteStorage.getAllTeams?.() || [];
+        return reply.send(teams);
       }
     } catch (error) {
-      fastify.log.error({ err: error }, 'Failed to list swarms');
+      fastify.log.error({ err: error }, 'Failed to list teams');
       return reply.status(500).send({
-        error: 'Failed to list swarms',
+        error: 'Failed to list teams',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
   // ============================================================================
-  // POST /api/swarms - Create a new swarm
+  // POST /api/teams - Create a new team
   // ============================================================================
-  fastify.post('/swarms', async (request: FastifyRequest<{
+  fastify.post('/teams', async (request: FastifyRequest<{
     Body: {
       name: string;
       task: string;
@@ -301,7 +301,7 @@ export async function storageRoutes(fastify: FastifyInstance) {
       const s = await getStorage();
       
       if (s instanceof PostgresStorage) {
-        const id = await s.createSwarm({
+        const id = await s.createTeam({
           id: '',
           name,
           task,
@@ -318,7 +318,7 @@ export async function storageRoutes(fastify: FastifyInstance) {
         const { v4: uuidv4 } = await import('uuid');
         const id = uuidv4();
         
-        sqliteStorage.createSwarm({
+        sqliteStorage.createTeam({
           id,
           name,
           status: 'creating',
@@ -332,50 +332,50 @@ export async function storageRoutes(fastify: FastifyInstance) {
         return reply.status(201).send({ id });
       }
     } catch (error) {
-      fastify.log.error({ err: error }, 'Failed to create swarm');
+      fastify.log.error({ err: error }, 'Failed to create team');
       return reply.status(500).send({
-        error: 'Failed to create swarm',
+        error: 'Failed to create team',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
   // ============================================================================
-  // GET /api/swarms/:id - Get a specific swarm
+  // GET /api/teams/:id - Get a specific team
   // ============================================================================
-  fastify.get('/swarms/:id', async (request: FastifyRequest<{
+  fastify.get('/teams/:id', async (request: FastifyRequest<{
     Params: { id: string }
   }>, reply: FastifyReply) => {
     try {
       const { id } = request.params;
       const s = await getStorage();
       
-      let swarm;
+      let team;
       if (s instanceof PostgresStorage) {
-        swarm = await s.getSwarm(id);
+        team = await s.getTeam(id);
       } else {
         const sqliteStorage = s as SQLiteStorage;
-        swarm = sqliteStorage.getSwarm(id) || null;
+        team = sqliteStorage.getTeam(id) || null;
       }
       
-      if (!swarm) {
-        return reply.status(404).send({ error: 'Swarm not found' });
+      if (!team) {
+        return reply.status(404).send({ error: 'Team not found' });
       }
       
-      return reply.send(swarm);
+      return reply.send(team);
     } catch (error) {
-      fastify.log.error({ err: error }, 'Failed to get swarm');
+      fastify.log.error({ err: error }, 'Failed to get team');
       return reply.status(500).send({
-        error: 'Failed to get swarm',
+        error: 'Failed to get team',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
   // ============================================================================
-  // DELETE /api/swarms/:id - Delete a swarm
+  // DELETE /api/teams/:id - Delete a team
   // ============================================================================
-  fastify.delete('/swarms/:id', async (request: FastifyRequest<{
+  fastify.delete('/teams/:id', async (request: FastifyRequest<{
     Params: { id: string }
   }>, reply: FastifyReply) => {
     try {
@@ -383,17 +383,17 @@ export async function storageRoutes(fastify: FastifyInstance) {
       const s = await getStorage();
       
       if (s instanceof PostgresStorage) {
-        await s.deleteSwarm(id);
+        await s.deleteTeam(id);
       } else {
         const sqliteStorage = s as SQLiteStorage;
-        sqliteStorage.deleteSwarm(id);
+        sqliteStorage.deleteTeam(id);
       }
       
       return reply.status(204).send();
     } catch (error) {
-      fastify.log.error({ err: error }, 'Failed to delete swarm');
+      fastify.log.error({ err: error }, 'Failed to delete team');
       return reply.status(500).send({
-        error: 'Failed to delete swarm',
+        error: 'Failed to delete team',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

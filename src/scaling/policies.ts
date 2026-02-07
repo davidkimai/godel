@@ -59,16 +59,16 @@ export const DEFAULT_SCALE_DOWN_POLICY: ScaleDownPolicy = {
 };
 
 /**
- * Create a default scaling policy for a swarm
+ * Create a default scaling policy for a team
  */
 export function createDefaultScalingPolicy(
-  swarmId: string,
+  teamId: string,
   minAgents: number = 5,
   maxAgents: number = 50,
   overrides?: Partial<ScalingPolicy>
 ): ScalingPolicy {
   return {
-    swarmId,
+    teamId,
     minAgents: Math.max(1, minAgents),
     maxAgents: Math.max(minAgents, maxAgents),
     scaleUp: { ...DEFAULT_SCALE_UP_POLICY },
@@ -88,12 +88,12 @@ export function createDefaultScalingPolicy(
  * Aggressive scaling policy for high-throughput scenarios
  */
 export function createAggressiveScalingPolicy(
-  swarmId: string,
+  teamId: string,
   minAgents: number = 10,
   maxAgents: number = 100
 ): ScalingPolicy {
   return {
-    swarmId,
+    teamId,
     minAgents,
     maxAgents,
     scaleUp: {
@@ -131,12 +131,12 @@ export function createAggressiveScalingPolicy(
  * Conservative scaling policy for cost-sensitive scenarios
  */
 export function createConservativeScalingPolicy(
-  swarmId: string,
+  teamId: string,
   minAgents: number = 3,
   maxAgents: number = 30
 ): ScalingPolicy {
   return {
-    swarmId,
+    teamId,
     minAgents,
     maxAgents,
     scaleUp: {
@@ -450,7 +450,7 @@ export function evaluateScalingPolicy(
 
     return {
       timestamp,
-      swarmId: policy.swarmId,
+      teamId: policy.teamId,
       action: 'scale_down',
       targetAgentCount: targetCount,
       currentAgentCount: metrics.currentAgentCount,
@@ -530,7 +530,7 @@ export function evaluateScalingPolicy(
 
   return {
     timestamp,
-    swarmId: policy.swarmId,
+    teamId: policy.teamId,
     action,
     targetAgentCount: targetCount,
     currentAgentCount: metrics.currentAgentCount,

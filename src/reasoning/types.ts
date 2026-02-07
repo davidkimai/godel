@@ -1,5 +1,5 @@
 /**
- * Reasoning Types for Dash
+ * Reasoning Types for Godel
  * 
  * Defines core types for reasoning traces, decision logs, and confidence tracking.
  * Phase 3: Reasoning Features

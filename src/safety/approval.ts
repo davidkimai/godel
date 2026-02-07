@@ -29,7 +29,7 @@ export interface ApproverIdentity {
 export interface RequestingAgent {
   agentId: string;
   agentLabel?: string;
-  swarmId?: string;
+  teamId?: string;
   parentAgentId?: string;
   model?: string;
 }

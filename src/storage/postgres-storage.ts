@@ -5,7 +5,7 @@
  * PostgreSQL is for PRODUCTION workloads.
  * 
  * Features:
- * - Full CRUD operations for agents and swarms
+ * - Full CRUD operations for agents and teams
  * - Connection pooling for scalability
  * - UUIDs and JSONB for metadata
  * - Health check endpoint
@@ -50,8 +50,8 @@ export class PostgresStorage {
     const postgresConfig = config || this.config || {
       host: process.env['POSTGRES_HOST'] || 'localhost',
       port: parseInt(process.env['POSTGRES_PORT'] || '5432'),
-      database: process.env['POSTGRES_DB'] || 'dash',
-      user: process.env['POSTGRES_USER'] || 'dash',
+      database: process.env['POSTGRES_DB'] || 'godel',
+      user: process.env['POSTGRES_USER'] || 'godel',
       password: process.env['POSTGRES_PASSWORD'] || 'dash_password',
       ssl: process.env['POSTGRES_SSL'] === 'true',
       maxConnections: parseInt(process.env['POSTGRES_MAX_CONNECTIONS'] || '20'),
@@ -78,7 +78,7 @@ export class PostgresStorage {
         keepAlive: true,
         keepAliveInitialDelayMs: 0,
         maxUses: 7500,
-        applicationName: 'dash',
+        applicationName: 'godel',
       });
 
       this.initialized = true;
@@ -297,13 +297,13 @@ export class PostgresStorage {
   }
 
   // ============================================================================
-  // Swarm Operations
+  // Team Operations
   // ============================================================================
 
   /**
-   * Create a new swarm
+   * Create a new team
    */
-  async createSwarm(swarm: {
+  async createTeam(team: {
     id?: string;
     name: string;
     task: string;
@@ -315,17 +315,17 @@ export class PostgresStorage {
   }): Promise<string> {
     this.ensureInitialized();
 
-    const now = swarm.createdAt || Date.now();
-    const id = swarm.id || crypto.randomUUID();
+    const now = team.createdAt || Date.now();
+    const id = team.id || crypto.randomUUID();
     
     await this.pool!.query(
-      `INSERT INTO swarms (id, name, config, status, created_at, updated_at)
+      `INSERT INTO teams (id, name, config, status, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         id,
-        swarm.name,
-        JSON.stringify({ task: swarm.task, ...swarm.metadata }),
-        swarm.status || 'creating',
+        team.name,
+        JSON.stringify({ task: team.task, ...team.metadata }),
+        team.status || 'creating',
         new Date(now),
         new Date(now),
       ]
@@ -335,9 +335,9 @@ export class PostgresStorage {
   }
 
   /**
-   * Get a swarm by ID
+   * Get a team by ID
    */
-  async getSwarm(id: string): Promise<{
+  async getTeam(id: string): Promise<{
     id: string;
     name: string;
     task: string;
@@ -349,7 +349,7 @@ export class PostgresStorage {
   } | null> {
     this.ensureInitialized();
 
-    interface SwarmRow {
+    interface TeamRow {
       id: string;
       name: string;
       config: string | Record<string, unknown>;
@@ -358,8 +358,8 @@ export class PostgresStorage {
       updated_at: string;
     }
 
-    const result = await this.pool!.query<SwarmRow>(
-      `SELECT * FROM swarms WHERE id = $1`,
+    const result = await this.pool!.query<TeamRow>(
+      `SELECT * FROM teams WHERE id = $1`,
       [id]
     );
 
@@ -381,9 +381,9 @@ export class PostgresStorage {
   }
 
   /**
-   * Update a swarm
+   * Update a team
    */
-  async updateSwarm(id: string, data: Partial<{
+  async updateTeam(id: string, data: Partial<{
     name: string;
     task: string;
     agentIds: string[];
@@ -414,23 +414,23 @@ export class PostgresStorage {
     values.push(id);
 
     await this.pool!.query(
-      `UPDATE swarms SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+      `UPDATE teams SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
       values
     );
   }
 
   /**
-   * Delete a swarm
+   * Delete a team
    */
-  async deleteSwarm(id: string): Promise<void> {
+  async deleteTeam(id: string): Promise<void> {
     this.ensureInitialized();
-    await this.pool!.query(`DELETE FROM swarms WHERE id = $1`, [id]);
+    await this.pool!.query(`DELETE FROM teams WHERE id = $1`, [id]);
   }
 
   /**
-   * List all swarms
+   * List all teams
    */
-  async listSwarms(): Promise<Array<{
+  async listTeams(): Promise<Array<{
     id: string;
     name: string;
     task: string;
@@ -442,7 +442,7 @@ export class PostgresStorage {
   }>> {
     this.ensureInitialized();
 
-    interface SwarmRow {
+    interface TeamRow {
       id: string;
       name: string;
       config: string | Record<string, unknown>;
@@ -451,7 +451,7 @@ export class PostgresStorage {
       updated_at: string;
     }
 
-    const result = await this.pool!.query<SwarmRow>(`SELECT * FROM swarms ORDER BY created_at DESC`);
+    const result = await this.pool!.query<TeamRow>(`SELECT * FROM teams ORDER BY created_at DESC`);
 
     return result.rows.map(row => {
       const config = typeof row.config === 'string' ? JSON.parse(row.config) : row.config;

@@ -94,8 +94,8 @@ export class ErrorListenerService implements IErrorListenerService {
 
   private setupSubscriptions(): void {
     // Listen to error events from the event bus
-    const errorSub = this.eventBus.subscribe('error', (event: BusErrorEvent) => {
-      this.handleBusErrorEvent(event);
+    const errorSub = this.eventBus.subscribe('error', (event) => {
+      this.handleBusErrorEvent(event as BusErrorEvent);
     });
     this.subscriptions.push(errorSub.id);
 
@@ -126,7 +126,7 @@ export class ErrorListenerService implements IErrorListenerService {
       context: {
         agentId: event.agentId,
         sessionId: event.sessionId,
-        swarmId: event.swarmId,
+        teamId: event.teamId,
       },
       severity: this.assessSeverity(event.error.message, event.error.code),
       reproducible: true,
@@ -139,7 +139,7 @@ export class ErrorListenerService implements IErrorListenerService {
     const evt = event as { 
       agentId?: string; 
       sessionId?: string; 
-      swarmId?: string;
+      teamId?: string;
       timestamp?: number;
     };
 
@@ -152,7 +152,7 @@ export class ErrorListenerService implements IErrorListenerService {
       context: {
         agentId: evt.agentId,
         sessionId: evt.sessionId,
-        swarmId: evt.swarmId,
+        teamId: evt.teamId,
       },
       severity: this.assessSeverity(errorMessage),
       reproducible: true,

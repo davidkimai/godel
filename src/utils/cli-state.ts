@@ -11,7 +11,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 // State file location (in user's home directory for persistence)
-const STATE_DIR = path.join(os.homedir(), '.config', 'dash');
+const STATE_DIR = path.join(os.homedir(), '.config', 'godel');
 const STATE_FILE = path.join(STATE_DIR, 'cli-state.json');
 
 export interface OpenClawState {

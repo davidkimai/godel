@@ -2,10 +2,10 @@
 ## Orchestrating 50+ Agents with Intelligent Routing
 
 **Phase:** 3 of 5  
-**Goal:** Implement Swarm Router, Load Balancer, and Auto-scaling for 50+ agents  
+**Goal:** Implement Team Router, Load Balancer, and Auto-scaling for 50+ agents  
 **Team Size:** 10 subagents across 4 tracks  
 **Duration:** 2 weeks (Weeks 3-4)  
-**Success Metric:** `godel swarm spawn --count 50` works with 0 failures
+**Success Metric:** `godel team spawn --count 50` works with 0 failures
 
 ---
 
@@ -19,7 +19,7 @@
 │  User Request                                                               │
 │       ↓                                                                     │
 │  ┌─────────────────────────────────────┐                                   │
-│  │      SWARM ROUTER (Track A)         │                                   │
+│  │      TEAM ROUTER (Track A)         │                                   │
 │  │  - Task decomposition               │                                   │
 │  │  - Agent selection by skill         │                                   │
 │  │  - Dependency resolution            │                                   │
@@ -49,7 +49,7 @@
 
 ---
 
-## Track A: Swarm Router (3 subagents)
+## Track A: Team Router (3 subagents)
 
 ### A1: Task Decomposition Engine
 **Goal:** Break down large tasks into subtasks for parallel execution
@@ -200,18 +200,18 @@ monitor.on('unhealthy', (agentId) => {
 
 ## Track D: CLI & Integration (2 subagents)
 
-### D1: Swarm CLI Commands
-**Goal:** CLI for swarm management
+### D1: Team CLI Commands
+**Goal:** CLI for team management
 
 **Deliverables:**
-- `godel swarm spawn --count 50`
-- `godel swarm scale --count 100`
-- `godel swarm status`
-- `godel swarm kill`
+- `godel team spawn --count 50`
+- `godel team scale --count 100`
+- `godel team status`
+- `godel team kill`
 
 **Example:**
 ```bash
-godel swarm spawn --count 50 --task "Refactor codebase" --budget $50.00
+godel team spawn --count 50 --task "Refactor codebase" --budget $50.00
 
 # Output:
 # Spawning 50 agents... ✓
@@ -220,7 +220,7 @@ godel swarm spawn --count 50 --task "Refactor codebase" --budget $50.00
 ```
 
 ### D2: Dashboard & API
-**Goal:** Real-time dashboard for swarm monitoring
+**Goal:** Real-time dashboard for team monitoring
 
 **Deliverables:**
 - `src/federation/dashboard.ts`
@@ -234,7 +234,7 @@ godel swarm spawn --count 50 --task "Refactor codebase" --budget $50.00
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| **Swarm Size** | 50 agents | `godel swarm spawn --count 50` |
+| **Team Size** | 50 agents | `godel team spawn --count 50` |
 | **Success Rate** | 100% | 0 agent failures |
 | **Routing Latency** | <10ms | Average time to select agent |
 | **Scale-up Time** | <30s | Time to spawn 10 new agents |
@@ -252,14 +252,14 @@ godel swarm spawn --count 50 --task "Refactor codebase" --budget $50.00
 - Auto-scaler logic
 
 ### Integration Tests
-- Full swarm lifecycle
+- Full team lifecycle
 - Multi-agent coordination
 - Failure recovery
 - Performance benchmarks
 
 ### Load Tests
-- 50-agent swarm (10 minutes)
-- 100-agent swarm (stress test)
+- 50-agent team (10 minutes)
+- 100-agent team (stress test)
 - Scale up/down cycles
 - Failover scenarios
 

@@ -3,13 +3,13 @@
 **Version:** v2.0  
 **Last Updated:** 2026-02-02
 
-Complete guide for integrating Dash with OpenClaw Gateway.
+Complete guide for integrating Godel with OpenClaw Gateway.
 
 ---
 
 ## Overview
 
-The OpenClaw integration allows Dash to:
+The OpenClaw integration allows Godel to:
 - Spawn agents via the OpenClaw Gateway
 - Manage OpenClaw sessions
 - Send tasks to remote agents
@@ -22,7 +22,7 @@ The OpenClaw integration allows Dash to:
 
 1. **OpenClaw Gateway** running and accessible
 2. **Authentication token** (optional but recommended)
-3. **Dash CLI** installed
+3. **Godel CLI** installed
 
 ---
 
@@ -48,40 +48,40 @@ The OpenClaw integration allows Dash to:
 
 ### Connecting to OpenClaw
 
-#### `dash openclaw connect`
+#### `godel openclaw connect`
 
 Establish connection to OpenClaw Gateway.
 
 ```bash
 # Connect to local gateway
-dash openclaw connect
+godel openclaw connect
 
 # Connect to remote gateway
-dash openclaw connect --host 192.168.1.100 --port 18789
+godel openclaw connect --host 192.168.1.100 --port 18789
 
 # Connect with authentication
-dash openclaw connect --token your-token-here
+godel openclaw connect --token your-token-here
 
 # Use environment variable for token
 export OPENCLAW_GATEWAY_TOKEN=your-token-here
-dash openclaw connect
+godel openclaw connect
 ```
 
 **Connection Persistence:**
 - Connection state is persisted across CLI invocations
 - Reconnect automatically restores previous session
-- Use `dash openclaw status` to verify connection
+- Use `godel openclaw status` to verify connection
 
 ---
 
 ### Checking Status
 
-#### `dash openclaw status`
+#### `godel openclaw status`
 
 Verify gateway connection and view statistics.
 
 ```bash
-dash openclaw status
+godel openclaw status
 ```
 
 **Example Output:**
@@ -102,21 +102,21 @@ dash openclaw status
 
 ### Managing Sessions
 
-#### `dash openclaw sessions list`
+#### `godel openclaw sessions list`
 
 List all OpenClaw sessions.
 
 ```bash
 # List all sessions
-dash openclaw sessions list
+godel openclaw sessions list
 
 # List only active sessions (last 60 min)
-dash openclaw sessions list --active
+godel openclaw sessions list --active
 
 # Filter by session kind
-dash openclaw sessions list --kind main
-dash openclaw sessions list --kind group
-dash openclaw sessions list --kind thread
+godel openclaw sessions list --kind main
+godel openclaw sessions list --kind group
+godel openclaw sessions list --kind thread
 ```
 
 **Example Output:**
@@ -130,16 +130,16 @@ SESSIONS (3 total)
 
 ---
 
-#### `dash openclaw sessions history`
+#### `godel openclaw sessions history`
 
 View session history and transcript.
 
 ```bash
 # View full history
-dash openclaw sessions history session-abc-123
+godel openclaw sessions history session-abc-123
 
 # Limit number of messages
-dash openclaw sessions history session-abc-123 --limit 20
+godel openclaw sessions history session-abc-123 --limit 20
 ```
 
 **Example Output:**
@@ -155,36 +155,36 @@ dash openclaw sessions history session-abc-123 --limit 20
 
 ### Spawning Agents
 
-#### `dash openclaw spawn`
+#### `godel openclaw spawn`
 
 Spawn an agent via OpenClaw Gateway.
 
 ```bash
 # Basic spawn
-dash openclaw spawn --task "Analyze this codebase"
+godel openclaw spawn --task "Analyze this codebase"
 
 # With model selection
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Write a React component" \
   --model gpt-4
 
 # With budget limit
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Review PR" \
   --budget 5.00
 
 # With additional skills
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Build API" \
   --skills "typescript,express,prisma"
 
 # With custom system prompt
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Analyze sentiment" \
   --system-prompt "You are a sentiment analysis expert."
 
 # Disable sandbox
-dash openclaw spawn \
+godel openclaw spawn \
   --task "System task" \
   --no-sandbox
 ```
@@ -209,29 +209,29 @@ dash openclaw spawn \
 ✓ Budget: $1.00
 ✓ Status: idle (awaiting task)
 
-💡 Use "dash openclaw send --session session-abc-123 <message>" to send a task
+💡 Use "godel openclaw send --session session-abc-123 <message>" to send a task
 ```
 
 ---
 
 ### Sending Messages
 
-#### `dash openclaw send`
+#### `godel openclaw send`
 
 Send a message/task to an OpenClaw agent.
 
 ```bash
 # Send a simple message
-dash openclaw send --session session-abc-123 "Process this data"
+godel openclaw send --session session-abc-123 "Process this data"
 
 # Send with file attachment
-dash openclaw send \
+godel openclaw send \
   --session session-abc-123 \
   --attach ./data.csv \
   "Analyze this CSV file"
 
 # Send code for review
-dash openclaw send \
+godel openclaw send \
   --session session-abc-123 \
   --attach ./src/app.ts \
   "Review this TypeScript code"
@@ -250,16 +250,16 @@ dash openclaw send \
 
 ### Killing Sessions
 
-#### `dash openclaw kill`
+#### `godel openclaw kill`
 
 Terminate an OpenClaw session.
 
 ```bash
 # Normal kill
-dash openclaw kill session-abc-123
+godel openclaw kill session-abc-123
 
 # Force kill (immediate termination)
-dash openclaw kill session-abc-123 --force
+godel openclaw kill session-abc-123 --force
 ```
 
 **Example Output:**
@@ -279,12 +279,12 @@ Mock mode allows testing OpenClaw integration without a real gateway.
 
 ```bash
 # Connect in mock mode
-dash openclaw connect --mock
+godel openclaw connect --mock
 
 # All commands support --mock flag
-dash openclaw status --mock
-dash openclaw spawn --task "test" --mock
-dash openclaw sessions list --mock
+godel openclaw status --mock
+godel openclaw spawn --task "test" --mock
+godel openclaw sessions list --mock
 ```
 
 **Mock Mode Features:**
@@ -301,19 +301,19 @@ dash openclaw sessions list --mock
 
 ```bash
 # 1. Connect to gateway
-dash openclaw connect
+godel openclaw connect
 
 # 2. Spawn an agent
-SESSION=$(dash openclaw spawn --task "Analyze logs" --format json | jq -r '.sessionKey')
+SESSION=$(godel openclaw spawn --task "Analyze logs" --format json | jq -r '.sessionKey')
 
 # 3. Send data
-dash openclaw send --session "$SESSION" --attach ./logs.txt "Find errors"
+godel openclaw send --session "$SESSION" --attach ./logs.txt "Find errors"
 
 # 4. Monitor progress
-dash openclaw sessions history "$SESSION" --limit 10
+godel openclaw sessions history "$SESSION" --limit 10
 
 # 5. Clean up
-dash openclaw kill "$SESSION"
+godel openclaw kill "$SESSION"
 ```
 
 ---
@@ -324,17 +324,17 @@ dash openclaw kill "$SESSION"
 #!/bin/bash
 
 # Connect
-dash openclaw connect
+godel openclaw connect
 
 # Process multiple files
 for file in ./data/*.csv; do
-  SESSION=$(dash openclaw spawn --task "Process CSV" --budget 2.00 --format json | jq -r '.sessionKey')
-  dash openclaw send --session "$SESSION" --attach "$file" "Analyze this file"
+  SESSION=$(godel openclaw spawn --task "Process CSV" --budget 2.00 --format json | jq -r '.sessionKey')
+  godel openclaw send --session "$SESSION" --attach "$file" "Analyze this file"
   echo "Queued: $file -> $SESSION"
 done
 
 # Monitor all sessions
-dash openclaw sessions list --active
+godel openclaw sessions list --active
 ```
 
 ---
@@ -342,28 +342,28 @@ dash openclaw sessions list --active
 ### Pattern 3: CI/CD Integration
 
 ```yaml
-# .github/workflows/dash.yml
-- name: Run Dash Analysis
+# .github/workflows/godel.yml
+- name: Run Godel Analysis
   env:
     OPENCLAW_GATEWAY_TOKEN: ${{ secrets.OPENCLAW_TOKEN }}
   run: |
     # Connect to gateway
-    dash openclaw connect --host ${{ vars.OPENCLAW_HOST }}
+    godel openclaw connect --host ${{ vars.OPENCLAW_HOST }}
     
     # Spawn code review agent
-    SESSION=$(dash openclaw spawn \
+    SESSION=$(godel openclaw spawn \
       --task "Review PR code" \
       --model gpt-4 \
       --format json | jq -r '.sessionKey')
     
     # Send PR diff
-    dash openclaw send --session "$SESSION" \
+    godel openclaw send --session "$SESSION" \
       --attach pr.diff \
       "Review this pull request"
     
     # Wait and get results (pseudo-code)
     sleep 60
-    dash openclaw sessions history "$SESSION"
+    godel openclaw sessions history "$SESSION"
 ```
 
 ---
@@ -374,23 +374,23 @@ dash openclaw sessions list --active
 
 ```bash
 # Basic search
-dash clawhub search "typescript"
+godel clawhub search "typescript"
 
 # Advanced search
-dash clawhub search "web scraping" \
+godel clawhub search "web scraping" \
   --tag cli \
   --tag automation \
   --sort downloads \
   --limit 20
 
 # Search by author
-dash clawhub search --author "openclaw-team"
+godel clawhub search --author "openclaw-team"
 
 # Sort options
-dash clawhub search --sort relevance   # Default
-dash clawhub search --sort downloads
-dash clawhub search --sort stars
-dash clawhub search --sort recent
+godel clawhub search --sort relevance   # Default
+godel clawhub search --sort downloads
+godel clawhub search --sort stars
+godel clawhub search --sort recent
 ```
 
 ---
@@ -399,19 +399,19 @@ dash clawhub search --sort recent
 
 ```bash
 # Install latest version
-dash clawhub install typescript-linter
+godel clawhub install typescript-linter
 
 # Install specific version
-dash clawhub install typescript-linter --version 1.2.3
+godel clawhub install typescript-linter --version 1.2.3
 
 # Force reinstall
-dash clawhub install typescript-linter --force
+godel clawhub install typescript-linter --force
 
 # Skip dependencies
-dash clawhub install typescript-linter --no-deps
+godel clawhub install typescript-linter --no-deps
 
 # Custom directory
-dash clawhub install typescript-linter --target-dir ./custom-skills
+godel clawhub install typescript-linter --target-dir ./custom-skills
 ```
 
 ---
@@ -420,20 +420,20 @@ dash clawhub install typescript-linter --target-dir ./custom-skills
 
 ```bash
 # List installed skills
-dash clawhub list
-dash clawhub list --all
-dash clawhub list --json
+godel clawhub list
+godel clawhub list --all
+godel clawhub list --json
 
 # Show skill info
-dash clawhub info typescript-linter
-dash clawhub info typescript-linter --readme
+godel clawhub info typescript-linter
+godel clawhub info typescript-linter --readme
 
 # Update skills
-dash clawhub update typescript-linter
-dash clawhub update --all
+godel clawhub update typescript-linter
+godel clawhub update --all
 
 # Uninstall
-dash clawhub uninstall typescript-linter --yes
+godel clawhub uninstall typescript-linter --yes
 ```
 
 ---
@@ -442,38 +442,38 @@ dash clawhub uninstall typescript-linter --yes
 
 ```bash
 # Spawn agent with skills
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Analyze code" \
   --skills "typescript-linter,security-scanner"
 
 # Multiple skills
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Full code review" \
   --skills "typescript-linter,eslint,prettier,jest-runner"
 ```
 
 ---
 
-## Combining Dash and OpenClaw
+## Combining Godel and OpenClaw
 
-### Using with Swarms
+### Using with Teams
 
 ```bash
-# Create a swarm
-dash swarm create \
+# Create a team
+godel team create \
   --name "distributed-analysis" \
   --task "Process large dataset" \
   --initial-agents 5
 
-# Spawn OpenClaw agents into swarm
+# Spawn OpenClaw agents into team
 for i in {1..5}; do
-  dash openclaw spawn \
+  godel openclaw spawn \
     --task "Process partition $i" \
     --skills "data-processor"
 done
 
-# Monitor swarm
-dash swarm status distributed-analysis
+# Monitor team
+godel team status distributed-analysis
 ```
 
 ---
@@ -482,18 +482,18 @@ dash swarm status distributed-analysis
 
 ```bash
 # Set project budget
-dash budget set \
+godel budget set \
   --project "openclaw-integration" \
   --daily 100000 \
   --cost 100.00
 
 # Spawn with budget awareness
-dash openclaw spawn \
+godel openclaw spawn \
   --task "Expensive analysis" \
   --budget 25.00
 
 # Check usage
-dash budget usage --project "openclaw-integration"
+godel budget usage --project "openclaw-integration"
 ```
 
 ---
@@ -504,11 +504,11 @@ dash budget usage --project "openclaw-integration"
 
 ```bash
 # Check if gateway is running
-dash openclaw status
+godel openclaw status
 
 # Test with mock mode
-dash openclaw connect --mock
-dash openclaw status --mock
+godel openclaw connect --mock
+godel openclaw status --mock
 
 # Verify network connectivity
 nc -zv 127.0.0.1 18789
@@ -527,13 +527,13 @@ nc -zv 127.0.0.1 18789
 
 ```bash
 # List all sessions
-dash openclaw sessions list
+godel openclaw sessions list
 
 # Check specific session
-dash openclaw sessions history session-abc-123
+godel openclaw sessions history session-abc-123
 
 # Kill stuck sessions
-dash openclaw kill session-abc-123 --force
+godel openclaw kill session-abc-123 --force
 ```
 
 ---
@@ -542,16 +542,16 @@ dash openclaw kill session-abc-123 --force
 
 ```bash
 # Verify skill exists
-dash clawhub search "skill-name"
+godel clawhub search "skill-name"
 
 # Check skill info
-dash clawhub info skill-name
+godel clawhub info skill-name
 
 # Force reinstall
-dash clawhub install skill-name --force
+godel clawhub install skill-name --force
 
 # Check installed skills
-dash clawhub list --all
+godel clawhub list --all
 ```
 
 ---
@@ -562,13 +562,13 @@ dash clawhub list --all
 
 ```bash
 # Connect once at start of session
-dash openclaw connect
+godel openclaw connect
 
 # Verify connection before operations
-dash openclaw status || dash openclaw connect
+godel openclaw status || godel openclaw connect
 
 # Use mock mode for testing
-dash openclaw connect --mock
+godel openclaw connect --mock
 ```
 
 ---
@@ -577,13 +577,13 @@ dash openclaw connect --mock
 
 ```bash
 # Always clean up sessions
-dash openclaw kill session-abc-123
+godel openclaw kill session-abc-123
 
 # Use budget limits
-dash openclaw spawn --task "Task" --budget 5.00
+godel openclaw spawn --task "Task" --budget 5.00
 
 # Monitor session history
-dash openclaw sessions history session-abc-123 --limit 5
+godel openclaw sessions history session-abc-123 --limit 5
 ```
 
 ---
@@ -592,12 +592,12 @@ dash openclaw sessions history session-abc-123 --limit 5
 
 ```bash
 # Check command exit codes
-if ! dash openclaw status; then
-  dash openclaw connect
+if ! godel openclaw status; then
+  godel openclaw connect
 fi
 
 # Use --format json for scripting
-SESSION=$(dash openclaw spawn --task "test" --format json | jq -r '.sessionKey')
+SESSION=$(godel openclaw spawn --task "test" --format json | jq -r '.sessionKey')
 ```
 
 ---
@@ -612,7 +612,7 @@ export OPENCLAW_GATEWAY_TOKEN=your-token
 echo "OPENCLAW_GATEWAY_TOKEN" >> .gitignore
 
 # Use sandbox mode for untrusted code
-dash openclaw spawn --task "Analyze" --sandbox
+godel openclaw spawn --task "Analyze" --sandbox
 ```
 
 ---
@@ -624,7 +624,7 @@ dash openclaw spawn --task "Analyze" --sandbox
 ```bash
 # Spawn via API
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "task": "Analyze code",
@@ -635,7 +635,7 @@ curl -X POST \
 
 # Create event
 curl -X POST \
-  -H "X-API-Key: dash-api-key" \
+  -H "X-API-Key: godel-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "eventType": "openclaw.spawn",
@@ -652,35 +652,35 @@ curl -X POST \
 
 | Command | Purpose |
 |---------|---------|
-| `dash openclaw connect` | Connect to gateway |
-| `dash openclaw status` | Check connection status |
-| `dash openclaw sessions list` | List sessions |
-| `dash openclaw sessions history` | View session transcript |
-| `dash openclaw spawn` | Spawn agent |
-| `dash openclaw send` | Send message to agent |
-| `dash openclaw kill` | Kill session |
-| `dash clawhub search` | Search for skills |
-| `dash clawhub install` | Install skill |
-| `dash clawhub list` | List installed skills |
+| `godel openclaw connect` | Connect to gateway |
+| `godel openclaw status` | Check connection status |
+| `godel openclaw sessions list` | List sessions |
+| `godel openclaw sessions history` | View session transcript |
+| `godel openclaw spawn` | Spawn agent |
+| `godel openclaw send` | Send message to agent |
+| `godel openclaw kill` | Kill session |
+| `godel clawhub search` | Search for skills |
+| `godel clawhub install` | Install skill |
+| `godel clawhub list` | List installed skills |
 
 ### Common Workflows
 
 ```bash
 # Quick start
-dash openclaw connect
-dash openclaw spawn --task "Hello world"
+godel openclaw connect
+godel openclaw spawn --task "Hello world"
 
 # Full workflow
-dash openclaw connect
-dash clawhub install useful-skill
-dash openclaw spawn --task "Do work" --skills "useful-skill"
-dash openclaw send --session session-xxx "Additional context"
-dash openclaw kill session-xxx
+godel openclaw connect
+godel clawhub install useful-skill
+godel openclaw spawn --task "Do work" --skills "useful-skill"
+godel openclaw send --session session-xxx "Additional context"
+godel openclaw kill session-xxx
 
 # Batch processing
-dash openclaw connect
+godel openclaw connect
 for task in task1 task2 task3; do
-  dash openclaw spawn --task "$task" --budget 1.00
+  godel openclaw spawn --task "$task" --budget 1.00
 done
-dash openclaw sessions list --active
+godel openclaw sessions list --active
 ```

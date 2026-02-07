@@ -1,8 +1,8 @@
-# Dash Production Readiness: Parallel Agent Orchestration Plan
+# Godel Production Readiness: Parallel Agent Orchestration Plan
 
 **Date:** February 3, 2026  
 **Objective:** Achieve 100% production readiness for OpenClaw orchestration platform  
-**Approach:** Parallel agent swarms with specialized expert prompts  
+**Approach:** Parallel agent teams with specialized expert prompts  
 **Timeline:** 1 week (compressed from 3-4 weeks)
 
 ---
@@ -29,9 +29,9 @@
 ### Goal
 Fix all 31 failing tests and achieve 100% test pass rate.
 
-### Parallel Swarms
+### Parallel Teams
 
-#### Swarm 1.1: Test Infrastructure Fix
+#### Team 1.1: Test Infrastructure Fix
 **Lead Agent:** Senior Test Engineer  
 **Support Agents:** 2 Junior Test Engineers
 
@@ -68,7 +68,7 @@ Deliverables:
 Commit: "test: Fix infrastructure - all tests passing"
 ```
 
-#### Swarm 1.2: Integration Test Completion
+#### Team 1.2: Integration Test Completion
 **Lead Agent:** Integration Test Specialist  
 **Support Agents:** 2 QA Engineers
 
@@ -78,7 +78,7 @@ MISSION: Complete Integration Test Suite
 Context:
 - 10 integration test files created but incomplete
 - Missing scenario coverage for:
-  - End-to-end swarm lifecycle
+  - End-to-end team lifecycle
   - Failure recovery scenarios
   - Multi-agent coordination
   - Event streaming under load
@@ -114,7 +114,7 @@ Deliverables:
 Commit: "test: Complete integration test suite"
 ```
 
-#### Swarm 1.3: Test Data & Fixtures
+#### Team 1.3: Test Data & Fixtures
 **Lead Agent:** Test Data Engineer
 
 ```
@@ -124,7 +124,7 @@ Context:
 - Tests need consistent test data
 - Missing fixtures for:
   - Agent configurations
-  - Swarm templates
+  - Team templates
   - Event sequences
   - Error scenarios
 
@@ -135,11 +135,11 @@ Tasks:
    - Security auditor agent
    - Deployment agent
 
-2. Create swarm fixtures
-   - src/test/fixtures/swarms/
-   - Parallel review swarm
-   - Security audit swarm
-   - CI/CD pipeline swarm
+2. Create team fixtures
+   - src/test/fixtures/teams/
+   - Parallel review team
+   - Security audit team
+   - CI/CD pipeline team
 
 3. Create event fixtures
    - src/test/fixtures/events/
@@ -165,34 +165,34 @@ Commit: "test: Add comprehensive test fixtures"
 ## Phase 2: OpenClaw Integration (Days 2-4)
 
 ### Goal
-Validate Dash as OpenClaw's native orchestration platform.
+Validate Godel as OpenClaw's native orchestration platform.
 
-### Parallel Swarms
+### Parallel Teams
 
-#### Swarm 2.1: OpenClaw Agent Adapter
+#### Team 2.1: OpenClaw Agent Adapter
 **Lead Agent:** OpenClaw Integration Engineer  
 **Support Agents:** 2 Protocol Specialists
 
 ```
-MISSION: Build OpenClaw-Dash Bridge
+MISSION: Build OpenClaw-Godel Bridge
 
 Context:
 - OpenClaw uses sessions_spawn for subagents
-- Dash needs to accept OpenClaw agent requests
-- Must translate OpenClaw protocol to Dash API
+- Godel needs to accept OpenClaw agent requests
+- Must translate OpenClaw protocol to Godel API
 
 Tasks:
 1. Create OpenClaw adapter
    - src/integrations/openclaw/adapter.ts
-   - Translate OpenClaw agent requests to Dash swarms
-   - Map OpenClaw session keys to Dash agent IDs
+   - Translate OpenClaw agent requests to Godel teams
+   - Map OpenClaw session keys to Godel agent IDs
    - Handle OpenClaw message routing
 
 2. Implement agent lifecycle mapping
    - sessions_spawn → swarmctl agent spawn
    - sessions_send → swarmctl agent message
    - sessions_kill → swarmctl agent kill
-   - sessions_list → swarmctl swarm status
+   - sessions_list → swarmctl team status
 
 3. Add OpenClaw-specific features
    - Agent labels support
@@ -200,7 +200,7 @@ Tasks:
    - Cross-session messaging
 
 4. Create integration tests
-   - Test full OpenClaw → Dash → OpenClaw loop
+   - Test full OpenClaw → Godel → OpenClaw loop
    - Test error propagation
    - Test concurrent agents
 
@@ -208,35 +208,35 @@ Deliverables:
 - OpenClaw adapter module
 - Protocol translation layer
 - Integration documentation
-- Example: OpenClaw agent using Dash
+- Example: OpenClaw agent using Godel
 
 Commit: "feat(integration): Add OpenClaw adapter"
 ```
 
-#### Swarm 2.2: Dash Skill for OpenClaw
+#### Team 2.2: Godel Skill for OpenClaw
 **Lead Agent:** Skill Developer
 
 ```
-MISSION: Create Dash Skill for OpenClaw
+MISSION: Create Godel Skill for OpenClaw
 
 Context:
 - OpenClaw uses skills for specialized capabilities
-- Dash should be available as an OpenClaw skill
-- Users can spawn Dash swarms via OpenClaw
+- Godel should be available as an OpenClaw skill
+- Users can spawn Godel teams via OpenClaw
 
 Tasks:
 1. Create SKILL.md
-   - /skills/dash-orchestration/SKILL.md
+   - /skills/godel-orchestration/SKILL.md
    - Document all capabilities
    - Provide usage examples
    - List prerequisites
 
 2. Implement skill commands
-   - /dash spawn <swarm-type>
-   - /dash status <swarm-id>
-   - /dash kill <agent-id>
-   - /dash logs <agent-id>
-   - /dash metrics
+   - /godel spawn <team-type>
+   - /godel status <team-id>
+   - /godel kill <agent-id>
+   - /godel logs <agent-id>
+   - /godel metrics
 
 3. Add OpenClaw-native features
    - Agent result streaming to OpenClaw
@@ -245,38 +245,38 @@ Tasks:
 
 4. Create examples
    - examples/openclaw-integration/
-   - Example: Code review swarm
-   - Example: Security audit swarm
+   - Example: Code review team
+   - Example: Security audit team
 
 Deliverables:
-- Complete Dash skill
+- Complete Godel skill
 - OpenClaw integration guide
 - Working examples
 
-Commit: "feat(skill): Add Dash orchestration skill for OpenClaw"
+Commit: "feat(skill): Add Godel orchestration skill for OpenClaw"
 ```
 
-#### Swarm 2.3: Event Bridge
+#### Team 2.3: Event Bridge
 **Lead Agent:** Event System Engineer
 
 ```
-MISSION: Bridge Dash Events to OpenClaw
+MISSION: Bridge Godel Events to OpenClaw
 
 Context:
-- Dash has rich event system
-- OpenClaw needs to receive Dash events
+- Godel has rich event system
+- OpenClaw needs to receive Godel events
 - Enable real-time monitoring from OpenClaw
 
 Tasks:
 1. Create event bridge
    - src/integrations/openclaw/event-bridge.ts
-   - Subscribe to Dash event bus
+   - Subscribe to Godel event bus
    - Forward to OpenClaw message system
    - Filter and transform events
 
 2. Implement event types
    - Agent lifecycle events
-   - Swarm status changes
+   - Team status changes
    - Task completions
    - Error events
    - Metrics events
@@ -296,7 +296,7 @@ Deliverables:
 - Real-time streaming
 - OpenClaw notifications
 
-Commit: "feat(events): Add Dash-OpenClaw event bridge"
+Commit: "feat(events): Add Godel-OpenClaw event bridge"
 ```
 
 ---
@@ -306,9 +306,9 @@ Commit: "feat(events): Add Dash-OpenClaw event bridge"
 ### Goal
 Ensure production deployment is rock-solid.
 
-### Parallel Swarms
+### Parallel Teams
 
-#### Swarm 3.1: Security Audit
+#### Team 3.1: Security Audit
 **Lead Agent:** Security Engineer  
 **Support Agents:** 2 Security Analysts
 
@@ -353,7 +353,7 @@ Deliverables:
 Commit: "security: Production security audit complete"
 ```
 
-#### Swarm 3.2: Performance Optimization
+#### Team 3.2: Performance Optimization
 **Lead Agent:** Performance Engineer
 
 ```
@@ -398,7 +398,7 @@ Deliverables:
 Commit: "perf: Production performance optimization"
 ```
 
-#### Swarm 3.3: Monitoring & Alerting
+#### Team 3.3: Monitoring & Alerting
 **Lead Agent:** Observability Engineer
 
 ```
@@ -412,7 +412,7 @@ Context:
 
 Tasks:
 1. Create OpenClaw dashboards
-   - Agent swarm overview
+   - Agent team overview
    - OpenClaw session correlation
    - Cross-agent communication metrics
    - Resource utilization by OpenClaw user
@@ -425,7 +425,7 @@ Tasks:
 
 3. Add distributed tracing
    - Jaeger integration
-   - Trace OpenClaw → Dash → Agent
+   - Trace OpenClaw → Godel → Agent
    - Performance bottleneck detection
 
 4. Create runbooks
@@ -449,9 +449,9 @@ Commit: "obs: Production monitoring and alerting"
 ### Goal
 Complete documentation for OpenClaw integration.
 
-### Parallel Swarms
+### Parallel Teams
 
-#### Swarm 4.1: OpenClaw Integration Guide
+#### Team 4.1: OpenClaw Integration Guide
 **Lead Agent:** Technical Writer  
 **Support Agents:** 2 Developer Advocates
 
@@ -459,7 +459,7 @@ Complete documentation for OpenClaw integration.
 MISSION: Create OpenClaw Integration Documentation
 
 Context:
-- OpenClaw users need guide for Dash
+- OpenClaw users need guide for Godel
 - Must cover setup, usage, troubleshooting
 - Must include examples
 
@@ -473,7 +473,7 @@ Tasks:
 2. Create quickstart
    - 5-minute quickstart
    - First agent spawn
-   - First swarm creation
+   - First team creation
    - Monitoring from OpenClaw
 
 3. Create examples
@@ -496,7 +496,7 @@ Deliverables:
 Commit: "docs: Add OpenClaw integration guide"
 ```
 
-#### Swarm 4.2: API Reference & SDK
+#### Team 4.2: API Reference & SDK
 **Lead Agent:** API Documentation Specialist
 
 ```
@@ -521,7 +521,7 @@ Tasks:
    - Rate limiting info
 
 3. Build TypeScript SDK
-   - packages/dash-client/
+   - packages/godel-client/
    - Type-safe client
    - Promise-based API
    - Error handling
@@ -540,7 +540,7 @@ Deliverables:
 Commit: "docs: Complete API reference and SDK"
 ```
 
-#### Swarm 4.3: Final Polish
+#### Team 4.3: Final Polish
 **Lead Agent:** Product Engineer
 
 ```
@@ -589,8 +589,8 @@ Commit: "polish: Final production polish"
 ## Coordination Strategy
 
 ### Shared Resources
-All swarms share:
-- Git repository (davidkimai/dash)
+All teams share:
+- Git repository (davidkimai/godel)
 - Main branch
 - `feature/` branch naming convention
 
@@ -602,24 +602,24 @@ All swarms share:
 ### Dependencies
 ```
 Phase 1 (Test Suite)
-├── Swarm 1.1 (Infrastructure) ──┐
-├── Swarm 1.2 (Integration) ─────┤──► Phase 2
-└── Swarm 1.3 (Fixtures) ────────┘
+├── Team 1.1 (Infrastructure) ──┐
+├── Team 1.2 (Integration) ─────┤──► Phase 2
+└── Team 1.3 (Fixtures) ────────┘
 
 Phase 2 (OpenClaw Integration)
-├── Swarm 2.1 (Adapter) ─────────┐
-├── Swarm 2.2 (Skill) ───────────┤──► Phase 3
-└── Swarm 2.3 (Event Bridge) ────┘
+├── Team 2.1 (Adapter) ─────────┐
+├── Team 2.2 (Skill) ───────────┤──► Phase 3
+└── Team 2.3 (Event Bridge) ────┘
 
 Phase 3 (Production Hardening)
-├── Swarm 3.1 (Security) ────────┐
-├── Swarm 3.2 (Performance) ─────┤──► Phase 4
-└── Swarm 3.3 (Monitoring) ──────┘
+├── Team 3.1 (Security) ────────┐
+├── Team 3.2 (Performance) ─────┤──► Phase 4
+└── Team 3.3 (Monitoring) ──────┘
 
 Phase 4 (Documentation)
-├── Swarm 4.1 (Guide) ───────────┐
-├── Swarm 4.2 (API/SDK) ─────────┤──► PRODUCTION
-└── Swarm 4.3 (Polish) ──────────┘
+├── Team 4.1 (Guide) ───────────┐
+├── Team 4.2 (API/SDK) ─────────┤──► PRODUCTION
+└── Team 4.3 (Polish) ──────────┘
 ```
 
 ### Success Criteria
@@ -630,7 +630,7 @@ Phase 4 (Documentation)
 - [ ] Test suite <2 min runtime
 
 **Phase 2 Success:**
-- [ ] OpenClaw can spawn Dash agents
+- [ ] OpenClaw can spawn Godel agents
 - [ ] Events flow to OpenClaw
 - [ ] Full integration tests passing
 
@@ -648,7 +648,7 @@ Phase 4 (Documentation)
 
 ## Timeline
 
-| Phase | Days | Swarms | Deliverables |
+| Phase | Days | Teams | Deliverables |
 |-------|------|--------|--------------|
 | **1: Test Suite** | 1-2 | 3 | All tests passing |
 | **2: OpenClaw Integration** | 2-4 | 3 | Full OpenClaw support |
@@ -692,6 +692,6 @@ Phase 4 (Documentation)
 
 ---
 
-**Ready to launch parallel swarms?** 🚀
+**Ready to launch parallel teams?** 🚀
 
-Execute: `sessions_spawn` for each swarm with above prompts.
+Execute: `sessions_spawn` for each team with above prompts.

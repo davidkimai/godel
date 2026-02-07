@@ -2,7 +2,7 @@
  * @fileoverview Intent Module - Intent-based "magic" system for Godel
  * 
  * This module provides natural language intent parsing and automatic
- * swarm configuration for the Godel agent orchestration platform.
+ * team configuration for the Godel agent orchestration platform.
  * 
  * Usage:
  *   import { IntentExecutor } from '@godel/intent';
@@ -29,11 +29,11 @@ export type {
   // Complexity types
   FileMetrics,
   ComplexityMetrics,
-  SwarmComplexity,
+  TeamComplexity,
   
   // Configuration types
   AgentConfig,
-  SwarmConfiguration,
+  TeamConfiguration,
   
   // Execution types
   ExecuteOptions,
@@ -74,13 +74,13 @@ export {
 } from './complexity-analyzer';
 
 // ============================================================================
-// SWARM CONFIG GENERATOR
+// TEAM CONFIG GENERATOR
 // ============================================================================
 
 export {
-  SwarmConfigGenerator,
-  generateSwarmConfig,
-} from './swarm-config-generator';
+  TeamConfigGenerator,
+  generateTeamConfig,
+} from './team-config-generator';
 
 // ============================================================================
 // EXECUTOR

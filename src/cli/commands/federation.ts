@@ -2,11 +2,11 @@
  * Federation CLI Commands
  *
  * Commands for managing agent federation and task orchestration:
- * - swarmctl federation decompose <task>    Decompose a task into subtasks
- * - swarmctl federation execute <task>      Execute a task with federation
- * - swarmctl federation agents              List registered agents
- * - swarmctl federation status              Show federation status
- * - swarmctl federation autoscale           Manage auto-scaling
+ * - godel federation decompose <task>    Decompose a task into subtasks
+ * - godel federation execute <task>      Execute a task with federation
+ * - godel federation agents              List registered agents
+ * - godel federation status              Show federation status
+ * - godel federation autoscale           Manage auto-scaling
  */
 
 import { Command } from 'commander';
@@ -252,7 +252,7 @@ export function registerFederationCommand(program: Command): void {
               status: a.status,
               model: a.model,
               task: a.task,
-              swarmId: a.swarmId,
+              teamId: a.teamId,
             })),
           }, null, 2));
           return;
@@ -270,7 +270,7 @@ export function registerFederationCommand(program: Command): void {
           logger.info(`      Status: ${agent.status}`);
           logger.info(`      Model: ${agent.model}`);
           if (agent.label) logger.info(`      Label: ${agent.label}`);
-          if (agent.swarmId) logger.info(`      Swarm: ${agent.swarmId}`);
+          if (agent.teamId) logger.info(`      Team: ${agent.teamId}`);
           logger.info('');
         });
 
@@ -396,7 +396,7 @@ export function registerFederationCommand(program: Command): void {
         logger.info('\n💡 Tips:');
         logger.info('   - Set min agents > 0 for warm pool capacity');
         logger.info('   - Set budget limit to control costs');
-        logger.info('   - Monitor utilization with: swarmctl federation status');
+        logger.info('   - Monitor utilization with: godel federation status');
 
       } catch (error) {
         logger.error('❌ Failed to configure auto-scaling:', error instanceof Error ? error.message : String(error));
@@ -497,7 +497,7 @@ export function registerFederationCommand(program: Command): void {
         if (result.subtasks.length < 3) {
           logger.info('   • Few subtasks - task might benefit from more granular decomposition');
         }
-        logger.info(`   • Use: swarmctl federation execute "${task}"`);
+        logger.info(`   • Use: godel federation execute "${task}"`);
 
       } catch (error) {
         logger.error('❌ Planning failed:', error instanceof Error ? error.message : String(error));

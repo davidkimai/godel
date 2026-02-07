@@ -1,7 +1,7 @@
 /**
  * Godel TUI - Terminal User Interface Entry Point
  * 
- * Provides real-time swarm monitoring in the terminal using Ink (React for terminals)
+ * Provides real-time team monitoring in the terminal using Ink (React for terminals)
  */
 
 import React from 'react';
@@ -13,11 +13,11 @@ export interface TUIOptions {
   port?: number;
   host?: string;
   refreshRate?: number;
-  defaultView?: 'swarms' | 'sessions' | 'tasks' | 'logs';
+  defaultView?: 'teams' | 'sessions' | 'tasks' | 'logs';
 }
 
 export function start(options: TUIOptions = {}): void {
-  const { port = 7373, host = 'localhost', refreshRate = 1000, defaultView = 'swarms' } = options;
+  const { port = 7373, host = 'localhost', refreshRate = 1000, defaultView = 'teams' } = options;
 
   logger.info('🎯 Godel TUI Dashboard');
 
@@ -48,7 +48,7 @@ export function start(options: TUIOptions = {}): void {
 }
 
 export { Dashboard } from './components/Dashboard';
-export { SwarmMonitor } from './components/SwarmMonitor';
+export { TeamMonitor } from './components/TeamMonitor';
 export { SessionBrowser } from './components/SessionBrowser';
 export { TaskQueue } from './components/TaskQueue';
 export { LogStream } from './components/LogStream';

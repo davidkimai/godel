@@ -2,11 +2,11 @@
  * Agent Commands
  * 
  * Commands:
- * - swarmctl agent list [--format json|jsonl|table] [--swarm <id>] [--status <status>]
- * - swarmctl agent spawn <task> [--model <model>] [--swarm <id>]
- * - swarmctl agent get <agent-id> [--format json] [--logs]
- * - swarmctl agent kill <agent-id> [--force]
- * - swarmctl agent logs <agent-id> [--follow]
+ * - godel agent list [--format json|jsonl|table] [--team <id>] [--status <status>]
+ * - godel agent spawn <task> [--model <model>] [--team <id>]
+ * - godel agent get <agent-id> [--format json] [--logs]
+ * - godel agent kill <agent-id> [--force]
+ * - godel agent logs <agent-id> [--follow]
  */
 
 import { logger } from '../../utils/logger';
@@ -28,7 +28,7 @@ export function registerAgentCommand(program: Command): void {
     .command('list')
     .description('List all agents')
     .option('-f, --format <format>', 'Output format (table|json|jsonl)', 'table')
-    .option('-s, --swarm <swarmId>', 'Filter by swarm ID')
+    .option('-s, --team <teamId>', 'Filter by team ID')
     .option('--status <status>', 'Filter by status (pending|running|paused|completed|failed|killed)')
     .option('--runtime <runtime>', 'Filter by runtime (pi|native)')
     .option('--page <page>', 'Page number', '1')
@@ -37,7 +37,7 @@ export function registerAgentCommand(program: Command): void {
       try {
         const client = getGlobalClient();
         const response = await client.listAgents({
-          swarmId: options.swarm,
+          teamId: options.team,
           status: options.status,
           page: parseInt(options.page, 10),
           pageSize: parseInt(options.pageSize, 10),
@@ -61,7 +61,7 @@ export function registerAgentCommand(program: Command): void {
 
         if (agents.length === 0) {
           logger.info('📭 No agents found');
-          logger.info('💡 Use "godel agent spawn" or "godel swarm create" to create agents');
+          logger.info('💡 Use "godel agent spawn" or "godel team create" to create agents');
           return;
         }
 
@@ -86,7 +86,7 @@ export function registerAgentCommand(program: Command): void {
     .argument('<task>', 'Task description')
     .option('-m, --model <model>', 'Model to use', 'kimi-k2.5')
     .option('-l, --label <label>', 'Agent label')
-    .option('-s, --swarm <swarmId>', 'Add to existing swarm')
+    .option('-s, --team <teamId>', 'Add to existing team')
     .option('-p, --parent <parentId>', 'Parent agent ID (for hierarchical spawning)')
     .option('-r, --retries <count>', 'Max retry attempts', '3')
     .option('-b, --budget <limit>', 'Budget limit (USD)')
@@ -103,7 +103,7 @@ export function registerAgentCommand(program: Command): void {
           logger.info(`   Model: ${options.model}`);
           logger.info(`   Runtime: ${options.runtime}`);
           logger.info(`   Label: ${options.label || '(auto)'}`);
-          logger.info(`   Swarm: ${options.swarm || '(none)'}`);
+          logger.info(`   Team: ${options.team || '(none)'}`);
           logger.info(`   Parent: ${options.parent || '(none)'}`);
           logger.info(`   Workdir: ${options.workdir || process.cwd()}`);
           logger.info(`   Max Retries: ${options.retries}`);
@@ -135,8 +135,8 @@ export function registerAgentCommand(program: Command): void {
         logger.info(`   Status: ${agent.status}`);
         logger.info(`   Runtime: ${agent.runtime}`);
         logger.info(`   Model: ${agent.model}`);
-        if (options.swarm) {
-          logger.info(`   Swarm: ${options.swarm}`);
+        if (options.team) {
+          logger.info(`   Team: ${options.team}`);
         }
         logger.info(`\n💡 Use 'godel agent get ${agent.id}' to check progress`);
 
@@ -181,8 +181,8 @@ export function registerAgentCommand(program: Command): void {
           logger.info(`   Label:        ${agent.label}`);
         }
         
-        if (agent.swarmId) {
-          logger.info(`   Swarm:        ${agent.swarmId}`);
+        if (agent.teamId) {
+          logger.info(`   Team:        ${agent.teamId}`);
         }
         
         if (agent.parentId) {

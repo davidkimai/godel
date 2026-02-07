@@ -1,7 +1,7 @@
 {
   "service_strategies": [
     {
-      "service": "dash-orchestrator",
+      "service": "godel-orchestrator",
       "type": "probabilistic",
       "param": 0.01,
       "operation_strategies": [

@@ -1,6 +1,6 @@
-# Dash Configuration System
+# Godel Configuration System
 
-Comprehensive configuration management for Dash with validation, secrets management, and environment-specific configs.
+Comprehensive configuration management for Godel with validation, secrets management, and environment-specific configs.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ Comprehensive configuration management for Dash with validation, secrets managem
 
 ## Overview
 
-The Dash configuration system provides:
+The Godel configuration system provides:
 
 - **Multiple config sources**: Environment variables, YAML/JSON files, and defaults
 - **Type-safe validation**: Zod schema validation with helpful error messages
@@ -32,8 +32,8 @@ The Dash configuration system provides:
 Configuration is loaded in the following priority order (highest to lowest):
 
 1. **Environment Variables** - Override all other sources
-2. **Environment-specific config files** - `config/dash.{env}.yaml`
-3. **Base config files** - `config/dash.yaml`
+2. **Environment-specific config files** - `config/godel.{env}.yaml`
+3. **Base config files** - `config/godel.yaml`
 4. **Environment-specific defaults** - Built-in defaults for the environment
 5. **Default values** - Built-in fallback values (lowest priority)
 
@@ -45,11 +45,11 @@ Configuration files are stored in the `config/` directory:
 
 ```
 config/
-├── dash.yaml              # Base configuration
-├── dash.development.yaml  # Development overrides
-├── dash.production.yaml   # Production overrides
-├── dash.test.yaml         # Test overrides
-└── dash.example.yaml      # Example/template
+├── godel.yaml              # Base configuration
+├── godel.development.yaml  # Development overrides
+├── godel.production.yaml   # Production overrides
+├── godel.test.yaml         # Test overrides
+└── godel.example.yaml      # Example/template
 ```
 
 ### File Formats
@@ -57,24 +57,24 @@ config/
 Both YAML and JSON are supported:
 
 ```yaml
-# config/dash.yaml
+# config/godel.yaml
 server:
   port: 7373
   host: localhost
   
 database:
-  url: postgresql://dash:dash@localhost:5432/dash
+  url: postgresql://godel:godel@localhost:5432/godel
 ```
 
 ```json
-// config/dash.json
+// config/godel.json
 {
   "server": {
     "port": 7373,
     "host": "localhost"
   },
   "database": {
-    "url": "postgresql://dash:dash@localhost:5432/dash"
+    "url": "postgresql://godel:godel@localhost:5432/godel"
   }
 }
 ```
@@ -117,25 +117,25 @@ All configuration values can be set via environment variables:
 | `DATABASE_URL` | Full PostgreSQL connection URL | - |
 | `POSTGRES_HOST` | PostgreSQL host | `localhost` |
 | `POSTGRES_PORT` | PostgreSQL port | `5432` |
-| `POSTGRES_DB` | Database name | `dash` |
-| `POSTGRES_USER` | Database user | `dash` |
-| `POSTGRES_PASSWORD` | Database password | `dash` |
+| `POSTGRES_DB` | Database name | `godel` |
+| `POSTGRES_USER` | Database user | `godel` |
+| `POSTGRES_PASSWORD` | Database password | `godel` |
 | `POSTGRES_POOL_SIZE` | Connection pool size | `10` |
 | `POSTGRES_SSL` | Enable SSL | `false` |
 
 ### Redis
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `REDIS_URL` | Full Redis connection URL | `redis://localhost:6379/0` |
-| `REDIS_HOST` | Redis host | `localhost` |
-| `REDIS_PORT` | Redis port | `6379` |
-| `REDIS_PASSWORD` | Redis password | - |
-| `REDIS_DB` | Redis database number | `0` |
+| `GODEL_REDIS_URL` | Full Redis connection URL | `redis://localhost:6379/0` |
+| `GODEL_REDIS_HOST` | Redis host | `localhost` |
+| `GODEL_REDIS_PORT` | Redis port | `6379` |
+| `GODEL_REDIS_PASSWORD` | Redis password | - |
+| `GODEL_REDIS_DB` | Redis database number | `0` |
 
 ### Authentication
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GODEL_API_KEY` | API keys (comma-separated) | `dash-api-key` |
+| `GODEL_API_KEY` | API keys (comma-separated) | `godel-api-key` |
 | `GODEL_JWT_SECRET` | JWT secret for token signing | `change-me-in-production` |
 
 ### Logging
@@ -267,7 +267,7 @@ interface BudgetConfig {
 
 ### Vault Integration
 
-Dash supports HashiCorp Vault for secret management:
+Godel supports HashiCorp Vault for secret management:
 
 ```yaml
 # Enable Vault in config
@@ -285,13 +285,13 @@ Reference secrets in configuration using `${VAULT:path}` syntax:
 
 ```yaml
 database:
-  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/dash
+  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/godel
   
 auth:
-  jwtSecret: ${VAULT:secret/dash/jwt#secret}
+  jwtSecret: ${VAULT:secret/godel/jwt#secret}
   
 openclaw:
-  gatewayToken: ${VAULT:secret/dash/openclaw#token}
+  gatewayToken: ${VAULT:secret/godel/openclaw#token}
 ```
 
 ### Secret Reference Formats
@@ -486,7 +486,7 @@ console.log(result.value, result.source);
 ### Development
 
 ```yaml
-# config/dash.development.yaml
+# config/godel.development.yaml
 env: development
 
 server:
@@ -507,7 +507,7 @@ features:
 ### Production
 
 ```yaml
-# config/dash.production.yaml
+# config/godel.production.yaml
 env: production
 
 server:
@@ -531,14 +531,14 @@ features:
 ### Test
 
 ```yaml
-# config/dash.test.yaml
+# config/godel.test.yaml
 env: test
 
 server:
   port: 0  # Random port
 
 database:
-  url: postgresql://dash:dash@localhost:5432/dash_test
+  url: postgresql://godel:godel@localhost:5432/dash_test
 
 redis:
   url: redis://localhost:6379/15  # Use DB 15
@@ -574,7 +574,7 @@ When validation fails, helpful error messages are provided:
 
 ❌ database.url
    Invalid URL format
-   💡 Provide a valid URL (e.g., postgresql://localhost:5432/dash)
+   💡 Provide a valid URL (e.g., postgresql://localhost:5432/godel)
 ```
 
 ### Production Readiness Check
@@ -641,9 +641,9 @@ const dbPassword = process.env.DB_PASSWORD;
 
 After:
 ```yaml
-# config/dash.yaml
+# config/godel.yaml
 database:
-  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/dash
+  url: postgresql://user:${VAULT:secret/db/password}@localhost:5432/godel
 ```
 
 ```typescript
@@ -679,4 +679,4 @@ const { config } = await loadConfig({ enableVault: true });
 
 1. Run validation: `swarmctl config validate`
 2. Check error messages for suggestions
-3. Review the example config: `config/dash.example.yaml`
+3. Review the example config: `config/godel.example.yaml`

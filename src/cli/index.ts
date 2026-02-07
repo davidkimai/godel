@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * swarmctl - Dash CLI
+ * godel - Godel CLI
  * 
- * A comprehensive CLI for managing Dash agent orchestration platform.
+ * A comprehensive CLI for managing Godel agent orchestration platform.
  * 
  * Usage:
- *   swarmctl <command> [options]
+ *   godel <command> [options]
  * 
  * Commands:
- *   do          Execute intents using agent swarms
- *   swarm       Manage agent swarms
+ *   do          Execute intents using agent teams
+ *   team       Manage agent teams
  *   agent       Manage AI agents
  *   task        Manage tasks
  *   events      Event streaming and management
@@ -29,7 +29,7 @@ import { logger } from '../utils/logger';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { registerSwarmCommand } from './commands/swarm';
+import { registerTeamCommand } from './commands/team';
 import { registerAgentCommand } from './commands/agent';
 import { registerTaskCommand } from './commands/task';
 import { registerTaskListCommand } from './commands/tasklist';
@@ -66,8 +66,8 @@ function getVersion(): string {
 const program = new Command();
 
 program
-  .name('swarmctl')
-  .description('Dash - Agent Orchestration Platform CLI')
+  .name('godel')
+  .description('Godel - Agent Orchestration Platform CLI')
   .version(getVersion(), '-V, --version', 'Output the version number')
   .usage('<command> [options]')
   .configureOutput({
@@ -82,7 +82,7 @@ program.option(
 );
 
 // Register all commands
-registerSwarmCommand(program);
+registerTeamCommand(program);
 registerAgentCommand(program);
 registerTaskCommand(program);
 registerTaskListCommand(program);
@@ -125,7 +125,7 @@ export type { RegisterCommandsOptions } from './lib/types';
 
 // Export for use as module
 export function registerCommands(program: Command): void {
-  registerSwarmCommand(program);
+  registerTeamCommand(program);
   registerAgentCommand(program);
   registerTaskCommand(program);
   registerTaskListCommand(program);
@@ -162,8 +162,8 @@ if (require.main === module) {
 
 function generateBashCompletion(): string {
   return `#!/bin/bash
-# swarmctl bash completion script
-# Source this file: source <(swarmctl completion bash)
+# godel bash completion script
+# Source this file: source <(godel completion bash)
 
 _swarmctl_completions() {
   local cur prev opts
@@ -172,10 +172,10 @@ _swarmctl_completions() {
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
   
   # Top-level commands
-  local commands="do swarm agent task events bus metrics status health config dashboard worktree pi completion"
+  local commands="do team agent task events bus metrics status health config dashboard worktree pi completion"
   
-  # Swarm subcommands
-  local swarm_cmds="list create get scale destroy"
+  # Team subcommands
+  local team_cmds="list create get scale destroy"
   
   # Agent subcommands
   local agent_cmds="list spawn get kill logs"
@@ -190,7 +190,7 @@ _swarmctl_completions() {
   local bus_cmds="publish subscribe topics status"
   
   # Metrics subcommands
-  local metrics_cmds="show agents swarms"
+  local metrics_cmds="show agents teams"
   
   # Config subcommands
   local config_cmds="show set"
@@ -207,12 +207,12 @@ _swarmctl_completions() {
   
   # Second level - subcommands
   case "\${COMP_WORDS[1]}" in
-    swarm)
+    team)
       if [[ \${COMP_CWORD} -eq 2 ]]; then
-        COMPREPLY=( $(compgen -W "\${swarm_cmds}" -- \${cur}) )
+        COMPREPLY=( $(compgen -W "\${team_cmds}" -- \${cur}) )
         return 0
       fi
-      # Swarm options
+      # Team options
       if [[ \${prev} == "--format" ]]; then
         COMPREPLY=( $(compgen -W "\${format_opts}" -- \${cur}) )
         return 0
@@ -308,23 +308,23 @@ _swarmctl_completions() {
   return 0
 }
 
-complete -F _swarmctl_completions swarmctl
+complete -F _swarmctl_completions godel
 `;
 }
 
 function generateZshCompletion(): string {
-  return `#compdef swarmctl
-# swarmctl zsh completion script
-# Install: swarmctl completion zsh > /usr/local/share/zsh/site-functions/_swarmctl
+  return `#compdef godel
+# godel zsh completion script
+# Install: godel completion zsh > /usr/local/share/zsh/site-functions/_godel
 
-_swarmctl() {
+_godel() {
   local curcontext="$curcontext" state line
   typeset -A opt_args
 
   local -a commands
   commands=(
-    'do:Execute intents using agent swarms'
-    'swarm:Manage agent swarms'
+    'do:Execute intents using agent teams'
+    'team:Manage agent teams'
     'agent:Manage AI agents'
     'task:Manage tasks'
     'events:Event streaming and management'
@@ -345,28 +345,28 @@ _swarmctl() {
 
   case "$state" in
     command)
-      _describe -t commands 'swarmctl commands' commands
+      _describe -t commands 'godel commands' commands
       ;;
     args)
       case "$line[1]" in
-        swarm)
-          local -a swarm_cmds
-          swarm_cmds=(
-            'list:List all swarms'
-            'create:Create a new swarm'
-            'get:Get swarm details'
-            'scale:Scale a swarm'
-            'destroy:Destroy a swarm'
+        team)
+          local -a team_cmds
+          team_cmds=(
+            'list:List all teams'
+            'create:Create a new team'
+            'get:Get team details'
+            'scale:Scale a team'
+            'destroy:Destroy a team'
           )
-          _describe -t commands 'swarm commands' swarm_cmds
+          _describe -t commands 'team commands' team_cmds
           _arguments \\
             '--format[Output format]:format:(table json jsonl)' \\
-            '--active[Show only active swarms]' \\
-            '--name[Swarm name]:name:' \\
+            '--active[Show only active teams]' \\
+            '--name[Team name]:name:' \\
             '--task[Task description]:task:' \\
             '--count[Initial agent count]:count:' \\
             '--max[Maximum agent count]:max:' \\
-            '--strategy[Swarm strategy]:strategy:(parallel map-reduce pipeline tree)' \\
+            '--strategy[Team strategy]:strategy:(parallel map-reduce pipeline tree)' \\
             '--model[Model to use]:model:' \\
             '--budget[Budget limit]:budget:' \\
             '--force[Force destroy without confirmation]' \\
@@ -384,7 +384,7 @@ _swarmctl() {
           _describe -t commands 'agent commands' agent_cmds
           _arguments \\
             '--format[Output format]:format:(table json jsonl)' \\
-            '--swarm[Filter by swarm ID]:swarm:' \\
+            '--team[Filter by team ID]:team:' \\
             '--status[Filter by status]:status:(pending running paused completed failed killed)' \\
             '--model[Model to use]:model:' \\
             '--label[Agent label]:label:' \\
@@ -458,7 +458,7 @@ _swarmctl() {
           metrics_cmds=(
             'show:Show system metrics'
             'agents:Show agent metrics'
-            'swarms:Show swarm metrics'
+            'teams:Show team metrics'
           )
           _describe -t commands 'metrics commands' metrics_cmds
           _arguments \\
@@ -493,6 +493,6 @@ _swarmctl() {
   esac
 }
 
-_swarmctl "$@"
+_godel "$@"
 `;
 }

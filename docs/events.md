@@ -23,7 +23,7 @@ The event system captures fine-grained events during agent execution:
   type: 'agent_start',
   timestamp: 1704067200000,
   agentId: 'agent-123',
-  swarmId: 'swarm-456',
+  swarmId: 'team-456',
   sessionId: 'sess-789',
   task: 'Optimize database queries',
   model: 'kimi-k2.5',
@@ -36,7 +36,7 @@ The event system captures fine-grained events during agent execution:
   type: 'agent_complete',
   timestamp: 1704067260000,
   agentId: 'agent-123',
-  swarmId: 'swarm-456',
+  swarmId: 'team-456',
   result: 'Optimization complete. Added indexes...',
   totalCost: 0.0234,
   totalTokens: 2340,
@@ -207,10 +207,10 @@ const handler = eventBus.subscribe('text_delta', (event) => {
   console.log(event.delta);
 }, (event) => event.agentId === 'agent-123');  // Only agent-123
 
-// Filter by swarm
+// Filter by team
 const swarmHandler = eventBus.subscribeAll((event) => {
   updateDashboard(event);
-}, (event) => event.swarmId === 'swarm-456');
+}, (event) => event.swarmId === 'team-456');
 ```
 
 ### Emitting Events
@@ -236,7 +236,7 @@ The ScopedEventBus pre-fills agentId, swarmId, and sessionId:
 // Create scoped bus
 const scopedBus = eventBus.createScopedBus(
   'agent-123',      // agentId
-  'swarm-456',      // swarmId (optional)
+  'team-456',      // swarmId (optional)
   'sess-789'        // sessionId (optional)
 );
 
@@ -272,7 +272,7 @@ const recent = eventBus.getRecentEvents(100);
 const events = eventBus.getEvents({
   types: ['tool_call_start', 'tool_call_end'],
   agentId: 'agent-123',
-  swarmId: 'swarm-456',
+  swarmId: 'team-456',
   since: Date.now() - 3600000,  // Last hour
   until: Date.now()
 });
@@ -281,11 +281,11 @@ const events = eventBus.getEvents({
 ## Integration with SwarmOrchestrator
 
 ```typescript
-import { SwarmOrchestrator } from './core/swarm-orchestrator';
+import { SwarmOrchestrator } from './core/team-orchestrator';
 
-// Create swarm with event streaming
-const swarm = await orchestrator.create({
-  name: 'my-swarm',
+// Create team with event streaming
+const team = await orchestrator.create({
+  name: 'my-team',
   task: 'Build feature',
   initialAgents: 3,
   maxAgents: 5,
@@ -293,16 +293,16 @@ const swarm = await orchestrator.create({
   enableEventStreaming: true  // Enable events
 });
 
-// Subscribe to swarm events
+// Subscribe to team events
 const { unsubscribe } = orchestrator.subscribeToSwarmEvents(
-  swarm.id,
+  team.id,
   (event) => {
     console.log(`[${event.type}] ${event.agentId}`);
   }
 );
 
 // Get recent events
-const events = orchestrator.getSwarmEvents(swarm.id, 50);
+const events = orchestrator.getSwarmEvents(team.id, 50);
 ```
 
 ## Dashboard Integration
@@ -316,10 +316,10 @@ The dashboard server provides WebSocket streaming:
 const ws = new WebSocket('ws://localhost:7373/ws');
 
 ws.onopen = () => {
-  // Subscribe to swarm events
+  // Subscribe to team events
   ws.send(JSON.stringify({
     type: 'subscribe',
-    swarmId: 'swarm-123'
+    swarmId: 'team-123'
   }));
 };
 
@@ -335,8 +335,8 @@ ws.onmessage = (msg) => {
 ### REST API
 
 ```
-GET /api/swarms/:id/events?limit=100
-GET /api/swarms/:id/events?types=tool_call_start,tool_call_end
+GET /api/teams/:id/events?limit=100
+GET /api/teams/:id/events?types=tool_call_start,tool_call_end
 ```
 
 Response:

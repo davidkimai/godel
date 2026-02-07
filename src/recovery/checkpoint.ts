@@ -20,7 +20,7 @@ import type { PostgresConfig } from '../storage/postgres/config';
 
 export interface Checkpoint {
   id: string;
-  entityType: 'agent' | 'swarm' | 'session' | 'service';
+  entityType: 'agent' | 'team' | 'session' | 'service';
   entityId: string;
   timestamp: Date;
   data: Record<string, unknown>;
@@ -68,13 +68,13 @@ export interface CheckpointProvider {
   getCheckpointData(): Promise<Record<string, unknown>>;
   restoreFromCheckpoint(data: Record<string, unknown>): Promise<boolean>;
   getEntityId(): string;
-  getEntityType(): 'agent' | 'swarm' | 'session' | 'service';
+  getEntityType(): 'agent' | 'team' | 'session' | 'service';
 }
 
 // Database row types
 interface CheckpointRow {
   checkpoint_id: string;
-  entity_type: 'agent' | 'swarm' | 'session' | 'service';
+  entity_type: 'agent' | 'team' | 'session' | 'service';
   entity_id: string;
   timestamp: string;
   data: string | Record<string, unknown>;

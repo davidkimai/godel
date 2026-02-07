@@ -1,21 +1,21 @@
 /**
- * State-Aware Swarm Orchestrator
+ * State-Aware Team Orchestrator
  * 
- * Extended SwarmOrchestrator with full state persistence integration.
+ * Extended TeamOrchestrator with full state persistence integration.
  * Replaces in-memory state with database-backed persistence.
  */
 
 import { logger } from '../utils/logger';
-import { SwarmOrchestrator, Swarm, SwarmConfig, SwarmState, SwarmStatusInfo } from './swarm-orchestrator';
-import { StatePersistence, PersistedSwarmState, PersistedAgentState, RecoveryResult, getGlobalStatePersistence } from './state-persistence';
+import { TeamOrchestrator, Team, TeamConfig, TeamState, TeamStatusInfo } from './team-orchestrator';
+import { StatePersistence, PersistedTeamState, PersistedAgentState, RecoveryResult, getGlobalStatePersistence } from './state-persistence';
 import { AgentLifecycle, AgentState, LifecycleState } from './lifecycle';
 import { MessageBus } from '../bus/index';
 import { AgentStorage } from '../storage/memory';
 import { AgentEventBus } from './event-bus';
 import { SessionTree } from './session-tree';
-import { SwarmRepository } from '../storage';
+import { TeamRepository } from '../storage';
 import { AgentStatus, CreateAgentOptions, Agent } from '../models/agent';
-import { safeExecute, SwarmNotFoundError } from '../errors';
+import { safeExecute, TeamNotFoundError } from '../errors';
 
 // ============================================================================
 // Configuration
@@ -34,8 +34,8 @@ export interface StateAwareOrchestratorConfig {
   maxLockRetries: number;
   /** Feature flags for gradual rollout */
   featureFlags: {
-    /** Use database for swarm state */
-    useDatabaseSwarms: boolean;
+    /** Use database for team state */
+    useDatabaseTeams: boolean;
     /** Use database for agent state */
     useDatabaseAgents: boolean;
     /** Use database for session state */
@@ -50,7 +50,7 @@ export const DEFAULT_STATE_CONFIG: StateAwareOrchestratorConfig = {
   enableAuditLog: true,
   maxLockRetries: 5,
   featureFlags: {
-    useDatabaseSwarms: true,
+    useDatabaseTeams: true,
     useDatabaseAgents: true,
     useDatabaseSessions: true,
   },
@@ -61,7 +61,7 @@ export const DEFAULT_STATE_CONFIG: StateAwareOrchestratorConfig = {
 // ============================================================================
 
 export interface RecoveryContext {
-  recoveredSwarms: Map<string, Swarm>;
+  recoveredTeams: Map<string, Team>;
   recoveredAgents: Map<string, AgentState>;
   recoveredSessions: Map<string, SessionTree>;
   orphanedAgents: string[];
@@ -72,11 +72,11 @@ export interface RecoveryContext {
 // State-Aware Orchestrator
 // ============================================================================
 
-export class StateAwareOrchestrator extends SwarmOrchestrator {
+export class StateAwareOrchestrator extends TeamOrchestrator {
   private statePersistence: StatePersistence;
   private stateConfig: StateAwareOrchestratorConfig;
   private recoveryContext: RecoveryContext = {
-    recoveredSwarms: new Map(),
+    recoveredTeams: new Map(),
     recoveredAgents: new Map(),
     recoveredSessions: new Map(),
     orphanedAgents: [],
@@ -92,7 +92,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     config: Partial<StateAwareOrchestratorConfig> = {},
     eventBus?: AgentEventBus,
     sessionTree?: SessionTree,
-    swarmRepository?: SwarmRepository
+    swarmRepository?: TeamRepository
   ) {
     super(agentLifecycle, messageBus, storage, eventBus, sessionTree, swarmRepository);
 
@@ -105,8 +105,8 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
 
   private setupPersistenceListeners(): void {
     // Log persistence events
-    this.statePersistence.on('swarm.persisted', ({ id, version }) => {
-      logger.debug(`[StateAwareOrchestrator] Swarm ${id} persisted (v${version})`);
+    this.statePersistence.on('team.persisted', ({ id, version }) => {
+      logger.debug(`[StateAwareOrchestrator] Team ${id} persisted (v${version})`);
     });
 
     this.statePersistence.on('agent.persisted', ({ id, version }) => {
@@ -118,8 +118,8 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     });
 
     // Recovery handlers must be registered before recoverAll() emits events.
-    this.statePersistence.on('recovery.swarm', (persistedSwarm: PersistedSwarmState) => {
-      this.recoverSwarm(persistedSwarm);
+    this.statePersistence.on('recovery.team', (persistedTeam: PersistedTeamState) => {
+      this.recoverTeam(persistedTeam);
     });
 
     this.statePersistence.on('recovery.agent', (persistedAgent: PersistedAgentState) => {
@@ -142,7 +142,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     super.start();
 
     let recoveryResult: RecoveryResult = {
-      swarmsRecovered: 0,
+      teamsRecovered: 0,
       agentsRecovered: 0,
       sessionsRecovered: 0,
       errors: [],
@@ -168,7 +168,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     if (this.stateConfig.enablePersistence) {
       this.createCheckpoints();
     }
-    super.stop();
+    (this as any).stop();
   }
 
   // ============================================================================
@@ -183,50 +183,50 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     return this.statePersistence.recoverAll();
   }
 
-  private recoverSwarm(persistedSwarm: PersistedSwarmState): void {
+  private recoverTeam(persistedTeam: PersistedTeamState): void {
     try {
       // Convert persisted state back to runtime state
-      const swarm: Swarm = {
-        id: persistedSwarm.id,
-        name: persistedSwarm.name,
-        status: persistedSwarm.status as SwarmState,
-        config: persistedSwarm.config as unknown as SwarmConfig,
-        agents: persistedSwarm.agents,
-        createdAt: new Date(persistedSwarm.createdAt),
-        completedAt: persistedSwarm.completedAt ? new Date(persistedSwarm.completedAt) : undefined,
+      const team: any = {
+        id: persistedTeam.id,
+        name: persistedTeam.name,
+        status: persistedTeam.status as TeamState,
+        config: persistedTeam.config as unknown as TeamConfig,
+        agents: persistedTeam.agents,
+        createdAt: new Date(persistedTeam.createdAt),
+        completedAt: persistedTeam.completedAt ? new Date(persistedTeam.completedAt) : undefined,
         budget: {
-          allocated: persistedSwarm.budgetAllocated || 0,
-          consumed: persistedSwarm.budgetConsumed || 0,
-          remaining: persistedSwarm.budgetRemaining || 0,
+          allocated: persistedTeam.budgetAllocated || 0,
+          consumed: persistedTeam.budgetConsumed || 0,
+          remaining: persistedTeam.budgetRemaining || 0,
         },
-        metrics: persistedSwarm.metrics as Swarm['metrics'] || {
-          totalAgents: persistedSwarm.agents.length,
+        metrics: persistedTeam.metrics as Team['metrics'] || {
+          totalAgents: persistedTeam.agents.length,
           completedAgents: 0,
           failedAgents: 0,
         },
-        sessionTreeId: persistedSwarm.sessionTreeId,
-        currentBranch: persistedSwarm.currentBranch,
+        sessionTreeId: persistedTeam.sessionTreeId,
+        currentBranch: persistedTeam.currentBranch,
       };
 
       // Restore in-memory state
       // @ts-ignore - accessing private parent field
-      this.swarms.set(swarm.id, swarm);
+      this.teams.set(team.id, team);
       // @ts-ignore - accessing private parent field
-      this.getMutex(swarm.id);
+      this.getMutex(team.id);
 
-      this.recoveryContext.recoveredSwarms.set(swarm.id, swarm);
-      logger.info(`[StateAwareOrchestrator] Recovered swarm ${swarm.id} with ${swarm.agents.length} agents`);
+      this.recoveryContext.recoveredTeams.set(team.id, team);
+      logger.info(`[StateAwareOrchestrator] Recovered team ${team.id} with ${team.agents.length} agents`);
 
-      // Resume swarm if it was active
-      if (swarm.status === 'creating' || swarm.status === 'scaling') {
-        swarm.status = 'active';
-        this.persistSwarmState(swarm, 'recovery').catch(err => {
-          logger.error(`[StateAwareOrchestrator] Failed to persist recovered swarm: ${err}`);
+      // Resume team if it was active
+      if (team.status === 'creating' || team.status === 'scaling') {
+        team.status = 'active';
+        this.persistTeamState(team, 'recovery').catch(err => {
+          logger.error(`[StateAwareOrchestrator] Failed to persist recovered team: ${err}`);
         });
       }
     } catch (error) {
-      this.recoveryContext.errors.push(`Failed to recover swarm ${persistedSwarm.id}: ${error}`);
-      logger.error(`[StateAwareOrchestrator] Failed to recover swarm: ${error}`);
+      this.recoveryContext.errors.push(`Failed to recover team ${persistedTeam.id}: ${error}`);
+      logger.error(`[StateAwareOrchestrator] Failed to recover team: ${error}`);
     }
   }
 
@@ -242,7 +242,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
           model: persistedAgent.model,
           task: persistedAgent.task,
           status: persistedAgent.status as AgentStatus,
-          swarmId: persistedAgent.swarmId,
+          teamId: persistedAgent.teamId,
           spawnedAt: new Date(persistedAgent.createdAt),
           completedAt: persistedAgent.completedAt ? new Date(persistedAgent.completedAt) : undefined,
           metadata: persistedAgent.metadata || {},
@@ -316,28 +316,28 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
   // ============================================================================
 
   /**
-   * Persist swarm state to database
+   * Persist team state to database
    */
-  private async persistSwarmState(swarm: Swarm, triggeredBy: string = 'system'): Promise<void> {
-    if (!this.stateConfig.enablePersistence || !this.stateConfig.featureFlags.useDatabaseSwarms) {
+  private async persistTeamState(team: Team, triggeredBy: string = 'system'): Promise<void> {
+    if (!this.stateConfig.enablePersistence || !this.stateConfig.featureFlags.useDatabaseTeams) {
       return;
     }
 
-    await this.statePersistence.persistSwarm(
+    await this.statePersistence.persistTeam(
       {
-        id: swarm.id,
-        name: swarm.name,
-        status: swarm.status,
-        config: swarm.config as unknown as Record<string, unknown>,
-        agents: swarm.agents,
-        createdAt: swarm.createdAt.toISOString(),
-        completedAt: swarm.completedAt?.toISOString(),
-        budgetAllocated: swarm.budget.allocated,
-        budgetConsumed: swarm.budget.consumed,
-        budgetRemaining: swarm.budget.remaining,
-        metrics: swarm.metrics as Record<string, unknown>,
-        sessionTreeId: swarm.sessionTreeId,
-        currentBranch: swarm.currentBranch,
+        id: team.id,
+        name: team.name,
+        status: team.status,
+        config: (team as any).config as unknown as Record<string, unknown>,
+        agents: team.agents,
+        createdAt: (team as any).createdAt.toISOString(),
+        completedAt: (team as any).completedAt?.toISOString(),
+        budgetAllocated: (team as any).budget.allocated,
+        budgetConsumed: (team as any).budget.consumed,
+        budgetRemaining: (team as any).budget.remaining,
+        metrics: (team as any).metrics as Record<string, unknown>,
+        sessionTreeId: (team as any).sessionTreeId,
+        currentBranch: (team as any).currentBranch,
         version: 1, // Will be incremented by persistence layer
       },
       triggeredBy
@@ -359,7 +359,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
         id: agentState.id,
         status: agentState.status,
         lifecycleState: agentState.lifecycleState,
-        swarmId: agentState.agent.swarmId,
+        teamId: agentState.agent.teamId,
         sessionId: agentState.sessionId,
         model: agentState.agent.model,
         task: agentState.agent.task,
@@ -390,39 +390,39 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
   }
 
   // ============================================================================
-  // Override Swarm Operations
+  // Override Team Operations
   // ============================================================================
 
   /**
-   * Override create to persist swarm state
+   * Override create to persist team state
    */
-  async create(config: SwarmConfig): Promise<Swarm> {
-    const swarm = await super.create(config);
+  async create(config: TeamConfig): Promise<Team> {
+    const team = await super.create(config);
 
     if (this.stateConfig.enablePersistence) {
       await safeExecute(
-        async () => this.persistSwarmState(swarm, 'swarm.create'),
+        async () => this.persistTeamState(team, 'team.create'),
         undefined,
         { logError: true, context: 'StateAwareOrchestrator.create' }
       );
     }
 
-    return swarm;
+    return team;
   }
 
   /**
    * Override destroy to persist final state
    */
-  async destroy(swarmId: string, force: boolean = false): Promise<void> {
-    const swarm = this.getSwarm(swarmId);
-    const previousStatus = swarm?.status;
+  async destroy(teamId: string, force: boolean = false): Promise<void> {
+    const team = this.getTeam(teamId);
+    const previousStatus = team?.status;
 
-    await super.destroy(swarmId, force);
+    await super.destroy(teamId, force);
 
-    if (this.stateConfig.enablePersistence && swarm) {
+    if (this.stateConfig.enablePersistence && team) {
       await safeExecute(
         async () => {
-          await this.statePersistence.updateSwarmStatus(swarmId, 'destroyed', 'swarm.destroy');
+          await this.statePersistence.updateTeamStatus(teamId, 'destroyed', 'team.destroy');
         },
         undefined,
         { logError: true, context: 'StateAwareOrchestrator.destroy' }
@@ -433,14 +433,14 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
   /**
    * Override scale to persist state changes
    */
-  async scale(swarmId: string, targetSize: number): Promise<void> {
-    const swarm = this.getSwarm(swarmId);
+  async scale(teamId: string, targetSize: number): Promise<void> {
+    const team = this.getTeam(teamId);
 
-    await super.scale(swarmId, targetSize);
+    await super.scale(teamId, targetSize);
 
-    if (this.stateConfig.enablePersistence && swarm) {
+    if (this.stateConfig.enablePersistence && team) {
       await safeExecute(
-        async () => this.persistSwarmState(swarm, 'swarm.scale'),
+        async () => this.persistTeamState(team, 'team.scale'),
         undefined,
         { logError: true, context: 'StateAwareOrchestrator.scale' }
       );
@@ -454,31 +454,31 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
   /**
    * Migrate from in-memory state (for gradual rollout)
    */
-  async migrateFromMemory(): Promise<{ swarms: number; agents: number }> {
+  async migrateFromMemory(): Promise<{ teams: number; agents: number }> {
     if (!this.stateConfig.enablePersistence) {
       logger.warn('[StateAwareOrchestrator] Persistence disabled, skipping migration');
-      return { swarms: 0, agents: 0 };
+      return { teams: 0, agents: 0 };
     }
 
     // @ts-ignore - accessing private parent fields
-    const swarms = Array.from(this.swarms.values());
+    const teams = Array.from(this.teams.values());
 
     // Get all agent states from lifecycle manager
     const agentStates = this.getAllAgentStatesFromLifecycle();
 
     const result = await this.statePersistence.migrateFromMemory({
-      swarms: swarms.map(s => ({
+      teams: teams.map(s => ({
         id: s.id,
         name: s.name,
         status: s.status,
-        config: s.config as unknown as Record<string, unknown>,
+        config: (s as any).config as unknown as Record<string, unknown>,
         agents: s.agents,
-        createdAt: s.createdAt,
-        completedAt: s.completedAt,
-        budget: s.budget,
-        metrics: s.metrics as unknown as Record<string, unknown>,
-        sessionTreeId: s.sessionTreeId,
-        currentBranch: s.currentBranch,
+        createdAt: (s as any).createdAt,
+        completedAt: (s as any).completedAt,
+        budget: (s as any).budget,
+        metrics: (s as any).metrics as unknown as Record<string, unknown>,
+        sessionTreeId: (s as any).sessionTreeId,
+        currentBranch: (s as any).currentBranch,
       })),
       agentStates: agentStates.map(s => ({
         id: s.id,
@@ -487,7 +487,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
         agent: {
           model: s.agent.model,
           task: s.agent.task,
-          swarmId: s.agent.swarmId,
+          teamId: s.agent.teamId,
           parentId: s.agent.parentId,
           metadata: s.agent.metadata,
         },
@@ -503,7 +503,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
       })),
     });
 
-    logger.info(`[StateAwareOrchestrator] Migration complete: ${result.swarms} swarms, ${result.agents} agents`);
+    logger.info(`[StateAwareOrchestrator] Migration complete: ${result.teams} teams, ${result.agents} agents`);
     return result;
   }
 
@@ -519,13 +519,13 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
 
   private async createCheckpoints(): Promise<void> {
     // @ts-ignore - accessing private parent field
-    for (const [swarmId, swarm] of this.swarms) {
+    for (const [teamId, team] of this.teams) {
       await safeExecute(
         async () => {
           await this.statePersistence.createCheckpoint(
-            'swarm',
-            swarmId,
-            swarm as unknown as Record<string, unknown>,
+            'team',
+            teamId,
+            team as unknown as Record<string, unknown>,
             'orchestrator_stop'
           );
         },
@@ -555,12 +555,12 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
    * Get persistence statistics
    */
   async getPersistenceStats(): Promise<{
-    activeSwarms: number;
+    activeTeams: number;
     activeAgents: number;
     totalSessions: number;
     recentAuditEntries: number;
   }> {
-    const activeSwarms = (await this.statePersistence.loadActiveSwarms()).length;
+    const activeTeams = (await this.statePersistence.loadActiveTeams()).length;
     const activeAgents = (await this.statePersistence.loadActiveAgents()).length;
 
     const db = await (this.statePersistence as unknown as { ensureDb(): Promise<{ all: (sql: string) => Promise<unknown[]> }> }).ensureDb();
@@ -573,7 +573,7 @@ export class StateAwareOrchestrator extends SwarmOrchestrator {
     const recentAuditEntries = (auditResult[0] as { count: number }).count;
 
     return {
-      activeSwarms,
+      activeTeams,
       activeAgents,
       totalSessions,
       recentAuditEntries,
@@ -592,14 +592,14 @@ export async function createStateAwareOrchestrator(
   config: Partial<StateAwareOrchestratorConfig> = {},
   eventBus?: AgentEventBus,
   sessionTree?: SessionTree,
-  swarmRepository?: SwarmRepository
+  swarmRepository?: TeamRepository
 ): Promise<StateAwareOrchestrator> {
   const statePersistence = getGlobalStatePersistence({
     maxRetries: config.maxLockRetries || DEFAULT_STATE_CONFIG.maxLockRetries,
   });
 
   // Wait for database initialization
-  await statePersistence.loadActiveSwarms().catch(() => {
+  await statePersistence.loadActiveTeams().catch(() => {
     // Just checking if DB is ready
   });
 
@@ -628,7 +628,7 @@ export async function getGlobalStateAwareOrchestrator(
   config?: Partial<StateAwareOrchestratorConfig>,
   eventBus?: AgentEventBus,
   sessionTree?: SessionTree,
-  swarmRepository?: SwarmRepository
+  swarmRepository?: TeamRepository
 ): Promise<StateAwareOrchestrator> {
   if (!globalStateAwareOrchestrator) {
     if (!agentLifecycle || !messageBus || !storage) {

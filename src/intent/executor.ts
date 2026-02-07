@@ -1,8 +1,8 @@
 /**
- * @fileoverview Intent Executor - Orchestrates intent-based swarm execution
+ * @fileoverview Intent Executor - Orchestrates intent-based team execution
  * 
  * This module provides the main executor that ties together parsing,
- * complexity analysis, and swarm configuration to execute intents.
+ * complexity analysis, and team configuration to execute intents.
  * 
  * @module @godel/intent/executor
  */
@@ -10,11 +10,11 @@
 import * as chalk from 'chalk';
 import { IntentParser } from './parser';
 import { ComplexityAnalyzer } from './complexity-analyzer';
-import { SwarmConfigGenerator } from './swarm-config-generator';
+import { TeamConfigGenerator } from './team-config-generator';
 import {
   ParsedIntent,
-  SwarmComplexity,
-  SwarmConfiguration,
+  TeamComplexity,
+  TeamConfiguration,
   ExecutionResult,
   ExecuteOptions,
   LLMService,
@@ -56,7 +56,7 @@ class MockWorkflowEngine implements WorkflowEngine {
 export class IntentExecutor {
   private parser: IntentParser;
   private complexityAnalyzer: ComplexityAnalyzer;
-  private configGenerator: SwarmConfigGenerator;
+  private configGenerator: TeamConfigGenerator;
   private agentRegistry: AgentRegistry;
   private workflowEngine: WorkflowEngine;
 
@@ -70,7 +70,7 @@ export class IntentExecutor {
       llm: llmService 
     });
     this.complexityAnalyzer = new ComplexityAnalyzer();
-    this.configGenerator = new SwarmConfigGenerator();
+    this.configGenerator = new TeamConfigGenerator();
     this.agentRegistry = agentRegistry || new MockAgentRegistry();
     this.workflowEngine = workflowEngine || new MockWorkflowEngine();
   }
@@ -108,8 +108,8 @@ export class IntentExecutor {
     console.log(chalk.gray(`  → Files: ${complexity.metrics.fileCount}, LOC: ${complexity.metrics.linesOfCode}`));
     console.log(chalk.gray(`  → Estimated human time: ${complexity.metrics.estimatedHours.toFixed(1)}h`));
 
-    // Step 3: Generate swarm config
-    console.log(chalk.blue(`🤖 Generating swarm configuration...`));
+    // Step 3: Generate team config
+    console.log(chalk.blue(`🤖 Generating team configuration...`));
     const config = await this.configGenerator.generate(intent, complexity);
     
     this.displayConfig(config);
@@ -165,10 +165,10 @@ export class IntentExecutor {
   }
 
   /**
-   * Display swarm configuration.
+   * Display team configuration.
    */
-  private displayConfig(config: SwarmConfiguration): void {
-    console.log(chalk.bold('\n📋 Swarm Configuration:\n'));
+  private displayConfig(config: TeamConfiguration): void {
+    console.log(chalk.bold('\n📋 Team Configuration:\n'));
     console.log(`Name: ${config.name}`);
     console.log(`Description: ${config.description}`);
     console.log(`\nAgents:`);

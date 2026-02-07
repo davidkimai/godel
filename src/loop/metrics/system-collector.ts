@@ -7,6 +7,12 @@
 import { MetricsRegistry, MetricSnapshot } from './registry.js';
 import { TimeSeriesStorage } from './storage.js';
 import { Counter, Gauge, Histogram } from './types.js';
+import { createLogger } from '../../utils/logger.js';
+
+/**
+ * Module logger
+ */
+const log = createLogger('system-metrics-collector');
 
 /**
  * Event bus interface for metrics collection
@@ -409,7 +415,7 @@ export class SystemMetricsCollector {
       }
     } catch (error) {
       // Don't let metrics collection break the system
-      console.error('Failed to collect metrics:', error);
+      log.logError('Failed to collect metrics', error);
     }
   }
 

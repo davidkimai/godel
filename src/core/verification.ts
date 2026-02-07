@@ -9,7 +9,7 @@ export interface VerificationDetail {
 
 export interface VerificationResult {
   success: boolean;
-  swarmId: string;
+  teamId: string;
   timestamp: Date;
   duration: number;
   buildVerified: boolean;
@@ -48,7 +48,7 @@ export class VerificationPipeline {
     }
   }
 
-  async verifySwarm(swarmId: string): Promise<VerificationResult> {
+  async verifyTeam(teamId: string): Promise<VerificationResult> {
     const startTime = Date.now();
     const details: VerificationDetail[] = [];
     let success = true;
@@ -86,7 +86,7 @@ export class VerificationPipeline {
 
     const result: VerificationResult = {
       success,
-      swarmId,
+      teamId,
       timestamp: new Date(),
       duration: Date.now() - startTime,
       buildVerified: buildResult.status === 'pass',
@@ -160,7 +160,7 @@ export class VerificationPipeline {
 export const verificationPipeline = new VerificationPipeline();
 
 export async function quickVerify(): Promise<boolean> {
-  const result = await verificationPipeline.verifySwarm('quick');
+  const result = await verificationPipeline.verifyTeam('quick');
   return result.success;
 }
 

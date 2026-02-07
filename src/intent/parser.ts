@@ -15,6 +15,12 @@ import {
   LLMService,
   ParserConfig,
 } from './types';
+import { createLogger } from '../utils/logger';
+
+/**
+ * Module logger
+ */
+const log = createLogger('intent-parser');
 
 // ============================================================================
 // DEFAULT CONFIGURATION
@@ -140,7 +146,7 @@ export class IntentParser {
         if (this.config.strictMode) {
           throw error;
         }
-        console.warn('LLM parsing failed, using rule-based fallback:', error);
+        log.warn('LLM parsing failed, using rule-based fallback', { error: (error as Error).message });
       }
     }
 

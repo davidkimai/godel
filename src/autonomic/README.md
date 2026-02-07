@@ -1,6 +1,8 @@
-# 🤖 Godel-on-Godel Autonomic Maintenance Swarm
+# Godel Autonomic Maintenance Swarm
 
 Self-maintaining maintenance system that automatically detects, diagnoses, and fixes bugs in the Godel codebase.
+
+This module provides autonomous error detection and remediation capabilities.
 
 ## Architecture
 
@@ -139,9 +141,9 @@ swarmctl autonomic start
 swarmctl autonomic status
 
 # Output:
-# 🤖 Autonomic Maintenance Swarm Status
+# Autonomic Maintenance Swarm Status
 # 
-# Status: ● Running
+# Status: Running
 # 
 # Error Queue:
 #   Unprocessed:  3
@@ -150,11 +152,11 @@ swarmctl autonomic status
 #   Resolved:     5
 
 # When error occurs, the system automatically:
-# 🤖 Detected error: TypeError in task-executor.ts
-# 📝 Writing reproduction test...
-# 🔧 Generating fix...
-# 📤 Submitting PR...
-# ✅ Error fixed! PR: https://github.com/davidkimai/godel/pull/123
+# [DETECT] Error: TypeError in task-executor.ts
+# [WRITE]  Writing reproduction test...
+# [FIX]    Generating fix...
+# [SUBMIT] Submitting PR...
+# [DONE]   Error fixed! PR: https://github.com/davidkimai/godel/pull/123
 ```
 
 ## Testing

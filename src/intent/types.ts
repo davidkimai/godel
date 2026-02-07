@@ -2,7 +2,7 @@
  * @fileoverview Intent Types - Type definitions for intent-based "magic" system
  * 
  * This module provides TypeScript interfaces for the enhanced intent parsing
- * and automatic swarm configuration system.
+ * and automatic team configuration system.
  * 
  * @module @godel/intent/types
  */
@@ -34,12 +34,12 @@ export type TargetType = 'file' | 'module' | 'function' | 'feature' | 'bug' | 't
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'urgent';
 
 /**
- * Complexity levels for swarm sizing.
+ * Complexity levels for team sizing.
  */
 export type ComplexityLevel = 'low' | 'medium' | 'high' | 'very-high';
 
 /**
- * Agent types for swarm configuration.
+ * Agent types for team configuration.
  */
 export type AgentType = 'architect' | 'implementer' | 'reviewer' | 'tester' | 'specialist';
 
@@ -123,9 +123,9 @@ export interface ComplexityMetrics {
 }
 
 /**
- * Swarm complexity assessment.
+ * Team complexity assessment.
  */
-export interface SwarmComplexity {
+export interface TeamComplexity {
   /** Complexity level */
   level: ComplexityLevel;
   
@@ -137,11 +137,11 @@ export interface SwarmComplexity {
 }
 
 // ============================================================================
-// SWARM CONFIGURATION TYPES
+// TEAM CONFIGURATION TYPES
 // ============================================================================
 
 /**
- * Agent configuration for swarm generation.
+ * Agent configuration for team generation.
  */
 export interface AgentConfig {
   /** Role name */
@@ -164,10 +164,10 @@ export interface AgentConfig {
 }
 
 /**
- * Swarm configuration generated from intent.
+ * Team configuration generated from intent.
  */
-export interface SwarmConfiguration {
-  /** Swarm name */
+export interface TeamConfiguration {
+  /** Team name */
   name: string;
   
   /** Description */
@@ -186,7 +186,7 @@ export interface SwarmConfiguration {
   estimatedTime: number;
   
   /** Complexity assessment */
-  complexity: SwarmComplexity;
+  complexity: TeamComplexity;
 }
 
 // ============================================================================
@@ -218,7 +218,7 @@ export interface ExecutionResult {
   intent: ParsedIntent;
   
   /** Generated configuration */
-  config: SwarmConfiguration;
+  config: TeamConfiguration;
   
   /** Workflow ID */
   workflowId: string;

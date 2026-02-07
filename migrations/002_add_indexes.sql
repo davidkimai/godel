@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_agents_status_spawned
 
 -- Budget monitoring indexes
 CREATE INDEX IF NOT EXISTS idx_budgets_consumption 
-    ON budgets(swarm_id, consumed DESC) WHERE consumed > 0;
+    ON budgets(team_id, consumed DESC) WHERE consumed > 0;
 
 -- Session expiration index (no NOW() in predicate - not immutable)
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at 

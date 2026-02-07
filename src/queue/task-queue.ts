@@ -90,7 +90,7 @@ export class TaskQueue {
     });
     
     // Initialize metrics
-    this.metrics = new QueueMetricsCollector(this.redis, this.config.redis.keyPrefix || 'dash:queue');
+    this.metrics = new QueueMetricsCollector(this.redis, this.config.redis.keyPrefix || 'godel:queue');
   }
 
   // ========================================================================
@@ -181,7 +181,7 @@ export class TaskQueue {
       metadata: options.metadata || {},
     };
 
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const taskKey = KEYS.taskKey(prefix, task.id);
 
     // Store task data
@@ -230,7 +230,7 @@ export class TaskQueue {
    * Dequeue the next available task for an agent
    */
   async dequeue(agentId: string): Promise<QueuedTask | null> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const agent = await this.getAgent(agentId);
     
     if (!agent || agent.status === 'offline') {
@@ -281,7 +281,7 @@ export class TaskQueue {
    * Claim the next task using work distribution algorithm
    */
   async claimTask(agentId?: string): Promise<QueuedTask | null> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
 
     // If agentId provided, use direct dequeue
     if (agentId) {
@@ -385,7 +385,7 @@ export class TaskQueue {
    * Complete a task successfully
    */
   async completeTask(taskId: string, output?: unknown): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const task = await this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -428,7 +428,7 @@ export class TaskQueue {
    * Fail a task (with retry logic)
    */
   async failTask(taskId: string, error: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const task = await this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -493,7 +493,7 @@ export class TaskQueue {
    * Cancel a task
    */
   async cancelTask(taskId: string, reason?: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const task = await this.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -568,7 +568,7 @@ export class TaskQueue {
    * Register an agent to receive tasks
    */
   async registerAgent(options: RegisterAgentOptions): Promise<TaskAgent> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     
     const agent: TaskAgent = {
       id: options.id,
@@ -605,7 +605,7 @@ export class TaskQueue {
    * Unregister an agent
    */
   async unregisterAgent(agentId: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     
     // Get agent's tasks and requeue them
     const tasks = await this.getAgentTasks(agentId);
@@ -637,7 +637,7 @@ export class TaskQueue {
    * Update agent heartbeat
    */
   async agentHeartbeat(agentId: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const agent = await this.getAgent(agentId);
     
     if (!agent) {
@@ -666,7 +666,7 @@ export class TaskQueue {
    * Get agent by ID
    */
   async getAgent(agentId: string): Promise<TaskAgent | null> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const data = await this.redis.get(KEYS.agentKey(prefix, agentId));
     
     if (!data) return null;
@@ -684,7 +684,7 @@ export class TaskQueue {
    * Get all registered agents
    */
   async getAllAgents(): Promise<TaskAgent[]> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const agentIds = await this.redis.smembers(KEYS.agentsSet(prefix));
     
     const agents: TaskAgent[] = [];
@@ -723,7 +723,7 @@ export class TaskQueue {
    * Move a task to the dead letter queue
    */
   private async moveToDeadLetter(task: QueuedTask, finalError: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     
     task.status = 'dead';
     task.deadLetterReason = finalError;
@@ -774,7 +774,7 @@ export class TaskQueue {
    * Get dead letter queue entries
    */
   async getDeadLetterEntries(limit = 100): Promise<DeadLetterEntry[]> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const entries = await this.redis.zrevrange(
       KEYS.deadLetterQueue(prefix),
       0,
@@ -792,7 +792,7 @@ export class TaskQueue {
    * Replay a dead letter task (retry it)
    */
   async replayDeadLetter(taskId: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     
     // Find the entry
     const entries = await this.getDeadLetterEntries(1000);
@@ -826,7 +826,7 @@ export class TaskQueue {
    * Process scheduled tasks (move to pending when ready)
    */
   private async processScheduledTasks(): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const now = Date.now();
     
     // Get tasks that are ready to execute
@@ -877,7 +877,7 @@ export class TaskQueue {
         
         // Mark agent offline
         agent.status = 'offline';
-        const prefix = this.config.redis.keyPrefix || 'dash:queue';
+        const prefix = this.config.redis.keyPrefix || 'godel:queue';
         const agentKey = KEYS.agentKey(prefix, agent.id);
         await this.redis.setex(agentKey, 60, JSON.stringify(agent)); // Short TTL for offline agents
       }
@@ -892,7 +892,7 @@ export class TaskQueue {
    * Get task by ID
    */
   async getTask(taskId: string): Promise<QueuedTask | null> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const data = await this.redis.get(KEYS.taskKey(prefix, taskId));
     
     if (!data) return null;
@@ -913,7 +913,7 @@ export class TaskQueue {
    * Get tasks assigned to an agent
    */
   async getAgentTasks(agentId: string): Promise<QueuedTask[]> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const processingIds = await this.redis.zrange(KEYS.processingSet(prefix), 0, -1);
     
     const tasks: QueuedTask[] = [];
@@ -931,7 +931,7 @@ export class TaskQueue {
    * Get queue depth (pending tasks count)
    */
   async getQueueDepth(): Promise<number> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const [critical, high, medium, low] = await Promise.all([
       this.redis.zcard(KEYS.priorityQueue(prefix, 'critical')),
       this.redis.zcard(KEYS.priorityQueue(prefix, 'high')),
@@ -982,7 +982,7 @@ export class TaskQueue {
     }
     
     // Also publish to Redis stream for external consumers
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     await this.redis.xadd(
       KEYS.streamKey(prefix),
       '*',
@@ -996,7 +996,7 @@ export class TaskQueue {
   // ========================================================================
 
   private async updateTask(task: QueuedTask): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     await this.redis.setex(
       KEYS.taskKey(prefix, task.id),
       86400 * 7,
@@ -1009,14 +1009,14 @@ export class TaskQueue {
   }
 
   private async enqueuePendingTask(taskId: string, priority: QueuedTask['priority']): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const score = this.priorityToScore(priority);
     await this.redis.zadd(KEYS.priorityQueue(prefix, priority), score, taskId);
     await this.redis.lpush(KEYS.pendingQueue(prefix), taskId);
   }
 
   private async popNextPendingTaskId(): Promise<string | null> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const priorities: Array<QueuedTask['priority']> = ['critical', 'high', 'medium', 'low'];
 
     for (const priority of priorities) {
@@ -1037,7 +1037,7 @@ export class TaskQueue {
   }
 
   private async removeFromPriorityQueues(taskId: string): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const priorities: Array<QueuedTask['priority']> = ['critical', 'high', 'medium', 'low'];
     await Promise.all(
       priorities.map((priority) => this.redis.zrem(KEYS.priorityQueue(prefix, priority), taskId))
@@ -1051,7 +1051,7 @@ export class TaskQueue {
     agent.currentLoad = Math.max(0, agent.currentLoad + delta);
     agent.status = agent.currentLoad >= agent.capacity ? 'busy' : 'idle';
     
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const agentKey = KEYS.agentKey(prefix, agentId);
     await this.redis.setex(
       agentKey,
@@ -1066,7 +1066,7 @@ export class TaskQueue {
   }
 
   private async loadStickyAssignments(): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const data = await this.redis.hgetall(KEYS.stickyMap(prefix));
     
     for (const [key, agentId] of Object.entries(data)) {
@@ -1075,7 +1075,7 @@ export class TaskQueue {
   }
 
   private async saveStickyAssignments(): Promise<void> {
-    const prefix = this.config.redis.keyPrefix || 'dash:queue';
+    const prefix = this.config.redis.keyPrefix || 'godel:queue';
     const entries: Record<string, string> = {};
     
     for (const [key, agentId] of this.distributionState.stickyAssignments) {

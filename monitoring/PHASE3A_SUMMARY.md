@@ -1,7 +1,7 @@
 # Phase 3A Implementation Summary
 
 ## Overview
-This document summarizes the Phase 3A: Metrics Aggregation implementation for the Dash orchestration platform.
+This document summarizes the Phase 3A: Metrics Aggregation implementation for the Godel orchestration platform.
 
 ## Deliverables Completed
 
@@ -28,7 +28,7 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 - Volume persistence for metrics data
 - 15-day retention period
 - Automatic service discovery
-- External network access for Dash scraping
+- External network access for Godel scraping
 
 ### 2. Pre-built Dashboards ✅
 
@@ -36,11 +36,11 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 
 | Dashboard | UID | Description |
 |-----------|-----|-------------|
-| Swarm Overview | `dash-swarm-overview` | High-level operational view |
-| Agent Performance | `dash-agent-performance` | Execution metrics and SLOs |
-| Cost Analysis | `dash-cost-analysis` | Budget tracking and projections |
-| Error Tracking | `dash-error-tracking` | Debugging and reliability |
-| Infrastructure | `dash-infrastructure` | System and resource health |
+| Team Overview | `godel-team-overview` | High-level operational view |
+| Agent Performance | `godel-agent-performance` | Execution metrics and SLOs |
+| Cost Analysis | `godel-cost-analysis` | Budget tracking and projections |
+| Error Tracking | `godel-error-tracking` | Debugging and reliability |
+| Infrastructure | `godel-infrastructure` | System and resource health |
 
 **Each Dashboard Includes:**
 - Real-time stat panels with color-coded thresholds
@@ -70,7 +70,7 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 - ✅ DashHighApiLatency - p95 >5s
 - ✅ DashQueueDepthHigh - >100 pending tasks
 - ✅ DashEventBusBacklog - >1000 queued events
-- ✅ DashSwarmFailureRate - >10% swarm failures
+- ✅ DashSwarmFailureRate - >10% team failures
 - ✅ DashCPUHigh - >80% CPU usage
 
 **Additional Features:**
@@ -105,7 +105,7 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 
 **Cost Analysis:**
 - `cost:dash_per_agent_execution` - Cost per execution
-- `cost:dash_per_successful_swarm` - Cost per swarm
+- `cost:dash_per_successful_swarm` - Cost per team
 - `cost:dash_hourly_projection` - Hourly projection
 - `cost:dash_daily_projection` - Daily projection
 - `cost:dash_efficiency_ratio` - Successes per dollar
@@ -126,7 +126,7 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 
 ## Verification Checklist
 
-- [x] Prometheus scraping Dash metrics configured
+- [x] Prometheus scraping Godel metrics configured
 - [x] All 5 dashboards created with comprehensive panels
 - [x] Alert rules defined with proper severity levels
 - [x] Recording rules for fast queries implemented
@@ -136,7 +136,7 @@ This document summarizes the Phase 3A: Metrics Aggregation implementation for th
 ## Quick Start
 
 ```bash
-# 1. Start main Dash services
+# 1. Start main Godel services
 docker-compose up -d postgres redis
 npm run dev
 
@@ -171,12 +171,12 @@ monitoring/
 │   │   └── dashboards/
 │   │       └── dashboards.yml  # Auto-provisioning
 │   └── dashboards/
-│       ├── dash-swarm-overview.json
-│       ├── dash-agent-performance.json
-│       ├── dash-cost-analysis.json
-│       ├── dash-error-tracking.json
-│       ├── dash-infrastructure.json
-│       └── dash-logs.json
+│       ├── godel-team-overview.json
+│       ├── godel-agent-performance.json
+│       ├── godel-cost-analysis.json
+│       ├── godel-error-tracking.json
+│       ├── godel-infrastructure.json
+│       └── godel-logs.json
 └── docs/
     ├── DASHBOARD_USAGE.md
     ├── ALERT_RUNBOOK.md
@@ -186,7 +186,7 @@ monitoring/
 
 ## Integration with Existing Infrastructure
 
-The monitoring stack integrates with the existing Dash infrastructure:
+The monitoring stack integrates with the existing Godel infrastructure:
 
 1. **Prometheus Metrics**: Uses existing `src/metrics/prometheus.ts`
 2. **Health Checks**: Uses existing `src/metrics/health.ts`
@@ -200,24 +200,24 @@ The monitoring stack integrates with the existing Dash infrastructure:
 - Phase 3C: Log Aggregation (Loki integration) - Partially exists
 - Phase 3D: Enhanced Dashboard (React-based UI)
 
-## Metrics Exposed by Dash
+## Metrics Exposed by Godel
 
-The following metrics are already exposed by the Dash orchestrator:
+The following metrics are already exposed by the Godel orchestrator:
 
 **Agent Metrics:**
-- `dash_agents_active` - Active agents by swarm
+- `dash_agents_active` - Active agents by team
 - `dash_agents_pending` - Pending agents
 - `dash_agents_failed` - Failed agents
 - `dash_agents_completed` - Completed agents
 - `dash_agents_total` - Total agents by status
 
-**Swarm Metrics:**
-- `dash_swarms_active` - Active swarms
-- `dash_swarms_total` - Total swarms
-- `dash_swarm_agents` - Agents per swarm
+**Team Metrics:**
+- `dash_swarms_active` - Active teams
+- `dash_swarms_total` - Total teams
+- `dash_swarm_agents` - Agents per team
 - `dash_swarm_success_total` - Successful completions
-- `dash_swarm_failure_total` - Failed swarms
-- `dash_swarm_cost_usd` - Cost per swarm
+- `dash_swarm_failure_total` - Failed teams
+- `dash_swarm_cost_usd` - Cost per team
 - `dash_swarm_duration_seconds` - Execution duration
 - `dash_budget_utilization_ratio` - Budget usage
 
@@ -248,7 +248,7 @@ feat(observability): Add Prometheus + Grafana with dashboards and alerts
 - Deploy Prometheus, Grafana, Alertmanager stack with docker-compose
 - Add Redis and PostgreSQL exporters for infrastructure monitoring
 - Create 5 comprehensive dashboards:
-  * Swarm Overview - operational metrics
+  * Team Overview - operational metrics
   * Agent Performance - latency, throughput, SLOs
   * Cost Analysis - budget tracking, projections
   * Error Tracking - debugging, reliability analysis

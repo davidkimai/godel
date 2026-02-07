@@ -107,7 +107,7 @@ export const MAX_PAGE_LIMIT = 500;
  */
 export function parsePaginationParams(
   query: Record<string, unknown> | CursorPaginationParams
-): Required<CursorPaginationParams> {
+): Required<Omit<CursorPaginationParams, 'cursor'>> & { cursor?: string } {
   const limit = Math.min(
     Math.max(1, parseInt(String(query["limit"] || DEFAULT_PAGE_LIMIT), 10)),
     MAX_PAGE_LIMIT

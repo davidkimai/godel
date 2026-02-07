@@ -1,7 +1,7 @@
 /**
  * YAML Configuration Loader
  * 
- * Parses and validates swarm.yaml files with support for:
+ * Parses and validates team.yaml files with support for:
  * - Environment variable substitution ($VAR, ${VAR}, ${VAR:-default})
  * - 1Password secret resolution ({{ op://vault/item/field }})
  * - Schema validation using TypeBox
@@ -14,16 +14,16 @@ import { resolve, dirname } from 'path';
 import { createHash } from 'crypto';
 import { Value, type ValueError } from '@sinclair/typebox/value';
 import { 
-  SwarmYamlSchema, 
-  type SwarmYamlConfig,
+  TeamYamlSchema, 
+  type TeamYamlConfig,
   type ConfigLoadOptions,
   type ConfigLoadResult,
   type ConfigValidationError,
   ConfigValidationException,
 } from './types';
 
-// Import SwarmStrategy for toSwarmConfig
-import type { SwarmStrategy } from '../core/swarm';
+// Import TeamStrategy for toTeamConfig
+import type { TeamStrategy } from '../core/team';
 
 // Re-export types for convenience
 export type { ConfigLoadOptions, ConfigLoadResult, ConfigValidationError } from './types';
@@ -305,9 +305,9 @@ function convertValidationError(error: ValueError): ConfigValidationError {
   if (path.includes('strategy')) {
     suggestion = 'Valid strategies are: parallel, map-reduce, pipeline, tree';
   } else if (path.includes('apiVersion')) {
-    suggestion = 'apiVersion must be "dash.io/v1"';
+    suggestion = 'apiVersion must be "godel.io/v1"';
   } else if (path.includes('kind')) {
-    suggestion = 'kind must be "Swarm"';
+    suggestion = 'kind must be "Team"';
   } else if (path.includes('budget') && path.includes('amount')) {
     suggestion = 'Budget amount must be a positive number';
   } else if (path.includes('initialAgents') || path.includes('maxAgents')) {
@@ -332,16 +332,16 @@ export function validateConfig(
   const errors: ConfigValidationError[] = [];
   
   // Check using TypeBox Value.Check
-  if (!Value.Check(SwarmYamlSchema, config)) {
-    const iterator = Value.Errors(SwarmYamlSchema, config);
+  if (!Value.Check(TeamYamlSchema, config)) {
+    const iterator = Value.Errors(TeamYamlSchema, config);
     for (const error of iterator) {
       errors.push(convertValidationError(error));
     }
   }
   
   // Additional custom validations
-  const swarmConfig = config as Partial<SwarmYamlConfig>;
-  const specAny = swarmConfig.spec as any;
+  const teamConfig = config as Partial<TeamYamlConfig>;
+  const specAny = teamConfig.spec as any;
   
   // Check that initialAgents <= maxAgents
   if (specAny?.initialAgents && specAny?.maxAgents) {
@@ -478,7 +478,7 @@ export async function loadConfig(
   const checksum = calculateChecksum(rawContent);
   
   return {
-    config: parsed as SwarmYamlConfig,
+    config: parsed as TeamYamlConfig,
     rawContent,
     filePath: resolvedPath,
     checksum,
@@ -549,15 +549,15 @@ function deepMerge<T extends Record<string, unknown>>(
 }
 
 // ============================================================================
-// Conversion to SwarmConfig
+// Conversion to TeamConfig
 // ============================================================================
 
-import type { SwarmConfig } from '../core/swarm';
+import type { TeamConfig } from '../core/team';
 
 /**
- * Convert SwarmYamlConfig to SwarmConfig for use with SwarmManager
+ * Convert TeamYamlConfig to TeamConfig for use with TeamManager
  */
-export function toSwarmConfig(yamlConfig: SwarmYamlConfig): SwarmConfig {
+export function toTeamConfig(yamlConfig: TeamYamlConfig): TeamConfig {
   const { spec, metadata } = yamlConfig;
   
   const specAny = spec as Record<string, unknown>;
@@ -568,9 +568,9 @@ export function toSwarmConfig(yamlConfig: SwarmYamlConfig): SwarmConfig {
     task: spec.task,
     initialAgents: spec.initialAgents ?? 5,
     maxAgents: spec.maxAgents ?? 50,
-    strategy: (spec.strategy ?? 'parallel') as SwarmStrategy,
+    strategy: (spec.strategy ?? 'parallel') as TeamStrategy,
     model: specAny['model'] as string | undefined,
-    budget: specAny['budget'] as SwarmConfig['budget'],
+    budget: specAny['budget'] as TeamConfig['budget'],
     safety: specAny['safety'] ? {
       fileSandbox: specAny['safety']?.['fileSandbox'] as boolean | undefined,
       networkAllowlist: specAny['safety']?.['networkAllowlist'] as string[] | undefined,

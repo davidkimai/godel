@@ -1,12 +1,12 @@
 /**
  * Self-Improvement Orchestrator
  * 
- * Uses Dash's own infrastructure to recursively improve Dash.
+ * Uses Godel's own infrastructure to recursively improve Godel.
  * Implements the feedback loop: analyze → improve → verify → repeat
  * 
  * INTEGRATION: OpenClaw Budget Tracking (Phase 2C)
  * - Tracks costs across OpenClaw agents via sessions_history
- * - Enforces per-agent and per-swarm budget limits
+ * - Enforces per-agent and per-team budget limits
  * - Automatically kills agents when budgets are exhausted
  * 
  * INTEGRATION: Learning Loop (Phase 4B)
@@ -17,7 +17,7 @@
 
 import { logger } from '../utils/logger';
 import { getDb, SQLiteStorage } from '../storage/sqlite';
-import { SELF_IMPROVEMENT_CONFIG, SELF_IMPROVEMENT_SWARMS } from './config';
+import { SELF_IMPROVEMENT_CONFIG, SELF_IMPROVEMENT_TEAMS } from './config';
 import { 
   BudgetTracker, 
   BudgetConfig, 
@@ -64,7 +64,7 @@ export interface SelfImprovementState {
   improvements: ImprovementResult[];
   startTime: Date;
   lastImprovementTime: Date;
-  swarmId?: string;
+  teamId?: string;
 }
 
 export interface AgentWithBudget {
@@ -72,13 +72,17 @@ export interface AgentWithBudget {
   role: string;
   model: string;
   budgetLimit: number;
-  swarmId: string;
+  teamId: string;
   status: 'spawning' | 'idle' | 'running' | 'completed' | 'failed' | 'killed';
   openClawSessionKey?: string;
 }
 
-const API_BASE = 'http://localhost:7373';
-const API_KEY = 'dash-api-key';
+const API_BASE = process.env['GODEL_API_URL'] || 'http://localhost:7373';
+const API_KEY = process.env['GODEL_API_KEY'] || '';
+
+if (!API_KEY) {
+  throw new Error('GODEL_API_KEY environment variable is required for self-improvement orchestrator');
+}
 
 // OpenClaw Gateway config
 const OPENCLAW_GATEWAY_URL = process.env['OPENCLAW_GATEWAY_URL'] || 'ws://127.0.0.1:18789';
@@ -108,16 +112,16 @@ async function apiRequest(endpoint: string, method = 'GET', body?: any): Promise
   return response.json();
 }
 
-async function createSwarm(name: string, config: any): Promise<any> {
-  return apiRequest('/api/swarm', 'POST', {
+async function createTeam(name: string, config: any): Promise<any> {
+  return apiRequest('/api/team', 'POST', {
     name,
     config  // Pass as object, repository will stringify
   });
 }
 
-async function spawnAgent(swarmId: string, agentConfig: any): Promise<any> {
+async function spawnAgent(teamId: string, agentConfig: any): Promise<any> {
   return apiRequest('/api/agents', 'POST', {
-    swarm_id: swarmId,
+    team_id: teamId,
     status: 'idle',
     task: agentConfig.task,
     model: agentConfig.model,
@@ -250,7 +254,7 @@ async function initializeBudgetTracking(storage: SQLiteStorage): Promise<BudgetT
     recordEvent('budget_alert', {
       type: alert.type,
       agentId: alert.agentId,
-      swarmId: alert.swarmId,
+      teamId: alert.teamId,
       currentSpent: alert.currentSpent,
       budgetLimit: alert.budgetLimit,
       timestamp: alert.timestamp,
@@ -267,17 +271,17 @@ async function initializeBudgetTracking(storage: SQLiteStorage): Promise<BudgetT
 async function registerAgentWithBudget(
   budgetTracker: BudgetTracker,
   agentId: string,
-  swarmId: string,
+  teamId: string,
   budgetLimit: number
 ): Promise<void> {
   const budgetConfig: BudgetConfig = {
     totalBudget: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD,
     perAgentLimit: budgetLimit,
-    perSwarmLimit: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD,
+    perTeamLimit: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD,
     warningThreshold: 0.8, // 80% warning
   };
 
-  await budgetTracker.registerAgent(agentId, budgetConfig, swarmId);
+  await budgetTracker.registerAgent(agentId, budgetConfig, teamId);
 }
 
 /**
@@ -368,12 +372,12 @@ export interface SelfImprovementSession {
 }
 
 export async function startSelfImprovementSession(): Promise<SelfImprovementSession> {
-  logger.info('self-improvement/orchestrator', 'Starting Dash Self-Improvement Session');
+  logger.info('self-improvement/orchestrator', 'Starting Godel Self-Improvement Session');
   logger.info('self-improvement/orchestrator', 'Budget configuration', { maxBudgetUSD: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD });
   logger.info('self-improvement/orchestrator', 'Max tokens configuration', { maxTokensPerAgent: SELF_IMPROVEMENT_CONFIG.maxTokensPerAgent });
   
   // Initialize database and budget tracking
-  const storage = await getDb({ dbPath: './dash.db' });
+  const storage = await getDb({ dbPath: './godel.db' });
   const budgetTracker = await initializeBudgetTracking(storage);
 
   // Initialize Learning Engine and Improvement Store
@@ -383,8 +387,8 @@ export async function startSelfImprovementSession(): Promise<SelfImprovementSess
   await learningEngine.initialize();
   await improvementStore.initialize();
 
-  // Register swarm budget
-  await budgetTracker.registerSwarm('self-improvement', {
+  // Register team budget
+  await budgetTracker.registerTeam('self-improvement', {
     totalBudget: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD,
     warningThreshold: 0.8,
   });
@@ -416,7 +420,7 @@ export async function runImprovementCycle(
   learningEngine?: LearningEngine,
   improvementStore?: ImprovementStore
 ): Promise<ImprovementResult> {
-  const swarmConfig = SELF_IMPROVEMENT_SWARMS[area];
+  const teamConfig = SELF_IMPROVEMENT_TEAMS[area];
   const cycleStartTime = Date.now();
   
   logger.info('self-improvement/orchestrator', 'Running improvement cycle', { area });
@@ -445,28 +449,28 @@ export async function runImprovementCycle(
   const toolsUsed: string[] = [];
   
   try {
-    // Create swarm for this improvement area
-    const swarm = await createSwarm(swarmConfig.name, {
+    // Create team for this improvement area
+    const team = await createTeam(teamConfig.name, {
       area,
       selfImprovement: true,
       safetyBoundaries: SELF_IMPROVEMENT_CONFIG.allowedOperations
     });
     
-    state.swarmId = swarm.id;
-    logger.info('self-improvement/orchestrator', 'Swarm created', { swarmId: swarm.id });
+    state.teamId = team.id;
+    logger.info('self-improvement/orchestrator', 'Team created', { teamId: team.id });
 
-    // Register swarm budget
-    await budgetTracker.registerSwarm(swarm.id, {
+    // Register team budget
+    await budgetTracker.registerTeam(team.id, {
       totalBudget: SELF_IMPROVEMENT_CONFIG.maxBudgetUSD,
       warningThreshold: 0.8,
     });
     
     // Spawn agents in parallel (according to parallelism config)
-    for (const agentConfig of swarmConfig.agents) {
-      // Check swarm budget first
-      const swarmStatus = await budgetTracker.checkSwarm(swarm.id);
+    for (const agentConfig of teamConfig.agents) {
+      // Check team budget first
+      const swarmStatus = await budgetTracker.checkTeam(team.id);
       if (swarmStatus.remaining < agentConfig.budgetLimit) {
-        logger.warn('self-improvement/orchestrator', 'Skipping agent - swarm budget exceeded', { role: agentConfig.role });
+        logger.warn('self-improvement/orchestrator', 'Skipping agent - team budget exceeded', { role: agentConfig.role });
         continue;
       }
 
@@ -477,14 +481,14 @@ export async function runImprovementCycle(
       }
       
       try {
-        // Spawn Dash agent
-        const agent = await spawnAgent(swarm.id, agentConfig);
+        // Spawn Godel agent
+        const agent = await spawnAgent(team.id, agentConfig);
         
         // Register with budget tracker
         await registerAgentWithBudget(
           budgetTracker,
           agent.id,
-          swarm.id,
+          team.id,
           agentConfig.budgetLimit
         );
 
@@ -505,7 +509,7 @@ export async function runImprovementCycle(
           role: agentConfig.role,
           model: agentConfig.model,
           budgetLimit: agentConfig.budgetLimit,
-          swarmId: swarm.id,
+          teamId: team.id,
           status: 'running',
           openClawSessionKey: openClawSession.sessionKey,
         };
@@ -581,7 +585,7 @@ export async function runImprovementCycle(
           performanceImprovement: result.metrics.performanceImprovement,
         },
         context: {
-          swarmId: swarm.id,
+          teamId: team.id,
           agentCount: agents.length,
           modelUsed: agents[0]?.model || 'unknown',
           toolsUsed: [...new Set(toolsUsed)],
@@ -605,7 +609,7 @@ export async function runImprovementCycle(
           performanceImprovement: result.metrics.performanceImprovement,
         },
         context: {
-          swarmId: swarm.id,
+          teamId: team.id,
           agentCount: agents.length,
           modelUsed: agents[0]?.model || 'unknown',
           toolsUsed: [...new Set(toolsUsed)],
@@ -644,7 +648,7 @@ export async function getSelfImprovementReport(
   
   let report = '\n';
   report += '╔══════════════════════════════════════════════════════════════╗\n';
-  report += '║           DASH SELF-IMPROVEMENT REPORT                       ║\n';
+  report += '║           GODEL SELF-IMPROVEMENT REPORT                       ║\n';
   report += '╠══════════════════════════════════════════════════════════════╣\n';
   report += `║ Iteration: ${state.iteration}\n`;
   report += `║ Duration: ${Math.round(duration / 1000)}s\n`;
