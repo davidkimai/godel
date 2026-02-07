@@ -59,7 +59,7 @@ export interface TeamState {
 export interface BudgetState {
   totalSpend: number;
   agentCount: number;
-  swarmCount: number;
+  teamCount: number;
   history: BudgetSnapshot[];
 }
 
@@ -67,7 +67,7 @@ export interface BudgetSnapshot {
   timestamp: Date;
   totalSpend: number;
   agentCount: number;
-  swarmCount: number;
+  teamCount: number;
 }
 
 export interface MetricSnapshot {

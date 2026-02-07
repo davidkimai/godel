@@ -33,12 +33,12 @@ export interface RegisteredSkill {
   name: string;
   description: string;
   filePath: string;
-  source: SkillSource;
+  source: RegisteredSkillSource;
   content: string;
   metadata?: Record<string, unknown>;
 }
 
-export type SkillSource = 'builtin' | 'custom' | 'shared';
+export type RegisteredSkillSource = 'builtin' | 'custom' | 'shared';
 
 /**
  * SkillRegistry - Manages skill registration and lookup
@@ -112,7 +112,7 @@ export class SkillRegistry {
   /**
    * Load skills from a directory
    */
-  loadFromDirectory(dir: string, source: SkillSource = 'custom'): void {
+  loadFromDirectory(dir: string, source: RegisteredSkillSource = 'custom'): void {
     if (!fs.existsSync(dir)) {
       logger.warn(`Skills directory does not exist: ${dir}`);
       return;
@@ -160,9 +160,9 @@ export interface SkillShare {
 }
 
 /**
- * SwarmSkillManager - Manages skill sharing within a swarm
+ * TeamSkillManager - Manages skill sharing within a team
  */
-export class SwarmSkillManager {
+export class TeamSkillManager {
   private registry: SkillRegistry;
   private shares: Map<string, SkillShare> = new Map();
 
@@ -234,20 +234,20 @@ export class SwarmSkillManager {
   }
 
   /**
-   * Sync skills across all agents in a swarm
+   * Sync skills across all agents in a team
    */
-  syncSwarmSkills(swarmAgentIds: string[]): void {
+  syncTeamSkills(teamAgentIds: string[]): void {
     const allSkills = this.registry.getAll();
     
     for (const skill of allSkills) {
-      // Share each skill to all agents in the swarm
-      const targetIds = swarmAgentIds.filter(id => id !== 'system');
+      // Share each skill to all agents in the team
+      const targetIds = teamAgentIds.filter(id => id !== 'system');
       if (targetIds.length > 0) {
         this.shareSkill(skill.name, 'system', targetIds);
       }
     }
 
-    logger.info(`Synced ${allSkills.length} skills to ${swarmAgentIds.length} agents`);
+    logger.info(`Synced ${allSkills.length} skills to ${teamAgentIds.length} agents`);
   }
 
   /**
@@ -266,10 +266,10 @@ export class SwarmSkillManager {
 }
 
 /**
- * TeamSkillManager - Alias for SwarmSkillManager (for backward compatibility)
- * @deprecated Use SwarmSkillManager instead
+ * SwarmSkillManager - Alias for TeamSkillManager (for backward compatibility)
+ * @deprecated Use TeamSkillManager instead
  */
-export const TeamSkillManager = SwarmSkillManager;
+export const SwarmSkillManager = TeamSkillManager;
 
 // ============================================================================
 // Singleton Exports

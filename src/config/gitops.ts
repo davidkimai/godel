@@ -175,7 +175,7 @@ interface TrackedConfig {
 
 export class GitOpsManager extends EventEmitter {
   private configs: Map<string, TrackedConfig> = new Map();
-  private swarmManager?: TeamManager;
+  private teamManager?: TeamManager;
   private defaultGitOpsConfig: GitOpsConfig = {
     enabled: true,
     watchInterval: 5000,
@@ -186,16 +186,16 @@ export class GitOpsManager extends EventEmitter {
   private pollingIntervals: Map<string, NodeJS.Timeout> = new Map();
   private isRunning: boolean = false;
 
-  constructor(swarmManager?: TeamManager) {
+  constructor(teamManager?: TeamManager) {
     super();
-    this.swarmManager = swarmManager;
+    this.teamManager = teamManager;
   }
 
   /**
    * Set the team manager for applying configs
    */
   setTeamManager(manager: TeamManager): void {
-    this.swarmManager = manager;
+    this.teamManager = manager;
   }
 
   /**
@@ -354,7 +354,8 @@ export class GitOpsManager extends EventEmitter {
       });
 
       // Auto-apply if enabled
-      if (gitopsConfig.autoApply && this.swarmManager) {
+      if (gitopsConfig.autoApply && this.teamManager) {
+        // Apply config changes
         await this.applyConfig(teamId, newResult, diff, gitopsConfig);
       }
 
@@ -381,10 +382,10 @@ export class GitOpsManager extends EventEmitter {
     gitopsConfig: GitOpsConfig
   ): Promise<void> {
     const tracked = this.configs.get(teamId);
-    if (!tracked || !this.swarmManager) return;
+    if (!tracked || !this.teamManager) return;
 
     // Get the team
-    const team = this.swarmManager.getTeam(teamId);
+    const team = this.teamManager.getTeam(teamId);
     if (!team) {
       throw new Error(`Team ${teamId} not found`);
     }
@@ -402,7 +403,7 @@ export class GitOpsManager extends EventEmitter {
       const currentAgents = team.agents.length;
       
       if (newInitialAgents !== currentAgents) {
-        await this.swarmManager.scale(teamId, newInitialAgents);
+        await this.teamManager.scale(teamId, newInitialAgents);
       }
 
       // Emit applied event
@@ -449,13 +450,13 @@ export class GitOpsManager extends EventEmitter {
     previousConfig: ConfigLoadResult,
     previousAgentCount: number
   ): Promise<void> {
-    if (!this.swarmManager) return;
+    if (!this.teamManager) return;
 
     try {
       // Restore previous agent count
-      const team = this.swarmManager.getTeam(teamId);
+      const team = this.teamManager.getTeam(teamId);
       if (team && team.agents.length !== previousAgentCount) {
-        await this.swarmManager.scale(teamId, previousAgentCount);
+        await this.teamManager.scale(teamId, previousAgentCount);
       }
 
       this.emitEvent({
@@ -545,11 +546,11 @@ export class GitOpsManager extends EventEmitter {
 
 let globalGitOpsManager: GitOpsManager | null = null;
 
-export function getGlobalGitOpsManager(swarmManager?: TeamManager): GitOpsManager {
+export function getGlobalGitOpsManager(teamManager?: TeamManager): GitOpsManager {
   if (!globalGitOpsManager) {
-    globalGitOpsManager = new GitOpsManager(swarmManager);
-  } else if (swarmManager) {
-    globalGitOpsManager.setTeamManager(swarmManager);
+    globalGitOpsManager = new GitOpsManager(teamManager);
+  } else if (teamManager) {
+    globalGitOpsManager.setTeamManager(teamManager);
   }
   return globalGitOpsManager;
 }

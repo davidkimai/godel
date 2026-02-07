@@ -23,7 +23,7 @@ export interface IndexDefinition {
 export const OPTIMIZED_INDEXES: IndexDefinition[] = [
   // Agent table indexes
   {
-    name: 'idx_agents_swarm_id',
+    name: 'idx_agents_team_id',
     table: 'agents',
     columns: ['team_id'],
     ifNotExists: true,
@@ -44,7 +44,7 @@ export const OPTIMIZED_INDEXES: IndexDefinition[] = [
     comment: 'Filter agents by lifecycle state',
   },
   {
-    name: 'idx_agents_swarm_status',
+    name: 'idx_agents_team_status',
     table: 'agents',
     columns: ['team_id', 'status'],
     ifNotExists: true,

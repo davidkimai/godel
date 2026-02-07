@@ -32,7 +32,7 @@ import {
 } from './extension-api';
 
 // Re-export TypeBox for extensions to use
-export { Type } from '@sinclair/typebox';
+export { Type, type TSchema } from '@sinclair/typebox';
 
 // Re-export default sandbox config
 export { DEFAULT_SANDBOX_CONFIG } from './extension-api';
@@ -155,11 +155,11 @@ function createSandboxedAPI(
   return {
     on: baseAPI.on,
     
-    registerTool: (<TParams extends TSchema = TSchema, TDetails = unknown>(tool: ToolDefinition<TParams, TDetails>) => {
+    registerTool: ((tool: any) => {
       // Wrap tool execution with permission checks
-      const wrappedTool: ToolDefinition<TParams, TDetails> = {
+      const wrappedTool = {
         ...tool,
-        execute: async (toolCallId, params, ctx, onUpdate) => {
+        execute: async (toolCallId: string, params: unknown, ctx: ToolContext, onUpdate?: (update: unknown) => void) => {
           // Check tool-specific permissions
           if (tool.permissions) {
             for (const perm of tool.permissions) {
@@ -183,8 +183,8 @@ function createSandboxedAPI(
         },
       };
       
-      baseAPI.registerTool(wrappedTool);
-    }) as <TParams extends TSchema = TSchema, TDetails = unknown>(tool: ToolDefinition<TParams, TDetails>) => void,
+      baseAPI.registerTool(wrappedTool as any);
+    }) as any,
     
     registerCommand: baseAPI.registerCommand,
     

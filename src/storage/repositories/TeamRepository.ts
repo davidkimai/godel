@@ -260,7 +260,7 @@ export class TeamRepository {
     this.ensureInitialized();
     
     const result = await this.pool!.query<TeamSummaryRow>(
-      `SELECT * FROM swarm_summary WHERE id = $1`,
+      `SELECT * FROM team_summary WHERE id = $1`,
       [id]
     );
 
@@ -286,7 +286,7 @@ export class TeamRepository {
     const orderDirection = filter.orderDirection?.toUpperCase() || 'DESC';
     
     let query = `
-      SELECT * FROM swarm_summary 
+      SELECT * FROM team_summary 
       ${whereClause}
       ORDER BY created_at ${orderDirection}
     `;

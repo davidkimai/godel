@@ -30,11 +30,11 @@ export function registerDashboardCommand(program: Command): void {
         // Initialize core components
         const messageBus = getGlobalBus();
         const lifecycle = getGlobalLifecycle(memoryStore.agents, messageBus);
-        const swarmManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
+        const teamManager = getGlobalTeamManager(lifecycle, messageBus, memoryStore.agents);
 
         // Start managers
         await lifecycle.start();
-        swarmManager.start();
+        teamManager.start();
 
         const port = parseInt(options.port, 10);
         const refreshRate = parseInt(options.refresh, 10);
@@ -87,7 +87,7 @@ export function registerDashboardCommand(program: Command): void {
 
         // Show initial stats
         const metrics = lifecycle.getMetrics();
-        const teams = swarmManager.listActiveTeams();
+        const teams = teamManager.listActiveTeams();
         
         logger.info('📊 Current Status:');
         logger.info(`   Active Teams: ${teams.length}`);
@@ -110,14 +110,14 @@ export function registerDashboardCommand(program: Command): void {
           logger.info('───────────────────  ───────────────────  ─────────  ──────────────────────────');
           
           for (const state of states.slice(0, 20)) {
-            const swarmName = state.agent.teamId 
-              ? swarmManager.getTeam(state.agent.teamId)?.name?.slice(0, 19) || 'unknown'
+            const teamName = state.agent.teamId 
+              ? teamManager.getTeam(state.agent.teamId)?.name?.slice(0, 19) || 'unknown'
               : 'none';
             const task = state.agent.task.slice(0, 26);
             
             logger.info(
               `${state.id.slice(0, 19).padEnd(19)}  ` +
-              `${swarmName.padEnd(19)}  ` +
+              `${teamName.padEnd(19)}  ` +
               `${getStatusEmoji(state.status)} ${state.status.padEnd(8)}  ` +
               `${task}`
             );

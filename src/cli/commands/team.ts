@@ -10,7 +10,7 @@
 import { logger } from '../../utils/logger';
 import { Command } from 'commander';
 
-export function swarmCommand(): Command {
+export function teamCommand(): Command {
   const cmd = new Command('team')
     .description('Manage agent teams')
     .configureHelp({ sortOptions: true });
@@ -106,7 +106,7 @@ export function swarmCommand(): Command {
 
 // Alias for compatibility with existing code
 export function registerTeamCommand(program: Command): void {
-  program.addCommand(swarmCommand());
+  program.addCommand(teamCommand());
 }
 
-export default swarmCommand;
+export default teamCommand;

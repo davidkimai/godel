@@ -174,7 +174,27 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
     async (request: FastifyRequest<{ Body: z.infer<typeof CreateInstanceSchema> }>, reply: FastifyReply) => {
       try {
         const validated = CreateInstanceSchema.parse(request.body);
-        const instance = await registry.register(validated);
+        // Create PiInstance with required fields added
+        const instance = await registry.register({
+          name: validated.name,
+          provider: validated.provider as import('../../integrations/pi/types').ProviderId,
+          model: validated.model,
+          id: `pi-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+          mode: 'local' as const,
+          endpoint: 'http://localhost:8787',
+          health: 'healthy' as const,
+          capabilities: [],
+          capacity: {
+            maxConcurrent: 5,
+            activeTasks: 0,
+            queueDepth: 0,
+            available: 5,
+            utilizationPercent: 0,
+          },
+          lastHeartbeat: new Date(),
+          metadata: validated.config,
+          registeredAt: new Date(),
+        });
         return reply.status(201).send(
           createSuccessResponse({ instance }, { requestId: request.id })
         );
@@ -248,7 +268,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         
         if (!instance) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.INSTANCE_NOT_FOUND, `Instance ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Instance ${id} not found`)
           );
         }
         
@@ -321,7 +341,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const instance = registry.getInstance(id);
         if (!instance) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.INSTANCE_NOT_FOUND, `Instance ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Instance ${id} not found`)
           );
         }
         
@@ -395,7 +415,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const instance = registry.getInstance(id);
         if (!instance) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.INSTANCE_NOT_FOUND, `Instance ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Instance ${id} not found`)
           );
         }
         
@@ -527,7 +547,15 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
     async (request: FastifyRequest<{ Body: z.infer<typeof CreateSessionSchema> }>, reply: FastifyReply) => {
       try {
         const validated = CreateSessionSchema.parse(request.body);
-        const session = await sessionManager.create(validated);
+        // Create session with required fields added
+        const session = await sessionManager.create({
+          agentId: validated.instanceId, // Use instanceId as agentId
+          piConfig: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            ...validated.context,
+          },
+        });
         return reply.status(201).send(
           createSuccessResponse({ session }, { requestId: request.id })
         );
@@ -601,7 +629,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         
         if (!session) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SESSION_NOT_FOUND, `Session ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Session ${id} not found`)
           );
         }
         
@@ -674,7 +702,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const session = sessionManager.getSession(id);
         if (!session) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SESSION_NOT_FOUND, `Session ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Session ${id} not found`)
           );
         }
         
@@ -814,7 +842,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const session = sessionManager.getSession(id);
         if (!session) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SESSION_NOT_FOUND, `Session ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Session ${id} not found`)
           );
         }
         
@@ -888,7 +916,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const session = sessionManager.getSession(id);
         if (!session) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SESSION_NOT_FOUND, `Session ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Session ${id} not found`)
           );
         }
         
@@ -962,7 +990,7 @@ export async function piRoutes(fastify: FastifyInstance): Promise<void> {
         const session = sessionManager.getSession(id);
         if (!session) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.SESSION_NOT_FOUND, `Session ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Session ${id} not found`)
           );
         }
         

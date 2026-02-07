@@ -153,7 +153,7 @@ export async function rolesRoutes(fastify: FastifyInstance): Promise<void> {
         
         if (!role) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.ROLE_NOT_FOUND, `Role ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Role ${id} not found`)
           );
         }
         
@@ -243,7 +243,7 @@ export async function rolesRoutes(fastify: FastifyInstance): Promise<void> {
         if (!roleRegistry) {
           return reply.status(503).send(
             createErrorResponse(
-              ErrorCodes.REGISTRY_NOT_INITIALIZED,
+              ErrorCodes.INTERNAL_ERROR,
               'Role registry not initialized'
             )
           );
@@ -352,7 +352,7 @@ export async function rolesRoutes(fastify: FastifyInstance): Promise<void> {
         const role = await roleRegistry?.updateRole(id, validated);
         if (!role) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.ROLE_NOT_FOUND, `Role ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Role ${id} not found`)
           );
         }
         
@@ -427,7 +427,7 @@ export async function rolesRoutes(fastify: FastifyInstance): Promise<void> {
         const existingRole = roleRegistry?.getRole(id);
         if (!existingRole) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.ROLE_NOT_FOUND, `Role ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Role ${id} not found`)
           );
         }
         
@@ -518,7 +518,7 @@ export async function rolesRoutes(fastify: FastifyInstance): Promise<void> {
         const role = roleRegistry?.getRole(id);
         if (!role) {
           return reply.status(404).send(
-            createErrorResponse(ErrorCodes.ROLE_NOT_FOUND, `Role ${id} not found`)
+            createErrorResponse(ErrorCodes.NOT_FOUND, `Role ${id} not found`)
           );
         }
         

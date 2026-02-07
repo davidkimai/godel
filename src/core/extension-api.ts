@@ -40,7 +40,7 @@ export interface AgentErrorEvent extends ExtensionEvent {
 
 /** Team lifecycle events */
 export interface TeamStartEvent extends ExtensionEvent {
-  type: 'swarm_start';
+  type: 'team_start';
   teamId: string;
   name: string;
   task: string;
@@ -48,7 +48,7 @@ export interface TeamStartEvent extends ExtensionEvent {
 }
 
 export interface TeamCompleteEvent extends ExtensionEvent {
-  type: 'swarm_complete';
+  type: 'team_complete';
   teamId: string;
   results: unknown[];
   totalCost?: number;

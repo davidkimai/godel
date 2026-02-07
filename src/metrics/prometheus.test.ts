@@ -79,11 +79,11 @@ describe('PrometheusMetrics', () => {
 
   describe('team metrics', () => {
     it('should set team cost gauge without error', () => {
-      expect(() => metrics.swarmCostGauge.set({ team_id: 'test-team', currency: 'usd' }, 25.50)).not.toThrow();
+      expect(() => metrics.teamCostGauge.set({ team_id: 'test-team', currency: 'usd' }, 25.50)).not.toThrow();
     });
 
     it('should increment team success counter without error', () => {
-      expect(() => metrics.swarmSuccessCounter.inc({ strategy: 'parallel' })).not.toThrow();
+      expect(() => metrics.teamSuccessCounter.inc({ strategy: 'parallel' })).not.toThrow();
     });
 
     it('should record team failure without error', () => {

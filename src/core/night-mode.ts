@@ -40,7 +40,7 @@ export interface MorningSummary {
   nightModeActive: boolean;
   totalSpend: number;
   agentChanges: number;
-  swarmActivity: number;
+  teamActivity: number;
   criticalFixesApplied: number;
   healthIncidents: number;
   recommendations: string[];
@@ -139,7 +139,7 @@ export class NightModeManager {
       nightModeActive: true,
       totalSpend: options['totalSpend'] || 0,
       agentChanges: options['agentChanges'] || 0,
-      swarmActivity: options['swarmActivity'] || 0,
+      teamActivity: options['teamActivity'] || 0,
       criticalFixesApplied: options['criticalFixesApplied'] || 0,
       healthIncidents: options['healthIncidents'] || 0,
       recommendations: this.generateRecommendations(options),

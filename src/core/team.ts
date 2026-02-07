@@ -108,7 +108,7 @@ export class TeamManager extends EventEmitter {
   private agentLifecycle: AgentLifecycle;
   private messageBus: MessageBus;
   private storage: AgentStorage;
-  private swarmRepository?: TeamRepository;
+  private teamRepository?: TeamRepository;
   private active: boolean = false;
   
   // RACE CONDITION FIX: One mutex per team for exclusive access
@@ -120,20 +120,20 @@ export class TeamManager extends EventEmitter {
     agentLifecycle: AgentLifecycle,
     messageBus: MessageBus,
     storage: AgentStorage,
-    swarmRepository?: TeamRepository
+    teamRepository?: TeamRepository
   ) {
     super();
     this.agentLifecycle = agentLifecycle;
     this.messageBus = messageBus;
     this.storage = storage;
-    this.swarmRepository = swarmRepository;
+    this.teamRepository = teamRepository;
   }
   
   /**
    * Set the team repository for persistence
    */
   setTeamRepository(repo: TeamRepository): void {
-    this.swarmRepository = repo;
+    this.teamRepository = repo;
   }
   
   /**
@@ -214,8 +214,8 @@ export class TeamManager extends EventEmitter {
       team.status = 'active';
       
       // Persist to repository if available
-      if (this.swarmRepository) {
-        await this.swarmRepository.create({
+      if (this.teamRepository) {
+        await this.teamRepository.create({
           id: team.id,
           name: team.name,
           status: team.status as unknown as 'creating' | 'active' | 'scaling' | 'paused' | 'completed' | 'failed' | 'destroyed',
@@ -278,7 +278,7 @@ export class TeamManager extends EventEmitter {
         {
           eventType: 'system.emergency_stop',
           source: { orchestrator: 'team-manager' },
-          payload: { teamId, reason: 'swarm_destroyed' },
+          payload: { teamId, reason: 'team_destroyed' },
         },
         { priority: 'critical' }
       );
@@ -671,7 +671,7 @@ export function getGlobalTeamManager(
   agentLifecycle?: AgentLifecycle,
   messageBus?: MessageBus,
   storage?: AgentStorage,
-  swarmRepository?: TeamRepository
+  teamRepository?: TeamRepository
 ): TeamManager {
   if (!globalTeamManager) {
     if (!agentLifecycle || !messageBus || !storage) {
@@ -689,10 +689,10 @@ export function getGlobalTeamManager(
         false
       );
     }
-    globalTeamManager = new TeamManager(agentLifecycle, messageBus, storage, swarmRepository);
-  } else if (swarmRepository) {
+    globalTeamManager = new TeamManager(agentLifecycle, messageBus, storage, teamRepository);
+  } else if (teamRepository) {
     // Update repository if provided
-    globalTeamManager.setTeamRepository(swarmRepository);
+    globalTeamManager.setTeamRepository(teamRepository);
   }
   return globalTeamManager;
 }

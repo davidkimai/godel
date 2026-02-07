@@ -83,7 +83,7 @@ export function registerAgentsCommand(program: Command): void {
         logger.info('───────────────────  ───────────────────  ─────────  ──────────────  ───────  ───────');
 
         for (const agent of agents) {
-          const swarmName = agent.teamId 
+          const teamName = agent.teamId 
             ? agent.teamId.slice(0, 19)
             : 'none';
           
@@ -93,7 +93,7 @@ export function registerAgentsCommand(program: Command): void {
 
           logger.info(
             `${agent.id.slice(0, 19).padEnd(19)}  ` +
-            `${swarmName.padEnd(19)}  ` +
+            `${teamName.padEnd(19)}  ` +
             `${getStatusEmoji(agent.status)} ${agent.status.padEnd(8)}  ` +
             `${agent.model.slice(0, 14).padEnd(14)}  ` +
             `${runtime.padStart(7)}  ` +

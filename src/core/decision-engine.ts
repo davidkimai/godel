@@ -81,7 +81,7 @@ export class DecisionEngine {
     // Check budget limits
     const budgetCheck = budgetController.checkLimits({
       agentCount: request.agentCount,
-      swarmBudget: request.estimatedCost,
+      teamBudget: request.estimatedCost,
     });
 
     if (!budgetCheck.allowed) {

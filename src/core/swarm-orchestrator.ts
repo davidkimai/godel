@@ -1,22 +1,22 @@
 /**
- * Swarm Orchestrator Module
+ * Team Orchestrator Module
  * 
- * Coordinates swarm operations and manages swarm lifecycle across the system.
+ * Coordinates team operations and manages team lifecycle across the system.
  */
 
 import { EventEmitter } from 'events';
-import type { SwarmManager } from './swarm';
-import type { SwarmExecutor } from './swarm-executor';
+import type { TeamManager } from './team';
+import type { TeamExecutor } from './team-executor';
 
-export interface SwarmOrchestratorConfig {
-  maxConcurrentSwarms?: number;
+export interface TeamOrchestratorConfig {
+  maxConcurrentTeams?: number;
   defaultTimeout?: number;
   autoCleanup?: boolean;
 }
 
-export interface OrchestratedSwarm {
+export interface OrchestratedTeam {
   id: string;
-  swarmId: string;
+  teamId: string;
   status: 'pending' | 'active' | 'completed' | 'failed';
   startedAt: Date;
   completedAt?: Date;
@@ -24,18 +24,18 @@ export interface OrchestratedSwarm {
 }
 
 /**
- * SwarmOrchestrator - Manages multiple swarms and their execution
+ * TeamOrchestrator - Manages multiple teams and their execution
  */
-export class SwarmOrchestrator extends EventEmitter {
-  private swarms: Map<string, OrchestratedSwarm> = new Map();
-  private config: SwarmOrchestratorConfig;
-  private swarmManager?: SwarmManager;
-  private swarmExecutor?: SwarmExecutor;
+export class TeamOrchestrator extends EventEmitter {
+  private teams: Map<string, OrchestratedTeam> = new Map();
+  private config: TeamOrchestratorConfig;
+  private teamManager?: TeamManager;
+  private teamExecutor?: TeamExecutor;
 
-  constructor(config: SwarmOrchestratorConfig = {}) {
+  constructor(config: TeamOrchestratorConfig = {}) {
     super();
     this.config = {
-      maxConcurrentSwarms: 10,
+      maxConcurrentTeams: 10,
       defaultTimeout: 300000,
       autoCleanup: true,
       ...config,
@@ -45,9 +45,9 @@ export class SwarmOrchestrator extends EventEmitter {
   /**
    * Initialize the orchestrator with dependencies
    */
-  initialize(swarmManager: SwarmManager, swarmExecutor: SwarmExecutor): void {
-    this.swarmManager = swarmManager;
-    this.swarmExecutor = swarmExecutor;
+  initialize(teamManager: TeamManager, teamExecutor: TeamExecutor): void {
+    this.teamManager = teamManager;
+    this.teamExecutor = teamExecutor;
     this.emit('initialized');
   }
 
@@ -66,79 +66,79 @@ export class SwarmOrchestrator extends EventEmitter {
   }
 
   /**
-   * Register a swarm for orchestration
+   * Register a team for orchestration
    */
-  registerSwarm(swarmId: string): OrchestratedSwarm {
-    const orchestrated: OrchestratedSwarm = {
+  registerTeam(teamId: string): OrchestratedTeam {
+    const orchestrated: OrchestratedTeam = {
       id: `orch-${Date.now()}`,
-      swarmId,
+      teamId,
       status: 'pending',
       startedAt: new Date(),
     };
 
-    this.swarms.set(orchestrated.id, orchestrated);
-    this.emit('swarm:registered', orchestrated);
+    this.teams.set(orchestrated.id, orchestrated);
+    this.emit('team:registered', orchestrated);
 
     return orchestrated;
   }
 
   /**
-   * Execute a registered swarm
+   * Execute a registered team
    */
-  async executeSwarm(orchestratedId: string, agentIds: string[]): Promise<OrchestratedSwarm> {
-    const orchestrated = this.swarms.get(orchestratedId);
+  async executeTeam(orchestratedId: string, agentIds: string[]): Promise<OrchestratedTeam> {
+    const orchestrated = this.teams.get(orchestratedId);
     if (!orchestrated) {
-      throw new Error(`Orchestrated swarm not found: ${orchestratedId}`);
+      throw new Error(`Orchestrated team not found: ${orchestratedId}`);
     }
 
     orchestrated.status = 'active';
-    this.emit('swarm:started', orchestrated);
+    this.emit('team:started', orchestrated);
 
     try {
-      // In a real implementation, this would use swarmExecutor
-      if (this.swarmExecutor) {
-        await this.swarmExecutor.executeSwarm(orchestrated.swarmId, agentIds);
+      // In a real implementation, this would use teamExecutor
+      if (this.teamExecutor) {
+        await this.teamExecutor.executeTeam(orchestrated.teamId, agentIds);
       }
 
       orchestrated.status = 'completed';
       orchestrated.completedAt = new Date();
-      this.emit('swarm:completed', orchestrated);
+      this.emit('team:completed', orchestrated);
     } catch (error) {
       orchestrated.status = 'failed';
       orchestrated.error = error instanceof Error ? error.message : String(error);
       orchestrated.completedAt = new Date();
-      this.emit('swarm:failed', orchestrated);
+      this.emit('team:failed', orchestrated);
     }
 
     return orchestrated;
   }
 
   /**
-   * Get an orchestrated swarm by ID
+   * Get an orchestrated team by ID
    */
-  getSwarm(orchestratedId: string): OrchestratedSwarm | undefined {
-    return this.swarms.get(orchestratedId);
+  getTeam(orchestratedId: string): OrchestratedTeam | undefined {
+    return this.teams.get(orchestratedId);
   }
 
   /**
-   * Get all orchestrated swarms
+   * Get all orchestrated teams
    */
-  getAllSwarms(): OrchestratedSwarm[] {
-    return Array.from(this.swarms.values());
+  getAllTeams(): OrchestratedTeam[] {
+    return Array.from(this.teams.values());
   }
 
   /**
-   * Get active swarms
+   * Get active teams
    */
-  getActiveSwarms(): OrchestratedSwarm[] {
-    return this.getAllSwarms().filter(s => s.status === 'active');
+  getActiveTeams(): OrchestratedTeam[] {
+    return this.getAllTeams().filter(s => s.status === 'active');
   }
 
   /**
-   * Cancel a running swarm
+   * Cancel a running team
    */
-  async cancelSwarm(orchestratedId: string): Promise<boolean> {
-    const orchestrated = this.swarms.get(orchestratedId);
+  async cancelTeam(orchestratedId: string): Promise<boolean> {
+    const orchestrated = this.teams.get(orchestratedId);
     if (!orchestrated) {
       return false;
     }
@@ -147,19 +147,19 @@ export class SwarmOrchestrator extends EventEmitter {
       orchestrated.status = 'failed';
       orchestrated.error = 'Cancelled by user';
       orchestrated.completedAt = new Date();
-      this.emit('swarm:cancelled', orchestrated);
+      this.emit('team:cancelled', orchestrated);
     }
 
     return true;
   }
 
   /**
-   * Clean up completed swarms
+   * Clean up completed teams
    */
   cleanup(): void {
-    for (const [id, swarm] of this.swarms) {
-      if (swarm.status === 'completed' || swarm.status === 'failed') {
-        this.swarms.delete(id);
+    for (const [id, team] of this.teams) {
+      if (team.status === 'completed' || team.status === 'failed') {
+        this.teams.delete(id);
       }
     }
     this.emit('cleanup');
@@ -174,45 +174,43 @@ export class SwarmOrchestrator extends EventEmitter {
     active: number;
     completed: number;
     failed: number;
-    swarms: number;
-    agents: number;
     teams: number;
+    agents: number;
   } {
-    const swarms = this.getAllSwarms();
+    const teams = this.getAllTeams();
     return {
-      total: swarms.length,
-      pending: swarms.filter(s => s.status === 'pending').length,
-      active: swarms.filter(s => s.status === 'active').length,
-      completed: swarms.filter(s => s.status === 'completed').length,
-      failed: swarms.filter(s => s.status === 'failed').length,
-      swarms: swarms.length,
+      total: teams.length,
+      pending: teams.filter(s => s.status === 'pending').length,
+      active: teams.filter(s => s.status === 'active').length,
+      completed: teams.filter(s => s.status === 'completed').length,
+      failed: teams.filter(s => s.status === 'failed').length,
+      teams: teams.length,
       agents: 0, // Would be populated from actual agent data
-      teams: 0,  // Would be populated from actual team data
     };
   }
 
   /**
-   * Reset the orchestrator (clear all swarms)
+   * Reset the orchestrator (clear all teams)
    */
   reset(): void {
-    this.swarms.clear();
+    this.teams.clear();
     this.emit('reset');
   }
 }
 
 // Singleton instance
-let globalSwarmOrchestrator: SwarmOrchestrator | null = null;
+let globalTeamOrchestrator: TeamOrchestrator | null = null;
 
-export function getGlobalSwarmOrchestrator(): SwarmOrchestrator {
-  if (!globalSwarmOrchestrator) {
-    globalSwarmOrchestrator = new SwarmOrchestrator();
+export function getGlobalTeamOrchestrator(): TeamOrchestrator {
+  if (!globalTeamOrchestrator) {
+    globalTeamOrchestrator = new TeamOrchestrator();
   }
-  return globalSwarmOrchestrator;
+  return globalTeamOrchestrator;
 }
 
-export function resetGlobalSwarmOrchestrator(): void {
-  if (globalSwarmOrchestrator) {
-    globalSwarmOrchestrator.reset();
+export function resetGlobalTeamOrchestrator(): void {
+  if (globalTeamOrchestrator) {
+    globalTeamOrchestrator.reset();
   }
-  globalSwarmOrchestrator = null;
+  globalTeamOrchestrator = null;
 }

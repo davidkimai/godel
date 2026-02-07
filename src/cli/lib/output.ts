@@ -240,7 +240,7 @@ export interface TeamOutput {
   createdAt: string;
 }
 
-export function swarmToOutput(team: Team): TeamOutput {
+export function teamToOutput(team: Team): TeamOutput {
   const progress = team.metrics.totalAgents > 0
     ? team.metrics.completedAgents / team.metrics.totalAgents
     : 0;
@@ -261,7 +261,7 @@ export function swarmToOutput(team: Team): TeamOutput {
 }
 
 export function formatTeams(teams: Team[], options: FormatOptions): string {
-  const outputs = teams.map(swarmToOutput);
+  const outputs = teams.map(teamToOutput);
   
   if (options.format === 'table') {
     const fields = ['id', 'name', 'status', 'agentCount', 'progress', 'budgetRemaining'];
@@ -273,7 +273,7 @@ export function formatTeams(teams: Team[], options: FormatOptions): string {
 
 export function formatTeamStatus(team: Team, statusInfo: TeamStatusInfo, options: FormatOptions): string {
   if (options.format === 'json' || options.format === 'jsonl') {
-    return formatOutput({ team: swarmToOutput(team), status: statusInfo }, options);
+    return formatOutput({ team: teamToOutput(team), status: statusInfo }, options);
   }
   
   // Table format

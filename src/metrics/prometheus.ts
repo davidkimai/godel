@@ -57,9 +57,9 @@ export class PrometheusMetrics {
   public readonly agentTotalGauge: Gauge<string>;
 
   // Team gauges
-  public readonly swarmActiveGauge: Gauge<string>;
-  public readonly swarmTotalGauge: Gauge<string>;
-  public readonly swarmAgentsGauge: Gauge<string>;
+  public readonly teamActiveGauge: Gauge<string>;
+  public readonly teamTotalGauge: Gauge<string>;
+  public readonly teamAgentsGauge: Gauge<string>;
   
   // Event counters
   public readonly eventsTotalCounter: Counter<string>;
@@ -76,10 +76,10 @@ export class PrometheusMetrics {
   public readonly agentFailuresCounter: Counter<string>;
   
   // Business metrics
-  public readonly swarmSuccessCounter: Counter<string>;
-  public readonly swarmFailureCounter: Counter<string>;
-  public readonly swarmCostGauge: Gauge<string>;
-  public readonly swarmDurationHistogram: Histogram<string>;
+  public readonly teamSuccessCounter: Counter<string>;
+  public readonly teamFailureCounter: Counter<string>;
+  public readonly teamCostGauge: Gauge<string>;
+  public readonly teamDurationHistogram: Histogram<string>;
   public readonly budgetUtilizationGauge: Gauge<string>;
   
   // System metrics
@@ -128,18 +128,18 @@ export class PrometheusMetrics {
     });
 
     // Team gauges
-    this.swarmActiveGauge = new Gauge({
+    this.teamActiveGauge = new Gauge({
       name: 'dash_teams_active',
       help: 'Number of currently active teams',
     });
     
-    this.swarmTotalGauge = new Gauge({
+    this.teamTotalGauge = new Gauge({
       name: 'dash_teams_total',
       help: 'Total number of teams created',
     });
     
-    this.swarmAgentsGauge = new Gauge({
-      name: 'dash_swarm_agents',
+    this.teamAgentsGauge = new Gauge({
+      name: 'dash_team_agents',
       help: 'Number of agents in a team',
       labelNames: ['team_id', 'strategy'],
     });
@@ -200,26 +200,26 @@ export class PrometheusMetrics {
     });
 
     // Business metrics
-    this.swarmSuccessCounter = new Counter({
-      name: 'dash_swarm_success_total',
+    this.teamSuccessCounter = new Counter({
+      name: 'dash_team_success_total',
       help: 'Total number of successful team completions',
       labelNames: ['strategy'],
     });
     
-    this.swarmFailureCounter = new Counter({
-      name: 'dash_swarm_failure_total',
+    this.teamFailureCounter = new Counter({
+      name: 'dash_team_failure_total',
       help: 'Total number of failed teams',
       labelNames: ['strategy', 'failure_reason'],
     });
     
-    this.swarmCostGauge = new Gauge({
-      name: 'dash_swarm_cost_usd',
+    this.teamCostGauge = new Gauge({
+      name: 'dash_team_cost_usd',
       help: 'Cost of team execution in USD',
       labelNames: ['team_id', 'currency'],
     });
     
-    this.swarmDurationHistogram = new Histogram({
-      name: 'dash_swarm_duration_seconds',
+    this.teamDurationHistogram = new Histogram({
+      name: 'dash_team_duration_seconds',
       help: 'Team execution duration in seconds',
       labelNames: ['strategy', 'status'],
       buckets: [10, 30, 60, 120, 300, 600, 1800, 3600, 7200, 14400],
@@ -265,9 +265,9 @@ export class PrometheusMetrics {
     register.registerMetric(this.agentFailedGauge);
     register.registerMetric(this.agentCompletedGauge);
     register.registerMetric(this.agentTotalGauge);
-    register.registerMetric(this.swarmActiveGauge);
-    register.registerMetric(this.swarmTotalGauge);
-    register.registerMetric(this.swarmAgentsGauge);
+    register.registerMetric(this.teamActiveGauge);
+    register.registerMetric(this.teamTotalGauge);
+    register.registerMetric(this.teamAgentsGauge);
     register.registerMetric(this.eventsTotalCounter);
     register.registerMetric(this.eventsDroppedCounter);
     register.registerMetric(this.eventProcessingHistogram);
@@ -276,10 +276,10 @@ export class PrometheusMetrics {
     register.registerMetric(this.toolCallHistogram);
     register.registerMetric(this.errorsTotalCounter);
     register.registerMetric(this.agentFailuresCounter);
-    register.registerMetric(this.swarmSuccessCounter);
-    register.registerMetric(this.swarmFailureCounter);
-    register.registerMetric(this.swarmCostGauge);
-    register.registerMetric(this.swarmDurationHistogram);
+    register.registerMetric(this.teamSuccessCounter);
+    register.registerMetric(this.teamFailureCounter);
+    register.registerMetric(this.teamCostGauge);
+    register.registerMetric(this.teamDurationHistogram);
     register.registerMetric(this.budgetUtilizationGauge);
     register.registerMetric(this.memoryUsageGauge);
     register.registerMetric(this.cpuUsageGauge);
@@ -362,7 +362,7 @@ export class PrometheusMetrics {
         this.agentTotalGauge.dec({ status: 'active' });
         this.agentTotalGauge.inc({ status: 'completed' });
         if ('totalCost' in event) {
-          this.swarmCostGauge.set(
+          this.teamCostGauge.set(
             { team_id: event.teamId || 'unknown', currency: 'usd' },
             (event as any).totalCost
           );
@@ -421,7 +421,7 @@ export class PrometheusMetrics {
     if (!this.orchestrator) return;
 
     const teams = (this.orchestrator as any).listActiveTeams();
-    this.swarmActiveGauge.set(teams.length);
+    this.teamActiveGauge.set(teams.length);
 
     // Reset gauges that need fresh values
     this.agentActiveGauge.reset();
@@ -444,7 +444,7 @@ export class PrometheusMetrics {
       this.agentFailedGauge.set({ team_id: team.id }, failedCount);
       this.agentCompletedGauge.set({ team_id: team.id }, completedCount);
 
-      this.swarmAgentsGauge.set(
+      this.teamAgentsGauge.set(
         { team_id: team.id, strategy: team.config.strategy },
         agents.length
       );
@@ -458,16 +458,16 @@ export class PrometheusMetrics {
       // Record team duration if completed
       if (team.status === 'completed' && team.completedAt) {
         const duration = (team.completedAt.getTime() - team.createdAt.getTime()) / 1000;
-        this.swarmDurationHistogram.observe(
+        this.teamDurationHistogram.observe(
           { strategy: team.config.strategy, status: 'completed' },
           duration
         );
-        this.swarmSuccessCounter.inc({ strategy: team.config.strategy });
+        this.teamSuccessCounter.inc({ strategy: team.config.strategy });
       }
 
       // Record cost
       if (team.budget.consumed > 0) {
-        this.swarmCostGauge.set(
+        this.teamCostGauge.set(
           { team_id: team.id, currency: 'usd' },
           team.budget.consumed
         );
@@ -501,7 +501,7 @@ export class PrometheusMetrics {
    * Record a team failure
    */
   recordTeamFailure(teamId: string, strategy: string, reason: string): void {
-    this.swarmFailureCounter.inc({ strategy, failure_reason: reason });
+    this.teamFailureCounter.inc({ strategy, failure_reason: reason });
   }
 
   /**

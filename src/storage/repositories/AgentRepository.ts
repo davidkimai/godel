@@ -96,7 +96,7 @@ export interface AgentActivity {
   model: string;
   task: string;
   team_id?: string;
-  swarm_name?: string;
+  team_name?: string;
   spawned_at: Date;
   completed_at?: Date;
   duration_seconds: number;
@@ -717,7 +717,7 @@ export class AgentRepository {
       model: row.model,
       task: row.task,
       team_id: row.team_id || undefined,
-      swarm_name: row.swarm_name || undefined,
+      team_name: row.team_name || undefined,
       spawned_at: new Date(row.spawned_at),
       completed_at: row.completed_at ? new Date(row.completed_at) : undefined,
       duration_seconds: parseFloat(String(row.duration_seconds || 0)),
@@ -773,7 +773,7 @@ interface AgentActivityRow {
   model: string;
   task: string;
   team_id?: string;
-  swarm_name?: string;
+  team_name?: string;
   spawned_at: string;
   completed_at?: string;
   duration_seconds: number | string;

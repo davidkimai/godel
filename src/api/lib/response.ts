@@ -153,6 +153,9 @@ export const ErrorCodes = {
   AGENT_NOT_FOUND: 'AGENT_NOT_FOUND',
   TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
   TASK_NOT_FOUND: 'TASK_NOT_FOUND',
+  INSTANCE_NOT_FOUND: 'INSTANCE_NOT_FOUND',
+  SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
+  ROLE_NOT_FOUND: 'ROLE_NOT_FOUND',
   
   // 409 - Conflict
   ALREADY_EXISTS: 'ALREADY_EXISTS',
@@ -166,6 +169,9 @@ export const ErrorCodes = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   DATABASE_ERROR: 'DATABASE_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  
+  // 503 - Service Unavailable
+  REGISTRY_NOT_INITIALIZED: 'REGISTRY_NOT_INITIALIZED',
 } as const;
 
 /**
@@ -185,6 +191,9 @@ export const ErrorCodeToStatus: Record<string, number> = {
   [ErrorCodes.AGENT_NOT_FOUND]: 404,
   [ErrorCodes.TEAM_NOT_FOUND]: 404,
   [ErrorCodes.TASK_NOT_FOUND]: 404,
+  [ErrorCodes.INSTANCE_NOT_FOUND]: 404,
+  [ErrorCodes.SESSION_NOT_FOUND]: 404,
+  [ErrorCodes.ROLE_NOT_FOUND]: 404,
   [ErrorCodes.ALREADY_EXISTS]: 409,
   [ErrorCodes.DUPLICATE]: 409,
   [ErrorCodes.STATE_CONFLICT]: 409,
@@ -192,6 +201,7 @@ export const ErrorCodeToStatus: Record<string, number> = {
   [ErrorCodes.INTERNAL_ERROR]: 500,
   [ErrorCodes.DATABASE_ERROR]: 500,
   [ErrorCodes.SERVICE_UNAVAILABLE]: 503,
+  [ErrorCodes.REGISTRY_NOT_INITIALIZED]: 503,
 };
 
 /**

@@ -94,7 +94,14 @@ export class StateAwareOrchestrator extends TeamOrchestrator {
     sessionTree?: SessionTree,
     swarmRepository?: TeamRepository
   ) {
-    super(agentLifecycle, messageBus, storage, eventBus, sessionTree, swarmRepository);
+    super({
+      agentLifecycle,
+      messageBus,
+      storage,
+      eventBus,
+      sessionTree,
+      swarmRepository,
+    });
 
     this.statePersistence = statePersistence;
     this.stateConfig = { ...DEFAULT_STATE_CONFIG, ...config };
@@ -140,7 +147,7 @@ export class StateAwareOrchestrator extends TeamOrchestrator {
    */
   async start(): Promise<RecoveryResult> {
     super.start();
-
+    
     let recoveryResult: RecoveryResult = {
       teamsRecovered: 0,
       agentsRecovered: 0,
@@ -166,9 +173,11 @@ export class StateAwareOrchestrator extends TeamOrchestrator {
    */
   stop(): void {
     if (this.stateConfig.enablePersistence) {
-      this.createCheckpoints();
+      this.createCheckpoints().catch(err => {
+        logger.error(`[StateAwareOrchestrator] Failed to create checkpoints: ${err}`);
+      });
     }
-    (this as any).stop();
+    super.stop();
   }
 
   // ============================================================================

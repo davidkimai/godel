@@ -125,7 +125,7 @@ export interface AgentRole {
 
   /**
    * List of broadcast channels this role can publish to.
-   * Channels: 'swarm_updates', 'alerts', 'health_status', 'review_feedback'
+   * Channels: 'team_updates', 'alerts', 'health_status', 'review_feedback'
    */
   broadcastChannels: string[]
 

@@ -1,8 +1,8 @@
 /**
- * Swarm Module - Stub Implementation
+ * Team Module - Stub Implementation
  * 
  * Minimal implementation to support existing tests.
- * This module provides swarm management capabilities.
+ * This module provides team management capabilities.
  */
 
 import { EventEmitter } from 'events';
@@ -12,61 +12,61 @@ import type { AgentStorage } from '../storage/memory';
 import { TeamRepository } from '../storage';
 import { ApplicationError } from '../errors';
 
-export class SwarmNotFoundError extends ApplicationError {
-  constructor(swarmId: string) {
-    super(`Swarm not found: ${swarmId}`, 'SWARM_NOT_FOUND');
+export class TeamNotFoundError extends ApplicationError {
+  constructor(teamId: string) {
+    super(`Team not found: ${teamId}`, 'TEAM_NOT_FOUND');
   }
 }
 
-export type SwarmStrategy = 'round-robin' | 'load-balanced' | 'priority' | 'adaptive';
+export type TeamStrategy = 'round-robin' | 'load-balanced' | 'priority' | 'adaptive';
 
-export interface SwarmConfig {
+export interface TeamConfig {
   name: string;
   task: string;
   initialAgents?: number;
-  strategy?: SwarmStrategy;
+  strategy?: TeamStrategy;
   maxAgents?: number;
   minAgents?: number;
   autoScale?: boolean;
   metadata?: Record<string, unknown>;
 }
 
-export type SwarmState = 'creating' | 'ready' | 'running' | 'paused' | 'destroying' | 'destroyed';
+export type TeamState = 'creating' | 'ready' | 'running' | 'paused' | 'destroying' | 'destroyed';
 
-export interface Swarm {
+export interface Team {
   id: string;
   name: string;
   task: string;
-  state: SwarmState;
+  state: TeamState;
   agents: string[];
-  strategy: SwarmStrategy;
-  config: SwarmConfig;
+  strategy: TeamStrategy;
+  config: TeamConfig;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface SwarmManagerOptions {
+export interface TeamManagerOptions {
   lifecycle: AgentLifecycle;
   messageBus: MessageBus;
   storage: AgentStorage;
-  swarmRepository: TeamRepository;
+  teamRepository: TeamRepository;
 }
 
 /**
- * SwarmManager - Manages swarms of agents
+ * TeamManager - Manages teams of agents
  */
-export class SwarmManager extends EventEmitter {
-  private swarms: Map<string, Swarm> = new Map();
-  private options: SwarmManagerOptions;
+export class TeamManager extends EventEmitter {
+  private teams: Map<string, Team> = new Map();
+  private options: TeamManagerOptions;
   private running: boolean = false;
 
-  constructor(options: SwarmManagerOptions) {
+  constructor(options: TeamManagerOptions) {
     super();
     this.options = options;
   }
 
   /**
-   * Start the swarm manager
+   * Start the team manager
    */
   start(): void {
     this.running = true;
@@ -74,7 +74,7 @@ export class SwarmManager extends EventEmitter {
   }
 
   /**
-   * Stop the swarm manager
+   * Stop the team manager
    */
   stop(): void {
     this.running = false;
@@ -82,11 +82,11 @@ export class SwarmManager extends EventEmitter {
   }
 
   /**
-   * Create a new swarm
+   * Create a new team
    */
-  async create(config: SwarmConfig): Promise<Swarm> {
-    const id = `swarm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const swarm: Swarm = {
+  async create(config: TeamConfig): Promise<Team> {
+    const id = `team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const team: Team = {
       id,
       name: config.name,
       task: config.task,
@@ -98,194 +98,194 @@ export class SwarmManager extends EventEmitter {
       updatedAt: new Date(),
     };
 
-    this.swarms.set(id, swarm);
+    this.teams.set(id, team);
     
     // Initialize with initial agents
     const initialAgents = config.initialAgents || 1;
     for (let i = 0; i < initialAgents; i++) {
       // In a real implementation, this would spawn actual agents
-      swarm.agents.push(`agent-${id}-${i}`);
+      team.agents.push(`agent-${id}-${i}`);
     }
 
-    swarm.state = 'ready';
-    this.emit('swarm:created', swarm);
+    team.state = 'ready';
+    this.emit('team:created', team);
     
-    return swarm;
+    return team;
   }
 
   /**
-   * Get a swarm by ID
+   * Get a team by ID
    */
-  get(swarmId: string): Swarm | undefined {
-    return this.swarms.get(swarmId);
+  get(teamId: string): Team | undefined {
+    return this.teams.get(teamId);
   }
 
   /**
-   * Get all swarms
+   * Get all teams
    */
-  getAll(): Swarm[] {
-    return Array.from(this.swarms.values());
+  getAll(): Team[] {
+    return Array.from(this.teams.values());
   }
 
   /**
-   * Start a swarm (transition to running)
+   * Start a team (transition to running)
    */
-  async startSwarm(swarmId: string): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async startTeam(teamId: string): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    swarm.state = "running";
-    swarm.updatedAt = new Date();
-    this.emit('swarm:started', swarm);
+    team.state = "running";
+    team.updatedAt = new Date();
+    this.emit('team:started', team);
     
-    return swarm;
+    return team;
   }
 
   /**
-   * Pause a running swarm
+   * Pause a running team
    */
-  async pause(swarmId: string): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async pause(teamId: string): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    swarm.state = 'paused';
-    swarm.updatedAt = new Date();
-    this.emit('swarm:paused', swarm);
+    team.state = 'paused';
+    team.updatedAt = new Date();
+    this.emit('team:paused', team);
     
-    return swarm;
+    return team;
   }
 
   /**
-   * Resume a paused swarm
+   * Resume a paused team
    */
-  async resume(swarmId: string): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async resume(teamId: string): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    swarm.state = "running";
-    swarm.updatedAt = new Date();
-    this.emit('swarm:resumed', swarm);
+    team.state = "running";
+    team.updatedAt = new Date();
+    this.emit('team:resumed', team);
     
-    return swarm;
+    return team;
   }
 
   /**
-   * Scale a swarm to a specific agent count
+   * Scale a team to a specific agent count
    */
-  async scale(swarmId: string, agentCount: number): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async scale(teamId: string, agentCount: number): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    const currentCount = swarm.agents.length;
+    const currentCount = team.agents.length;
     
     if (agentCount > currentCount) {
       // Add agents
       for (let i = currentCount; i < agentCount; i++) {
-        swarm.agents.push(`agent-${swarmId}-${i}`);
+        team.agents.push(`agent-${teamId}-${i}`);
       }
     } else if (agentCount < currentCount) {
       // Remove agents
-      swarm.agents = swarm.agents.slice(0, agentCount);
+      team.agents = team.agents.slice(0, agentCount);
     }
 
-    swarm.updatedAt = new Date();
-    this.emit('swarm:scaled', swarm, agentCount);
+    team.updatedAt = new Date();
+    this.emit('team:scaled', team, agentCount);
     
-    return swarm;
+    return team;
   }
 
   /**
-   * Destroy a swarm and all its agents
+   * Destroy a team and all its agents
    */
-  async destroy(swarmId: string): Promise<void> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async destroy(teamId: string): Promise<void> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    swarm.state = 'destroying';
-    this.emit('swarm:destroying', swarm);
+    team.state = 'destroying';
+    this.emit('team:destroying', team);
 
     // Clear agents
-    swarm.agents = [];
-    swarm.state = 'destroyed';
-    swarm.updatedAt = new Date();
+    team.agents = [];
+    team.state = 'destroyed';
+    team.updatedAt = new Date();
     
-    this.swarms.delete(swarmId);
-    this.emit('swarm:destroyed', swarm);
+    this.teams.delete(teamId);
+    this.emit('team:destroyed', team);
   }
 
   /**
-   * Add an agent to a swarm
+   * Add an agent to a team
    */
-  async addAgent(swarmId: string, agentId: string): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async addAgent(teamId: string, agentId: string): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    if (!swarm.agents.includes(agentId)) {
-      swarm.agents.push(agentId);
-      swarm.updatedAt = new Date();
+    if (!team.agents.includes(agentId)) {
+      team.agents.push(agentId);
+      team.updatedAt = new Date();
     }
 
-    return swarm;
+    return team;
   }
 
   /**
-   * Remove an agent from a swarm
+   * Remove an agent from a team
    */
-  async removeAgent(swarmId: string, agentId: string): Promise<Swarm> {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
-      throw new SwarmNotFoundError(swarmId);
+  async removeAgent(teamId: string, agentId: string): Promise<Team> {
+    const team = this.teams.get(teamId);
+    if (!team) {
+      throw new TeamNotFoundError(teamId);
     }
 
-    swarm.agents = swarm.agents.filter(id => id !== agentId);
-    swarm.updatedAt = new Date();
+    team.agents = team.agents.filter(id => id !== agentId);
+    team.updatedAt = new Date();
 
-    return swarm;
+    return team;
   }
 
   /**
-   * Get swarm statistics
+   * Get team statistics
    */
-  getStats(swarmId: string): { agentCount: number; state: SwarmState } | undefined {
-    const swarm = this.swarms.get(swarmId);
-    if (!swarm) {
+  getStats(teamId: string): { agentCount: number; state: TeamState } | undefined {
+    const team = this.teams.get(teamId);
+    if (!team) {
       return undefined;
     }
 
     return {
-      agentCount: swarm.agents.length,
-      state: swarm.state,
+      agentCount: team.agents.length,
+      state: team.state,
     };
   }
 }
 
 // Export singleton factory
-let globalSwarmManager: SwarmManager | null = null;
+let globalTeamManager: TeamManager | null = null;
 
-export function getGlobalSwarmManager(): SwarmManager {
-  if (!globalSwarmManager) {
-    throw new Error('SwarmManager not initialized. Call initializeSwarmManager first.');
+export function getGlobalTeamManager(): TeamManager {
+  if (!globalTeamManager) {
+    throw new Error('TeamManager not initialized. Call initializeTeamManager first.');
   }
-  return globalSwarmManager;
+  return globalTeamManager;
 }
 
-export function initializeSwarmManager(options: SwarmManagerOptions): SwarmManager {
-  globalSwarmManager = new SwarmManager(options);
-  return globalSwarmManager;
+export function initializeTeamManager(options: TeamManagerOptions): TeamManager {
+  globalTeamManager = new TeamManager(options);
+  return globalTeamManager;
 }
 
-export function resetSwarmManager(): void {
-  globalSwarmManager = null;
+export function resetTeamManager(): void {
+  globalTeamManager = null;
 }

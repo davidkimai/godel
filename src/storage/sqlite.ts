@@ -209,7 +209,7 @@ export class SQLiteStorage {
 
     // PERFORMANCE ROUND 2: Optimized indexes for common query patterns
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status)`);
-    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_swarm ON agents(team_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_team ON agents(team_id)`);
     // PERFORMANCE: Composite index for status-based counting (used by status command)
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_status_id ON agents(status, id)`);
     // PERFORMANCE: Index for sorting agents by spawn time (list commands)
@@ -218,7 +218,7 @@ export class SQLiteStorage {
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_agents_lightweight ON agents(status, model, team_id, spawned_at)`);
     
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent_id)`);
-    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_swarm ON events(team_id)`);
+    this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_team ON events(team_id)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type)`);
     this.getDb().exec(`CREATE INDEX IF NOT EXISTS idx_events_time ON events(timestamp)`);
   }

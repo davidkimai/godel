@@ -168,7 +168,7 @@ export class StatePersistence extends EventEmitter {
 
     // Persisted team states
     await db.run(`
-      CREATE TABLE IF NOT EXISTS swarm_states (
+      CREATE TABLE IF NOT EXISTS team_states (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -253,10 +253,10 @@ export class StatePersistence extends EventEmitter {
     `);
 
     // Indexes for common queries
-    await db.run(`CREATE INDEX IF NOT EXISTS idx_swarm_states_status ON swarm_states(status)`);
-    await db.run(`CREATE INDEX IF NOT EXISTS idx_agent_states_swarm ON agent_states(team_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_team_states_status ON team_states(status)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_agent_states_team ON agent_states(team_id)`);
     await db.run(`CREATE INDEX IF NOT EXISTS idx_agent_states_status ON agent_states(status)`);
-    await db.run(`CREATE INDEX IF NOT EXISTS idx_session_states_swarm ON session_states(team_id)`);
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_session_states_team ON session_states(team_id)`);
     await db.run(`CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON state_audit_log(entity_id)`);
     await db.run(`CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON state_audit_log(timestamp)`);
     await db.run(`CREATE INDEX IF NOT EXISTS idx_recovery_entity ON recovery_checkpoints(entity_id)`);
@@ -475,7 +475,7 @@ export class StatePersistence extends EventEmitter {
 
       // Upsert team state
       await db.run(
-        `INSERT INTO swarm_states 
+        `INSERT INTO team_states 
          (id, name, status, config, agents, created_at, completed_at, 
           budget_allocated, budget_consumed, budget_remaining, metrics, 
           session_tree_id, current_branch, version)
@@ -519,7 +519,7 @@ export class StatePersistence extends EventEmitter {
 
   async loadTeam(id: string): Promise<PersistedTeamState | undefined> {
     const db = await this.ensureDb();
-    const row = await db.get('SELECT * FROM swarm_states WHERE id = ?', [id]);
+    const row = await db.get('SELECT * FROM team_states WHERE id = ?', [id]);
 
     if (!row) return undefined;
 
@@ -544,7 +544,7 @@ export class StatePersistence extends EventEmitter {
   async loadActiveTeams(): Promise<PersistedTeamState[]> {
     const db = await this.ensureDb();
     const rows = await db.all(
-      `SELECT * FROM swarm_states 
+      `SELECT * FROM team_states 
        WHERE status IN ('active', 'scaling', 'paused', 'creating')
        ORDER BY created_at DESC`
     );
@@ -584,7 +584,7 @@ export class StatePersistence extends EventEmitter {
       const newVersion = previousState.version + 1;
 
       await db.run(
-        `UPDATE swarm_states 
+        `UPDATE team_states 
          SET status = ?, version = ?
          WHERE id = ?`,
         [status, newVersion, id]

@@ -7,7 +7,7 @@
  */
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { SwarmRepository } from '../../storage/repositories/SwarmRepository';
+import { TeamRepository } from '../../storage/repositories/TeamRepository';
 import { AgentRepository } from '../../storage/repositories/AgentRepository';
 import { EventRepository } from '../../storage/repositories/EventRepository';
 import { logger } from '../../utils/logger';
@@ -30,9 +30,12 @@ const router = Router();
  *         description: Server error
  */
 router.get('/dashboard', asyncHandler(async (_req: Request, res: Response) => {
-  const swarmRepo = new SwarmRepository();
+  const swarmRepo = new TeamRepository();
+  await swarmRepo.initialize();
   const agentRepo = new AgentRepository();
+  await agentRepo.initialize();
   const eventRepo = new EventRepository();
+  await eventRepo.initialize();
 
   const [swarms, agents, events] = await Promise.all([
     swarmRepo.list(),
@@ -77,7 +80,7 @@ router.get('/dashboard', asyncHandler(async (_req: Request, res: Response) => {
  */
 router.get('/cost', asyncHandler(async (_req: Request, res: Response) => {
   const agentRepo = new AgentRepository();
-  const swarmRepo = new SwarmRepository();
+  const swarmRepo = new TeamRepository();
 
   const [agents, swarms] = await Promise.all([
     agentRepo.list(),
@@ -122,7 +125,9 @@ router.get('/cost', asyncHandler(async (_req: Request, res: Response) => {
  */
 router.get('/cost/breakdown', asyncHandler(async (_req: Request, res: Response) => {
   const agentRepo = new AgentRepository();
-  const swarmRepo = new SwarmRepository();
+  await agentRepo.initialize();
+  const swarmRepo = new TeamRepository();
+  await swarmRepo.initialize();
 
   const [agents, swarms] = await Promise.all([
     agentRepo.list(),
@@ -130,7 +135,7 @@ router.get('/cost/breakdown', asyncHandler(async (_req: Request, res: Response) 
   ]);
 
   const byModel: Record<string, number> = {};
-  const bySwarm: Record<string, number> = {};
+  const byTeam: Record<string, number> = {};
   const byAgent: Record<string, number> = {};
   const byTime: Array<{ timestamp: string; cost: number; cumulative: number }> = [];
 
@@ -156,11 +161,11 @@ router.get('/cost/breakdown', asyncHandler(async (_req: Request, res: Response) 
 
   agents.forEach(agent => {
     byModel[agent.model] = (byModel[agent.model] || 0) + (agent.cost || 0);
-    bySwarm[agent.swarm_id] = (bySwarm[agent.swarm_id] || 0) + (agent.cost || 0);
+    byTeam[agent.team_id || 'unknown'] = (byTeam[agent.team_id || 'unknown'] || 0) + (agent.cost || 0);
     byAgent[agent.id] = agent.cost || 0;
   });
 
-  sendSuccess(res, { byModel, bySwarm, byAgent, byTime });
+  sendSuccess(res, { byModel, byTeam, byAgent, byTime });
 }));
 
 /**
@@ -206,12 +211,12 @@ router.get('/agents', asyncHandler(async (_req: Request, res: Response) => {
  *         description: Server error
  */
 router.get('/swarms', asyncHandler(async (_req: Request, res: Response) => {
-  const swarmRepo = new SwarmRepository();
+  const swarmRepo = new TeamRepository();
   const agentRepo = new AgentRepository();
   const swarms = await swarmRepo.list();
 
   const metrics = await Promise.all(swarms.map(async swarm => {
-    const agents = await agentRepo.findBySwarmId(swarm.id);
+    const agents = await agentRepo.findByTeamId(swarm.id);
     return {
       id: swarm.id,
       name: swarm.name,
@@ -221,7 +226,7 @@ router.get('/swarms', asyncHandler(async (_req: Request, res: Response) => {
       failedAgents: agents.filter(a => a.status === 'failed').length,
       cost: agents.reduce((sum, a) => sum + (a.cost || 0), 0),
       budget: swarm.budget_allocated,
-      budgetRemaining: swarm.budget_allocated - swarm.budget_consumed
+      budgetRemaining: (swarm.budget_allocated || 0) - (swarm.budget_consumed || 0)
     };
   }));
 
@@ -249,6 +254,7 @@ router.get('/swarms', asyncHandler(async (_req: Request, res: Response) => {
  */
 router.get('/events', asyncHandler(async (req: Request, res: Response) => {
   const eventRepo = new EventRepository();
+  await eventRepo.initialize();
   const limit = Math.min(parseInt(req.query["limit"] as string) || 100, 1000);
   
   const events = await eventRepo.list({ limit });

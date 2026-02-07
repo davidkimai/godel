@@ -43,7 +43,7 @@ Communication style: Clear, organized, decisive. Always use the delegate tool to
     maxIterations: 50,
     autoSubmit: true,
     canMessage: ['worker', 'reviewer', 'monitor'],
-    broadcastChannels: ['swarm_updates'],
+    broadcastChannels: ['team_updates'],
     preferredProvider: 'anthropic',
     preferredModel: 'claude-opus-4'
   },

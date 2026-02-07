@@ -27,6 +27,12 @@ const CreateWorktreeSchema = z.object({
   branch: z.string().min(1, 'Branch name is required'),
   path: z.string().optional().describe('Custom worktree path'),
   basePath: z.string().optional().describe('Base directory for worktrees'),
+  sessionId: z.string().optional().describe('Session ID for the worktree'),
+  dependencies: z.object({
+    shared: z.array(z.string()).default(['node_modules']),
+    isolated: z.array(z.string()).default(['.env']),
+  }).default({ shared: ['node_modules'], isolated: ['.env'] }),
+  cleanup: z.enum(['immediate', 'on_success', 'delayed', 'manual']).default('delayed'),
 });
 
 const WorktreeIdParamSchema = z.object({
@@ -36,6 +42,7 @@ const WorktreeIdParamSchema = z.object({
 const CleanupWorktreeSchema = z.object({
   removeBranch: z.boolean().default(false).describe('Delete the associated branch'),
   force: z.boolean().default(false).describe('Force removal even if dirty'),
+  preserveChanges: z.boolean().default(false).describe('Preserve uncommitted changes by stashing'),
 });
 
 /**
@@ -167,7 +174,18 @@ export async function worktreeRoutes(fastify: FastifyInstance): Promise<void> {
     async (request: FastifyRequest<{ Body: z.infer<typeof CreateWorktreeSchema> }>, reply: FastifyReply) => {
       try {
         const validated = CreateWorktreeSchema.parse(request.body);
-        const worktree = await manager.createWorktree(validated);
+        // Construct proper WorktreeConfig with defaults
+        const worktreeConfig = {
+          repository: validated.repository,
+          baseBranch: validated.branch,
+          sessionId: validated.sessionId || `api-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+          dependencies: {
+            shared: validated.dependencies?.shared || ['node_modules'],
+            isolated: validated.dependencies?.isolated || ['.env'],
+          },
+          cleanup: validated.cleanup || 'delayed',
+        };
+        const worktree = await manager.createWorktree(worktreeConfig);
         return reply.status(201).send(
           createSuccessResponse({ worktree }, { requestId: request.id })
         );
@@ -395,7 +413,8 @@ export async function worktreeRoutes(fastify: FastifyInstance): Promise<void> {
           );
         }
         
-        await manager.removeWorktree(worktree, validated);
+        // Cast to CleanupOptions (all required fields are present with defaults)
+        await manager.removeWorktree(worktree, validated as { removeBranch: boolean; force: boolean; preserveChanges: boolean });
         return reply.send(
           createSuccessResponse({ success: true }, { requestId: request.id })
         );

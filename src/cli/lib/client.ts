@@ -203,12 +203,12 @@ class InMemoryTaskStore {
 }
 
 export class DirectDashClient implements DashApiClient {
-  private swarmManager: TeamManager | null = null;
+  private teamManager: TeamManager | null = null;
   private lifecycle: AgentLifecycle | null = null;
   private messageBus: MessageBus | null = null;
   private agentRepo: AgentRepository | null = null;
   private eventRepo: EventRepository | null = null;
-  private swarmRepo: TeamRepository | null = null;
+  private teamRepo: TeamRepository | null = null;
   private taskStore: InMemoryTaskStore;
   private initialized = false;
   private initializePromise: Promise<void> | null = null;
@@ -247,13 +247,13 @@ export class DirectDashClient implements DashApiClient {
       await this.lifecycle.start();
 
       // Initialize team manager
-      this.swarmManager = getGlobalTeamManager(this.lifecycle, this.messageBus, memoryStore.agents);
-      this.swarmManager.start();
+      this.teamManager = getGlobalTeamManager(this.lifecycle, this.messageBus, memoryStore.agents);
+      this.teamManager.start();
 
       // Initialize repositories
       this.agentRepo = new AgentRepository();
       this.eventRepo = new EventRepository();
-      this.swarmRepo = new TeamRepository();
+      this.teamRepo = new TeamRepository();
 
       this.initialized = true;
     })();
@@ -271,7 +271,7 @@ export class DirectDashClient implements DashApiClient {
 
   async listTeams(options: ListOptions = {}): Promise<ApiResponse<PaginatedResponse<Team>>> {
     await this.initialize();
-    const teams = this.swarmManager!.listTeams();
+    const teams = this.teamManager!.listTeams();
     const total = teams.length;
     
     const page = options.page || 1;
@@ -294,7 +294,7 @@ export class DirectDashClient implements DashApiClient {
 
   async getTeam(id: string): Promise<ApiResponse<Team>> {
     await this.initialize();
-    const team = this.swarmManager!.getTeam(id);
+    const team = this.teamManager!.getTeam(id);
     
     if (!team) {
       return {
@@ -310,7 +310,7 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     try {
-      const team = await this.swarmManager!.create(config);
+      const team = await this.teamManager!.create(config);
       return { success: true, data: team };
     } catch (error) {
       return {
@@ -327,8 +327,8 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     try {
-      await this.swarmManager!.scale(id, targetSize);
-      const team = this.swarmManager!.getTeam(id);
+      await this.teamManager!.scale(id, targetSize);
+      const team = this.teamManager!.getTeam(id);
       return { success: true, data: team! };
     } catch (error) {
       return {
@@ -345,7 +345,7 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     try {
-      await this.swarmManager!.destroy(id, force);
+      await this.teamManager!.destroy(id, force);
       return { success: true };
     } catch (error) {
       return {
@@ -362,7 +362,7 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     try {
-      const status = this.swarmManager!.getStatus(id);
+      const status = this.teamManager!.getStatus(id);
       return { success: true, data: status };
     } catch (error) {
       return {
@@ -878,8 +878,8 @@ export class DirectDashClient implements DashApiClient {
     await this.initialize();
     
     const lifecycleMetrics = this.lifecycle!.getMetrics();
-    const teams = this.swarmManager!.listTeams();
-    const activeTeams = this.swarmManager!.listActiveTeams();
+    const teams = this.teamManager!.listTeams();
+    const activeTeams = this.teamManager!.listActiveTeams();
     
     const totalAgents = lifecycleMetrics.totalSpawned;
     const completedAgents = lifecycleMetrics.totalCompleted;
@@ -931,7 +931,7 @@ export class DirectDashClient implements DashApiClient {
     checks['lifecycle'] = { status: this.lifecycle ? 'healthy' : 'unhealthy' };
     
     // Check team manager
-    checks['swarmManager'] = { status: this.swarmManager ? 'healthy' : 'unhealthy' };
+    checks['teamManager'] = { status: this.teamManager ? 'healthy' : 'unhealthy' },
     
     // Check message bus
     checks['messageBus'] = { status: this.messageBus ? 'healthy' : 'unhealthy' };

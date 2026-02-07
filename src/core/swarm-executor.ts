@@ -1,5 +1,5 @@
 /**
- * Swarm Executor Module - Stub Implementation
+ * Team Executor Module - Stub Implementation
  * 
  * Minimal implementation to support existing tests.
  */
@@ -7,7 +7,7 @@
 import { EventEmitter } from 'events';
 
 export interface ExecutionContext {
-  swarmId: string;
+  teamId: string;
   agentResults: Map<string, AgentResult>;
   status: 'pending' | 'running' | 'completed' | 'failed';
   startTime: Date;
@@ -27,17 +27,17 @@ export interface AgentResult {
 }
 
 /**
- * SwarmExecutor - Executes tasks across a swarm of agents
+ * TeamExecutor - Executes tasks across a team of agents
  */
-export class SwarmExecutor extends EventEmitter {
+export class TeamExecutor extends EventEmitter {
   private executions: Map<string, ExecutionContext> = new Map();
 
   /**
-   * Execute a task across a swarm of agents
+   * Execute a task across a team of agents
    */
-  async executeSwarm(swarmId: string, agentIds: string[]): Promise<ExecutionContext> {
+  async executeTeam(teamId: string, agentIds: string[]): Promise<ExecutionContext> {
     const context: ExecutionContext = {
-      swarmId,
+      teamId,
       agentResults: new Map(),
       status: 'running',
       startTime: new Date(),
@@ -61,24 +61,24 @@ export class SwarmExecutor extends EventEmitter {
     context.status = 'completed';
     context.endTime = new Date();
     
-    this.executions.set(swarmId, context);
+    this.executions.set(teamId, context);
     this.emit('execution:completed', context);
     
     return context;
   }
 
   /**
-   * Get execution context for a swarm
+   * Get execution context for a team
    */
-  getExecution(swarmId: string): ExecutionContext | undefined {
-    return this.executions.get(swarmId);
+  getExecution(teamId: string): ExecutionContext | undefined {
+    return this.executions.get(teamId);
   }
 
   /**
    * Alias for getExecution (used by some tests)
    */
-  getContext(swarmId: string): ExecutionContext | undefined {
-    return this.getExecution(swarmId);
+  getContext(teamId: string): ExecutionContext | undefined {
+    return this.getExecution(teamId);
   }
 
   /**
@@ -91,8 +91,8 @@ export class SwarmExecutor extends EventEmitter {
   /**
    * Cancel an ongoing execution
    */
-  async cancelExecution(swarmId: string): Promise<boolean> {
-    const context = this.executions.get(swarmId);
+  async cancelExecution(teamId: string): Promise<boolean> {
+    const context = this.executions.get(teamId);
     if (!context) {
       return false;
     }
@@ -109,8 +109,8 @@ export class SwarmExecutor extends EventEmitter {
   /**
    * Get aggregated results for an execution
    */
-  getResults(swarmId: string): { success: boolean; outputs: string[]; totalCost: number } | undefined {
-    const context = this.executions.get(swarmId);
+  getResults(teamId: string): { success: boolean; outputs: string[]; totalCost: number } | undefined {
+    const context = this.executions.get(teamId);
     if (!context) {
       return undefined;
     }
@@ -136,4 +136,4 @@ export class SwarmExecutor extends EventEmitter {
 }
 
 // Export singleton instance
-export const swarmExecutor = new SwarmExecutor();
+export const teamExecutor = new TeamExecutor();

@@ -60,14 +60,14 @@ export type FileNode = {
   imports?: string[];
 };
 
-export const FileNodeSchema: z.ZodType<FileNode> = z.object({
+export const FileNodeSchema = z.lazy(() => z.object({
   name: z.string(),
   path: z.string(),
   type: z.enum(['file', 'directory']),
   children: z.record(z.lazy(() => FileNodeSchema)).optional(),
   exports: z.array(z.string()).optional(),
   imports: z.array(z.string()).optional(),
-});
+})) as z.ZodType<FileNode>;
 
 export const DependencyGraphSchema = z.object({
   dependencies: z.record(z.array(z.string())),

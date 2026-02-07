@@ -393,6 +393,71 @@ export class ResourceConflictError extends ResourceError {
 }
 
 /**
+ * Pi Integration errors
+ */
+export class PiError extends GodelError {
+  constructor(
+    message: string,
+    code: string = 'PI_ERROR',
+    context?: Record<string, unknown>
+  ) {
+    super(message, code, context);
+  }
+}
+
+export class InstanceNotFoundError extends PiError {
+  constructor(instanceId: string) {
+    super(
+      `Pi instance '${instanceId}' not found`,
+      'INSTANCE_NOT_FOUND',
+      { instanceId }
+    );
+  }
+}
+
+export class SessionNotFoundError extends PiError {
+  constructor(sessionId: string) {
+    super(
+      `Pi session '${sessionId}' not found`,
+      'SESSION_NOT_FOUND',
+      { sessionId }
+    );
+  }
+}
+
+/**
+ * Role management errors
+ */
+export class RoleError extends GodelError {
+  constructor(
+    message: string,
+    code: string = 'ROLE_ERROR',
+    context?: Record<string, unknown>
+  ) {
+    super(message, code, context);
+  }
+}
+
+export class RoleNotFoundError extends RoleError {
+  constructor(roleId: string) {
+    super(
+      `Role '${roleId}' not found`,
+      'ROLE_NOT_FOUND',
+      { roleId }
+    );
+  }
+}
+
+export class RegistryNotInitializedError extends RoleError {
+  constructor() {
+    super(
+      'Role registry not initialized',
+      'REGISTRY_NOT_INITIALIZED'
+    );
+  }
+}
+
+/**
  * Network/IO errors
  */
 export class NetworkError extends GodelError {
@@ -528,4 +593,12 @@ export enum ErrorCode {
   // Network
   NETWORK_ERROR = 'NETWORK_ERROR',
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+  
+  // Pi Integration
+  INSTANCE_NOT_FOUND = 'INSTANCE_NOT_FOUND',
+  SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
+  
+  // Roles
+  ROLE_NOT_FOUND = 'ROLE_NOT_FOUND',
+  REGISTRY_NOT_INITIALIZED = 'REGISTRY_NOT_INITIALIZED',
 }
