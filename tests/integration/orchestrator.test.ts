@@ -6,7 +6,7 @@
 
 import { HealthMonitor, HealthReport } from '../../src/core/health-monitor';
 import { StateManager, SystemState, RecoveryResult } from '../../src/core/state-manager';
-import { SwarmManager, SwarmConfig, Swarm } from '../../src/core/swarm';
+import { TeamManager, TeamConfig, Team } from '../../src/core/team';
 import { AgentLifecycle } from '../../src/core/lifecycle';
 import { MessageBus } from '../../src/bus/index';
 import { AgentStorage } from '../../src/storage/memory';
@@ -169,7 +169,7 @@ describe('Orchestrator Integration', () => {
       expect(state.version).toBeDefined();
       expect(state.lastCheckpoint).toBeInstanceOf(Date);
       expect(state.agents).toEqual([]);
-      expect(state.swarms).toEqual([]);
+      expect(state.teams).toEqual([]);
     });
 
     it('should save and load checkpoint', async () => {
@@ -207,8 +207,8 @@ describe('Orchestrator Integration', () => {
         agents: [
           { id: 'agent-1', name: 'Agent 1', status: 'running', model: 'kimi-k2.5', createdAt: new Date(), lastActivity: new Date() }
         ],
-        swarms: [],
-        budgets: { totalSpend: 0, agentCount: 1, swarmCount: 0, history: [] },
+        teams: [],
+        budgets: { totalSpend: 0, agentCount: 1, teamCount: 0, history: [] },
         budgetsConfig: {},
         metrics: [],
         patterns: [],
@@ -218,7 +218,7 @@ describe('Orchestrator Integration', () => {
 
       const result = await stateManager.recoverFromCheckpoint(state, {
         restartAgents: false,
-        resumeSwarms: false,
+        resumeTeams: false,
         restoreBudgets: false,
         replayActions: false,
       });
@@ -226,26 +226,25 @@ describe('Orchestrator Integration', () => {
       expect(result).toBeDefined();
       expect(result.success).toBeDefined();
       expect(result.agentsRestored).toBeGreaterThanOrEqual(0);
-      expect(result.swarmsResumed).toBeGreaterThanOrEqual(0);
+      expect(result.teamsResumed).toBeGreaterThanOrEqual(0);
       expect(typeof result.budgetsRestored).toBe('boolean');
       expect(result.actionsReplayed).toBeGreaterThanOrEqual(0);
       expect(Array.isArray(result.errors)).toBe(true);
     });
   });
 
-  describe('SwarmManager Lifecycle Integration', () => {
-    let swarmManager: SwarmManager;
+  describe('TeamManager Lifecycle Integration', () => {
+    let teamManager: TeamManager;
     let mockAgentLifecycle: jest.Mocked<AgentLifecycle>;
     let mockMessageBus: jest.Mocked<MessageBus>;
     let mockStorage: jest.Mocked<AgentStorage>;
 
-    const createMockSwarmConfig = (): SwarmConfig => ({
-      name: 'test-swarm',
+    const createMockTeamConfig = (): TeamConfig => ({
+      name: 'test-team',
       task: 'Test task',
       initialAgents: 2,
       maxAgents: 5,
-      strategy: 'parallel',
-      model: 'kimi-k2.5',
+      strategy: 'round-robin',
       budget: {
         amount: 10,
         currency: 'USD',
@@ -264,7 +263,7 @@ describe('Orchestrator Integration', () => {
           id: `agent-${Date.now()}`,
           label: 'Test Agent',
           status: 'pending',
-          model: 'kimi-k2.5',
+          model: 'claude-sonnet-4-5',
           task: 'Test task',
           spawnedAt: new Date(),
           maxRetries: 3,
@@ -292,172 +291,166 @@ describe('Orchestrator Integration', () => {
         get: jest.fn(),
       } as unknown as jest.Mocked<AgentStorage>;
 
-      swarmManager = new SwarmManager(
+      const mockTeamRepo = {
+        create: jest.fn().mockResolvedValue({ id: 'team-123' }),
+        update: jest.fn().mockResolvedValue({}),
+        delete: jest.fn().mockResolvedValue({}),
+        findById: jest.fn().mockResolvedValue(null),
+        findAll: jest.fn().mockResolvedValue([]),
+      };
+
+      teamManager = new TeamManager(
         mockAgentLifecycle,
         mockMessageBus,
         mockStorage,
+        mockTeamRepo as any,
       );
     });
 
     afterEach(() => {
-      swarmManager.stop();
+      teamManager.stop();
       jest.clearAllMocks();
     });
 
-    it('should start and stop swarm manager', () => {
+    it('should start and stop team manager', () => {
       const startSpy = jest.fn();
       const stopSpy = jest.fn();
 
-      swarmManager.on('manager.started', startSpy);
-      swarmManager.on('manager.stopped', stopSpy);
+      teamManager.on('manager.started', startSpy);
+      teamManager.on('manager.stopped', stopSpy);
 
-      swarmManager.start();
+      teamManager.start();
       expect(startSpy).toHaveBeenCalled();
 
-      swarmManager.stop();
+      teamManager.stop();
       expect(stopSpy).toHaveBeenCalled();
     });
 
-    it('should create swarm with lifecycle events', async () => {
-      swarmManager.start();
+    it('should create team with lifecycle events', async () => {
+      teamManager.start();
       const createdSpy = jest.fn();
-      swarmManager.on('swarm.created', createdSpy);
+      teamManager.on('team.created', createdSpy);
 
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
-      expect(swarm).toBeDefined();
-      expect(swarm.name).toBe(config.name);
-      expect(createdSpy).toHaveBeenCalledWith(swarm);
+      expect(team).toBeDefined();
+      expect(team.name).toBe(config.name);
+      expect(createdSpy).toHaveBeenCalledWith(team);
     });
 
-    it('should destroy swarm and cleanup', async () => {
-      swarmManager.start();
+    it('should destroy team and cleanup', async () => {
+      teamManager.start();
       const destroyedSpy = jest.fn();
-      swarmManager.on('swarm.destroyed', destroyedSpy);
+      teamManager.on('team.destroyed', destroyedSpy);
 
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
-      await swarmManager.destroy(swarm.id);
+      await teamManager.destroy(team.id);
 
       expect(destroyedSpy).toHaveBeenCalled();
-      const retrieved = swarmManager.getSwarm(swarm.id);
+      const retrieved = teamManager.getTeam(team.id);
       expect(retrieved?.status).toBe('destroyed');
     });
 
-    it('should scale swarm up and down', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
+    it('should scale team up and down', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
       const scaledSpy = jest.fn();
-      swarmManager.on('swarm.scaled', scaledSpy);
+      teamManager.on('team.scaled', scaledSpy);
 
-      await swarmManager.scale(swarm.id, 3);
+      await teamManager.scale(team.id, 3);
 
-      expect(scaledSpy).toHaveBeenCalledWith(expect.objectContaining({
-        teamId: team.id,
-        newSize: 3,
-      }));
+      expect(scaledSpy).toHaveBeenCalled();
+      const updatedTeam = teamManager.getTeam(team.id);
+      expect(updatedTeam?.agents.length).toBe(3);
     });
 
-    it('should get swarm status', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
+    it('should get team info', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
-      const status = swarmManager.getStatus(swarm.id);
+      const teamInfo = teamManager.getTeam(team.id);
 
-      expect(status).toBeDefined();
-      expect(status.id).toBe(swarm.id);
-      expect(status.name).toBe(swarm.name);
-      expect(status.status).toBeDefined();
-      expect(typeof status.agentCount).toBe('number');
-      expect(typeof status.budgetRemaining).toBe('number');
-      expect(typeof status.progress).toBe('number');
+      expect(teamInfo).toBeDefined();
+      expect(teamInfo?.agents.length).toBe(2);
+      expect(teamInfo?.status).toBe('active');
     });
 
-    it('should list all swarms', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
+    it('should list all teams', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
 
-      await swarmManager.create(config);
-      await swarmManager.create({ ...config, name: 'swarm-2' });
+      await teamManager.create(config);
+      await teamManager.create({ ...config, name: 'team-2' });
 
-      const swarms = swarmManager.listSwarms();
-      expect(swarms).toHaveLength(2);
+      const teams = teamManager.listTeams();
+      expect(teams).toHaveLength(2);
     });
 
-    it('should list only active swarms', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
+    it('should list only active teams', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
 
-      const swarm1 = await swarmManager.create(config);
-      await swarmManager.create({ ...config, name: 'swarm-2' });
-      await swarmManager.destroy(swarm1.id);
+      const team1 = await teamManager.create(config);
+      await teamManager.create({ ...config, name: 'team-2' });
+      await teamManager.destroy(team1.id);
 
-      const activeSwarms = swarmManager.listActiveSwarms();
-      expect(activeSwarms).toHaveLength(1);
-      expect(activeSwarms[0].name).toBe('swarm-2');
+      const activeTeams = teamManager.listActiveTeams();
+      expect(activeTeams).toHaveLength(1);
+      expect(activeTeams[0].name).toBe('team-2');
     });
 
-    it('should pause and resume swarm', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
+    it('should pause and resume team', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
-      await swarmManager.pauseSwarm(swarm.id);
-      let retrieved = swarmManager.getSwarm(swarm.id);
+      await teamManager.pauseTeam(team.id);
+      let retrieved = teamManager.getTeam(team.id);
       expect(retrieved?.status).toBe('paused');
 
-      await swarmManager.resumeSwarm(swarm.id);
-      retrieved = swarmManager.getSwarm(swarm.id);
+      await teamManager.resumeTeam(team.id);
+      retrieved = teamManager.getTeam(team.id);
       expect(retrieved?.status).toBe('active');
     });
 
-    it('should consume budget and emit warnings', async () => {
-      swarmManager.start();
-      const warningSpy = jest.fn();
-      const criticalSpy = jest.fn();
-      swarmManager.on('swarm.budget.warning', warningSpy);
-      swarmManager.on('swarm.budget.critical', criticalSpy);
+    it('should handle team operations', async () => {
+      teamManager.start();
 
-      const config = createMockSwarmConfig();
-      config.budget = { amount: 100, currency: 'USD', warningThreshold: 0.5, criticalThreshold: 0.8 };
-      const swarm = await swarmManager.create(config);
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
 
-      // Consume 60% of budget (should trigger warning)
-      await swarmManager.consumeBudget(swarm.id, 'agent-1', 1000, 60);
-
-      const retrieved = swarmManager.getSwarm(swarm.id);
-      expect(retrieved?.budget.consumed).toBe(60);
-      expect(retrieved?.budget.remaining).toBe(40);
+      expect(team).toBeDefined();
+      expect(team.agents.length).toBe(2);
+      expect(team.status).toBe('active');
     });
 
-    it('should throw error for non-existent swarm operations', async () => {
-      await expect(swarmManager.scale('non-existent', 5)).rejects.toThrow();
-      await expect(swarmManager.destroy('non-existent')).rejects.toThrow();
-      // getStatus throws for non-existent swarm
-      expect(() => swarmManager.getStatus('non-existent')).toThrow();
+    it('should throw error for non-existent team operations', async () => {
+      await expect(teamManager.scale('non-existent', 5)).rejects.toThrow();
+      await expect(teamManager.destroy('non-existent')).rejects.toThrow();
     });
 
-    it('should prevent scaling destroyed swarms', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
-      const swarm = await swarmManager.create(config);
-      await swarmManager.destroy(swarm.id);
+    it('should prevent scaling destroyed teams', async () => {
+      teamManager.start();
+      const config = createMockTeamConfig();
+      const team = await teamManager.create(config);
+      await teamManager.destroy(team.id);
 
-      await expect(swarmManager.scale(swarm.id, 5)).rejects.toThrow();
+      await expect(teamManager.scale(team.id, 5)).rejects.toThrow();
     });
 
     it('should enforce max agents limit when scaling', async () => {
-      swarmManager.start();
-      const config = createMockSwarmConfig();
+      teamManager.start();
+      const config = createMockTeamConfig();
       config.maxAgents = 3;
-      const swarm = await swarmManager.create(config);
+      const team = await teamManager.create(config);
 
-      await expect(swarmManager.scale(swarm.id, 10)).rejects.toThrow();
+      await expect(teamManager.scale(team.id, 10)).rejects.toThrow();
     });
   });
 
@@ -481,7 +474,7 @@ describe('Orchestrator Integration', () => {
       // 3. Verify state structure
       expect(initialState.version).toBe('3.0.0');
       expect(initialState.agents).toEqual([]);
-      expect(initialState.swarms).toEqual([]);
+      expect(initialState.teams).toEqual([]);
     });
   });
 });

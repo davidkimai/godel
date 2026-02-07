@@ -154,6 +154,13 @@ export class SkillRegistry extends EventEmitter implements ISkillRegistry {
   }
 
   /**
+   * Check if a skill exists
+   */
+  has(name: string): boolean {
+    return this.skills.has(name);
+  }
+
+  /**
    * Get all loaded skills
    */
   getAll(): LoadedSkill[] {

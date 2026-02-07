@@ -138,7 +138,7 @@ describe('StatePersistence', () => {
       id: 'agent-test-001',
       status: 'running',
       lifecycleState: 'running',
-      teamId: 'team-001';
+      teamId: 'team-001',
       model: 'kimi-k2.5',
       task: 'test task',
       retryCount: 0,
@@ -177,13 +177,13 @@ describe('StatePersistence', () => {
     });
 
     it('should load agents by swarm', async () => {
-      await persistence.persistAgent(mockAgent, 'test');
+      await persistence.persistAgent({ ...mockAgent, teamId: 'swarm-001' }, 'test');
       await persistence.persistAgent(
-        { ...mockAgent, id: 'agent-002', teamId: 'team-001' },
+        { ...mockAgent, id: 'agent-002', teamId: 'swarm-001' },
         'test'
       );
       await persistence.persistAgent(
-        { ...mockAgent, id: 'agent-003', teamId: 'team-002' },
+        { ...mockAgent, id: 'agent-003', teamId: 'swarm-002' },
         'test'
       );
 
@@ -299,7 +299,7 @@ describe('StatePersistence', () => {
       const result = await persistence.recoverAll();
 
       // Recovery only restores active/in-flight entities.
-      expect(result.swarmsRecovered).toBe(1);
+      expect(result.teamsRecovered).toBe(1);
       expect(result.agentsRecovered).toBe(1);
       expect(result.errors).toHaveLength(0);
     });
@@ -335,7 +335,7 @@ describe('StatePersistence', () => {
     it('should create and retrieve checkpoints', async () => {
       const data = { key: 'value', nested: { prop: 123 } };
 
-      await persistence.createCheckpoint('swarm', 'test-swarm', data, 'test-checkpoint');
+      await persistence.createCheckpoint('team', 'test-swarm', data, 'test-checkpoint');
 
       const checkpoint = await persistence.getLatestCheckpoint('test-swarm');
       expect(checkpoint).toBeDefined();
@@ -343,9 +343,9 @@ describe('StatePersistence', () => {
     });
 
     it('should return the latest checkpoint', async () => {
-      await persistence.createCheckpoint('swarm', 'latest-test', { v: 1 }, 'first');
+      await persistence.createCheckpoint('team', 'latest-test', { v: 1 }, 'first');
       await new Promise(r => setTimeout(r, 50));
-      await persistence.createCheckpoint('swarm', 'latest-test', { v: 2 }, 'second');
+      await persistence.createCheckpoint('team', 'latest-test', { v: 2 }, 'second');
 
       const checkpoint = await persistence.getLatestCheckpoint('latest-test');
       expect(checkpoint?.data).toEqual({ v: 2 });
@@ -431,7 +431,7 @@ describe('StatePersistence', () => {
 
       const result = await persistence.cleanup(24);
 
-      expect(result.swarmsDeleted).toBe(1);
+      expect(result.teamsDeleted).toBe(1);
       expect(result.agentsDeleted).toBe(1);
 
       const loadedSwarm = await persistence.loadSwarm('old-swarm');
@@ -455,7 +455,7 @@ describe('StatePersistence', () => {
 
       const result = await persistence.cleanup(24);
 
-      expect(result.swarmsDeleted).toBe(0);
+      expect(result.teamsDeleted).toBe(0);
 
       const loadedSwarm = await persistence.loadSwarm('recent-swarm');
       expect(loadedSwarm).toBeDefined();

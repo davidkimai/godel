@@ -23,12 +23,42 @@ export {
   formatSkillsForPrompt,
 } from './loader';
 
+// Import and re-export the full-featured SkillRegistry from registry.ts
+import {
+  SkillRegistry as FullSkillRegistry,
+  getGlobalSkillRegistry,
+  resetGlobalSkillRegistry,
+  DEFAULT_REGISTRY_CONFIG,
+} from './registry';
+
+// Re-export from registry
+export {
+  SkillRegistry,
+  getGlobalSkillRegistry,
+  resetGlobalSkillRegistry,
+  DEFAULT_REGISTRY_CONFIG,
+} from './registry';
+
+// Alias for internal use
+type SkillRegistry = FullSkillRegistry;
+
+// Re-export types
 export type { Skill, SkillSource, SkillSection } from './types';
+export type {
+  LoadedSkill,
+  SkillMatch,
+  SkillRegistryConfig,
+  SkillEvent,
+  SkillEventType,
+  ISkillRegistry,
+  TeamSkillContext,
+  TeamSkillConfig,
+} from './types';
 
-// ============================================================================
-// Skill Registry
-// ============================================================================
+// Re-export all from types for convenience
+export * from './types';
 
+// Simple skill registration interface
 export interface RegisteredSkill {
   name: string;
   description: string;
@@ -39,114 +69,6 @@ export interface RegisteredSkill {
 }
 
 export type RegisteredSkillSource = 'builtin' | 'custom' | 'shared';
-
-/**
- * SkillRegistry - Manages skill registration and lookup
- */
-export class SkillRegistry {
-  private skills: Map<string, RegisteredSkill> = new Map();
-
-  /**
-   * Register a skill
-   */
-  register(skill: RegisteredSkill): void {
-    this.skills.set(skill.name, skill);
-    logger.info(`Skill registered: ${skill.name}`);
-  }
-
-  /**
-   * Get a skill by name
-   */
-  get(name: string): RegisteredSkill | undefined {
-    return this.skills.get(name);
-  }
-
-  /**
-   * Check if a skill exists
-   */
-  has(name: string): boolean {
-    return this.skills.has(name);
-  }
-
-  /**
-   * Get all registered skills
-   */
-  getAll(): RegisteredSkill[] {
-    return Array.from(this.skills.values());
-  }
-
-  /**
-   * Unregister a skill
-   */
-  unregister(name: string): boolean {
-    return this.skills.delete(name);
-  }
-
-  /**
-   * Clear all skills
-   */
-  clear(): void {
-    this.skills.clear();
-  }
-
-  /**
-   * Load all skills from configured directories
-   */
-  async loadAll(): Promise<void> {
-    // Load from default skill directories
-    const defaultDirs = [
-      './skills',
-      './src/skills',
-      './.godel/skills',
-    ];
-
-    for (const dir of defaultDirs) {
-      if (fs.existsSync(dir)) {
-        this.loadFromDirectory(dir, 'builtin');
-      }
-    }
-
-    logger.info(`Loaded ${this.skills.size} skills`);
-  }
-
-  /**
-   * Load skills from a directory
-   */
-  loadFromDirectory(dir: string, source: RegisteredSkillSource = 'custom'): void {
-    if (!fs.existsSync(dir)) {
-      logger.warn(`Skills directory does not exist: ${dir}`);
-      return;
-    }
-
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const skillFile = path.join(dir, entry.name, 'SKILL.md');
-        if (fs.existsSync(skillFile)) {
-          try {
-            const content = fs.readFileSync(skillFile, 'utf-8');
-            // Simple frontmatter parsing
-            const nameMatch = content.match(/^name:\s*(.+)$/m);
-            const descMatch = content.match(/^description:\s*(.+)$/m);
-            
-            if (nameMatch && descMatch) {
-              this.register({
-                name: nameMatch[1].trim(),
-                description: descMatch[1].trim(),
-                filePath: skillFile,
-                source,
-                content,
-              });
-            }
-          } catch (error) {
-            logger.error(`Failed to load skill from ${skillFile}:`, error);
-          }
-        }
-      }
-    }
-  }
-}
 
 // ============================================================================
 // Team Skill Manager
@@ -271,19 +193,4 @@ export class TeamSkillManager {
  */
 export const SwarmSkillManager = TeamSkillManager;
 
-// ============================================================================
-// Singleton Exports
-// ============================================================================
-
-let globalSkillRegistry: SkillRegistry | null = null;
-
-export function getGlobalSkillRegistry(): SkillRegistry {
-  if (!globalSkillRegistry) {
-    globalSkillRegistry = new SkillRegistry();
-  }
-  return globalSkillRegistry;
-}
-
-export function resetGlobalSkillRegistry(): void {
-  globalSkillRegistry = null;
-}
+// Note: getGlobalSkillRegistry and resetGlobalSkillRegistry are re-exported from registry.ts

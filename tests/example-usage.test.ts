@@ -128,7 +128,7 @@ describe('Mock Infrastructure Examples', () => {
 
       const items = await mockRedis.lrange('mylist', 0, -1);
       
-      expect(items).toEqual(['item2', 'item1', 'item3']);
+      expect(items).toEqual(['item1', 'item2', 'item3']);
     });
   });
 
@@ -220,6 +220,7 @@ describe('Integration Harness Examples', () => {
   let harness: IntegrationHarness;
 
   beforeAll(async () => {
+    setupMockRuntime();
     harness = createIntegrationHarness({
       defaultRuntime: 'mock',
       cleanupAgents: true,

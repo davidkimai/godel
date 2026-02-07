@@ -45,8 +45,8 @@ describe('OpenClawAdapter', () => {
 
     // Create mock client
     mockClient = {
-      createSwarm: jest.fn(),
-      destroySwarm: jest.fn(),
+      createTeam: jest.fn(),
+      destroyTeam: jest.fn(),
       spawnAgent: jest.fn(),
       killAgent: jest.fn(),
       getAgent: jest.fn(),
@@ -78,7 +78,7 @@ describe('OpenClawAdapter', () => {
       expect(adapter.getStats()).toEqual({
         activeSessions: 0,
         activeAgents: 0,
-        activeSwarms: 0,
+        activeTeams: 0,
       });
     });
   });
@@ -105,7 +105,7 @@ describe('OpenClawAdapter', () => {
         },
       };
 
-      mockClient.createSwarm.mockResolvedValue(mockSwarm);
+      mockClient.createTeam.mockResolvedValue(mockSwarm);
       mockClient.spawnAgent.mockResolvedValue(mockAgent);
 
       const result = await adapter.spawnAgent('session-1', spawnOptions);
@@ -118,7 +118,7 @@ describe('OpenClawAdapter', () => {
     it('should create team with correct config', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -127,7 +127,7 @@ describe('OpenClawAdapter', () => {
 
       await adapter.spawnAgent('session-1', spawnOptions);
 
-      expect(mockClient.createSwarm).toHaveBeenCalledWith(
+      expect(mockClient.createTeam).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'openclaw-session-1',
           task: 'Review PR #123',
@@ -143,7 +143,7 @@ describe('OpenClawAdapter', () => {
     it('should map session to agent', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -156,19 +156,19 @@ describe('OpenClawAdapter', () => {
       expect(adapter.getOpenClawSessionKey('agent-xyz789')).toBe('session-1');
     });
 
-    it('should throw error if swarm creation fails', async () => {
+    it('should throw error if team creation fails', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: false,
-        error: { code: 'SWARM_ERROR', message: 'Failed to create swarm' },
+        error: { code: 'TEAM_ERROR', message: 'Failed to create team' },
       });
 
       await expect(adapter.spawnAgent('session-1', spawnOptions)).rejects.toThrow();
     });
 
-    it('should throw error if agent spawn fails and cleanup swarm', async () => {
+    it('should throw error if agent spawn fails and cleanup team', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: false,
@@ -176,13 +176,13 @@ describe('OpenClawAdapter', () => {
       });
 
       await expect(adapter.spawnAgent('session-1', spawnOptions)).rejects.toThrow();
-      expect(mockClient.destroySwarm).toHaveBeenCalledWith('swarm-abc123', true);
+      expect(mockClient.destroyTeam).toHaveBeenCalledWith('team-abc123', true);
     });
 
     it('should setup event forwarding', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -203,7 +203,7 @@ describe('OpenClawAdapter', () => {
       // First spawn an agent
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -239,7 +239,7 @@ describe('OpenClawAdapter', () => {
     beforeEach(async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -254,27 +254,27 @@ describe('OpenClawAdapter', () => {
 
     it('should kill agent and cleanup', async () => {
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       await adapter.killAgent('session-1');
 
       expect(mockClient.killAgent).toHaveBeenCalledWith('agent-xyz789', undefined);
-      expect(mockClient.destroySwarm).toHaveBeenCalledWith('swarm-abc123', undefined);
+      expect(mockClient.destroyTeam).toHaveBeenCalledWith('team-abc123', undefined);
     });
 
     it('should force kill when specified', async () => {
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       await adapter.killAgent('session-1', true);
 
       expect(mockClient.killAgent).toHaveBeenCalledWith('agent-xyz789', true);
-      expect(mockClient.destroySwarm).toHaveBeenCalledWith('swarm-abc123', true);
+      expect(mockClient.destroyTeam).toHaveBeenCalledWith('team-abc123', true);
     });
 
     it('should remove mappings after kill', async () => {
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       expect(adapter.hasAgent('session-1')).toBe(true);
 
@@ -293,7 +293,7 @@ describe('OpenClawAdapter', () => {
     it('should return agent status', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -331,7 +331,7 @@ describe('OpenClawAdapter', () => {
     it('should return not_found if agent API fails', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -362,9 +362,9 @@ describe('OpenClawAdapter', () => {
 
     it('should return list of active agents', async () => {
       // Spawn two agents
-      mockClient.createSwarm
-        .mockResolvedValueOnce({ success: true, data: { id: 'swarm-1' } })
-        .mockResolvedValueOnce({ success: true, data: { id: 'swarm-2' } });
+      mockClient.createTeam
+        .mockResolvedValueOnce({ success: true, data: { id: 'team-1' } })
+        .mockResolvedValueOnce({ success: true, data: { id: 'team-2' } });
 
       mockClient.spawnAgent
         .mockResolvedValueOnce({ success: true, data: { id: 'agent-1', status: 'running' } })
@@ -391,7 +391,7 @@ describe('OpenClawAdapter', () => {
     it('should track active sessions', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
@@ -410,14 +410,14 @@ describe('OpenClawAdapter', () => {
     it('should kill all agents and cleanup', async () => {
       mockClient.createTeam.mockResolvedValue({
         success: true,
-        data: { id: 'swarm-abc123' },
+        data: { id: 'team-abc123' },
       });
       mockClient.spawnAgent.mockResolvedValue({
         success: true,
         data: { id: 'agent-xyz789', status: 'running' },
       });
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       await adapter.spawnAgent('session-1', { agentType: 'test', task: 'test' });
 

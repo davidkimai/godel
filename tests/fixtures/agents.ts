@@ -153,7 +153,7 @@ export const mockChildAgent: Agent = {
   label: 'child-agent-1',
   status: AgentStatus.RUNNING,
   parentId: 'agent-parent-001',
-  teamId: 'team-001';
+  teamId: 'team-001',
 };
 
 /**
@@ -238,7 +238,7 @@ export const mockAgentSwarm: Agent[] = [
     label: 'child-agent-2',
     status: AgentStatus.PENDING,
     parentId: 'agent-parent-001',
-    teamId: 'team-001';
+    teamId: 'team-001',
   },
 ];
 

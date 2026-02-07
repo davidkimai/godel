@@ -13,7 +13,7 @@ import {
   TeamConfiguration,
   AgentConfig,
   AgentType,
-  TaskType,
+  IntentAction,
   WorkflowTemplate,
   WorkflowTemplateLibrary,
 } from './types';
@@ -27,7 +27,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'refactor',
     name: 'Refactoring Workflow',
     description: 'Structured refactoring with design validation',
-    taskTypes: ['refactor'],
+    taskTypes: ['refactor' as IntentAction],
     phases: [
       { name: 'analyze', description: 'Analyze current structure', requiredRoles: ['architect'], order: 1 },
       { name: 'design', description: 'Design refactoring approach', requiredRoles: ['architect'], order: 2 },
@@ -39,7 +39,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'implement',
     name: 'Feature Implementation',
     description: 'End-to-end feature development',
-    taskTypes: ['implement'],
+    taskTypes: ['implement' as IntentAction],
     phases: [
       { name: 'design', description: 'Design the feature', requiredRoles: ['architect'], order: 1 },
       { name: 'implement', description: 'Implement the feature', requiredRoles: ['implementer'], order: 2 },
@@ -51,7 +51,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'fix',
     name: 'Bug Fix Workflow',
     description: 'Systematic bug investigation and resolution',
-    taskTypes: ['fix'],
+    taskTypes: ['fix' as IntentAction],
     phases: [
       { name: 'investigate', description: 'Identify root cause', requiredRoles: ['specialist'], order: 1 },
       { name: 'reproduce', description: 'Create reproduction test', requiredRoles: ['tester'], order: 2 },
@@ -63,7 +63,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'test',
     name: 'Test Development',
     description: 'Comprehensive test coverage',
-    taskTypes: ['test'],
+    taskTypes: ['test' as IntentAction],
     phases: [
       { name: 'plan', description: 'Plan test strategy', requiredRoles: ['architect'], order: 1 },
       { name: 'write', description: 'Write tests', requiredRoles: ['tester'], order: 2 },
@@ -74,7 +74,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'review',
     name: 'Code Review',
     description: 'Thorough code review and analysis',
-    taskTypes: ['review'],
+    taskTypes: ['review' as IntentAction],
     phases: [
       { name: 'analyze', description: 'Analyze code structure', requiredRoles: ['architect'], order: 1 },
       { name: 'review', description: 'Detailed review', requiredRoles: ['reviewer'], order: 2 },
@@ -85,7 +85,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'document',
     name: 'Documentation',
     description: 'Create comprehensive documentation',
-    taskTypes: ['document'],
+    taskTypes: ['document' as IntentAction],
     phases: [
       { name: 'analyze', description: 'Analyze codebase', requiredRoles: ['architect'], order: 1 },
       { name: 'write', description: 'Write documentation', requiredRoles: ['implementer'], order: 2 },
@@ -96,7 +96,7 @@ const DEFAULT_TEMPLATES: WorkflowTemplate[] = [
     id: 'analyze',
     name: 'Code Analysis',
     description: 'Deep code analysis and investigation',
-    taskTypes: ['analyze'],
+    taskTypes: ['analyze' as IntentAction],
     phases: [
       { name: 'explore', description: 'Explore codebase', requiredRoles: ['architect'], order: 1 },
       { name: 'analyze', description: 'Perform analysis', requiredRoles: ['specialist'], order: 2 },
@@ -121,7 +121,7 @@ class DefaultTemplateLibrary implements WorkflowTemplateLibrary {
   }
 
   findTemplateForIntent(intent: ParsedIntent): WorkflowTemplate | undefined {
-    return DEFAULT_TEMPLATES.find(t => t.taskTypes.includes(intent.taskType));
+    return DEFAULT_TEMPLATES.find(t => t.taskTypes.includes(intent.action || intent.taskType as IntentAction));
   }
 }
 
@@ -154,8 +154,8 @@ export class TeamConfigGenerator {
       complexity,
     };
 
-    // Generate agents based on task type
-    switch (intent.taskType) {
+    // Generate agents based on action type
+    switch (intent.action || intent.taskType) {
       case 'refactor':
         config.agents = this.generateRefactorTeam(complexity, intent);
         break;
@@ -473,24 +473,27 @@ export class TeamConfigGenerator {
    * Generate team name.
    */
   private generateName(intent: ParsedIntent): string {
-    const taskNames: Record<TaskType, string> = {
+    const taskNames: Record<IntentAction | 'review' | 'document' | 'analyze', string> = {
       refactor: 'Refactoring',
       implement: 'Implementation',
       fix: 'Bug Fix',
       test: 'Testing',
+      optimize: 'Optimization',
       review: 'Review',
       document: 'Documentation',
       analyze: 'Analysis',
     };
     
-    return `${taskNames[intent.taskType]}: ${intent.target}`;
+    const action = intent.action || intent.taskType as IntentAction;
+    return `${taskNames[action]}: ${intent.target}`;
   }
 
   /**
    * Generate team description.
    */
   private generateDescription(intent: ParsedIntent, complexity: TeamComplexity): string {
-    let desc = `${intent.taskType} task targeting ${intent.target}`;
+    const action = intent.action || intent.taskType as IntentAction;
+    let desc = `${action} task targeting ${intent.target}`;
     
     if (intent.focus) {
       desc += ` with focus on ${intent.focus}`;

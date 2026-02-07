@@ -28,7 +28,7 @@ export interface StateVersion {
 export interface AuditLogEntry {
   id: string;
   timestamp: string;
-  entityType: 'team' | 'agent' | 'session' | 'system';
+  entityType: 'team' | 'agent' | 'session' | 'swarm' | 'system';
   entityId: string;
   action: string;
   previousState?: unknown;
@@ -53,6 +53,9 @@ export interface PersistedTeamState {
   currentBranch?: string;
   version: number;
 }
+
+// Alias for backward compatibility with tests
+export type PersistedSwarmState = PersistedTeamState;
 
 export interface PersistedAgentState {
   id: string;
@@ -276,7 +279,7 @@ export class StatePersistence extends EventEmitter {
   }
 
   private async withOptimisticLock<T>(
-    entityType: 'team' | 'agent' | 'session',
+    entityType: 'team' | 'agent' | 'session' | 'swarm',
     entityId: string,
     expectedVersion: number,
     operation: () => Promise<T>
@@ -337,7 +340,7 @@ export class StatePersistence extends EventEmitter {
   }
 
   async incrementVersion(
-    entityType: 'team' | 'agent' | 'session',
+    entityType: 'team' | 'agent' | 'session' | 'swarm',
     entityId: string,
     updatedBy?: string
   ): Promise<number> {
@@ -365,7 +368,7 @@ export class StatePersistence extends EventEmitter {
   // ============================================================================
 
   async logStateChange(
-    entityType: 'team' | 'agent' | 'session' | 'system',
+    entityType: 'team' | 'agent' | 'session' | 'swarm' | 'system',
     entityId: string,
     action: string,
     triggeredBy: string,
@@ -593,7 +596,7 @@ export class StatePersistence extends EventEmitter {
       await this.incrementVersion('team', id, triggeredBy);
 
       await this.logStateChange(
-        'team',
+        'swarm',
         id,
         'status_change',
         triggeredBy,
@@ -610,6 +613,206 @@ export class StatePersistence extends EventEmitter {
     } else {
       await operation();
     }
+  }
+
+  // ============================================================================
+  // Swarm State Persistence (separate implementation using 'swarm' entity type)
+  // ============================================================================
+
+  async persistSwarm(
+    swarm: PersistedSwarmState,
+    triggeredBy: string = 'system'
+  ): Promise<void> {
+    const db = await this.ensureDb();
+    const mutex = this.getOperationMutex(`swarm:${swarm.id}`);
+
+    await mutex.runExclusive(async () => {
+      // Get current version
+      const currentVersion = await this.getVersion('swarm', swarm.id);
+      const newVersion = currentVersion !== null ? currentVersion + 1 : 1;
+
+      // Log state change before updating
+      if (currentVersion !== null) {
+        const previousState = await this.loadSwarm(swarm.id);
+        await this.logStateChange(
+          'swarm',
+          swarm.id,
+          'update',
+          triggeredBy,
+          previousState as unknown,
+          swarm as unknown,
+          { version: newVersion }
+        );
+      } else {
+        await this.logStateChange('swarm', swarm.id, 'create', triggeredBy, undefined, swarm as unknown);
+      }
+
+      // Upsert swarm state in team_states table
+      await db.run(
+        `INSERT INTO team_states 
+         (id, name, status, config, agents, created_at, completed_at, 
+          budget_allocated, budget_consumed, budget_remaining, metrics, 
+          session_tree_id, current_branch, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name,
+         status = excluded.status,
+         config = excluded.config,
+         agents = excluded.agents,
+         completed_at = excluded.completed_at,
+         budget_consumed = excluded.budget_consumed,
+         budget_remaining = excluded.budget_remaining,
+         metrics = excluded.metrics,
+         session_tree_id = excluded.session_tree_id,
+         current_branch = excluded.current_branch,
+         version = excluded.version`,
+        [
+          swarm.id,
+          swarm.name,
+          swarm.status,
+          JSON.stringify(swarm.config),
+          JSON.stringify(swarm.agents),
+          swarm.createdAt,
+          swarm.completedAt || null,
+          swarm.budgetAllocated || null,
+          swarm.budgetConsumed || null,
+          swarm.budgetRemaining || null,
+          swarm.metrics ? JSON.stringify(swarm.metrics) : null,
+          swarm.sessionTreeId || null,
+          swarm.currentBranch || null,
+          newVersion,
+        ]
+      );
+
+      // Update version tracking with 'swarm' entity type
+      await this.incrementVersion('swarm', swarm.id, triggeredBy);
+
+      this.emit('swarm.persisted', { id: swarm.id, version: newVersion });
+    });
+  }
+
+  async loadSwarm(id: string): Promise<PersistedSwarmState | undefined> {
+    const db = await this.ensureDb();
+    const row = await db.get('SELECT * FROM team_states WHERE id = ?', [id]);
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      config: JSON.parse(row.config),
+      agents: JSON.parse(row.agents),
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+      budgetAllocated: row.budget_allocated,
+      budgetConsumed: row.budget_consumed,
+      budgetRemaining: row.budget_remaining,
+      metrics: row.metrics ? JSON.parse(row.metrics) : undefined,
+      sessionTreeId: row.session_tree_id,
+      currentBranch: row.current_branch,
+      version: row.version,
+    };
+  }
+
+  async loadActiveSwarms(): Promise<PersistedSwarmState[]> {
+    const db = await this.ensureDb();
+    const rows = await db.all(
+      `SELECT * FROM team_states 
+       WHERE status IN ('active', 'scaling', 'paused', 'creating')
+       ORDER BY created_at DESC`
+    );
+
+    return rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      config: JSON.parse(row.config),
+      agents: JSON.parse(row.agents),
+      createdAt: row.created_at,
+      completedAt: row.completed_at,
+      budgetAllocated: row.budget_allocated,
+      budgetConsumed: row.budget_consumed,
+      budgetRemaining: row.budget_remaining,
+      metrics: row.metrics ? JSON.parse(row.metrics) : undefined,
+      sessionTreeId: row.session_tree_id,
+      currentBranch: row.current_branch,
+      version: row.version,
+    }));
+  }
+
+  async updateSwarmStatus(
+    id: string,
+    status: string,
+    triggeredBy: string = 'system',
+    expectedVersion?: number
+  ): Promise<void> {
+    const operation = async () => {
+      const db = await this.ensureDb();
+      const previousState = await this.loadSwarm(id);
+
+      if (!previousState) {
+        throw new Error(`Swarm ${id} not found`);
+      }
+
+      const newVersion = previousState.version + 1;
+
+      await db.run(
+        `UPDATE team_states 
+         SET status = ?, version = ?
+         WHERE id = ?`,
+        [status, newVersion, id]
+      );
+
+      await this.incrementVersion('swarm', id, triggeredBy);
+
+      await this.logStateChange(
+        'team',
+        id,
+        'status_change',
+        triggeredBy,
+        { status: previousState.status },
+        { status },
+        { version: newVersion }
+      );
+
+      this.emit('swarm.status_changed', { id, status, previousStatus: previousState.status });
+    };
+
+    if (expectedVersion !== undefined) {
+      await this.withOptimisticLock('swarm', id, expectedVersion, operation);
+    } else {
+      await operation();
+    }
+  }
+
+  async loadAgentsBySwarm(swarmId: string): Promise<PersistedAgentState[]> {
+    const db = await this.ensureDb();
+    const rows = await db.all(
+      'SELECT * FROM agent_states WHERE team_id = ? ORDER BY created_at DESC',
+      [swarmId]
+    );
+
+    return rows.map(row => ({
+      id: row.id,
+      status: row.status,
+      lifecycleState: row.lifecycle_state,
+      teamId: row.team_id,
+      sessionId: row.session_id,
+      model: row.model,
+      task: row.task,
+      retryCount: row.retry_count,
+      maxRetries: row.max_retries,
+      lastError: row.last_error,
+      createdAt: row.created_at,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      pausedAt: row.paused_at,
+      resumedAt: row.resumed_at,
+      runtime: row.runtime,
+      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      version: row.version,
+    }));
   }
 
   // ============================================================================
@@ -927,7 +1130,7 @@ export class StatePersistence extends EventEmitter {
   // ============================================================================
 
   async createCheckpoint(
-    entityType: 'team' | 'agent' | 'session',
+    entityType: 'team' | 'agent' | 'session' | 'swarm',
     entityId: string,
     data: Record<string, unknown>,
     reason?: string
@@ -974,16 +1177,24 @@ export class StatePersistence extends EventEmitter {
       errors: [],
     };
 
+    const db = await this.ensureDb();
+
     try {
       await this.logStateChange('system', 'recovery', 'start', 'system');
 
-      // Recover active teams
+      // Recover active teams/swarm
       const activeTeams = await this.loadActiveTeams();
       result.teamsRecovered = activeTeams.length;
 
       for (const team of activeTeams) {
         try {
-          this.emit('recovery.team', team);
+          // Check if this was created as a swarm or team
+          const versionRow = await db.get(
+            "SELECT entity_type FROM state_versions WHERE entity_id = ? AND entity_type IN ('team', 'swarm')",
+            [team.id]
+          );
+          const entityType = versionRow?.entity_type || 'team';
+          this.emit(`recovery.${entityType}`, team);
         } catch (error) {
           result.errors.push(`Failed to recover team ${team.id}: ${error}`);
         }
@@ -1002,7 +1213,6 @@ export class StatePersistence extends EventEmitter {
       }
 
       // Recover sessions
-      const db = await this.ensureDb();
       const sessions = await db.all(
         'SELECT * FROM session_states ORDER BY created_at DESC'
       );
@@ -1098,7 +1308,20 @@ export class StatePersistence extends EventEmitter {
   // ============================================================================
 
   async migrateFromMemory(options: {
-    teams: Array<{
+    teams?: Array<{
+      id: string;
+      name: string;
+      status: string;
+      config: Record<string, unknown>;
+      agents: string[];
+      createdAt: Date;
+      completedAt?: Date;
+      budget: { allocated: number; consumed: number; remaining: number };
+      metrics: Record<string, unknown>;
+      sessionTreeId?: string;
+      currentBranch?: string;
+    }>;
+    swarms?: Array<{
       id: string;
       name: string;
       status: string;
@@ -1132,13 +1355,15 @@ export class StatePersistence extends EventEmitter {
       pausedAt?: Date;
       resumedAt?: Date;
     }>;
-  }): Promise<{ teams: number; agents: number }> {
+  }): Promise<{ teams: number; agents: number; swarms: number }> {
     let teamsMigrated = 0;
     let agentsMigrated = 0;
+    let swarmsMigrated = 0;
 
     await this.logStateChange('system', 'migration', 'start', 'system');
 
-    for (const team of options.teams) {
+    // Handle teams
+    for (const team of (options.teams || [])) {
       try {
         await this.persistTeam(
           {
@@ -1162,6 +1387,34 @@ export class StatePersistence extends EventEmitter {
         teamsMigrated++;
       } catch (error) {
         logger.error(`[StatePersistence] Failed to migrate team ${team.id}: ${error}`);
+      }
+    }
+
+    // Handle swarms
+    for (const swarm of (options.swarms || [])) {
+      try {
+        await this.persistSwarm(
+          {
+            id: swarm.id,
+            name: swarm.name,
+            status: swarm.status,
+            config: swarm.config,
+            agents: swarm.agents,
+            createdAt: swarm.createdAt.toISOString(),
+            completedAt: swarm.completedAt?.toISOString(),
+            budgetAllocated: swarm.budget.allocated,
+            budgetConsumed: swarm.budget.consumed,
+            budgetRemaining: swarm.budget.remaining,
+            metrics: swarm.metrics,
+            sessionTreeId: swarm.sessionTreeId,
+            currentBranch: swarm.currentBranch,
+            version: 1,
+          },
+          'migration'
+        );
+        swarmsMigrated++;
+      } catch (error) {
+        logger.error(`[StatePersistence] Failed to migrate swarm ${swarm.id}: ${error}`);
       }
     }
 
@@ -1204,10 +1457,10 @@ export class StatePersistence extends EventEmitter {
       { teamsMigrated, agentsMigrated }
     );
 
-    this.emit('migration.complete', { teams: teamsMigrated, agents: agentsMigrated });
-    logger.info(`[StatePersistence] Migration complete: ${teamsMigrated} teams, ${agentsMigrated} agents`);
+    this.emit('migration.complete', { teams: teamsMigrated, agents: agentsMigrated, swarms: swarmsMigrated });
+    logger.info(`[StatePersistence] Migration complete: ${teamsMigrated} teams, ${swarmsMigrated} swarms, ${agentsMigrated} agents`);
 
-    return { teams: teamsMigrated, agents: agentsMigrated };
+    return { teams: teamsMigrated, agents: agentsMigrated, swarms: swarmsMigrated };
   }
 
   // ============================================================================

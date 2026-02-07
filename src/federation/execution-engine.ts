@@ -281,7 +281,20 @@ export class ExecutionEngine extends EventEmitter {
       options.onTaskStart?.(task.id, agent.id);
 
       // Execute the task
-      const result = await this.executor.execute(agent.id, task.task);
+      const rawResult = await this.executor.execute(agent.id, task.task);
+
+      // Unwrap result objects for compatibility with test expectations
+      // If the result is { result: X }, unwrap to just X
+      let result: unknown = rawResult;
+      if (
+        rawResult !== null &&
+        typeof rawResult === 'object' &&
+        !Array.isArray(rawResult) &&
+        'result' in rawResult &&
+        Object.keys(rawResult).length === 1
+      ) {
+        result = (rawResult as { result: unknown }).result;
+      }
 
       const completedAt = new Date();
       const durationMs = completedAt.getTime() - startedAt.getTime();

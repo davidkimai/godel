@@ -10,6 +10,7 @@
 import {
   ParsedIntent,
   TaskType,
+  IntentAction,
   TargetType,
   PriorityLevel,
   LLMService,
@@ -40,6 +41,7 @@ const TASK_TYPE_KEYWORDS: Record<TaskType, string[]> = {
   implement: ['implement', 'create', 'add', 'build', 'develop', 'make', 'write', 'generate'],
   fix: ['fix', 'repair', 'resolve', 'debug', 'solve', 'correct', 'patch', 'bug', 'issue'],
   test: ['test', 'verify', 'validate', 'check', 'assert', 'spec', 'unittest'],
+  optimize: ['optimize', 'improve performance', 'speed up', 'enhance', 'tune', 'boost'],
   review: ['review', 'audit', 'inspect', 'examine', 'assess', 'analyze code'],
   document: ['document', 'doc', 'write docs', 'documentate', 'explain'],
   analyze: ['analyze', 'investigate', 'research', 'study', 'explore', 'understand'],
@@ -233,11 +235,12 @@ Output JSON only, no explanation.
     const priority = this.detectPriority(lower);
     
     return {
+      action: taskType as IntentAction,
       taskType,
       target,
       targetType,
       focus,
-      constraints: constraints.length > 0 ? constraints : undefined,
+      constraints: constraints.length > 0 ? { custom: constraints } : undefined,
       priority,
       raw: input,
     };
@@ -402,6 +405,7 @@ Output JSON only, no explanation.
     }
     
     return {
+      action: taskType as IntentAction,
       taskType,
       target: parsed.target || 'unknown',
       targetType,
@@ -455,6 +459,7 @@ export function quickParse(input: string): ParsedIntent {
   }
   
   return {
+    action: taskType as IntentAction,
     taskType,
     target: input,
     targetType: 'module',

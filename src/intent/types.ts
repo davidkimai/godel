@@ -12,16 +12,32 @@
 // ============================================================================
 
 /**
- * Supported task types for natural language commands.
+ * Supported action types for natural language commands (Phase 2 - Core).
+ * These are the core intent types for the "godel do" command.
  */
-export type TaskType = 
+export type IntentAction = 
   | 'refactor' 
   | 'implement' 
   | 'fix' 
   | 'test' 
-  | 'review' 
-  | 'document' 
-  | 'analyze';
+  | 'optimize';
+
+/**
+ * All valid intent action values for validation and iteration.
+ */
+export const INTENT_ACTIONS: IntentAction[] = [
+  'refactor',
+  'implement',
+  'fix',
+  'test',
+  'optimize',
+];
+
+/**
+ * Legacy TaskType for backwards compatibility.
+ * @deprecated Use IntentAction instead
+ */
+export type TaskType = IntentAction | 'review' | 'document' | 'analyze';
 
 /**
  * Target types for intent parsing.
@@ -44,14 +60,62 @@ export type ComplexityLevel = 'low' | 'medium' | 'high' | 'very-high';
 export type AgentType = 'architect' | 'implementer' | 'reviewer' | 'tester' | 'specialist';
 
 /**
- * Parsed intent structure from natural language input.
+ * Execution constraints for intent processing.
  */
-export interface ParsedIntent {
-  /** The type of task to perform */
-  taskType: TaskType;
+export interface IntentConstraints {
+  /** Budget limit in USD */
+  budget?: number;
   
-  /** What to work on */
+  /** Time limit in minutes */
+  timeLimit?: number;
+  
+  /** Maximum team size */
+  teamSize?: number;
+  
+  /** Additional custom constraints */
+  custom?: string[];
+}
+
+/**
+ * Core Intent structure as specified in Phase 2 requirements.
+ * This is the standardized interface for all intent operations.
+ */
+export interface Intent {
+  /** The type of action to perform */
+  action: IntentAction;
+  
+  /** The main subject/target of the intent (e.g., "auth module", "bug #123") */
   target: string;
+  
+  /** Optional execution constraints */
+  constraints?: IntentConstraints;
+  
+  /** Optional additional context */
+  context?: {
+    /** Original input text */
+    originalInput?: string;
+    
+    /** Parsed requirements */
+    requirements?: string[];
+    
+    /** Detected priority */
+    priority?: PriorityLevel;
+    
+    /** Any additional metadata */
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Parsed intent structure from natural language input.
+ * Extends the core Intent with additional parsed metadata.
+ */
+export interface ParsedIntent extends Intent {
+  /** 
+   * Legacy taskType for backwards compatibility.
+   * @deprecated Use action instead
+   */
+  taskType?: TaskType;
   
   /** Type of the target */
   targetType: TargetType;
@@ -60,7 +124,7 @@ export interface ParsedIntent {
   focus?: string;
   
   /** Constraints (e.g., maintain backwards compatibility) */
-  constraints?: string[];
+  constraints?: IntentConstraints;
   
   /** Priority level */
   priority?: PriorityLevel;
@@ -70,6 +134,109 @@ export interface ParsedIntent {
   
   /** Original input */
   raw: string;
+}
+
+// ============================================================================
+// HANDLER TYPES
+// ============================================================================
+
+/**
+ * Handler result containing execution outcome.
+ */
+export interface HandlerResult {
+  /** Whether the handler execution was successful */
+  success: boolean;
+  
+  /** Handler-specific output data */
+  data?: Record<string, unknown>;
+  
+  /** Error message if failed */
+  error?: string;
+  
+  /** Execution metrics */
+  metrics?: {
+    /** Duration in milliseconds */
+    durationMs: number;
+    
+    /** Tokens consumed (if applicable) */
+    tokensConsumed?: number;
+    
+    /** Cost incurred */
+    cost?: number;
+  };
+}
+
+/**
+ * Intent handler interface.
+ * All intent handlers must implement this interface.
+ */
+export interface IntentHandler {
+  /** Handler identifier */
+  readonly action: IntentAction;
+  
+  /** Handler display name */
+  readonly name: string;
+  
+  /** Handler description */
+  readonly description: string;
+  
+  /** Execute the handler for the given intent */
+  execute(intent: Intent): Promise<HandlerResult>;
+  
+  /** Validate if the handler can process this intent */
+  canHandle(intent: Intent): boolean;
+}
+
+/**
+ * Handler registration for the router.
+ */
+export interface HandlerRegistration {
+  /** Handler instance */
+  handler: IntentHandler;
+  
+  /** Optional priority (higher = checked first) */
+  priority?: number;
+}
+
+// ============================================================================
+// ROUTER TYPES
+// ============================================================================
+
+/**
+ * Routing result containing the selected handler and any preprocessing.
+ */
+export interface RoutingResult {
+  /** Selected handler */
+  handler: IntentHandler;
+  
+  /** Confidence score (0-1) */
+  confidence: number;
+  
+  /** Any preprocessing applied to the intent */
+  preprocessing?: {
+    /** Intent was transformed/enhanced */
+    transformed: boolean;
+    
+    /** Original intent before transformation */
+    original?: Intent;
+  };
+}
+
+/**
+ * Router configuration options.
+ */
+export interface RouterConfig {
+  /** Default handler to use when no match found */
+  defaultHandler?: IntentHandler;
+  
+  /** Whether to allow multiple handlers */
+  allowMultipleHandlers?: boolean;
+  
+  /** Enable preprocessing of intents */
+  enablePreprocessing?: boolean;
+  
+  /** Strict mode - throw if no handler found */
+  strictMode?: boolean;
 }
 
 // ============================================================================
@@ -259,6 +426,26 @@ export interface ParserConfig {
 }
 
 /**
+ * Result of parsing a natural language input.
+ */
+export interface ParseResult {
+  /** Whether parsing was successful */
+  success: boolean;
+  
+  /** The parsed intent (if successful) */
+  intent?: Intent;
+  
+  /** Error message (if failed) */
+  error?: string;
+  
+  /** Confidence score (0-1) */
+  confidence: number;
+  
+  /** Alternative interpretations */
+  alternatives?: Intent[];
+}
+
+/**
  * Code analyzer interface for complexity analysis.
  */
 export interface CodeAnalyzer {
@@ -290,7 +477,7 @@ export interface WorkflowTemplate {
   description: string;
   
   /** Applicable task types */
-  taskTypes: TaskType[];
+  taskTypes: IntentAction[];
   
   /** Execution phases */
   phases: WorkflowPhase[];
@@ -318,7 +505,7 @@ export interface WorkflowPhase {
  */
 export interface WorkflowTemplateLibrary {
   getTemplate(id: string): WorkflowTemplate | undefined;
-  findTemplateForIntent(intent: ParsedIntent): WorkflowTemplate | undefined;
+  findTemplateForIntent(intent: Intent): WorkflowTemplate | undefined;
 }
 
 // ============================================================================
@@ -374,3 +561,26 @@ export interface WorkflowEngine {
     intent: string;
   }): Promise<string>;
 }
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+/**
+ * Team configurations for different complexity levels.
+ */
+export const TEAM_CONFIGS: Record<ComplexityLevel, { initialAgents: number; maxAgents: number }> = {
+  low: { initialAgents: 1, maxAgents: 2 },
+  medium: { initialAgents: 3, maxAgents: 5 },
+  high: { initialAgents: 5, maxAgents: 9 },
+  'very-high': { initialAgents: 9, maxAgents: 15 },
+};
+
+/**
+ * Default constraints.
+ */
+export const DEFAULT_CONSTRAINTS: IntentConstraints = {
+  budget: 50,
+  timeLimit: 60,
+  teamSize: 5,
+};

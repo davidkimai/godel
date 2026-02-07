@@ -308,15 +308,29 @@ class ComponentBasedStrategy extends DecompositionStrategyBase {
   }
 
   private extractComponentsFromTask(task: string): string[] {
+    const lowerTask = task.toLowerCase();
     const componentPatterns = [
       { pattern: /\bapi\b|\bendpoints?\b/gi, name: 'API' },
-      { pattern: /\bdatabase\b|\bdb\b|\bstorage\b/gi, name: 'Database' },
-      { pattern: /\bfrontend\b|\bui\b|\binterface\b/gi, name: 'Frontend' },
+      { pattern: /\bdatabase\b|\bdb\b|\bstorage\b|\bschema\b|\bindexing\b|\bsql\b/gi, name: 'Database' },
+      { pattern: /\bfrontend\b|\bui\b|\binterface\b|\bcomponent\b/gi, name: 'Frontend' },
       { pattern: /\bmiddleware\b/gi, name: 'Middleware' },
-      { pattern: /\bservice\b|\bservices\b/gi, name: 'Service' },
-      { pattern: /\btest\b|\btesting\b/gi, name: 'Tests' },
+      { pattern: /\bservice\b|\bservices\b|\bmicroservices\b/gi, name: 'Service' },
+      { pattern: /\btest\b|\btesting\b|\bjest\b|\bcoverage\b/gi, name: 'Tests' },
       { pattern: /\bdocumentation\b|\bdocs\b/gi, name: 'Documentation' },
-      { pattern: /\bauth\b|\bauthentication\b/gi, name: 'Authentication' },
+      { pattern: /\bauth\b|\bauthentication\b|\boauth\b|\bjwt\b|\blogin\b/gi, name: 'Authentication' },
+      { pattern: /\buser\b|\baccount\b|\bprofile\b/gi, name: 'User' },
+      { pattern: /\bpayment\b|\bbilling\b|\bcheckout\b/gi, name: 'Payment' },
+      { pattern: /\border\b|\bpurchase\b/gi, name: 'Order' },
+      { pattern: /\bproduct\b|\bcatalog\b|\binventory\b/gi, name: 'Product' },
+      { pattern: /\bshipping\b|\bdelivery\b/gi, name: 'Shipping' },
+      { pattern: /\bcart\b|\bshopping\b/gi, name: 'Cart' },
+      { pattern: /\banalytics\b|\bdashboard\b|\breport\b|\bmetric\b/gi, name: 'Analytics' },
+      { pattern: /\badmin\b|\bpanel\b|\badministration\b/gi, name: 'Admin' },
+      { pattern: /\bmobile\b|\bapp\b|\bandroid\b|\bios\b/gi, name: 'Mobile' },
+      { pattern: /\bnotification\b|\bemail\b|\bsms\b|\balert\b/gi, name: 'Notification' },
+      { pattern: /\bsearch\b/gi, name: 'Search' },
+      { pattern: /\bsecurity\b|\bencryption\b/gi, name: 'Security' },
+      { pattern: /\be-commerce\b|\becommerce\b|\bcommerce\b|\bstore\b|\bmarketplace\b/gi, name: 'ECommerce' },
     ];
 
     const found: string[] = [];
@@ -326,14 +340,78 @@ class ComponentBasedStrategy extends DecompositionStrategyBase {
       }
     }
 
-    // Default components if none detected
+    // For complex/large tasks, always return meaningful components
+    const taskWords = lowerTask.split(/\s+/).length;
+    const hasComplexKeywords = /\bplatform\b|\bsystem\b|\bapplication\b|\bcomplete\b|\bfull\b|\bend-to-end\b/gi.test(task);
+    const hasManyFeatures = (lowerTask.match(/\b(with|and|or)\b/g) || []).length >= 3;
+    const hasComprehensiveOrSuite = /\bcomprehensive\b|\bsuite\b|\bextensive\b/gi.test(task);
+    
+    // Detect specific feature categories for large tasks
+    const hasUserMgmt = /\buser\b|\baccount\b|\bprofile\b|\bsignup\b|\bregister\b/gi.test(task);
+    const hasProduct = /\bproduct\b|\bcatalog\b|\binventory\b/gi.test(task);
+    const hasPayment = /\bpayment\b|\bbilling\b|\bcheckout\b/gi.test(task);
+    const hasOrder = /\border\b|\bpurchase\b/gi.test(task);
+    const hasCart = /\bcart\b|\bshopping\b/gi.test(task);
+    const hasShipping = /\bshipping\b|\bdelivery\b/gi.test(task);
+    const hasAnalytics = /\banalytics\b|\bdashboard\b|\breport\b/gi.test(task);
+    const hasAdmin = /\badmin\b|\bpanel\b|\bbackend\b/gi.test(task);
+    
+    // Build component list based on detected features
+    if (hasManyFeatures || hasComprehensiveOrSuite || taskWords > 20) {
+      const components: string[] = [];
+      
+      // Core infrastructure - always add these for platform/large tasks
+      const coreComponents = ['Database', 'API', 'Authentication', 'Security'];
+      for (const core of coreComponents) {
+        if (!components.includes(core)) components.push(core);
+      }
+      
+      // Feature-specific components
+      if (hasUserMgmt && !components.includes('User')) components.push('User');
+      if (hasProduct && !components.includes('Product')) components.push('Product');
+      if (hasCart && !components.includes('Cart')) components.push('Cart');
+      if (hasOrder && !components.includes('Order')) components.push('Order');
+      if (hasPayment && !components.includes('Payment')) components.push('Payment');
+      if (hasShipping && !components.includes('Shipping')) components.push('Shipping');
+      if (hasAnalytics && !components.includes('Analytics')) components.push('Analytics');
+      if (hasAdmin && !components.includes('Admin')) components.push('Admin');
+      
+      // Add remaining detected components
+      for (const comp of found) {
+        if (!components.includes(comp)) {
+          components.push(comp);
+        }
+      }
+      
+      // Always add Frontend and Integration for platform tasks
+      if (!components.includes('Frontend')) components.push('Frontend');
+      if (!components.includes('Integration')) components.push('Integration');
+      
+      // Always add tests and documentation for large projects
+      if (!components.includes('Tests')) components.push('Tests');
+      if (!components.includes('Documentation')) components.push('Documentation');
+      
+      return components;
+    }
+    
     if (found.length === 0) {
+      // Default components based on task complexity
+      if (taskWords > 10 || hasComplexKeywords) {
+        return ['Core', 'Implementation', 'Integration', 'Tests', 'Documentation'];
+      }
       return ['Setup', 'Implementation', 'Tests'];
     }
 
-    // Always add tests if not present
-    if (!found.includes('Tests') && found.length > 1) {
-      found.push('Tests');
+    // For complex tasks with few detected components, add generic ones
+    if (found.length < 3 && (taskWords > 15 || hasComplexKeywords)) {
+      if (!found.includes('Core')) found.unshift('Core');
+      if (!found.includes('Integration')) found.push('Integration');
+    }
+
+    // Always add tests and documentation if task is substantial
+    if (found.length > 2) {
+      if (!found.includes('Tests')) found.push('Tests');
+      if (taskWords > 12 && !found.includes('Documentation')) found.push('Documentation');
     }
 
     return found;

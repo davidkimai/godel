@@ -106,7 +106,7 @@ export function expectValidAgent(agent: unknown): void {
   expect(agent).toHaveProperty('status');
   expect(agent).toHaveProperty('model');
   expect(agent).toHaveProperty('runtime');
-  expect(agent).toHaveProperty('createdAt');
+  expect(agent).toHaveProperty('spawnedAt');
 }
 
 /**

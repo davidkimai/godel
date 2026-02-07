@@ -63,8 +63,8 @@ describe('OpenClaw-Godel Integration', () => {
 
     // Create mock client
     mockClient = {
-      createSwarm: jest.fn(),
-      destroySwarm: jest.fn(),
+      createTeam: jest.fn(),
+      destroyTeam: jest.fn(),
       spawnAgent: jest.fn(),
       killAgent: jest.fn(),
       getAgent: jest.fn(),
@@ -107,10 +107,10 @@ describe('OpenClaw-Godel Integration', () => {
   describe('Full Flow', () => {
     it('should complete full agent lifecycle', async () => {
       // Setup mock responses
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: {
-          id: 'swarm-test-123',
+          id: 'team-test-123',
           name: 'test-swarm',
           status: 'active' as const,
           config: {
@@ -242,11 +242,11 @@ describe('OpenClaw-Godel Integration', () => {
       await adapter.killAgent('session-123');
 
       expect(mockClient.killAgent).toHaveBeenCalledWith('agent-test-456', undefined);
-      expect(mockClient.destroySwarm).toHaveBeenCalledWith('swarm-test-123', undefined);
+      expect(mockClient.destroyTeam).toHaveBeenCalledWith('team-test-123', undefined);
     }, 10000);
 
     it('should stream events to webhook', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: {
           id: 'swarm-event-123',
@@ -322,7 +322,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle spawn command', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-skill-123' },
       });
@@ -345,7 +345,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle status command', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-status-123' },
       });
@@ -382,7 +382,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle kill command', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-kill-123' },
       });
@@ -396,7 +396,7 @@ describe('OpenClaw-Godel Integration', () => {
       });
 
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       await adapter.spawnAgent('session-kill', {
         agentType: 'test',
@@ -411,7 +411,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle list command', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-list-123' },
       });
@@ -444,7 +444,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle logs command', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-logs-123' },
       });
@@ -479,7 +479,7 @@ describe('OpenClaw-Godel Integration', () => {
 
   describe('Error Handling', () => {
     it('should handle spawn failures gracefully', async () => {
-      mockClient.createSwarm.mockRejectedValue(new Error('Database connection failed'));
+      mockClient.createTeam.mockRejectedValue(new Error('Database connection failed'));
 
       await expect(
         adapter.spawnAgent('session-error', {
@@ -490,7 +490,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should handle webhook failures without crashing', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-webhook-123' },
       });
@@ -522,7 +522,7 @@ describe('OpenClaw-Godel Integration', () => {
 
   describe('Multiple Agents', () => {
     it('should handle multiple concurrent agents', async () => {
-      mockClient.createSwarm
+      mockClient.createTeam
         .mockResolvedValueOnce({ success: true, data: { id: 'swarm-multi-1' } })
         .mockResolvedValueOnce({ success: true, data: { id: 'swarm-multi-2' } })
         .mockResolvedValueOnce({ success: true, data: { id: 'swarm-multi-3' } });
@@ -555,7 +555,7 @@ describe('OpenClaw-Godel Integration', () => {
     });
 
     it('should isolate agents by session', async () => {
-      mockClient.createSwarm
+      mockClient.createTeam
         .mockResolvedValueOnce({ success: true, data: { id: 'swarm-iso-1' } })
         .mockResolvedValueOnce({ success: true, data: { id: 'swarm-iso-2' } });
 
@@ -586,7 +586,7 @@ describe('OpenClaw-Godel Integration', () => {
 
   describe('Cleanup', () => {
     it('should cleanup all resources on dispose', async () => {
-      mockClient.createSwarm.mockResolvedValue({
+      mockClient.createTeam.mockResolvedValue({
         success: true,
         data: { id: 'swarm-cleanup' },
       });
@@ -600,7 +600,7 @@ describe('OpenClaw-Godel Integration', () => {
       });
 
       mockClient.killAgent.mockResolvedValue({ success: true });
-      mockClient.destroySwarm.mockResolvedValue({ success: true });
+      mockClient.destroyTeam.mockResolvedValue({ success: true });
 
       // Spawn some agents
       await adapter.spawnAgent('session-cleanup-1', { agentType: 'test', task: 'test 1' });

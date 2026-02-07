@@ -188,4 +188,25 @@ export class AgentSQLiteStorage implements AgentStorageInterface {
       metadata: row['metadata'] ? JSON.parse(row['metadata'] as string) : undefined
     }));
   }
+  
+  // Swarm-specific operations (alias for Team)
+  async createSwarm(data: TeamData): Promise<string> {
+    return this.createTeam(data);
+  }
+  
+  async getSwarm(id: string): Promise<TeamData | null> {
+    return this.getTeam(id);
+  }
+  
+  async updateSwarm(id: string, data: Partial<TeamData>): Promise<void> {
+    return this.updateTeam(id, data);
+  }
+  
+  async deleteSwarm(id: string): Promise<void> {
+    return this.deleteTeam(id);
+  }
+  
+  async listSwarms(): Promise<TeamData[]> {
+    return this.listTeams();
+  }
 }

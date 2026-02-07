@@ -36,7 +36,7 @@ describe('OpenClawEventBridge', () => {
 
   const mockConfig = {
     webhookUrl: 'http://localhost:8080/webhook',
-    filter: ['agent.spawned', 'agent.completed', 'swarm.created'],
+    filter: ['agent.spawned', 'agent.completed', 'team.created'],
     authToken: 'test-token-123',
     batchInterval: 0, // Immediate mode for tests
     maxBatchSize: 10,
@@ -80,7 +80,7 @@ describe('OpenClawEventBridge', () => {
       await bridge.start();
 
       expect(mockBus.subscribe).toHaveBeenCalledWith('agent.*.events', expect.any(Function));
-      expect(mockBus.subscribe).toHaveBeenCalledWith('swarm.*.events', expect.any(Function));
+      expect(mockBus.subscribe).toHaveBeenCalledWith('team.*.events', expect.any(Function));
       expect(mockBus.subscribe).toHaveBeenCalledWith('system.events', expect.any(Function));
       expect(mockBus.subscribe).toHaveBeenCalledWith('*', expect.any(Function));
     });
@@ -316,13 +316,13 @@ describe('OpenClawEventBridge', () => {
       });
     });
 
-    it('should extract swarm ID from topic', async () => {
+    it('should extract team ID from topic', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
 
       const mockMessage = {
         id: 'msg-1',
-        topic: 'swarm.swarm-456.events',
-        payload: { eventType: 'swarm.created' },
+        topic: 'team.team-456.events',
+        payload: { eventType: 'team.created' },
         timestamp: new Date(),
         metadata: {},
       };
@@ -340,7 +340,7 @@ describe('OpenClawEventBridge', () => {
       const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
 
-      expect(body.events[0].metadata.godelSwarmId).toBe('swarm-456');
+      expect(body.events[0].metadata.godelTeamId).toBe('team-456');
     });
   });
 
@@ -536,16 +536,16 @@ describe('OpenClawEventBridge', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('should subscribe to specific swarm events', () => {
+    it('should subscribe to specific team events', () => {
       const handler = jest.fn();
-      bridge.subscribeToSwarm('swarm-789', handler);
+      bridge.subscribeToTeam('team-789', handler);
 
       bridge.emit('event', {
         source: 'godel',
-        type: 'swarm.update',
+        type: 'team.update',
         timestamp: new Date().toISOString(),
         data: {},
-        metadata: { godelSwarmId: 'swarm-789' },
+        metadata: { godelTeamId: 'team-789' },
       });
 
       expect(handler).toHaveBeenCalled();

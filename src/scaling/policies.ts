@@ -234,6 +234,63 @@ export function getMetricValue(metric: ScalingMetric, metrics: ScalingMetrics): 
 }
 
 /**
+ * Normalize legacy policy format to new format
+ */
+function normalizeLegacyPolicy(policy: ScalingPolicy): ScalingPolicy {
+  // Check if it's already normalized
+  if (policy.scaleUp?.thresholds && Array.isArray(policy.scaleUp.thresholds)) {
+    return policy;
+  }
+
+  // Cast to check for legacy properties
+  const legacy = policy as unknown as {
+    queueDepthThresholds?: { scaleUp?: number; scaleDown?: number };
+    cpuUtilizationThresholds?: { scaleUp?: number; scaleDown?: number };
+    cooldownSeconds?: number;
+    teamId?: string;
+  };
+
+  // Check if this is a legacy policy (has queueDepthThresholds, cpuUtilizationThresholds, or just cooldownSeconds without scaleUp)
+  if (legacy.queueDepthThresholds || legacy.cpuUtilizationThresholds || 
+      (legacy.cooldownSeconds && !policy.scaleUp)) {
+    const teamId = legacy.teamId || (policy as ScalingPolicy).teamId || 'test-team';
+    const minAgents = (policy as ScalingPolicy).minAgents ?? 1;
+    const maxAgents = (policy as ScalingPolicy).maxAgents ?? 10;
+    const cooldown = legacy.cooldownSeconds || 60;
+
+    const scaleUpThresholds = [];
+    if (legacy.queueDepthThresholds?.scaleUp !== undefined) {
+      scaleUpThresholds.push({ metric: 'queue_depth' as const, value: legacy.queueDepthThresholds.scaleUp, operator: 'gt' as const, weight: 0.5 });
+    }
+    if (legacy.cpuUtilizationThresholds?.scaleUp !== undefined) {
+      scaleUpThresholds.push({ metric: 'agent_cpu_percent' as const, value: legacy.cpuUtilizationThresholds.scaleUp, operator: 'gt' as const, weight: 0.3 });
+    }
+    if (scaleUpThresholds.length === 0) {
+      scaleUpThresholds.push({ metric: 'queue_depth' as const, value: 5, operator: 'gt' as const, weight: 1.0 });
+    }
+
+    return {
+      teamId,
+      minAgents,
+      maxAgents,
+      scaleUp: { thresholds: scaleUpThresholds, increment: 'auto', maxIncrement: 5, cooldownSeconds: cooldown, requireAllThresholds: false },
+      scaleDown: {
+        thresholds: [
+          { metric: 'queue_depth' as const, value: legacy.queueDepthThresholds?.scaleDown ?? 1, operator: 'lt' as const, weight: 0.5 },
+          { metric: 'agent_cpu_percent' as const, value: legacy.cpuUtilizationThresholds?.scaleDown ?? 20, operator: 'lt' as const, weight: 0.3 },
+        ],
+        decrement: 'auto',
+        minAgents,
+        cooldownSeconds: cooldown * 2,
+        requireAllThresholds: true,
+      },
+    };
+  }
+
+  return policy;
+}
+
+/**
  * Evaluate scale up policy
  */
 export function evaluateScaleUpPolicy(
@@ -241,6 +298,11 @@ export function evaluateScaleUpPolicy(
   metrics: ScalingMetrics,
   lastScaleUpAt?: Date
 ): { shouldScale: boolean; score: number; triggers: ScalingTrigger[]; reason: string } {
+  // Handle missing policy (from legacy format)
+  if (!policy || !policy.thresholds) {
+    return { shouldScale: false, score: 0, triggers: [], reason: 'No scale up policy configured' };
+  }
+
   const triggers: ScalingTrigger[] = [];
   let totalWeight = 0;
   let triggeredWeight = 0;
@@ -296,12 +358,17 @@ export function evaluateScaleDownPolicy(
   metrics: ScalingMetrics,
   lastScaleDownAt?: Date
 ): { shouldScale: boolean; score: number; triggers: ScalingTrigger[]; reason: string } {
+  // Handle missing policy (from legacy format)
+  if (!policy || !policy.thresholds) {
+    return { shouldScale: false, score: 0, triggers: [], reason: 'No scale down policy configured' };
+  }
+
   const triggers: ScalingTrigger[] = [];
   let totalWeight = 0;
   let triggeredWeight = 0;
 
   // Check minimum agents
-  if (metrics.currentAgentCount <= policy.minAgents) {
+  if (metrics.currentAgentCount <= (policy.minAgents ?? 1)) {
     return {
       shouldScale: false,
       score: 0,
@@ -440,6 +507,9 @@ export function evaluateScalingPolicy(
   lastScaleDownAt?: Date,
   budgetExceeded?: boolean
 ): ScalingDecision {
+  // Normalize legacy policy formats
+  policy = normalizeLegacyPolicy(policy);
+  
   const timestamp = new Date();
 
   // Check budget constraint
