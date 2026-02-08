@@ -31,7 +31,8 @@
     "swarmctl": "./dist/src/cli/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy:proto",
+    "copy:proto": "cp -r src/federation/proto dist/src/federation/ && cp -r src/federation/cluster/proto dist/src/federation/cluster/",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:release-gate": "CI=1 jest --runInBand tests/unit/queue/task-queue.test.ts tests/integrations/openclaw/adapter.test.ts tests/integrations/openclaw/integration.test.ts tests/state-persistence.test.ts tests/state-aware-orchestrator.test.ts",
