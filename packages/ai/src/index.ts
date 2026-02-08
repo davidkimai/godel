@@ -11,9 +11,6 @@ export * from './types.js';
 export { ModelResolver, modelResolver, AVAILABLE_MODELS } from './model-resolver.js';
 export { ProviderFailover, failover, type FailoverResult } from './provider-failover.js';
 
-// Legacy compatibility exports (for src/core/llm.ts)
-export const SwarmModelResolver = ModelResolver;
-
 // Additional type exports for compatibility
 export type TaskType = 'coding' | 'reasoning' | 'analysis' | 'quick';
 export type KnownProvider = import('./types.js').ProviderName;
@@ -40,6 +37,9 @@ import type {
   ModelInfo,
   Message
 } from './types.js';
+
+// Legacy compatibility exports (for src/core/llm.ts) - must be after imports
+export const SwarmModelResolver = ModelResolver;
 
 // ============================================================================
 // Legacy Compatibility Functions

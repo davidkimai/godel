@@ -1,7 +1,7 @@
 {
-  "name": "@dash/ai",
+  "name": "@godel/ai",
   "version": "1.0.0",
-  "description": "Dash unified LLM API with provider failover",
+  "description": "Godel unified LLM API with provider failover",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

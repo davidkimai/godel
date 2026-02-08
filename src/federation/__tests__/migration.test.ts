@@ -78,6 +78,10 @@ describe('AgentMigrator', () => {
 
       registry.updateLoad(source.id, { currentAgents: 40 });
       registry.updateLoad(target.id, { currentAgents: 10 });
+      
+      // Mark clusters as healthy for migration selection
+      await registry.updateHealth(source.id, 'healthy', 100);
+      await registry.updateHealth(target.id, 'healthy', 100);
 
       const plan = await migrator.planMigration('agent-1', source.id);
 

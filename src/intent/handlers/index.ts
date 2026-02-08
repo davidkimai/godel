@@ -21,7 +21,7 @@ export { BaseIntentHandler } from './base';
 export { RefactorHandler } from './refactor';
 export { FixHandler } from './fix';
 export { ImplementHandler } from './implement';
-export { TestHandler } from './test';
+export { TestHandler } from './test-handler';
 export { OptimizeHandler } from './optimize';
 
 // ============================================================================
@@ -31,5 +31,5 @@ export { OptimizeHandler } from './optimize';
 export type { RefactoringIntent, RefactoringStrategy } from './refactor';
 export type { FixIntent, FixSeverity, FixCategory } from './fix';
 export type { ImplementIntent, ImplementationApproach, FeatureType } from './implement';
-export type { TestIntent, TestType, TestFramework, CoverageRequirement } from './test';
+export type { TestIntent, TestType, TestFramework, CoverageRequirement } from './test-handler';
 export type { OptimizeIntent, OptimizationTarget, OptimizationApproach, PerformanceTarget } from './optimize';
