@@ -1,17 +1,17 @@
-# @dash/ai
+# @godel/ai
 
 Unified LLM API for Godel with provider failover and swarm-aware model selection.
 
 ## Installation
 
 ```bash
-npm install @dash/ai
+npm install @godel/ai
 ```
 
 ## Usage
 
 ```typescript
-import { getModel, stream, complete, SwarmModelResolver } from '@dash/ai';
+import { getModel, stream, complete, SwarmModelResolver } from '@godel/ai';
 
 // Get a model
 const model = getModel('anthropic', 'claude-sonnet-4-5');
