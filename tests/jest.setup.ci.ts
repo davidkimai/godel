@@ -22,6 +22,10 @@ jest.setTimeout(30000);
 // ============================================================================
 
 beforeAll(async () => {
+  // Clear config cache to ensure fresh config for each test run
+  const { clearConfigCache } = await import('../src/config/loader');
+  clearConfigCache();
+  
   // Log test environment info
   console.log('[CI Setup] Test environment initialized');
   console.log(`[CI Setup] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);

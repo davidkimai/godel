@@ -275,7 +275,7 @@ export const testConfig: Partial<DashConfig> = {
   server: {
     ...defaultServerConfig,
     framework: 'express',
-    port: 0, // Random port for tests
+    port: 3001, // Use valid port for tests (schema requires 1-65535)
   },
   database: {
     ...defaultDatabaseConfig,

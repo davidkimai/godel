@@ -176,7 +176,7 @@ function applyEnvVarOverrides(config: Record<string, unknown>): void {
   };
 
   for (const [path, value] of Object.entries(overrides)) {
-    if (value !== undefined) {
+    if (value !== undefined && value !== '') {
       const parts = path.split('.');
       let current: Record<string, unknown> = config;
       for (let i = 0; i < parts.length - 1; i++) {
