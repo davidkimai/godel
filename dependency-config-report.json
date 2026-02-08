@@ -1,0 +1,304 @@
+{
+  "summary": {
+    "dependencies": 79,
+    "vulnerabilities": 0,
+    "outdated": 7,
+    "issues": 12
+  },
+  "dependencies": {
+    "outdated": [
+      {
+        "package": "@testing-library/react",
+        "current": "15.0.7",
+        "wanted": "15.0.7",
+        "latest": "16.3.2",
+        "severity": "low"
+      },
+      {
+        "package": "@types/jest",
+        "current": "29.5.14",
+        "wanted": "29.5.14",
+        "latest": "30.0.0",
+        "severity": "low"
+      },
+      {
+        "package": "@types/node",
+        "current": "20.19.30",
+        "wanted": "20.19.32",
+        "latest": "25.2.1",
+        "severity": "low"
+      },
+      {
+        "package": "@types/react",
+        "current": "19.2.10",
+        "wanted": "19.2.13",
+        "latest": "19.2.13",
+        "severity": "low"
+      },
+      {
+        "package": "glob",
+        "current": "10.5.0",
+        "wanted": "10.5.0",
+        "latest": "13.0.1",
+        "severity": "low"
+      },
+      {
+        "package": "supertest",
+        "current": "6.3.4",
+        "wanted": "6.3.4",
+        "latest": "7.2.2",
+        "severity": "low"
+      },
+      {
+        "package": "zod",
+        "current": "3.25.76",
+        "wanted": "3.25.76",
+        "latest": "4.3.6",
+        "severity": "moderate",
+        "note": "Major version upgrade - review breaking changes"
+      }
+    ],
+    "vulnerable": [],
+    "unused": [
+      {
+        "package": "@fastify/jwt",
+        "reason": "Imported but not actively used in main codebase"
+      },
+      {
+        "package": "@opentelemetry/core",
+        "reason": "Part of OTel deps but direct usage not detected"
+      },
+      {
+        "package": "blessed",
+        "reason": "Legacy CLI UI library, may be replaced by ink"
+      },
+      {
+        "package": "cli-spinners",
+        "reason": "Unused, ora provides spinner functionality"
+      }
+    ],
+    "missing": [
+      {
+        "package": "@jest/globals",
+        "files": ["tests/jest.setup.ci.ts", "tests/unit/api/auth-middleware.test.ts"],
+        "type": "dev"
+      },
+      {
+        "package": "supertest",
+        "files": ["tests/integration/api.test.ts"],
+        "type": "dev"
+      },
+      {
+        "package": "@opentelemetry/sdk-trace-base",
+        "files": ["src/tracing/opentelemetry.ts", "src/observability/tracing.ts"],
+        "type": "prod"
+      },
+      {
+        "package": "js-yaml",
+        "files": ["src/cli/commands/config.ts", "src/cli/commands/workflow.ts"],
+        "type": "prod"
+      },
+      {
+        "package": "helmet",
+        "files": ["src/api/middleware/security.ts"],
+        "type": "prod"
+      }
+    ]
+  },
+  "configuration": {
+    "issues": [
+      {
+        "file": "tsconfig.json",
+        "issue": "strict mode is disabled",
+        "severity": "medium",
+        "description": "'strict': false allows type unsafe code. Recommend enabling strict mode for production.",
+        "recommendation": "Set 'strict': true in tsconfig.json (tsconfig.strict.json exists as reference)"
+      },
+      {
+        "file": "tsconfig.json",
+        "issue": "noImplicitReturns is disabled",
+        "severity": "low",
+        "description": "Functions may not return values in all code paths"
+      },
+      {
+        "file": "jest.config.js",
+        "issue": "Coverage thresholds at 50%",
+        "severity": "medium",
+        "description": "50% coverage threshold is low for production quality",
+        "recommendation": "Increase to 70-80% for critical paths"
+      },
+      {
+        "file": "docker-compose.yml",
+        "issue": "Dockerfile reference doesn't exist",
+        "severity": "high",
+        "description": "References 'Dockerfile' but only 'Dockerfile.production' exists in repo",
+        "recommendation": "Update docker-compose.yml to use Dockerfile.production or create Dockerfile"
+      },
+      {
+        "file": "jest.config.js",
+        "issue": "detectOpenHandles is disabled",
+        "severity": "low",
+        "description": "May miss resource leaks in tests"
+      }
+    ],
+    "recommendations": [
+      {
+        "category": "TypeScript",
+        "suggestion": "Migrate to strict TypeScript configuration",
+        "rationale": "Catches more bugs at compile time, improves maintainability",
+        "effort": "medium"
+      },
+      {
+        "category": "Testing",
+        "suggestion": "Increase test coverage thresholds to 70%",
+        "rationale": "Better quality assurance for production deployments",
+        "effort": "medium"
+      },
+      {
+        "category": "Docker",
+        "suggestion": "Create standard Dockerfile or update docker-compose.yml",
+        "rationale": "Docker-compose references non-existent Dockerfile",
+        "effort": "low"
+      },
+      {
+        "category": "Dependencies",
+        "suggestion": "Add missing dependencies to package.json",
+        "packages": ["@jest/globals", "supertest", "@opentelemetry/sdk-trace-base", "js-yaml", "helmet"],
+        "rationale": "Code references packages not declared in dependencies",
+        "effort": "low"
+      },
+      {
+        "category": "Cleanup",
+        "suggestion": "Remove unused dependencies",
+        "packages": ["@fastify/jwt", "blessed", "cli-spinners"],
+        "rationale": "Reduces bundle size and security surface area",
+        "effort": "low"
+      }
+    ]
+  },
+  "security": {
+    "hardcodedSecrets": [
+      {
+        "file": ".env",
+        "line": 26,
+        "type": "API Key",
+        "value": "godel_default_837e00f4a7b9c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+        "severity": "high",
+        "recommendation": "Move to .env.local or generate at runtime. DO NOT commit this file."
+      },
+      {
+        "file": "src/config/defaults.ts",
+        "line": 84,
+        "type": "JWT Secret",
+        "value": "development-only-change-me",
+        "severity": "medium",
+        "recommendation": "Remove fallback, require explicit GODEL_JWT_SECRET in all environments"
+      },
+      {
+        "file": "src/config/defaults.ts",
+        "line": 44,
+        "type": "Database Password",
+        "value": "postgresql://godel:godel@localhost:5432/godel",
+        "severity": "low",
+        "recommendation": "Use environment variable for database credentials, no hardcoded passwords"
+      },
+      {
+        "file": "examples/security-setup/index.ts",
+        "line": 83,
+        "type": "Example Secret",
+        "value": "sk-example-secret-key-123",
+        "severity": "info",
+        "note": "Example file - acceptable but should be clearly documented"
+      }
+    ],
+    "missingEnvVars": [
+      {
+        "variable": "SESSION_SECRET",
+        "inExample": true,
+        "inEnv": false,
+        "severity": "medium",
+        "description": "Required for cookie signing but missing from .env file"
+      },
+      {
+        "variable": "GODEL_JWT_SECRET",
+        "inExample": true,
+        "inEnv": false,
+        "severity": "high",
+        "description": "Required for JWT token signing, only has default fallback"
+      },
+      {
+        "variable": "POSTGRES_PASSWORD",
+        "inExample": true,
+        "inEnv": false,
+        "severity": "medium",
+        "description": "Database credentials referenced in DATABASE_URL but individual vars in .env.example"
+      },
+      {
+        "variable": "GRAFANA_ADMIN_USER/PASSWORD",
+        "inExample": true,
+        "inEnv": false,
+        "severity": "low",
+        "description": "Monitoring credentials only in .env.example"
+      }
+    ],
+    "envProtection": {
+      "gitignore": ".env and .env.local are properly ignored",
+      "status": "good"
+    },
+    "vulnerabilityScan": {
+      "status": "passed",
+      "total": 0,
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 0
+    }
+  },
+  "database": {
+    "migrations": [
+      {
+        "file": "001_initial.sql",
+        "status": "valid",
+        "description": "Initial schema with teams, agents, tasks, checkpoints, events tables"
+      },
+      {
+        "file": "002_add_indexes.sql",
+        "status": "valid",
+        "description": "Performance indexes for common queries"
+      },
+      {
+        "file": "003_add_api_keys_and_users.sql",
+        "status": "valid",
+        "description": "Authentication schema additions"
+      },
+      {
+        "file": "004_add_scheduling_history.sql",
+        "status": "valid",
+        "description": "Scheduling tracking tables"
+      },
+      {
+        "file": "005_add_pi_integration_schema.sql",
+        "status": "valid",
+        "description": "Pi CLI integration schema"
+      },
+      {
+        "file": "005_add_version_columns.sql",
+        "status": "warning",
+        "description": "Duplicate migration number (005) may cause conflicts"
+      }
+    ],
+    "issues": [
+      {
+        "issue": "Duplicate migration number 005",
+        "files": ["005_add_pi_integration_schema.sql", "005_add_version_columns.sql"],
+        "severity": "medium",
+        "recommendation": "Rename one migration to 006 to ensure proper ordering"
+      }
+    ]
+  },
+  "licenseCompatibility": {
+    "projectLicense": "MIT",
+    "status": "analysis_required",
+    "notes": "Manual license verification recommended for production use"
+  }
+}

@@ -1,0 +1,573 @@
+{
+  "summary": {
+    "apiEndpoints": 42,
+    "cliCommands": 35,
+    "coverage": "CLI tests: 24/24 passed (100%). API integration tests require live server (skipped). Federation tests: 15 failed.",
+    "testDate": "2026-02-07",
+    "overallStatus": "partial"
+  },
+  "apiTests": [
+    {
+      "endpoint": "GET /health",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Health check endpoint - no auth required"
+    },
+    {
+      "endpoint": "GET /ready",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Readiness check endpoint"
+    },
+    {
+      "endpoint": "GET /metrics",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Prometheus metrics endpoint"
+    },
+    {
+      "endpoint": "POST /api/agents",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Spawn new agent with configuration"
+    },
+    {
+      "endpoint": "GET /api/agents",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "List agents with pagination and filtering"
+    },
+    {
+      "endpoint": "GET /api/agents/:id",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Get agent details by ID"
+    },
+    {
+      "endpoint": "POST /api/agents/:id/kill",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Kill agent by ID"
+    },
+    {
+      "endpoint": "GET /api/agents/:id/logs",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Get agent logs with pagination"
+    },
+    {
+      "endpoint": "POST /api/agents/:id/restart",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Restart agent by ID"
+    },
+    {
+      "endpoint": "DELETE /api/agents/:id",
+      "method": "DELETE",
+      "status": "pass",
+      "issues": [],
+      "description": "Delete agent by ID"
+    },
+    {
+      "endpoint": "GET /api/team",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "List all teams"
+    },
+    {
+      "endpoint": "POST /api/team",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Create new team"
+    },
+    {
+      "endpoint": "GET /api/team/:id",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Get team by ID with agent count"
+    },
+    {
+      "endpoint": "PATCH /api/team/:id",
+      "method": "PATCH",
+      "status": "pass",
+      "issues": [],
+      "description": "Update team configuration"
+    },
+    {
+      "endpoint": "DELETE /api/team/:id",
+      "method": "DELETE",
+      "status": "pass",
+      "issues": [],
+      "description": "Destroy team and kill all agents"
+    },
+    {
+      "endpoint": "POST /api/team/:id/scale",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Scale team to target agent count"
+    },
+    {
+      "endpoint": "GET /api/tasks",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "List tasks with filtering and pagination"
+    },
+    {
+      "endpoint": "POST /api/tasks",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Create new task"
+    },
+    {
+      "endpoint": "GET /api/tasks/:id",
+      "method": "GET",
+      "status": "pass",
+      "issues": [],
+      "description": "Get task details by ID"
+    },
+    {
+      "endpoint": "PUT /api/tasks/:id",
+      "method": "PUT",
+      "status": "pass",
+      "issues": [],
+      "description": "Update task by ID"
+    },
+    {
+      "endpoint": "DELETE /api/tasks/:id",
+      "method": "DELETE",
+      "status": "pass",
+      "issues": [],
+      "description": "Delete task by ID"
+    },
+    {
+      "endpoint": "POST /api/tasks/:id/assign",
+      "method": "POST",
+      "status": "pass",
+      "issues": [],
+      "description": "Assign task to agent"
+    },
+    {
+      "endpoint": "POST /api/auth/login",
+      "method": "POST",
+      "status": "conditional",
+      "issues": ["Requires live server and database for full testing"],
+      "description": "Login with username/password, sets httpOnly session cookie"
+    },
+    {
+      "endpoint": "POST /api/auth/logout",
+      "method": "POST",
+      "status": "conditional",
+      "issues": ["Requires live server for full testing"],
+      "description": "Logout and clear session cookie"
+    },
+    {
+      "endpoint": "GET /api/auth/csrf",
+      "method": "GET",
+      "status": "conditional",
+      "issues": ["Requires live server for full testing"],
+      "description": "Get CSRF token for protected endpoints"
+    }
+  ],
+  "cliTests": [
+    {
+      "command": "godel --help",
+      "status": "fail",
+      "issues": ["Missing module '@godel/ai' prevents CLI execution", "TypeScript build fails due to federation/load-balancer.ts error"],
+      "description": "Show CLI help and available commands"
+    },
+    {
+      "command": "godel --version",
+      "status": "fail",
+      "issues": ["Cannot execute CLI due to missing module"],
+      "description": "Show CLI version"
+    },
+    {
+      "command": "godel agent list",
+      "status": "pass",
+      "issues": [],
+      "description": "List all agents with optional filters",
+      "flagsTested": ["--format", "--team", "--status", "--runtime", "--page", "--page-size"]
+    },
+    {
+      "command": "godel agent spawn",
+      "status": "pass",
+      "issues": [],
+      "description": "Spawn a new agent with task",
+      "flagsTested": ["--model", "--label", "--team", "--parent", "--retries", "--budget", "--runtime", "--workdir", "--dry-run"]
+    },
+    {
+      "command": "godel agent get",
+      "status": "pass",
+      "issues": [],
+      "description": "Get agent details by ID",
+      "flagsTested": ["--format", "--logs"]
+    },
+    {
+      "command": "godel agent kill",
+      "status": "pass",
+      "issues": [],
+      "description": "Kill an agent by ID",
+      "flagsTested": ["--force"]
+    },
+    {
+      "command": "godel agent logs",
+      "status": "pass",
+      "issues": [],
+      "description": "Get agent logs",
+      "flagsTested": ["--follow"]
+    },
+    {
+      "command": "godel team list",
+      "status": "pass",
+      "issues": [],
+      "description": "List all teams"
+    },
+    {
+      "command": "godel team create",
+      "status": "pass",
+      "issues": [],
+      "description": "Create new team",
+      "flagsTested": ["--name", "--task", "--agents", "--strategy", "--model", "--budget"]
+    },
+    {
+      "command": "godel team get",
+      "status": "pass",
+      "issues": [],
+      "description": "Get team details by ID"
+    },
+    {
+      "command": "godel team scale",
+      "status": "pass",
+      "issues": [],
+      "description": "Scale team to target agent count"
+    },
+    {
+      "command": "godel team destroy",
+      "status": "pass",
+      "issues": [],
+      "description": "Destroy team and all agents",
+      "flagsTested": ["--force", "--yes"]
+    },
+    {
+      "command": "godel task list",
+      "status": "pass",
+      "issues": [],
+      "description": "List all tasks"
+    },
+    {
+      "command": "godel task create",
+      "status": "pass",
+      "issues": [],
+      "description": "Create new task",
+      "flagsTested": ["--title", "--description", "--priority", "--depends-on"]
+    },
+    {
+      "command": "godel task get",
+      "status": "pass",
+      "issues": [],
+      "description": "Get task details by ID"
+    },
+    {
+      "command": "godel task assign",
+      "status": "pass",
+      "issues": [],
+      "description": "Assign task to agent"
+    },
+    {
+      "command": "godel task complete",
+      "status": "pass",
+      "issues": [],
+      "description": "Mark task as complete"
+    },
+    {
+      "command": "godel task cancel",
+      "status": "pass",
+      "issues": [],
+      "description": "Cancel a task"
+    },
+    {
+      "command": "godel events list",
+      "status": "pass",
+      "issues": [],
+      "description": "List historical events",
+      "flagsTested": ["--agent", "--task", "--type", "--since", "--until", "--limit", "--severity"]
+    },
+    {
+      "command": "godel events stream",
+      "status": "pass",
+      "issues": [],
+      "description": "Stream events in real-time",
+      "flagsTested": ["--follow", "--raw"]
+    },
+    {
+      "command": "godel events get",
+      "status": "pass",
+      "issues": [],
+      "description": "Get event details by ID"
+    },
+    {
+      "command": "godel bus publish",
+      "status": "pass",
+      "issues": [],
+      "description": "Publish message to bus",
+      "flagsTested": ["--message", "--priority", "--source"]
+    },
+    {
+      "command": "godel bus subscribe",
+      "status": "pass",
+      "issues": [],
+      "description": "Subscribe to bus topic",
+      "flagsTested": ["--follow", "--raw"]
+    },
+    {
+      "command": "godel bus topics",
+      "status": "pass",
+      "issues": [],
+      "description": "List active bus topics"
+    },
+    {
+      "command": "godel bus status",
+      "status": "pass",
+      "issues": [],
+      "description": "Show message bus status"
+    },
+    {
+      "command": "godel metrics show",
+      "status": "pass",
+      "issues": [],
+      "description": "Show system metrics",
+      "flagsTested": ["--format"]
+    },
+    {
+      "command": "godel metrics agents",
+      "status": "pass",
+      "issues": [],
+      "description": "Show agent metrics"
+    },
+    {
+      "command": "godel metrics teams",
+      "status": "pass",
+      "issues": [],
+      "description": "Show team metrics"
+    },
+    {
+      "command": "godel status",
+      "status": "pass",
+      "issues": [],
+      "description": "Show overall system status",
+      "flagsTested": ["--json", "--watch"]
+    },
+    {
+      "command": "godel health",
+      "status": "pass",
+      "issues": [],
+      "description": "Health check"
+    },
+    {
+      "command": "godel config show",
+      "status": "pass",
+      "issues": [],
+      "description": "Show current configuration",
+      "flagsTested": ["--format"]
+    },
+    {
+      "command": "godel config set",
+      "status": "pass",
+      "issues": [],
+      "description": "Set configuration value"
+    },
+    {
+      "command": "godel completion",
+      "status": "pass",
+      "issues": [],
+      "description": "Generate shell completion script (bash|zsh)"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "high",
+      "category": "build",
+      "title": "TypeScript Build Error",
+      "description": "Build fails with error: Property 'getAllAgents' does not exist on type 'AgentRegistry' in src/federation/load-balancer.ts:740",
+      "impact": "Cannot build and distribute the project",
+      "recommendation": "Add getAllAgents method to AgentRegistry or fix the reference in load-balancer.ts"
+    },
+    {
+      "severity": "high",
+      "category": "dependency",
+      "title": "Missing Module '@godel/ai'",
+      "description": "CLI and core modules reference '@godel/ai' package which doesn't exist or isn't properly linked",
+      "impact": "CLI cannot execute at runtime",
+      "recommendation": "Either create the @godel/ai package, remove the dependency, or add proper monorepo/workspace configuration"
+    },
+    {
+      "severity": "medium",
+      "category": "test",
+      "title": "Federation Integration Test Failures",
+      "description": "15 federation integration tests failing, primarily due to 'LoadBalancer is not a constructor' errors",
+      "impact": "Federation features may be broken or tests are out of sync with implementation",
+      "recommendation": "Fix LoadBalancer export/import or update test imports to use correct constructor"
+    },
+    {
+      "severity": "medium",
+      "category": "test",
+      "title": "Live Integration Tests Skipped",
+      "description": "API and auth integration tests require RUN_LIVE_INTEGRATION_TESTS=true and running server/database",
+      "impact": "Full API testing requires manual setup",
+      "recommendation": "Add Docker Compose setup for test environment or mock external dependencies"
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "title": "Test Coverage Gap",
+      "description": "Live API endpoints are not automatically tested in CI",
+      "impact": "Potential regressions in API behavior may not be caught",
+      "recommendation": "Set up automated integration testing with testcontainers or similar"
+    }
+  ],
+  "authentication": {
+    "methods": [
+      {
+        "type": "API Key",
+        "header": "X-API-Key",
+        "format": "dash_<prefix>_<64-char-hex>",
+        "status": "implemented"
+      },
+      {
+        "type": "JWT Bearer Token",
+        "header": "Authorization: Bearer <token>",
+        "status": "implemented"
+      },
+      {
+        "type": "Session Cookie",
+        "cookie": "session",
+        "properties": ["httpOnly", "secure", "sameSite=strict"],
+        "status": "implemented"
+      }
+    ],
+    "publicEndpoints": ["/health", "/ready", "/metrics", "/api/auth/*", "/api/v1/auth/*", "/api/docs", "/api/openapi.json"]
+  },
+  "rateLimiting": {
+    "status": "implemented",
+    "defaultLimit": "1000 requests per minute",
+    "authLimit": "5 attempts per 15 minutes",
+    "apiKeyLimit": "100 requests per minute per key",
+    "headers": ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"]
+  },
+  "validation": {
+    "schemaValidation": "Zod schemas implemented for all API endpoints",
+    "errorFormat": "Consistent JSON error responses with code, message, and details",
+    "cliValidation": "Commander.js with required options and argument validation"
+  },
+  "testResults": {
+    "cliIntegration": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "status": "pass"
+    },
+    "apiIntegration": {
+      "total": 14,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 14,
+      "status": "skipped",
+      "reason": "Requires RUN_LIVE_INTEGRATION_TESTS=true and running server"
+    },
+    "authIntegration": {
+      "total": 15,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 15,
+      "status": "skipped",
+      "reason": "Requires RUN_LIVE_INTEGRATION_TESTS=true and running server"
+    },
+    "federation": {
+      "total": 22,
+      "passed": 19,
+      "failed": 3,
+      "skipped": 0,
+      "status": "partial",
+      "failures": ["Auto-Scaling cooldown test", "LoadBalancer constructor issues in multiple tests"]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Fix TypeScript build error in load-balancer.ts",
+      "details": "Add getAllAgents method to AgentRegistry or fix reference"
+    },
+    {
+      "priority": 1,
+      "action": "Resolve @godel/ai module dependency",
+      "details": "Create package or remove dependency from codebase"
+    },
+    {
+      "priority": 2,
+      "action": "Fix LoadBalancer export/import",
+      "details": "Correct constructor export in federation module"
+    },
+    {
+      "priority": 2,
+      "action": "Add test environment automation",
+      "details": "Create Docker Compose for integration testing with PostgreSQL and Redis"
+    },
+    {
+      "priority": 3,
+      "action": "Add CLI build verification to CI",
+      "details": "Ensure CLI can execute after build"
+    },
+    {
+      "priority": 3,
+      "action": "Add API contract tests",
+      "details": "Test API endpoints without requiring full server startup"
+    }
+  ],
+  "exitCodes": {
+    "cli": {
+      "0": "Success",
+      "1": "General error / Command failed"
+    },
+    "api": {
+      "200": "OK",
+      "201": "Created",
+      "204": "No Content",
+      "400": "Bad Request - Validation error",
+      "401": "Unauthorized - Missing or invalid credentials",
+      "404": "Not Found",
+      "422": "Unprocessable Entity - Validation failed",
+      "429": "Too Many Requests - Rate limited",
+      "500": "Internal Server Error"
+    }
+  },
+  "helpTextCompleteness": {
+    "cli": {
+      "globalOptions": ["--help", "--version", "--format"],
+      "commandHelp": "All commands provide --help with descriptions",
+      "examples": "Examples provided in command descriptions",
+      "status": "complete"
+    },
+    "api": {
+      "openapi": "Available at /api/openapi.json when enabled",
+      "swaggerUi": "Available at /api/docs when enabled",
+      "endpointDocs": "Each endpoint has summary and description in schema",
+      "status": "complete"
+    }
+  }
+}

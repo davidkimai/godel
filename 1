@@ -1,0 +1,56 @@
+PASS tests/integrations/openclaw/integration.test.ts (11.72 s)
+PASS tests/integrations/openclaw/integration.test.ts (11.72 s)
+PASS tests/state-persistence.test.ts
+PASS tests/state-persistence.test.ts
+PASS tests/integrations/openclaw/adapter.test.ts
+PASS tests/integrations/openclaw/adapter.test.ts
+PASS tests/unit/queue/task-queue.test.ts
+PASS tests/unit/queue/task-queue.test.ts
+FAIL tests/state-aware-orchestrator.test.ts
+FAIL tests/state-aware-orchestrator.test.ts
+  ● StateAwareOrchestrator › Persistence Integration › should update persisted status on destroy
+
+    SqliteError: disk I/O error
+
+    [0m [90m 75 |[39m     [36mthis[39m[33m.[39mcreateSchema()[33m;[39m
+     [90m 76 |[39m   }
+    [31m[1m>[22m[39m[90m 77 |[39m
+     [90m    |[39m [31m[1m^[22m[39m
+     [90m 78 |[39m   [90m/**[39m
+     [90m 79 |[39m [90m   * Get or create a cached prepared statement[39m
+     [90m 80 |[39m [90m   */[39m[0m
+
+      at Database.pragma (node_modules/better-sqlite3/lib/methods/pragma.js:11:44)
+      at SQLiteStorage.initialize (src/storage/sqlite.ts:77:21)
+      at src/storage/sqlite.ts:668:9
+      at Object.<anonymous> (tests/state-aware-orchestrator.test.ts:107:9)
+
+  ● StateAwareOrchestrator › Persistence Integration › should update persisted status on destroy
+
+    SqliteError: disk I/O error
+
+    [0m [90m 75 |[39m     [36mthis[39m[33m.[39mcreateSchema()[33m;[39m
+     [90m 76 |[39m   }
+    [31m[1m>[22m[39m[90m 77 |[39m
+     [90m    |[39m [31m[1m^[22m[39m
+     [90m 78 |[39m   [90m/**[39m
+     [90m 79 |[39m [90m   * Get or create a cached prepared statement[39m
+     [90m 80 |[39m [90m   */[39m[0m
+
+      at Database.pragma (node_modules/better-sqlite3/lib/methods/pragma.js:11:44)
+      at SQLiteStorage.initialize (src/storage/sqlite.ts:77:21)
+      at src/storage/sqlite.ts:668:9
+      at Object.<anonymous> (tests/state-aware-orchestrator.test.ts:107:9)
+
+Test Suites: 1 failed, 4 passed, 5 total
+Tests:       1 failed, 1 skipped, 87 passed, 89 total
+Snapshots:   0 total
+Time:        19.341 s
+Ran all test suites matching /tests\/unit\/queue\/task-queue.test.ts|tests\/integrations\/openclaw\/adapter.test.ts|tests\/integrations\/openclaw\/integration.test.ts|tests\/state-persistence.test.ts|tests\/state-aware-orchestrator.test.ts/i.
+Test Suites: 1 failed, 4 passed, 5 total
+Tests:       1 failed, 1 skipped, 87 passed, 89 total
+Snapshots:   0 total
+Time:        19.341 s
+Ran all test suites matching /tests\/unit\/queue\/task-queue.test.ts|tests\/integrations\/openclaw\/adapter.test.ts|tests\/integrations\/openclaw\/integration.test.ts|tests\/state-persistence.test.ts|tests\/state-aware-orchestrator.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

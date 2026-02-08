@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Godel Performance Benchmark</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 2rem; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 0.5rem; }
+    h2 { color: #555; margin-top: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1rem 0; }
+    .metric { background: #f8f9fa; padding: 1rem; border-radius: 4px; }
+    .metric-label { font-size: 0.875rem; color: #666; }
+    .metric-value { font-size: 1.5rem; font-weight: bold; color: #333; }
+    .status-passed { color: #4CAF50; }
+    .status-failed { color: #f44336; }
+    .status-degraded { color: #ff9800; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f5f5f5; font-weight: 600; }
+    .chart { height: 300px; margin: 2rem 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Godel Performance Benchmark Report</h1>
+    
+    <div class="summary">
+      <div class="metric">
+        <div class="metric-label">Benchmark ID</div>
+        <div class="metric-value" style="font-size: 1rem;">benchmark-1770509475903</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Timestamp</div>
+        <div class="metric-value" style="font-size: 1rem;">2026-02-08T00:11:15.903Z</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Total Duration</div>
+        <div class="metric-value">108.2s</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Overall Status</div>
+        <div class="metric-value status-failed">
+          ❌ FAILED
+        </div>
+      </div>
+    </div>
+
+    <h2>Scenario Results</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Agents</th>
+          <th>Status</th>
+          <th>Success Rate</th>
+          <th>Spawn Time (ms)</th>
+          <th>Event Delivery (ms)</th>
+          <th>Events/sec</th>
+          <th>Memory Growth (MB)</th>
+          <th>Errors</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td>10</td>
+            <td class="status-failed">FAILED</td>
+            <td>0.0%</td>
+            <td>0.00</td>
+            <td>0.00</td>
+            <td>0.00</td>
+            <td>0.00</td>
+            <td>0</td>
+          </tr>
+        
+      </tbody>
+    </table>
+
+    <h2>Performance Charts</h2>
+    <div class="chart">
+      <canvas id="spawnTimeChart"></canvas>
+    </div>
+    <div class="chart">
+      <canvas id="eventsChart"></canvas>
+    </div>
+
+    <script>
+      const chartData = [{"agents":10,"spawnTime":0,"eventDelivery":0,"eventsPerSec":0,"memory":0}];
+      
+      new Chart(document.getElementById('spawnTimeChart'), {
+        type: 'line',
+        data: {
+          labels: chartData.map(d => d.agents + ' agents'),
+          datasets: [{
+            label: 'Spawn Time (ms)',
+            data: chartData.map(d => d.spawnTime),
+            borderColor: '#4CAF50',
+            tension: 0.1
+          }, {
+            label: 'Event Delivery (ms)',
+            data: chartData.map(d => d.eventDelivery),
+            borderColor: '#2196F3',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: 'Latency Metrics' } }
+        }
+      });
+
+      new Chart(document.getElementById('eventsChart'), {
+        type: 'bar',
+        data: {
+          labels: chartData.map(d => d.agents + ' agents'),
+          datasets: [{
+            label: 'Events/sec',
+            data: chartData.map(d => d.eventsPerSec),
+            backgroundColor: '#4CAF50'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { title: { display: true, text: 'Throughput' } }
+        }
+      });
+    </script>
+  </div>
+</body>
+</html>

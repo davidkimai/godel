@@ -672,4 +672,200 @@ export class MultiClusterLoadBalancer extends EventEmitter {
   }
 }
 
+// ============================================================================
+// AGENT-LEVEL LOAD BALANCER (for backwards compatibility with tests)
+// ============================================================================
+
+import type { AgentRegistry, RegisteredAgent } from './agent-registry';
+import { AgentCircuitBreakerRegistry } from './circuit-breaker';
+import { HealthChecker } from './health-checker';
+
+export interface AgentLoadBalancerConfig {
+  strategy: 'least-connections' | 'round-robin' | 'weighted';
+  healthCheck?: {
+    interval?: number;
+    timeout?: number;
+    unhealthyThreshold?: number;
+  };
+  circuitBreaker?: {
+    failureThreshold?: number;
+    timeout?: number;
+  };
+}
+
+export interface AgentSelection {
+  agent: RegisteredAgent;
+  score?: number;
+}
+
+/**
+ * Agent-level load balancer for routing tasks to agents
+ * 
+ * This provides a simpler interface for agent selection compared to
+ * the cluster-level MultiClusterLoadBalancer.
+ */
+export class LoadBalancer {
+  private registry: AgentRegistry;
+  private config: AgentLoadBalancerConfig;
+  private circuitBreakers: AgentCircuitBreakerRegistry;
+  private healthChecker: HealthChecker | null = null;
+  private roundRobinIndex = 0;
+  private strategyWeights = new Map<string, number>();
+
+  constructor(registry: AgentRegistry, config: AgentLoadBalancerConfig) {
+    this.registry = registry;
+    this.config = {
+      healthCheck: { interval: 5000, timeout: 5000, unhealthyThreshold: 3 },
+      circuitBreaker: { failureThreshold: 5, timeout: 30000 },
+      ...config,
+    };
+    
+    this.circuitBreakers = new AgentCircuitBreakerRegistry({
+      failureThreshold: this.config.circuitBreaker?.failureThreshold ?? 5,
+      timeout: this.config.circuitBreaker?.timeout ?? 30000,
+      successThreshold: 2,
+    });
+
+    // Initialize health checker if configured
+    if (this.config.healthCheck?.interval) {
+      this.healthChecker = new HealthChecker({
+        interval: this.config.healthCheck.interval,
+        timeout: this.config.healthCheck.timeout ?? 5000,
+        unhealthyThreshold: this.config.healthCheck.unhealthyThreshold ?? 3,
+        degradedThreshold: 2000,
+        healthyLatencyThreshold: 5000,
+      });
+
+      // Sync health checker with registry
+      const agents = (registry as unknown as { list(): RegisteredAgent[] }).list();
+      for (const agent of agents) {
+        this.healthChecker.registerAgent(agent.id);
+      }
+
+      this.healthChecker.start();
+    }
+  }
+
+  /**
+   * Select an agent based on the configured strategy
+   */
+  async selectAgent(criteria: { 
+    requiredSkills?: string[]; 
+    priority?: number;
+  } = {}): Promise<AgentSelection> {
+    const healthyAgents = this.getHealthyAgents();
+    
+    if (healthyAgents.length === 0) {
+      throw new Error('No healthy agents available');
+    }
+
+    // Filter by skills if specified
+    let candidates = healthyAgents;
+    if (criteria.requiredSkills && criteria.requiredSkills.length > 0) {
+      candidates = healthyAgents.filter(agent => {
+        const agentSkills = agent.capabilities.skills.map(s => s.toLowerCase());
+        return criteria.requiredSkills!.every(skill => 
+          agentSkills.includes(skill.toLowerCase())
+        );
+      });
+    }
+
+    if (candidates.length === 0) {
+      throw new Error('No agents available matching the specified criteria');
+    }
+
+    // Apply selection strategy
+    let selected: RegisteredAgent;
+    
+    switch (this.config.strategy) {
+      case 'round-robin':
+        selected = this.selectRoundRobin(candidates);
+        break;
+      case 'weighted':
+        selected = this.selectWeighted(candidates);
+        break;
+      case 'least-connections':
+      default:
+        selected = this.selectLeastConnections(candidates);
+        break;
+    }
+
+    return { agent: selected };
+  }
+
+  private selectRoundRobin(candidates: RegisteredAgent[]): RegisteredAgent {
+    this.roundRobinIndex = (this.roundRobinIndex + 1) % candidates.length;
+    return candidates[this.roundRobinIndex];
+  }
+
+  private selectWeighted(candidates: RegisteredAgent[]): RegisteredAgent {
+    // Use reliability as weight
+    const totalWeight = candidates.reduce((sum, a) => sum + a.capabilities.reliability, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (const agent of candidates) {
+      random -= agent.capabilities.reliability;
+      if (random <= 0) {
+        return agent;
+      }
+    }
+    
+    return candidates[candidates.length - 1];
+  }
+
+  private selectLeastConnections(candidates: RegisteredAgent[]): RegisteredAgent {
+    // Select agent with lowest current load
+    return candidates.reduce((best, agent) => {
+      if (agent.currentLoad < best.currentLoad) {
+        return agent;
+      }
+      return best;
+    });
+  }
+
+  /**
+   * Get all healthy agents (not circuit broken)
+   */
+  getHealthyAgents(): RegisteredAgent[] {
+    const allAgents = this.registry.getHealthyAgents();
+    return allAgents.filter(agent => {
+      const cb = this.circuitBreakers.get(agent.id);
+      if (cb && cb.isOpen()) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Record a failure for an agent (triggers circuit breaker)
+   */
+  recordFailure(agentId: string, error?: Error): void {
+    const cb = this.circuitBreakers.getOrCreate(agentId);
+    cb.recordFailure(error);
+  }
+
+  /**
+   * Record a success for an agent (resets circuit breaker)
+   */
+  recordSuccess(agentId: string): void {
+    const cb = this.circuitBreakers.get(agentId);
+    if (cb) {
+      cb.recordSuccess();
+    }
+  }
+
+  /**
+   * Stop the load balancer and cleanup resources
+   */
+  stop(): void {
+    if (this.healthChecker) {
+      this.healthChecker.stop();
+      this.healthChecker.dispose();
+      this.healthChecker = null;
+    }
+    this.circuitBreakers.clear();
+  }
+}
+
 export default MultiClusterLoadBalancer;

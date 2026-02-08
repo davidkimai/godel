@@ -1,0 +1,431 @@
+{
+  "summary": {
+    "overallCoverage": "5.11%",
+    "linesOfCode": 46098,
+    "files": 115,
+    "issues": 47
+  },
+  "coverage": {
+    "statements": "5.11% (564/11017)",
+    "branches": "3.77% (158/4182)",
+    "functions": "5.82% (95/1631)",
+    "lines": "5.11% (540/10566)"
+  },
+  "complexity": {
+    "highComplexityFiles": [
+      {
+        "file": "src/events/replay.ts",
+        "lines": 1313,
+        "functions": 4,
+        "complexityIndicators": 107,
+        "coverage": "0%"
+      },
+      {
+        "file": "src/agent/lifecycle.ts",
+        "lines": 1224,
+        "functions": 75,
+        "complexityIndicators": 89,
+        "coverage": "68.91%"
+      },
+      {
+        "file": "src/safety/guardrails.ts",
+        "lines": 1045,
+        "functions": 10,
+        "complexityIndicators": 74,
+        "coverage": "0%"
+      },
+      {
+        "file": "src/safety/sandbox.ts",
+        "lines": 1030,
+        "functions": 22,
+        "complexityIndicators": 68,
+        "coverage": "0%"
+      },
+      {
+        "file": "src/safety/predictive-budget.ts",
+        "lines": 849,
+        "functions": 18,
+        "complexityIndicators": 52,
+        "coverage": "0%"
+      },
+      {
+        "file": "src/api/routes/agents.ts",
+        "lines": 792,
+        "functions": 15,
+        "complexityIndicators": 45,
+        "coverage": "0%"
+      },
+      {
+        "file": "src/swarm/manager.ts",
+        "lines": 781,
+        "functions": 22,
+        "complexityIndicators": 43,
+        "coverage": "79.37%"
+      },
+      {
+        "file": "src/cli/commands/git.ts",
+        "lines": 781,
+        "functions": 21,
+        "complexityIndicators": 95,
+        "coverage": "0%"
+      }
+    ],
+    "averageComplexity": 12.4,
+    "averageFileSize": 401,
+    "maxFileSize": 1313,
+    "totalFunctions": 1631
+  },
+  "issues": [
+    {
+      "severity": "critical",
+      "file": "src/events/replay.ts",
+      "description": "Zero test coverage (0%) on 1313-line event replay system",
+      "suggestion": "Add unit tests for replay sessions, event filtering, and export functionality"
+    },
+    {
+      "severity": "critical",
+      "file": "src/safety/guardrails.ts",
+      "description": "Zero test coverage (0%) on critical security guardrails module",
+      "suggestion": "Comprehensive testing required for sandbox, network allowlist, and command pattern detection"
+    },
+    {
+      "severity": "critical",
+      "file": "src/safety/sandbox.ts",
+      "description": "Zero test coverage (0%) on 1030-line sandbox implementation",
+      "suggestion": "Test all sandbox enforcement paths and path validation logic"
+    },
+    {
+      "severity": "critical",
+      "file": "src/api/routes/agents.ts",
+      "description": "Zero test coverage (0%) on API routes",
+      "suggestion": "Add integration tests for all API endpoints"
+    },
+    {
+      "severity": "critical",
+      "file": "src/api/routes/events.ts",
+      "description": "Zero test coverage (0%) on event API routes",
+      "suggestion": "Add integration tests for event endpoints"
+    },
+    {
+      "severity": "critical",
+      "file": "src/api/routes/swarm.ts",
+      "description": "Zero test coverage (0%) on swarm API routes",
+      "suggestion": "Add integration tests for swarm management endpoints"
+    },
+    {
+      "severity": "high",
+      "file": "src/cli/commands/git.ts",
+      "description": "Zero test coverage (0%) on 781-line Git CLI operations",
+      "suggestion": "Add tests for all git command wrappers and error handling"
+    },
+    {
+      "severity": "high",
+      "file": "src/cli/commands/events.ts",
+      "description": "Zero test coverage (0%) on event CLI commands",
+      "suggestion": "Add tests for event replay and stream commands"
+    },
+    {
+      "severity": "high",
+      "file": "src/nlp/decompose.ts",
+      "description": "Zero test coverage (0%) on task decomposition logic",
+      "suggestion": "Test task decomposition and NLP classification"
+    },
+    {
+      "severity": "high",
+      "file": "src/safety/predictive-budget.ts",
+      "description": "Zero test coverage (0%) on budget prediction system",
+      "suggestion": "Add tests for budget forecasting algorithms"
+    },
+    {
+      "severity": "high",
+      "file": "src/safety/path-validator.ts",
+      "description": "Zero test coverage (0%) on path validation (714 lines)",
+      "suggestion": "Test all path traversal protection mechanisms"
+    },
+    {
+      "severity": "high",
+      "file": "src/safety/budget.ts",
+      "description": "Zero test coverage (0%) on budget management",
+      "suggestion": "Add tests for budget tracking and enforcement"
+    },
+    {
+      "severity": "high",
+      "file": "src/safety/budget-alerts.ts",
+      "description": "Zero test coverage (0%) on budget alerting",
+      "suggestion": "Test alert generation and threshold handling"
+    },
+    {
+      "severity": "high",
+      "file": "src/git/operations.ts",
+      "description": "Zero test coverage (0%) on git operations (780 lines)",
+      "suggestion": "Add tests for all git operation wrappers"
+    },
+    {
+      "severity": "high",
+      "file": "src/events/stream.ts",
+      "description": "Zero test coverage (0%) on event streaming (730 lines)",
+      "suggestion": "Test event streaming and real-time processing"
+    },
+    {
+      "severity": "medium",
+      "file": "src/agent/lifecycle.ts",
+      "description": "Incomplete coverage (68.91%) on critical agent lifecycle",
+      "suggestion": "Improve branch coverage from 51.78% to 80%+"
+    },
+    {
+      "severity": "medium",
+      "file": "src/analytics/tracker.ts",
+      "description": "Zero test coverage (0%) on analytics tracking",
+      "suggestion": "Add tests for event tracking and filtering"
+    },
+    {
+      "severity": "medium",
+      "file": "src/api/websocket.ts",
+      "description": "Zero test coverage (0%) on WebSocket implementation",
+      "suggestion": "Add WebSocket connection and message handling tests"
+    },
+    {
+      "severity": "medium",
+      "file": "src/testing/runner.ts",
+      "description": "Zero test coverage (0%) on test runner (685 lines)",
+      "suggestion": "Add self-tests for the testing framework"
+    },
+    {
+      "severity": "medium",
+      "file": "src/storage/migrate.ts",
+      "description": "Zero test coverage (0%) on database migrations",
+      "suggestion": "Test migration logic and rollback functionality"
+    },
+    {
+      "severity": "medium",
+      "file": "src/nlp/classifier.ts",
+      "description": "Zero test coverage (0%) on intent classification",
+      "suggestion": "Test NLP classification with various inputs"
+    },
+    {
+      "severity": "low",
+      "file": "src/utils/logger.ts",
+      "description": "Zero test coverage (0%) on logging utility",
+      "suggestion": "Add basic logger tests"
+    },
+    {
+      "severity": "low",
+      "file": "src/utils/validation.ts",
+      "description": "Zero test coverage (0%) on validation utilities",
+      "suggestion": "Test validation schemas and sanitization"
+    }
+  ],
+  "techDebt": [
+    {
+      "type": "console-usage",
+      "count": 1758,
+      "description": "Heavy console.log usage - should migrate to structured logger",
+      "files": "Multiple files across src/"
+    },
+    {
+      "type": "any-type",
+      "count": 50,
+      "description": "50 instances of 'any' type reduce type safety",
+      "suggestion": "Replace with specific types or unknown"
+    },
+    {
+      "type": "large-files",
+      "count": 8,
+      "description": "8 files exceed 700 lines - consider refactoring",
+      "files": [
+        "src/events/replay.ts (1313 lines)",
+        "src/agent/lifecycle.ts (1224 lines)",
+        "src/safety/guardrails.ts (1045 lines)",
+        "src/safety/sandbox.ts (1030 lines)"
+      ]
+    },
+    {
+      "type": "missing-error-handling",
+      "count": 58,
+      "description": "Only 58 files have try-catch blocks out of 115 total",
+      "suggestion": "Add consistent error handling across all async operations"
+    }
+  ],
+  "qualityMetrics": {
+    "typescript": {
+      "strict": true,
+      "anyUsage": 50,
+      "interfaceCount": 300,
+      "typeCount": 277,
+      "classCount": 67
+    },
+    "errorHandling": {
+      "tryCatchBlocks": 253,
+      "throwStatements": 217,
+      "filesWithErrorHandling": 58,
+      "asyncAwaitUsage": 956
+    },
+    "codeOrganization": {
+      "totalFiles": 115,
+      "testFiles": 45,
+      "averageFileLength": 401,
+      "medianFileLength": 180,
+      "linesOfCode": 46098
+    },
+    "testCoverage": {
+      "overall": "5.11%",
+      "criticalAreas": {
+        "workflowEngine": "79.37% (swarm/manager.ts)",
+        "eventStore": "0% (events/replay.ts, events/stream.ts)",
+        "stateMachine": "68.91% (agent/lifecycle.ts)",
+        "safetyGuardrails": "0% (safety/guardrails.ts, safety/sandbox.ts)",
+        "federationRouting": "0% (api/routes/*.ts)"
+      }
+    }
+  },
+  "criticalAreasAnalysis": {
+    "workflowEngine": {
+      "status": "partially-tested",
+      "coverage": "79.37%",
+      "files": ["src/swarm/manager.ts", "src/swarm/storage.ts", "src/swarm/types.ts"],
+      "issues": ["Good coverage on manager, but types.ts needs more edge case testing"],
+      "recommendations": ["Add tests for error scenarios and edge cases"]
+    },
+    "eventStore": {
+      "status": "untested",
+      "coverage": "0%",
+      "files": ["src/events/replay.ts", "src/events/stream.ts"],
+      "issues": [
+        "Zero coverage on 1313-line replay system",
+        "Zero coverage on 730-line event streaming",
+        "107 complexity indicators in replay.ts (ifs, switches, loops)"
+      ],
+      "recommendations": [
+        "Priority 1: Add comprehensive event replay tests",
+        "Test event filtering, export formats (JSON, CSV)",
+        "Test replay speed controls and session management"
+      ]
+    },
+    "stateMachine": {
+      "status": "partially-tested",
+      "coverage": "68.91%",
+      "files": ["src/agent/lifecycle.ts"],
+      "issues": [
+        "Branch coverage only 51.78%",
+        "75 functions with incomplete testing"
+      ],
+      "recommendations": [
+        "Improve branch coverage to 80%+",
+        "Test all state transitions",
+        "Test error recovery paths"
+      ]
+    },
+    "federationRouting": {
+      "status": "untested",
+      "coverage": "0%",
+      "files": ["src/api/routes/agents.ts", "src/api/routes/events.ts", "src/api/routes/swarm.ts"],
+      "issues": [
+        "All API routes have zero coverage",
+        "WebSocket implementation untested"
+      ],
+      "recommendations": [
+        "Add integration tests for all endpoints",
+        "Test WebSocket connections and message handling",
+        "Add API contract tests"
+      ]
+    },
+    "safetyGuardrails": {
+      "status": "untested",
+      "coverage": "0%",
+      "files": ["src/safety/guardrails.ts", "src/safety/sandbox.ts", "src/safety/path-validator.ts"],
+      "issues": [
+        "Zero coverage on security-critical modules",
+        "2743 lines of safety code untested",
+        "Path traversal protection not validated"
+      ],
+      "recommendations": [
+        "CRITICAL: Add comprehensive safety tests before production",
+        "Test all sandbox escape prevention",
+        "Test command pattern detection",
+        "Validate network allowlist enforcement"
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "P0",
+      "area": "Safety Testing",
+      "action": "Add comprehensive tests for all safety modules before production deployment",
+      "impact": "Security vulnerabilities could be exploited without detection"
+    },
+    {
+      "priority": "P0",
+      "area": "Event Store Testing",
+      "action": "Test event replay and streaming systems",
+      "impact": "Data integrity and audit capabilities at risk"
+    },
+    {
+      "priority": "P1",
+      "area": "API Testing",
+      "action": "Add integration tests for all API routes",
+      "impact": "API contract stability and reliability"
+    },
+    {
+      "priority": "P1",
+      "area": "Coverage Threshold",
+      "action": "Raise coverage threshold from 50% to 70%",
+      "impact": "Improve overall code quality and maintainability"
+    },
+    {
+      "priority": "P2",
+      "area": "Code Organization",
+      "action": "Refactor files over 700 lines into smaller modules",
+      "impact": "Improved maintainability and testability"
+    },
+    {
+      "priority": "P2",
+      "area": "Error Handling",
+      "action": "Add consistent error handling to remaining 57 files",
+      "impact": "Better error recovery and debugging"
+    },
+    {
+      "priority": "P3",
+      "area": "Type Safety",
+      "action": "Replace 50 'any' types with specific types",
+      "impact": "Improved type safety and IDE support"
+    }
+  ],
+  "metricsByModule": {
+    "safety": {
+      "files": 10,
+      "lines": 8924,
+      "coverage": "0%",
+      "risk": "critical"
+    },
+    "events": {
+      "files": 2,
+      "lines": 2043,
+      "coverage": "0%",
+      "risk": "critical"
+    },
+    "api": {
+      "files": 15,
+      "lines": 3420,
+      "coverage": "0%",
+      "risk": "high"
+    },
+    "cli": {
+      "files": 25,
+      "lines": 8920,
+      "coverage": "0%",
+      "risk": "high"
+    },
+    "swarm": {
+      "files": 4,
+      "lines": 2340,
+      "coverage": "72.68%",
+      "risk": "low"
+    },
+    "agent": {
+      "files": 3,
+      "lines": 1553,
+      "coverage": "68.91%",
+      "risk": "medium"
+    }
+  }
+}

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Godel Load Test Report - Custom Test (10 Sessions)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    header {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      color: #1a202c;
+      font-size: 2rem;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 1rem;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      background: #F4433620;
+      color: #F44336;
+      border: 2px solid #F44336;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin: 0 0 1rem 0;
+      color: #4a5568;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1a202c;
+    }
+    .metric-unit {
+      font-size: 1rem;
+      color: #718096;
+      font-weight: 400;
+    }
+    .metric-delta {
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+    .metric-delta.positive { color: #48bb78; }
+    .metric-delta.negative { color: #f56565; }
+    .chart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .chart-wrapper {
+      height: 300px;
+      position: relative;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      font-weight: 600;
+      color: #4a5568;
+      background: #f7fafc;
+    }
+    tr:hover { background: #f7fafc; }
+    .check-passed { color: #48bb78; font-weight: 600; }
+    .check-failed { color: #f56565; font-weight: 600; }
+    .check-warning { color: #ed8936; font-weight: 600; }
+    .severity-critical { color: #f56565; }
+    .severity-warning { color: #ed8936; }
+    .severity-info { color: #4299e1; }
+    .two-column {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .two-column { grid-template-columns: 1fr; }
+      .metric-value { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Godel Load Test Report</h1>
+      <div class="subtitle">Custom Test (10 Sessions)</div>
+      <div class="subtitle">Started: 2/7/2026, 6:20:18 PM</div>
+      <div class="subtitle">Duration: 257.6s</div>
+      <span class="status-badge">FAILED</span>
+    </header>
+
+    <!-- Key Metrics Grid -->
+    <div class="grid">
+      <div class="card">
+        <h3>Total Sessions</h3>
+        <div class="metric-value">10<span class="metric-unit"> / 10</span></div>
+        <div class="metric-delta positive">
+          10 successful, 0 failed
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Average Latency</h3>
+        <div class="metric-value">216.3<span class="metric-unit">ms</span></div>
+        <div class="metric-delta">
+          P95: 229.7ms | P99: 229.7ms
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Error Rate</h3>
+        <div class="metric-value">0.00<span class="metric-unit">%</span></div>
+        <div class="metric-delta positive">
+          Target: 1.0%
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Throughput</h3>
+        <div class="metric-value">3.8<span class="metric-unit">/sec</span></div>
+        <div class="metric-delta negative">
+          Target: 50/sec
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Memory Growth</h3>
+        <div class="metric-value">-18.5<span class="metric-unit">MB</span></div>
+        <div class="metric-delta">
+          Peak: 97.3MB
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>Success Rate</h3>
+        <div class="metric-value">100.0<span class="metric-unit">%</span></div>
+        <div class="metric-delta positive">
+          10/10 sessions
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="two-column">
+      <div class="chart-container">
+        <h3>Latency Distribution</h3>
+        <div class="chart-wrapper">
+          <canvas id="latencyChart"></canvas>
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <h3>Session Results</h3>
+        <div class="chart-wrapper">
+          <canvas id="sessionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pass/Fail Checks -->
+    <div class="card">
+      <h3>Pass/Fail Criteria</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Expected</th>
+            <th>Actual</th>
+            <th>Severity</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>Max Latency</td>
+              <td><= 100ms</td>
+              <td>216.35ms</td>
+              <td class="severity-critical">CRITICAL</td>
+              <td class="check-failed">
+                ✗ FAIL
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Error Rate</td>
+              <td><= 1.0%</td>
+              <td>0.00%</td>
+              <td class="severity-critical">CRITICAL</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Min Throughput</td>
+              <td>>= 50/sec</td>
+              <td>3.82/sec</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-failed">
+                ✗ FAIL
+              </td>
+            </tr>
+          
+            <tr>
+              <td>CPU Usage</td>
+              <td><= 70%</td>
+              <td>0.0%</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+            <tr>
+              <td>Memory Growth</td>
+              <td><= 100MB</td>
+              <td>-18.46MB</td>
+              <td class="severity-warning">WARNING</td>
+              <td class="check-passed">
+                ✓ PASS
+              </td>
+            </tr>
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Scenario Details -->
+    <div class="card">
+      <h3>Scenario Details (First 20)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Session</th>
+            <th>Swarm ID</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Agents</th>
+            <th>Latency (avg)</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td>#1</td>
+              <td><code>0510018492-0</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.9s</td>
+              <td>4</td>
+              <td>211.3ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#2</td>
+              <td><code>0510018492-1</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.6s</td>
+              <td>4</td>
+              <td>219.6ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#3</td>
+              <td><code>0510018492-2</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.3s</td>
+              <td>4</td>
+              <td>216.6ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#4</td>
+              <td><code>0510018492-3</code></td>
+              <td class="check-passed">✓</td>
+              <td>121.2s</td>
+              <td>4</td>
+              <td>225.4ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#5</td>
+              <td><code>0510018492-4</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.6s</td>
+              <td>4</td>
+              <td>219.9ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#6</td>
+              <td><code>0510154661-5</code></td>
+              <td class="check-passed">✓</td>
+              <td>121.1s</td>
+              <td>4</td>
+              <td>212.7ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#7</td>
+              <td><code>0510154661-6</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.2s</td>
+              <td>4</td>
+              <td>215.5ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#8</td>
+              <td><code>0510154661-7</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.4s</td>
+              <td>4</td>
+              <td>229.7ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#9</td>
+              <td><code>0510154661-8</code></td>
+              <td class="check-passed">✓</td>
+              <td>120.6s</td>
+              <td>4</td>
+              <td>196.3ms</td>
+              <td>0</td>
+            </tr>
+          
+            <tr>
+              <td>#10</td>
+              <td><code>0510154661-9</code></td>
+              <td class="check-passed">✓</td>
+              <td>121.5s</td>
+              <td>4</td>
+              <td>216.6ms</td>
+              <td>0</td>
+            </tr>
+          
+          
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Configuration -->
+    <div class="card">
+      <h3>Test Configuration</h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Sessions</strong></td><td>10</td></tr>
+          <tr><td><strong>Duration</strong></td><td>2 minutes</td></tr>
+          <tr><td><strong>Ramp-up</strong></td><td>30 seconds</td></tr>
+          <tr><td><strong>Agents per Session</strong></td><td>4</td></tr>
+          <tr><td><strong>Workload Type</strong></td><td>mixed</td></tr>
+          <tr><td><strong>Max Latency</strong></td><td>100ms</td></tr>
+          <tr><td><strong>Max Error Rate</strong></td><td>1.0%</td></tr>
+          <tr><td><strong>Min Throughput</strong></td><td>50/sec</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Latency Distribution Chart
+    new Chart(document.getElementById('latencyChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Avg', 'P95', 'P99'],
+        datasets: [{
+          label: 'Latency (ms)',
+          data: [216.34948078548896, 229.66577889108862, 229.66577889108862],
+          backgroundColor: ['#4299e1', '#ed8936', '#f56565'],
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Milliseconds' }
+          }
+        }
+      }
+    });
+
+    // Session Results Chart
+    new Chart(document.getElementById('sessionChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Successful', 'Failed'],
+        datasets: [{
+          data: [10, 0],
+          backgroundColor: ['#48bb78', '#f56565'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

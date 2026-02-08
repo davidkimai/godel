@@ -1,0 +1,286 @@
+{
+  "id": "benchmark-1770500621118",
+  "timestamp": "2026-02-07T21:43:41.118Z",
+  "config": {
+    "scenarios": [
+      10
+    ],
+    "iterations": 3,
+    "outputDir": "./benchmark-results",
+    "generateHtmlReport": true,
+    "generateJsonSummary": true,
+    "stopOnFailure": false
+  },
+  "results": [
+    {
+      "agentCount": 10,
+      "iterations": [
+        {
+          "config": {
+            "agentCount": 10,
+            "durationMs": 30000,
+            "eventRate": 10,
+            "payloadSize": 1024,
+            "enableEventStreaming": true,
+            "enableBranching": false,
+            "warmupMs": 3000
+          },
+          "timestamp": "2026-02-07T21:44:17.293Z",
+          "testDuration": 36114.617417,
+          "latency": {
+            "spawnTime": {
+              "min": 1.1299589999998716,
+              "max": 1.5533329999998386,
+              "avg": 1.3766666666663998,
+              "p50": 1.4467079999994894,
+              "p95": 1.5533329999998386,
+              "p99": 1.5533329999998386
+            },
+            "eventDelivery": {
+              "min": 0.014041999995242804,
+              "max": 2.9249999999992724,
+              "avg": 0.09562289898963555,
+              "p50": 0.02658300000075542,
+              "p95": 0.3092080000023998,
+              "p99": 2.2147079999995185
+            },
+            "messageRouting": {
+              "min": 0.04491699999925913,
+              "max": 6.647790999999415,
+              "avg": 0.30941029452055024,
+              "p50": 0.10562500000014552,
+              "p95": 1.4167499999966822,
+              "p99": 3.278834000000643
+            },
+            "stateTransition": {
+              "min": 0.002457999999023741,
+              "max": 5.479666999999608,
+              "avg": 0.12703734006734319,
+              "p50": 0.05170899999939138,
+              "p95": 0.3843750000014552,
+              "p99": 2.823292000000947
+            }
+          },
+          "throughput": {
+            "eventsPerSecond": 24.671450612698038,
+            "messagesPerSecond": 55.43461742606226,
+            "stateTransitionsPerSecond": 8.223816870899348,
+            "totalEvents": 891,
+            "totalMessages": 2002,
+            "totalStateTransitions": 297
+          },
+          "memory": {
+            "heapUsedStart": 187488392,
+            "heapUsedEnd": 191050000,
+            "heapUsedPeak": 196809568,
+            "heapGrowth": 3561608,
+            "eventBusMemory": 50000,
+            "storageMemory": 15000,
+            "rssStart": 193216512,
+            "rssEnd": 54575104
+          },
+          "eventBus": {
+            "eventsEmitted": 891,
+            "eventsDelivered": 0,
+            "eventsDropped": 891,
+            "deliveryRate": 0,
+            "subscriptionCount": 0,
+            "messageCount": 0
+          },
+          "lifecycle": {
+            "totalSpawned": 15,
+            "totalCompleted": 0,
+            "totalFailed": 0,
+            "totalKilled": 15,
+            "activeAgents": 0,
+            "pausedAgents": 0
+          },
+          "errors": [],
+          "success": false
+        },
+        {
+          "config": {
+            "agentCount": 10,
+            "durationMs": 30000,
+            "eventRate": 10,
+            "payloadSize": 1024,
+            "enableEventStreaming": true,
+            "enableBranching": false,
+            "warmupMs": 3000
+          },
+          "timestamp": "2026-02-07T21:44:53.303Z",
+          "testDuration": 36007.009125000004,
+          "latency": {
+            "spawnTime": {
+              "min": 0.2413749999977881,
+              "max": 0.3715830000001006,
+              "avg": 0.3044026666660405,
+              "p50": 0.30025000000023283,
+              "p95": 0.3715830000001006,
+              "p99": 0.3715830000001006
+            },
+            "eventDelivery": {
+              "min": 0.014792000001762062,
+              "max": 3.435582999998587,
+              "avg": 0.06365909459497276,
+              "p50": 0.02566600000136532,
+              "p95": 0.15712500000518048,
+              "p99": 1.0495840000003227
+            },
+            "messageRouting": {
+              "min": 0.035042000003159046,
+              "max": 6.356874999997672,
+              "avg": 0.2661734013724478,
+              "p50": 0.08499999999912689,
+              "p95": 1.3712500000037835,
+              "p99": 3.0657500000015716
+            },
+            "stateTransition": {
+              "min": 0.0037079999965499155,
+              "max": 6.198582999997598,
+              "avg": 0.15124280405423732,
+              "p50": 0.057209000005968846,
+              "p95": 0.26229199999943376,
+              "p99": 4.801915999996709
+            }
+          },
+          "throughput": {
+            "eventsPerSecond": 24.661865052919747,
+            "messagesPerSecond": 55.2947897751838,
+            "stateTransitionsPerSecond": 8.220621684306582,
+            "totalEvents": 888,
+            "totalMessages": 1991,
+            "totalStateTransitions": 296
+          },
+          "memory": {
+            "heapUsedStart": 191346072,
+            "heapUsedEnd": 185188776,
+            "heapUsedPeak": 196831072,
+            "heapGrowth": -6157296,
+            "eventBusMemory": 50000,
+            "storageMemory": 15000,
+            "rssStart": 63127552,
+            "rssEnd": 64045056
+          },
+          "eventBus": {
+            "eventsEmitted": 888,
+            "eventsDelivered": 0,
+            "eventsDropped": 888,
+            "deliveryRate": 0,
+            "subscriptionCount": 0,
+            "messageCount": 0
+          },
+          "lifecycle": {
+            "totalSpawned": 15,
+            "totalCompleted": 0,
+            "totalFailed": 0,
+            "totalKilled": 15,
+            "activeAgents": 0,
+            "pausedAgents": 0
+          },
+          "errors": [],
+          "success": false
+        },
+        {
+          "config": {
+            "agentCount": 10,
+            "durationMs": 30000,
+            "eventRate": 10,
+            "payloadSize": 1024,
+            "enableEventStreaming": true,
+            "enableBranching": false,
+            "warmupMs": 3000
+          },
+          "timestamp": "2026-02-07T21:45:29.350Z",
+          "testDuration": 36045.10608299999,
+          "latency": {
+            "spawnTime": {
+              "min": 0.5684579999942798,
+              "max": 0.6669590000092285,
+              "avg": 0.6144272499986982,
+              "p50": 0.5931669999990845,
+              "p95": 0.6669590000092285,
+              "p99": 0.6669590000092285
+            },
+            "eventDelivery": {
+              "min": 0.014374999998835847,
+              "max": 0.8664580000040587,
+              "avg": 0.037611298657537304,
+              "p50": 0.02500000000873115,
+              "p95": 0.09150000000954606,
+              "p99": 0.2660840000025928
+            },
+            "messageRouting": {
+              "min": 0.04770799999823794,
+              "max": 3.098167000003741,
+              "avg": 0.09490869217685885,
+              "p50": 0.06691700000374112,
+              "p95": 0.19783299999835435,
+              "p99": 0.4412080000038259
+            },
+            "stateTransition": {
+              "min": 0.0017920000100275502,
+              "max": 0.2914170000003651,
+              "avg": 0.04075194630901182,
+              "p50": 0.04741599998669699,
+              "p95": 0.09954199999629054,
+              "p99": 0.17500000000291038
+            }
+          },
+          "throughput": {
+            "eventsPerSecond": 33.06967656733253,
+            "messagesPerSecond": 72.0763588271224,
+            "stateTransitionsPerSecond": 8.267419141833132,
+            "totalEvents": 1192,
+            "totalMessages": 2598,
+            "totalStateTransitions": 298
+          },
+          "memory": {
+            "heapUsedStart": 185439992,
+            "heapUsedEnd": 170922168,
+            "heapUsedPeak": 186187376,
+            "heapGrowth": -14517824,
+            "eventBusMemory": 50000,
+            "storageMemory": 15000,
+            "rssStart": 66895872,
+            "rssEnd": 55869440
+          },
+          "eventBus": {
+            "eventsEmitted": 1192,
+            "eventsDelivered": 0,
+            "eventsDropped": 1192,
+            "deliveryRate": 0,
+            "subscriptionCount": 0,
+            "messageCount": 0
+          },
+          "lifecycle": {
+            "totalSpawned": 15,
+            "totalCompleted": 0,
+            "totalFailed": 0,
+            "totalKilled": 15,
+            "activeAgents": 0,
+            "pausedAgents": 0
+          },
+          "errors": [],
+          "success": false
+        }
+      ],
+      "aggregated": {
+        "avgSpawnTime": 0,
+        "p95SpawnTime": 0,
+        "avgEventDelivery": 0,
+        "p95EventDelivery": 0,
+        "eventsPerSecond": 0,
+        "messagesPerSecond": 0,
+        "memoryGrowthMB": 0,
+        "peakMemoryMB": 0,
+        "deliveryRate": 0,
+        "totalErrors": 0
+      },
+      "successRate": 0,
+      "status": "failed"
+    }
+  ],
+  "totalDurationMs": 108234.110458,
+  "success": false
+}

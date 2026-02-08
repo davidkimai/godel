@@ -1,0 +1,292 @@
+{
+  "summary": {
+    "testsPassed": 39,
+    "testsFailed": 13,
+    "detectionAccuracy": "77.2%",
+    "testDate": "2026-02-07",
+    "project": "Godel Security Module",
+    "component": "PII Detector"
+  },
+  "piiTypes": [
+    {
+      "type": "email",
+      "formatsTested": 8,
+      "detectionRate": "100%",
+      "falsePositives": 0,
+      "notes": "All email formats detected correctly including subdomains and special characters"
+    },
+    {
+      "type": "phone",
+      "formatsTested": 7,
+      "detectionRate": "100%",
+      "falsePositives": 0,
+      "notes": "US phone numbers detected across all common formats including country codes"
+    },
+    {
+      "type": "ssn",
+      "formatsTested": 11,
+      "detectionRate": "81.8%",
+      "falsePositives": 0,
+      "notes": "Fails to detect SSNs without separators (123456789). Dashed/spaced formats work correctly."
+    },
+    {
+      "type": "credit_card",
+      "formatsTested": 7,
+      "detectionRate": "0%",
+      "falsePositives": 0,
+      "notes": "CRITICAL: All credit cards detected as bank_account instead. Pattern overlap issue."
+    },
+    {
+      "type": "bank_account",
+      "formatsTested": 6,
+      "detectionRate": "83.3%",
+      "falsePositives": 6,
+      "notes": "10-digit accounts not detected. Falsely matches credit card numbers (16 digits)."
+    },
+    {
+      "type": "api_key",
+      "formatsTested": 2,
+      "detectionRate": "100%",
+      "falsePositives": 0,
+      "notes": "Generic API keys and AWS keys detected correctly"
+    },
+    {
+      "type": "token",
+      "formatsTested": 5,
+      "detectionRate": "80%",
+      "falsePositives": 0,
+      "notes": "GitHub and JWT tokens detected. Slack token pattern too restrictive."
+    },
+    {
+      "type": "password",
+      "formatsTested": 4,
+      "detectionRate": "100%",
+      "falsePositives": 0,
+      "notes": "All password variants detected including pwd and passwd"
+    },
+    {
+      "type": "ip_address",
+      "formatsTested": 5,
+      "detectionRate": "80%",
+      "falsePositives": 1,
+      "notes": "Valid IPv4 addresses detected. Version strings (1.2.3.4) cause false positives."
+    },
+    {
+      "type": "mac_address",
+      "formatsTested": 3,
+      "detectionRate": "100%",
+      "falsePositives": 0,
+      "notes": "MAC addresses with colons and dashes detected correctly"
+    },
+    {
+      "type": "date_of_birth",
+      "formatsTested": 0,
+      "detectionRate": "N/A",
+      "falsePositives": 0,
+      "notes": "Not explicitly tested in current suite"
+    }
+  ],
+  "criticalIssues": [
+    {
+      "id": "SEC-001",
+      "severity": "CRITICAL",
+      "title": "Credit cards misclassified as bank accounts",
+      "description": "All valid credit card numbers (Visa, MasterCard, Amex, Discover) are being detected as 'bank_account' instead of 'credit_card'. This is a PCI compliance violation as credit card data requires higher protection levels.",
+      "rootCause": "The removeOverlapping() function sorts detections by severity name (alphabetically: critical, high, low, medium) rather than by severity weight. Both credit_card and bank_account have 'critical' severity, but bank_account pattern matches first due to broader regex.",
+      "affectedPatterns": ["credit_card", "bank_account"],
+      "testCasesFailed": [
+        "Visa (valid): 4532015112830366",
+        "MasterCard (valid): 5425233430109903",
+        "Amex (valid): 374245455400126",
+        "Discover (valid): 6011514433546201"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "severity": "HIGH",
+      "title": "SSN detection fails for numbers without separators",
+      "description": "Social Security Numbers without dashes, spaces, or dots (e.g., '123456789') are not detected. Many systems store SSNs as plain numbers.",
+      "rootCause": "The SSN regex pattern /\\b(?!000|666|9\\d{2})\\d{3}[-.\\s]?(?!00)\\d{2}[-.\\s]?(?!0000)\\d{4}\\b/ has optional separators [-.\\s]? but may fail due to word boundary assertions or negative lookahead interactions when digits are contiguous.",
+      "affectedPatterns": ["ssn"],
+      "testCasesFailed": [
+        "ID: 123456789",
+        "SSN 987654321"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "severity": "MEDIUM",
+      "title": "Credit cards with formatting characters not detected",
+      "description": "Credit card numbers containing spaces or dashes (4532 0151 1283 0366 or 4532-0151-1283-0366) are not detected at all.",
+      "rootCause": "The credit card regex pattern does not account for common formatting characters (spaces, dashes) that users typically include when entering card numbers.",
+      "affectedPatterns": ["credit_card"],
+      "testCasesFailed": [
+        "4532 0151 1283 0366",
+        "4532-0151-1283-0366"
+      ]
+    },
+    {
+      "id": "SEC-004",
+      "severity": "MEDIUM",
+      "title": "Invalid credit cards still detected",
+      "description": "Credit card numbers that fail Luhn algorithm validation are still being detected (as bank_account).",
+      "rootCause": "The Luhn validator is applied to credit_card pattern matches, but when cards fail validation, they fall through to the bank_account pattern which has no validation.",
+      "affectedPatterns": ["credit_card", "bank_account"],
+      "testCasesFailed": [
+        "4532015112830367 (invalid Luhn)"
+      ]
+    },
+    {
+      "id": "SEC-005",
+      "severity": "MEDIUM",
+      "title": "10-digit bank accounts not detected",
+      "description": "Bank account numbers with exactly 10 digits are not being detected.",
+      "rootCause": "Unknown - pattern /\\b\\d{8,17}\\b/g should match 10 digits but may be affected by overlapping detection logic or other pattern conflicts.",
+      "affectedPatterns": ["bank_account"],
+      "testCasesFailed": [
+        "Account: 1234567890"
+      ]
+    },
+    {
+      "id": "SEC-006",
+      "severity": "LOW",
+      "title": "Slack token pattern too restrictive",
+      "description": "Slack tokens with non-standard segment lengths are not detected.",
+      "rootCause": "Pattern requires specific segment lengths (10-13 digits) that may not match all Slack token formats.",
+      "affectedPatterns": ["token (slack)"],
+      "testCasesFailed": [
+        "xoxb-1234567890123-1234567890123-abc123"
+      ]
+    }
+  ],
+  "fixesNeeded": [
+    {
+      "priority": "P0",
+      "issue": "SEC-001",
+      "file": "src/security/pii/detector.ts",
+      "change": "Fix removeOverlapping() to prioritize more specific patterns over generic ones",
+      "details": "Modify the overlapping detection logic to consider pattern specificity in addition to severity. Credit card patterns (with Luhn validation) should always take precedence over generic bank account patterns.",
+      "suggestedImplementation": "Add a 'priority' or 'specificity' field to patterns. Credit cards should have higher priority than bank accounts. In removeOverlapping(), sort by specificity first, then by severity."
+    },
+    {
+      "priority": "P0",
+      "issue": "SEC-002",
+      "file": "src/security/pii/detector.ts",
+      "change": "Fix SSN regex to detect numbers without separators",
+      "details": "The current SSN pattern may have issues with word boundaries when no separators are present. Test and fix the regex to properly match 9-digit SSNs.",
+      "suggestedImplementation": "Update pattern to: /\\b(?!000|666|9\\d{2})\\d{3}[-\\s.]?(?!00)\\d{2}[-\\s.]?(?!0000)\\d{4}\\b/g and test thoroughly with both separated and unseparated formats."
+    },
+    {
+      "priority": "P1",
+      "issue": "SEC-003",
+      "file": "src/security/pii/detector.ts",
+      "change": "Update credit card regex to handle formatted numbers",
+      "details": "Credit card pattern should match numbers with optional spaces or dashes between digit groups.",
+      "suggestedImplementation": "Modify credit card pattern to allow optional whitespace/dashes: /\\b(?:4[\\d\\s-]{12,15}\\d{3}|5[1-5][\\d\\s-]{14}|...)\\b/g and strip non-digits before Luhn validation."
+    },
+    {
+      "priority": "P1",
+      "issue": "SEC-004",
+      "file": "src/security/pii/detector.ts",
+      "change": "Add validation to bank account pattern or improve overlap handling",
+      "details": "Prevent invalid credit cards from being detected as bank accounts.",
+      "suggestedImplementation": "Option 1: Add Luhn check to bank account pattern to exclude credit cards. Option 2: Ensure credit card detection always wins for 13-19 digit numbers that pass Luhn."
+    },
+    {
+      "priority": "P2",
+      "issue": "SEC-005",
+      "file": "src/security/pii/detector.ts",
+      "change": "Debug and fix 10-digit bank account detection",
+      "details": "Investigate why 10-digit numbers aren't matching the bank account pattern.",
+      "suggestedImplementation": "Add debug logging and test the regex in isolation to identify the issue."
+    },
+    {
+      "priority": "P2",
+      "issue": "SEC-006",
+      "file": "src/security/pii/detector.ts",
+      "change": "Relax Slack token pattern constraints",
+      "details": "Make segment length requirements more flexible to match various Slack token formats.",
+      "suggestedImplementation": "Change pattern from /\\bxox[baprs]-[0-9]{10,13}-[0-9]{10,13}.../ to /\\bxox[baprs]-[0-9]+-[0-9]+.../ with minimum length validation."
+    }
+  ],
+  "validationResults": {
+    "ssnValidation": {
+      "validFormats": [
+        "123-45-6789 (dashes)",
+        "123 45 6789 (spaces)",
+        "123.45.6789 (dots)"
+      ],
+      "invalidFormatsCorrectlyRejected": [
+        "000-12-3456 (invalid area)",
+        "123-00-4567 (invalid group)",
+        "123-45-0000 (invalid serial)",
+        "666-12-3456 (invalid area)",
+        "900-12-3456 (invalid area)",
+        "999-12-3456 (invalid area)"
+      ],
+      "missingFormats": [
+        "123456789 (no separators)",
+        "987654321 (no separators)"
+      ]
+    },
+    "creditCardValidation": {
+      "luhnAlgorithm": "Implemented and working for credit_card pattern",
+      "validCardsPass": "Yes (when detected as credit_card)",
+      "invalidCardsFail": "No - falls through to bank_account pattern",
+      "issue": "Valid cards not being classified correctly"
+    },
+    "falsePositives": [
+      {
+        "type": "ip_address",
+        "trigger": "Version 1.2.3.4",
+        "issue": "Version strings match IP pattern"
+      },
+      {
+        "type": "bank_account",
+        "trigger": "16-digit credit card numbers",
+        "issue": "Misclassification due to pattern overlap"
+      }
+    ]
+  },
+  "complianceImplications": {
+    "pciDss": {
+      "status": "NON_COMPLIANT",
+      "issues": [
+        "Credit card data not properly identified (detected as bank_account)",
+        "Card numbers with formatting not detected",
+        "No guarantee that all card data is properly masked/redacted"
+      ],
+      "riskLevel": "HIGH"
+    },
+    "gdpr": {
+      "status": "PARTIAL",
+      "issues": [
+        "SSNs without separators may not be detected, risking data breach",
+        "Email and phone detection working correctly"
+      ],
+      "riskLevel": "MEDIUM"
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "Immediate",
+      "action": "Fix SEC-001 (credit card misclassification) before any production deployment",
+      "rationale": "PCI compliance violation - card data must be properly identified for appropriate handling"
+    },
+    {
+      "priority": "High",
+      "action": "Fix SEC-002 (SSN without dashes)",
+      "rationale": "SSNs stored as plain numbers in databases will not be detected"
+    },
+    {
+      "priority": "Medium",
+      "action": "Add more comprehensive test coverage for edge cases",
+      "rationale": "Current test suite has gaps in formatting variations and real-world scenarios"
+    },
+    {
+      "priority": "Low",
+      "action": "Consider adding pattern specificity scoring system",
+      "rationale": "Long-term architecture improvement to prevent similar overlap issues"
+    }
+  ]
+}

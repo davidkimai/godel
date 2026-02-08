@@ -1,0 +1,1534 @@
+{
+  "summary": {
+    "totalTestFiles": 142,
+    "totalTests": 3011,
+    "byType": {
+      "unit": 1879,
+      "integration": 788,
+      "e2e": 80,
+      "performance": 0,
+      "load": 15,
+      "security": 109,
+      "resilience": 140
+    },
+    "byModule": {
+      "state-aware-orchestrator.test.ts": 8,
+      "transaction": 24,
+      "database": 25,
+      "unit": 443,
+      "tasks": 28,
+      "core": 103,
+      "config": 29,
+      "security": 72,
+      "example-usage.test.ts": 19,
+      "integration": 354,
+      "runtime": 145,
+      "utils": 48,
+      "cli": 72,
+      "workflow-deep.test.ts": 12,
+      "integrations": 171,
+      "storage.test.ts": 18,
+      "resilience": 140,
+      "federation": 506,
+      "state-persistence.test.ts": 20,
+      "workflow.test.ts": 27,
+      "event-bus-redis.test.ts": 34,
+      "e2e": 66,
+      "session-tree.test.ts": 35,
+      "validation": 82,
+      "event-bus.test.ts": 17,
+      "__tests__": 9,
+      "metrics": 34,
+      "autonomic": 35,
+      "scheduling": 27,
+      "recovery": 56,
+      "observability": 26,
+      "dashboard": 22,
+      "testing": 37,
+      "scaling": 20,
+      "intent": 23,
+      "loop": 224
+    }
+  },
+  "testFiles": [
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/state-aware-orchestrator.test.ts",
+      "type": "unit",
+      "testCount": 8,
+      "lineCount": 297,
+      "modulesCovered": [
+        "state-aware-orchestrator.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/transaction/transaction-manager.test.ts",
+      "type": "unit",
+      "testCount": 24,
+      "lineCount": 586,
+      "modulesCovered": [
+        "transaction"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/database/pool.test.ts",
+      "type": "unit",
+      "testCount": 25,
+      "lineCount": 425,
+      "modulesCovered": [
+        "database"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/swarm.test.ts",
+      "type": "unit",
+      "testCount": 17,
+      "lineCount": 250,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/lifecycle-degraded-mode.test.ts",
+      "type": "unit",
+      "testCount": 2,
+      "lineCount": 61,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/decision-engine.test.ts",
+      "type": "unit",
+      "testCount": 12,
+      "lineCount": 214,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/skills.test.ts",
+      "type": "unit",
+      "testCount": 28,
+      "lineCount": 445,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/skill-sharing.test.ts",
+      "type": "unit",
+      "testCount": 16,
+      "lineCount": 512,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/openclaw.test.ts",
+      "type": "unit",
+      "testCount": 15,
+      "lineCount": 256,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/skill-autoload.test.ts",
+      "type": "load",
+      "testCount": 15,
+      "lineCount": 284,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/swarm-executor.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 105,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/bug-monitor.test.ts",
+      "type": "unit",
+      "testCount": 16,
+      "lineCount": 172,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/core/lifecycle.test.ts",
+      "type": "unit",
+      "testCount": 25,
+      "lineCount": 305,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/safety/budget.test.ts",
+      "type": "unit",
+      "testCount": 21,
+      "lineCount": 405,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/pi/registry.test.ts",
+      "type": "unit",
+      "testCount": 51,
+      "lineCount": 836,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/queue/task-queue.test.ts",
+      "type": "unit",
+      "testCount": 22,
+      "lineCount": 368,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/queue/work-distributor.test.ts",
+      "type": "unit",
+      "testCount": 24,
+      "lineCount": 391,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/api/fastify-contract.test.ts",
+      "type": "unit",
+      "testCount": 4,
+      "lineCount": 94,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/api/auth-middleware.test.ts",
+      "type": "unit",
+      "testCount": 4,
+      "lineCount": 84,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/skills/registry.test.ts",
+      "type": "unit",
+      "testCount": 22,
+      "lineCount": 364,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/loop/read-models.test.ts",
+      "type": "unit",
+      "testCount": 31,
+      "lineCount": 642,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/loop/event-store.test.ts",
+      "type": "unit",
+      "testCount": 20,
+      "lineCount": 281,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/loop/event-replay.test.ts",
+      "type": "unit",
+      "testCount": 19,
+      "lineCount": 519,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/loop/aggregate.test.ts",
+      "type": "unit",
+      "testCount": 31,
+      "lineCount": 419,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/unit/loop/event-bus.test.ts",
+      "type": "unit",
+      "testCount": 37,
+      "lineCount": 418,
+      "modulesCovered": [
+        "unit"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/tasks/types.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 124,
+      "modulesCovered": [
+        "tasks"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/tasks/storage.test.ts",
+      "type": "unit",
+      "testCount": 17,
+      "lineCount": 214,
+      "modulesCovered": [
+        "tasks"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/core/reliability/retry.test.ts",
+      "type": "integration",
+      "testCount": 20,
+      "lineCount": 295,
+      "modulesCovered": [
+        "core"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/core/reliability/graceful-shutdown.test.ts",
+      "type": "integration",
+      "testCount": 19,
+      "lineCount": 321,
+      "modulesCovered": [
+        "core"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/core/reliability/correlation-context.test.ts",
+      "type": "integration",
+      "testCount": 22,
+      "lineCount": 271,
+      "modulesCovered": [
+        "core"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/core/reliability/integration.test.ts",
+      "type": "integration",
+      "testCount": 18,
+      "lineCount": 234,
+      "modulesCovered": [
+        "core"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/core/reliability/logger.test.ts",
+      "type": "integration",
+      "testCount": 24,
+      "lineCount": 303,
+      "modulesCovered": [
+        "core"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/config/gitops.test.ts",
+      "type": "unit",
+      "testCount": 10,
+      "lineCount": 244,
+      "modulesCovered": [
+        "config"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/config/secrets.test.ts",
+      "type": "unit",
+      "testCount": 19,
+      "lineCount": 182,
+      "modulesCovered": [
+        "config"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/security/encryption/index.test.ts",
+      "type": "security",
+      "testCount": 31,
+      "lineCount": 301,
+      "modulesCovered": [
+        "security"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/security/rbac/roles.test.ts",
+      "type": "security",
+      "testCount": 20,
+      "lineCount": 204,
+      "modulesCovered": [
+        "security"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/security/pii/detector.test.ts",
+      "type": "security",
+      "testCount": 21,
+      "lineCount": 190,
+      "modulesCovered": [
+        "security"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/example-usage.test.ts",
+      "type": "unit",
+      "testCount": 19,
+      "lineCount": 397,
+      "modulesCovered": [
+        "example-usage.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/openclaw-daemon-startup.test.ts",
+      "type": "integration",
+      "testCount": 1,
+      "lineCount": 67,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/auth.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 260,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/skills.test.ts",
+      "type": "integration",
+      "testCount": 14,
+      "lineCount": 353,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/websocket.test.ts",
+      "type": "integration",
+      "testCount": 11,
+      "lineCount": 286,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/openclaw.test.ts",
+      "type": "integration",
+      "testCount": 14,
+      "lineCount": 357,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/queue.test.ts",
+      "type": "integration",
+      "testCount": 11,
+      "lineCount": 380,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/safety.test.ts",
+      "type": "integration",
+      "testCount": 35,
+      "lineCount": 728,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/api-combined.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 225,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/agent-lifecycle.test.ts",
+      "type": "integration",
+      "testCount": 11,
+      "lineCount": 506,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/error-handling.test.ts",
+      "type": "integration",
+      "testCount": 26,
+      "lineCount": 360,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/e2e-workflow.test.ts",
+      "type": "integration",
+      "testCount": 11,
+      "lineCount": 599,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/websocket-stability.test.ts",
+      "type": "integration",
+      "testCount": 14,
+      "lineCount": 474,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/api-load.test.ts",
+      "type": "integration",
+      "testCount": 9,
+      "lineCount": 390,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/cli-integration.test.ts",
+      "type": "integration",
+      "testCount": 26,
+      "lineCount": 421,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/openclaw-session-profiles.test.ts",
+      "type": "integration",
+      "testCount": 3,
+      "lineCount": 76,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/event-streaming.test.ts",
+      "type": "integration",
+      "testCount": 9,
+      "lineCount": 376,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/redis-throughput.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 535,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/database-consistency.test.ts",
+      "type": "integration",
+      "testCount": 12,
+      "lineCount": 484,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/agent-spawn.test.ts",
+      "type": "integration",
+      "testCount": 8,
+      "lineCount": 270,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/orchestrator.test.ts",
+      "type": "integration",
+      "testCount": 29,
+      "lineCount": 481,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/workflow.test.ts",
+      "type": "integration",
+      "testCount": 7,
+      "lineCount": 360,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/repository-combined.test.ts",
+      "type": "integration",
+      "testCount": 19,
+      "lineCount": 384,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/cli.test.ts",
+      "type": "integration",
+      "testCount": 24,
+      "lineCount": 455,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integration/api.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 247,
+      "modulesCovered": [
+        "integration"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/runtime/pi.test.ts",
+      "type": "unit",
+      "testCount": 48,
+      "lineCount": 857,
+      "modulesCovered": [
+        "runtime"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/runtime/registry.test.ts",
+      "type": "unit",
+      "testCount": 61,
+      "lineCount": 791,
+      "modulesCovered": [
+        "runtime"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/runtime/integration.test.ts",
+      "type": "unit",
+      "testCount": 36,
+      "lineCount": 870,
+      "modulesCovered": [
+        "runtime"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/utils/memory-manager.test.ts",
+      "type": "unit",
+      "testCount": 48,
+      "lineCount": 659,
+      "modulesCovered": [
+        "utils"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/cli/config.test.ts",
+      "type": "unit",
+      "testCount": 4,
+      "lineCount": 77,
+      "modulesCovered": [
+        "cli"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/workflow-deep.test.ts",
+      "type": "unit",
+      "testCount": 12,
+      "lineCount": 692,
+      "modulesCovered": [
+        "workflow-deep.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/openclaw/event-bridge.test.ts",
+      "type": "unit",
+      "testCount": 38,
+      "lineCount": 629,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/openclaw/adapter.test.ts",
+      "type": "unit",
+      "testCount": 25,
+      "lineCount": 471,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/openclaw/integration.test.ts",
+      "type": "unit",
+      "testCount": 13,
+      "lineCount": 619,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/pi/fallback.test.ts",
+      "type": "unit",
+      "testCount": 19,
+      "lineCount": 217,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/pi/provider.test.ts",
+      "type": "unit",
+      "testCount": 18,
+      "lineCount": 169,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/pi/cost-router.test.ts",
+      "type": "unit",
+      "testCount": 21,
+      "lineCount": 269,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/integrations/pi/health-monitor.test.ts",
+      "type": "unit",
+      "testCount": 12,
+      "lineCount": 212,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/storage.test.ts",
+      "type": "unit",
+      "testCount": 18,
+      "lineCount": 268,
+      "modulesCovered": [
+        "storage.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/resilience/circuit-breaker.test.ts",
+      "type": "resilience",
+      "testCount": 63,
+      "lineCount": 597,
+      "modulesCovered": [
+        "resilience"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/resilience/agent-recovery.test.ts",
+      "type": "resilience",
+      "testCount": 24,
+      "lineCount": 458,
+      "modulesCovered": [
+        "resilience"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/resilience/database-recovery.test.ts",
+      "type": "resilience",
+      "testCount": 28,
+      "lineCount": 593,
+      "modulesCovered": [
+        "resilience"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/resilience/resource-limits.test.ts",
+      "type": "resilience",
+      "testCount": 25,
+      "lineCount": 643,
+      "modulesCovered": [
+        "resilience"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/example-usage.test.ts",
+      "type": "integration",
+      "testCount": 10,
+      "lineCount": 499,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/integration/e2e.test.ts",
+      "type": "e2e",
+      "testCount": 14,
+      "lineCount": 787,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/integration/decomposer-selector.test.ts",
+      "type": "integration",
+      "testCount": 14,
+      "lineCount": 601,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/integration/resolver-engine.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 690,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/integration/performance.test.ts",
+      "type": "integration",
+      "testCount": 15,
+      "lineCount": 665,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/integration/resilience.test.ts",
+      "type": "integration",
+      "testCount": 16,
+      "lineCount": 761,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/weighted.test.ts",
+      "type": "integration",
+      "testCount": 27,
+      "lineCount": 312,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/round-robin.test.ts",
+      "type": "integration",
+      "testCount": 13,
+      "lineCount": 215,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/consistent-hash.test.ts",
+      "type": "integration",
+      "testCount": 29,
+      "lineCount": 354,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/least-connections.test.ts",
+      "type": "integration",
+      "testCount": 24,
+      "lineCount": 308,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/integration.test.ts",
+      "type": "integration",
+      "testCount": 16,
+      "lineCount": 381,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/strategies/factory.test.ts",
+      "type": "integration",
+      "testCount": 52,
+      "lineCount": 442,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/agent-registry.test.ts",
+      "type": "integration",
+      "testCount": 42,
+      "lineCount": 870,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/federation/agent-selector.test.ts",
+      "type": "integration",
+      "testCount": 33,
+      "lineCount": 683,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/state-persistence.test.ts",
+      "type": "unit",
+      "testCount": 20,
+      "lineCount": 541,
+      "modulesCovered": [
+        "state-persistence.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/workflow.test.ts",
+      "type": "unit",
+      "testCount": 27,
+      "lineCount": 597,
+      "modulesCovered": [
+        "workflow.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/event-bus-redis.test.ts",
+      "type": "unit",
+      "testCount": 34,
+      "lineCount": 932,
+      "modulesCovered": [
+        "event-bus-redis.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/e2e/task-workflow.test.ts",
+      "type": "e2e",
+      "testCount": 21,
+      "lineCount": 548,
+      "modulesCovered": [
+        "e2e"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/e2e/multi-runtime.test.ts",
+      "type": "e2e",
+      "testCount": 15,
+      "lineCount": 568,
+      "modulesCovered": [
+        "e2e"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/e2e/full-workflow.test.ts",
+      "type": "e2e",
+      "testCount": 10,
+      "lineCount": 154,
+      "modulesCovered": [
+        "e2e"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/e2e/agent-workflow.test.ts",
+      "type": "e2e",
+      "testCount": 20,
+      "lineCount": 359,
+      "modulesCovered": [
+        "e2e"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/session-tree.test.ts",
+      "type": "unit",
+      "testCount": 35,
+      "lineCount": 483,
+      "modulesCovered": [
+        "session-tree.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/validation/schemas.test.ts",
+      "type": "unit",
+      "testCount": 57,
+      "lineCount": 458,
+      "modulesCovered": [
+        "validation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/validation/validation.test.ts",
+      "type": "unit",
+      "testCount": 25,
+      "lineCount": 355,
+      "modulesCovered": [
+        "validation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/tests/event-bus.test.ts",
+      "type": "unit",
+      "testCount": 17,
+      "lineCount": 385,
+      "modulesCovered": [
+        "event-bus.test.ts"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/packages/ai/src/__tests__/failover.test.ts",
+      "type": "unit",
+      "testCount": 9,
+      "lineCount": 114,
+      "modulesCovered": [
+        "__tests__"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/metrics/prometheus.test.ts",
+      "type": "unit",
+      "testCount": 15,
+      "lineCount": 149,
+      "modulesCovered": [
+        "metrics"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/metrics/health.test.ts",
+      "type": "unit",
+      "testCount": 19,
+      "lineCount": 308,
+      "modulesCovered": [
+        "metrics"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/autonomic/__tests__/patch-agent.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 228,
+      "modulesCovered": [
+        "autonomic"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/autonomic/__tests__/error-listener.test.ts",
+      "type": "unit",
+      "testCount": 13,
+      "lineCount": 284,
+      "modulesCovered": [
+        "autonomic"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/autonomic/__tests__/orchestrator.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 230,
+      "modulesCovered": [
+        "autonomic"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/scheduling/affinity-engine.test.ts",
+      "type": "unit",
+      "testCount": 16,
+      "lineCount": 324,
+      "modulesCovered": [
+        "scheduling"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/scheduling/resource-tracker.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 258,
+      "modulesCovered": [
+        "scheduling"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/recovery/checkpoint.test.ts",
+      "type": "unit",
+      "testCount": 15,
+      "lineCount": 287,
+      "modulesCovered": [
+        "recovery"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/recovery/circuit-breaker.test.ts",
+      "type": "unit",
+      "testCount": 41,
+      "lineCount": 499,
+      "modulesCovered": [
+        "recovery"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/cli/intent/parser.test.ts",
+      "type": "unit",
+      "testCount": 44,
+      "lineCount": 523,
+      "modulesCovered": [
+        "cli"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/cli/commands/__tests__/workflow.test.ts",
+      "type": "unit",
+      "testCount": 24,
+      "lineCount": 261,
+      "modulesCovered": [
+        "cli"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/observability/health-checks.test.ts",
+      "type": "unit",
+      "testCount": 26,
+      "lineCount": 418,
+      "modulesCovered": [
+        "observability"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/dashboard/ui/tests/dashboard.test.tsx",
+      "type": "unit",
+      "testCount": 22,
+      "lineCount": 295,
+      "modulesCovered": [
+        "dashboard"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/integrations/openclaw/__tests__/openclaw.integration.test.ts",
+      "type": "integration",
+      "testCount": 25,
+      "lineCount": 410,
+      "modulesCovered": [
+        "integrations"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/testing/chaos/experiments/__tests__/network-partition.test.ts",
+      "type": "security",
+      "testCount": 8,
+      "lineCount": 120,
+      "modulesCovered": [
+        "testing"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/testing/chaos/experiments/__tests__/pod-failure.test.ts",
+      "type": "security",
+      "testCount": 9,
+      "lineCount": 125,
+      "modulesCovered": [
+        "testing"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/testing/chaos/experiments/__tests__/latency-injection.test.ts",
+      "type": "security",
+      "testCount": 9,
+      "lineCount": 124,
+      "modulesCovered": [
+        "testing"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/testing/chaos/experiments/__tests__/resource-exhaustion.test.ts",
+      "type": "security",
+      "testCount": 11,
+      "lineCount": 159,
+      "modulesCovered": [
+        "testing"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/scaling/__tests__/queue-scaler.test.ts",
+      "type": "unit",
+      "testCount": 20,
+      "lineCount": 447,
+      "modulesCovered": [
+        "scaling"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/intent/__tests__/parser.test.ts",
+      "type": "unit",
+      "testCount": 15,
+      "lineCount": 125,
+      "modulesCovered": [
+        "intent"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/intent/__tests__/team-config-generator.test.ts",
+      "type": "unit",
+      "testCount": 8,
+      "lineCount": 160,
+      "modulesCovered": [
+        "intent"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/cluster/__tests__/multi-cluster-balancer.test.ts",
+      "type": "unit",
+      "testCount": 7,
+      "lineCount": 312,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/cluster/__tests__/cluster-registry.test.ts",
+      "type": "unit",
+      "testCount": 18,
+      "lineCount": 485,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/cluster/__tests__/transparent-proxy.test.ts",
+      "type": "unit",
+      "testCount": 11,
+      "lineCount": 255,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/dependency-resolver.test.ts",
+      "type": "unit",
+      "testCount": 26,
+      "lineCount": 350,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/load-balancer.test.ts",
+      "type": "unit",
+      "testCount": 15,
+      "lineCount": 342,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/execution-tracker.test.ts",
+      "type": "unit",
+      "testCount": 28,
+      "lineCount": 369,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/execution-engine.test.ts",
+      "type": "unit",
+      "testCount": 23,
+      "lineCount": 426,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/cluster-registry.test.ts",
+      "type": "unit",
+      "testCount": 14,
+      "lineCount": 282,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/dag.test.ts",
+      "type": "unit",
+      "testCount": 35,
+      "lineCount": 432,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/migration.test.ts",
+      "type": "unit",
+      "testCount": 9,
+      "lineCount": 343,
+      "modulesCovered": [
+        "federation"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/loop/metrics/metrics.test.ts",
+      "type": "unit",
+      "testCount": 54,
+      "lineCount": 726,
+      "modulesCovered": [
+        "loop"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/loop/alerts/__tests__/alerts.test.ts",
+      "type": "unit",
+      "testCount": 33,
+      "lineCount": 766,
+      "modulesCovered": [
+        "loop"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/loop/__tests__/state-machine.test.ts",
+      "type": "unit",
+      "testCount": 85,
+      "lineCount": 1142,
+      "modulesCovered": [
+        "loop"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/loop/workflow/__tests__/engine.test.ts",
+      "type": "unit",
+      "testCount": 30,
+      "lineCount": 745,
+      "modulesCovered": [
+        "loop"
+      ],
+      "status": "ok"
+    },
+    {
+      "path": "/Users/jasontang/clawd/projects/godel/src/loop/workflow/__tests__/templates.test.ts",
+      "type": "unit",
+      "testCount": 22,
+      "lineCount": 242,
+      "modulesCovered": [
+        "loop"
+      ],
+      "status": "ok"
+    }
+  ],
+  "coverageGaps": [
+    "__mocks__ (0 tests)",
+    "agent (0 tests)",
+    "api (0 tests)",
+    "benchmarking (0 tests)",
+    "bus (0 tests)",
+    "concurrency (0 tests)",
+    "context (0 tests)",
+    "debug (0 tests)",
+    "disaster-recovery (0 tests)",
+    "enterprise (0 tests)",
+    "errors (0 tests)",
+    "events (0 tests)",
+    "extensions (0 tests)",
+    "logging (0 tests)",
+    "migrations (0 tests)",
+    "models (0 tests)",
+    "proxy (0 tests)",
+    "quality (0 tests)",
+    "queue (0 tests)",
+    "reasoning (0 tests)",
+    "safety (0 tests)",
+    "self-improvement (0 tests)",
+    "services (0 tests)",
+    "skills (0 tests)",
+    "storage (0 tests)",
+    "tracing (0 tests)",
+    "tui (0 tests)",
+    "types (0 tests)",
+    "workflow (0 tests)"
+  ],
+  "issues": [
+    "/Users/jasontang/clawd/projects/godel/tests/state-aware-orchestrator.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/transaction/transaction-manager.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/database/pool.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/unit/core/swarm.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/unit/core/skill-sharing.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/unit/api/fastify-contract.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/openclaw-daemon-startup.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/auth.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/websocket.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/queue.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/api-combined.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/agent-lifecycle.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/error-handling.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/e2e-workflow.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/websocket-stability.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/api-load.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/cli-integration.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/openclaw-session-profiles.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/event-streaming.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/redis-throughput.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/database-consistency.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/scenarios/agent-spawn.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/workflow.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/integration/api.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/tests/e2e/full-workflow.test.ts: Contains skipped tests",
+    "/Users/jasontang/clawd/projects/godel/src/federation/__tests__/execution-tracker.test.ts: Contains skipped tests"
+  ]
+}

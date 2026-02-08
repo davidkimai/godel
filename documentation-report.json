@@ -1,0 +1,242 @@
+{
+  "summary": {
+    "documentationFiles": 20,
+    "jsdocCoverage": "49%",
+    "issues": 18,
+    "overallScore": "B-",
+    "totalSourceFiles": 4090,
+    "filesWithJSDoc": 2022,
+    "filesWithoutJSDoc": 2068
+  },
+  "files": [
+    {
+      "path": "README.md",
+      "hasJSDoc": false,
+      "completeness": "95%",
+      "issues": [],
+      "strengths": ["Comprehensive overview", "Architecture diagram", "Installation guide", "API examples", "CLI commands"]
+    },
+    {
+      "path": "docs/API.md",
+      "hasJSDoc": false,
+      "completeness": "65%",
+      "issues": ["Missing error response examples for all endpoints", "No rate limiting details", "Incomplete endpoint list"]
+    },
+    {
+      "path": "docs/CLI.md",
+      "hasJSDoc": false,
+      "completeness": "90%",
+      "issues": ["Missing examples for some commands"]
+    },
+    {
+      "path": "docs/CLI_REFERENCE.md",
+      "hasJSDoc": false,
+      "completeness": "85%",
+      "issues": []
+    },
+    {
+      "path": "docs/openapi.yaml",
+      "hasJSDoc": false,
+      "completeness": "60%",
+      "issues": ["Only covers health endpoints", "Missing agent/task/team endpoints", "Incomplete schema definitions"]
+    },
+    {
+      "path": "docs/GETTING_STARTED.md",
+      "hasJSDoc": false,
+      "completeness": "80%",
+      "issues": []
+    },
+    {
+      "path": "docs/getting-started.md",
+      "hasJSDoc": false,
+      "completeness": "70%",
+      "issues": ["Duplicate of GETTING_STARTED.md with different casing"]
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "hasJSDoc": false,
+      "completeness": "0%",
+      "issues": ["Referenced in README but file does not exist"]
+    },
+    {
+      "path": "docs/TROUBLESHOOTING.md",
+      "hasJSDoc": false,
+      "completeness": "85%",
+      "issues": []
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "hasJSDoc": false,
+      "completeness": "80%",
+      "issues": []
+    },
+    {
+      "path": "docs/CONFIGURATION.md",
+      "hasJSDoc": false,
+      "completeness": "90%",
+      "issues": []
+    },
+    {
+      "path": "src/tasks/types.ts",
+      "hasJSDoc": true,
+      "completeness": "95%",
+      "issues": [],
+      "strengths": ["Excellent JSDoc coverage", "Complete interface documentation", "Usage examples"]
+    },
+    {
+      "path": "src/models/agent.ts",
+      "hasJSDoc": true,
+      "completeness": "85%",
+      "issues": ["Some enums lack examples"]
+    },
+    {
+      "path": "src/agent/manager.ts",
+      "hasJSDoc": false,
+      "completeness": "10%",
+      "issues": ["No JSDoc comments", "No class documentation", "No method documentation"]
+    },
+    {
+      "path": "src/metrics/health.ts",
+      "hasJSDoc": true,
+      "completeness": "90%",
+      "issues": [],
+      "strengths": ["File header documentation", "Interface documentation"]
+    },
+    {
+      "path": "src/api/routes/agents.ts",
+      "hasJSDoc": true,
+      "completeness": "75%",
+      "issues": ["Some inline comments needed for complex logic"]
+    },
+    {
+      "path": "examples/basic-agent-creation/README.md",
+      "hasJSDoc": false,
+      "completeness": "85%",
+      "issues": []
+    },
+    {
+      "path": "examples/basic-agent-creation/index.ts",
+      "hasJSDoc": true,
+      "completeness": "80%",
+      "issues": [],
+      "strengths": ["File header documentation", "Inline comments explaining steps"]
+    },
+    {
+      "path": "examples/team-orchestration/README.md",
+      "hasJSDoc": false,
+      "completeness": "90%",
+      "issues": []
+    },
+    {
+      "path": "examples/team-orchestration/index.ts",
+      "hasJSDoc": true,
+      "completeness": "85%",
+      "issues": []
+    }
+  ],
+  "gaps": [
+    "Missing ARCHITECTURE.md file (referenced in README but doesn't exist)",
+    "Duplicate getting-started.md vs GETTING_STARTED.md (casing inconsistency)",
+    "openapi.yaml incomplete - only covers health endpoints",
+    "49% of source files lack JSDoc documentation",
+    "API.md missing many endpoints (teams, worktrees, federation)",
+    "No CONTRIBUTING.md examples or templates",
+    "Missing API versioning strategy documentation",
+    "Incomplete webhook integration documentation",
+    "No SDK usage examples for all features",
+    "Missing changelog or migration guides",
+    "No inline code comments in complex business logic",
+    "Lack of sequence diagrams for key workflows",
+    "No troubleshooting guide for Pi integration issues",
+    "Missing performance tuning documentation",
+    "No security hardening guide"
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "title": "Create ARCHITECTURE.md",
+      "description": "Document system architecture, component interactions, and design decisions"
+    },
+    {
+      "priority": "HIGH",
+      "title": "Complete OpenAPI Specification",
+      "description": "Add all agent, task, team, worktree, and federation endpoints to openapi.yaml"
+    },
+    {
+      "priority": "HIGH",
+      "title": "Improve JSDoc Coverage",
+      "description": "Add JSDoc to the 2068 files currently lacking documentation (target: 80% coverage)"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Consolidate Getting Started Docs",
+      "description": "Merge getting-started.md and GETTING_STARTED.md into single file"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Expand API.md",
+      "description": "Add missing endpoint documentation for teams, worktrees, federation, and proxy"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Add Inline Comments",
+      "description": "Document complex business logic in orchestrator, federation, and proxy modules"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Create Migration Guide",
+      "description": "Document breaking changes and migration paths between versions"
+    },
+    {
+      "priority": "LOW",
+      "title": "Add Sequence Diagrams",
+      "description": "Create diagrams for key workflows (team creation, task delegation, failover)"
+    },
+    {
+      "priority": "LOW",
+      "title": "Document Pi Integration",
+      "description": "Add troubleshooting guide for Pi CLI integration issues"
+    },
+    {
+      "priority": "LOW",
+      "title": "Create Security Hardening Guide",
+      "description": "Document security best practices for production deployments"
+    }
+  ],
+  "readmeValidation": {
+    "hasInstallation": true,
+    "hasQuickStart": true,
+    "hasArchitecture": true,
+    "hasApiReference": true,
+    "hasCliReference": true,
+    "hasExamples": true,
+    "hasConfiguration": true,
+    "brokenLinks": [],
+    "outdatedExamples": [],
+    "missingSections": ["Changelog", "Migration Guide"]
+  },
+  "jsdocStats": {
+    "totalJSDocBlocks": 41035,
+    "filesWithJSDoc": 2022,
+    "filesWithoutJSDoc": 2068,
+    "averageJSDocPerFile": 10.0,
+    "coverageByModule": {
+      "tasks": "95%",
+      "metrics": "85%",
+      "models": "80%",
+      "api/routes": "75%",
+      "tracing": "70%",
+      "agent": "20%",
+      "core": "15%",
+      "storage": "30%",
+      "utils": "40%"
+    }
+  },
+  "exampleValidation": {
+    "totalExamples": 18,
+    "workingExamples": 16,
+    "brokenExamples": 0,
+    "examplesWithoutDocs": 2,
+    "needsUpdate": ["custom-agent", "webhook-integration"]
+  }
+}

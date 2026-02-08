@@ -1,0 +1,625 @@
+{
+  "summary": {
+    "totalFailed": 56,
+    "bySeverity": {
+      "critical": 1,
+      "high": 42,
+      "medium": 11,
+      "low": 2
+    },
+    "byCategory": {
+      "logic": 2,
+      "bug": 42,
+      "config": 1,
+      "dependency": 0,
+      "async": 0,
+      "mock": 11
+    }
+  },
+  "patterns": [
+    {
+      "pattern": "SwarmRepository is not a constructor",
+      "affectedTests": 21,
+      "rootCause": "Missing SwarmRepository export from storage module"
+    },
+    {
+      "pattern": "Cannot read properties of undefined (reading 'stop')",
+      "affectedTests": 21,
+      "rootCause": "Test setup failure prevents swarmManager initialization"
+    },
+    {
+      "pattern": "Runtime 'mock' not found",
+      "affectedTests": 3,
+      "rootCause": "IntegrationHarness runtimes not initialized - setup() may be failing silently"
+    },
+    {
+      "pattern": "Missing 'spawnedAt' property",
+      "affectedTests": 1,
+      "rootCause": "Mock runtime returns 'createdAt' instead of 'spawnedAt'"
+    }
+  ],
+  "failures": [
+    {
+      "testFile": "tests/security/pii/detector.test.ts",
+      "testName": "PIIDetector › SSN Detection › should detect SSN without dashes",
+      "error": "expect(received).toBeDefined() - Received: undefined",
+      "severity": "medium",
+      "category": "logic",
+      "rootCause": "The SSN regex pattern /\\b(?!000|666|9\\d{2})\\d{3}[-.\\s]?(?!00)\\d{2}[-.\\s]?(?!0000)\\d{4}\\b/g requires optional separators between digit groups. While it should match '123456789', the word boundary \\b at the end may not correctly anchor to the end of a 9-digit sequence without separators. Additionally, the test comment notes '9-digit numbers might match other patterns too', suggesting the pattern matching may have edge cases.",
+      "fixSuggestion": "1. Update SSN pattern to better handle non-separated numbers: /\\b(?!000|666|9\\d{2})\\d{3}(?:[-.\\s]?|(?!\\d))(?!00)\\d{2}(?:[-.\\s]?|(?!\\d))(?!0000)\\d{4}\\b/ OR 2. Add a separate pattern specifically for non-separated SSNs: /\\b(?!000|666|9\\d{2})\\d{3}(?!00)\\d{2}(?!0000)\\d{4}\\b/ OR 3. Adjust test expectations to acknowledge that non-separated 9-digit numbers may not be reliably detected as SSNs"
+    },
+    {
+      "testFile": "tests/security/pii/detector.test.ts",
+      "testName": "PIIDetector › Credit Card Detection › should detect Visa card numbers",
+      "error": "Expected: 'credit_card' - Received: 'bank_account'",
+      "severity": "medium",
+      "category": "logic",
+      "rootCause": "The removeOverlapping() method in detector.ts sorts detections by severity using string comparison: b.severity.localeCompare(a.severity). This alphabetical sort places 'high' before 'critical' (h > c), causing lower-severity 'bank_account' (high) detections to be kept instead of higher-severity 'credit_card' (critical) detections when they overlap on the same text position.",
+      "fixSuggestion": "Fix the removeOverlapping() method in src/security/pii/detector.ts (line 462) to use severity weights instead of string comparison:\n\nconst severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };\nconst sorted = detections.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);"
+    },
+    {
+      "testFile": "tests/database/pool.test.ts",
+      "testName": "Connection Pool Stress Test › should sustain 50 concurrent agents for 5 seconds",
+      "error": "Configuration validation failed: server.port must be between 1 and 65535; auth.jwtSecret must be at least 32 characters",
+      "severity": "high",
+      "category": "config",
+      "rootCause": "The PostgresPool.initialize() calls getConfig() which validates configuration from environment variables. In the test environment, GODEL_SERVER_PORT and GODEL_AUTH_JWT_SECRET are either not set or have invalid values (port may be empty or out of range, JWT secret is likely under 32 characters).",
+      "fixSuggestion": "1. Create a test configuration file (tests/fixtures/test-config.json) with valid values, OR 2. Set environment variables in jest.setup.ci.ts: process.env.GODEL_SERVER_PORT = '3000'; process.env.GODEL_AUTH_JWT_SECRET = 'test-secret-that-is-at-least-32-characters-long'; OR 3. Mock the config loader in pool tests to bypass validation"
+    },
+    {
+      "testFile": "tests/example-usage.test.ts",
+      "testName": "Mock Infrastructure Examples › Runtime Mock › should mock agent spawning",
+      "error": "Expected path: 'spawnedAt' - Received path: []",
+      "severity": "low",
+      "category": "mock",
+      "rootCause": "The expectValidAgent() helper in tests/utils/test-helpers.ts (line 109) expects agents to have a 'spawnedAt' property, but the mock runtime in tests/mocks/runtime.ts (line 96) creates agents with 'createdAt' instead of 'spawnedAt'. This is a naming inconsistency between the test helper and the mock implementation.",
+      "fixSuggestion": "Update tests/mocks/runtime.ts to use 'spawnedAt' instead of 'createdAt' in the Agent object, OR update expectValidAgent() to check for 'createdAt' instead of 'spawnedAt', OR add both properties to satisfy both requirements"
+    },
+    {
+      "testFile": "tests/example-usage.test.ts",
+      "testName": "Integration Harness Examples › should spawn and manage agents",
+      "error": "Runtime 'mock' not found. Available:",
+      "severity": "high",
+      "category": "mock",
+      "rootCause": "The IntegrationHarness.getRuntime() method throws this error when the runtimes Map is empty. The initializeRuntimes() method (line 603) should register 'mock', 'pi', and 'native' runtimes during setup(). The empty Available list suggests harness.setup() was either not called, failed silently, or the runtimes were cleared. Looking at the test (line 230), harness.setup() IS called in beforeAll, so there may be an async timing issue or the mock runtime creation is failing.",
+      "fixSuggestion": "1. Add error handling in initializeRuntimes() to surface any failures: console.error('Failed to initialize runtimes:', error); 2. Verify createMockRuntime is exported correctly from tests/mocks/runtime.ts 3. Add defensive check in spawnAgent: if (this.runtimes.size === 0) throw new Error('No runtimes registered - did you call setup()?')"
+    },
+    {
+      "testFile": "tests/example-usage.test.ts",
+      "testName": "Integration Harness Examples › should handle multiple agents",
+      "error": "Runtime 'mock' not found. Available:",
+      "severity": "high",
+      "category": "mock",
+      "rootCause": "Same root cause as previous Integration Harness test failure - the runtimes Map is empty when spawnAgent is called.",
+      "fixSuggestion": "Same fix as previous - ensure runtimes are properly initialized during harness.setup()"
+    },
+    {
+      "testFile": "tests/example-usage.test.ts",
+      "testName": "Integration Harness Examples › should track harness state",
+      "error": "Runtime 'mock' not found. Available:",
+      "severity": "high",
+      "category": "mock",
+      "rootCause": "Same root cause as previous Integration Harness test failures - the runtimes Map is empty when spawnAgent is called.",
+      "fixSuggestion": "Same fix as previous - ensure runtimes are properly initialized during harness.setup()"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should spawn agents up to the limit",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "critical",
+      "category": "bug",
+      "rootCause": "The test imports SwarmRepository from '../../src/storage' (line 13), but the storage module index.ts does not export SwarmRepository. This is a module export issue - the class exists but is not properly exported from the module's public API.",
+      "fixSuggestion": "1. Check if SwarmRepository exists in src/storage/: find . -name '*.ts' -exec grep -l 'class SwarmRepository' {} \\; 2. Add export { SwarmRepository } to src/storage/index.ts 3. If the class doesn't exist, it needs to be implemented or the test should mock a different dependency"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should spawn agents up to the limit",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "The beforeEach block fails to create mockSwarmRepository due to the SwarmRepository import issue (previous error). This leaves swarmManager undefined, causing afterEach's call to swarmManager.stop() to fail.",
+      "fixSuggestion": "Fix the SwarmRepository import/export issue first. Once that's resolved, this error will be resolved as well."
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should fail gracefully when max agents exceeded",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause as previous - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export to src/storage/index.ts"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should fail gracefully when max agents exceeded",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause as previous - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should include current and max count in error",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should include current and max count in error",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should allow spawning after agents are destroyed",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should allow spawning after agents are destroyed",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should track agent count correctly",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should track agent count correctly",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should handle concurrent spawn attempts at limit",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Maximum Agents Limit › should handle concurrent spawn attempts at limit",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should respect maxAgents in swarm config",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should respect maxAgents in swarm config",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should fail when trying to scale beyond maxAgents",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should fail when trying to scale beyond maxAgents",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should emit event when approaching agent limit",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Swarm Agent Limits › should emit event when approaching agent limit",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should handle memory within reasonable limits",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should handle memory within reasonable limits",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should cleanup agent resources on destroy",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should cleanup agent resources on destroy",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should handle large context sizes",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should handle large context sizes",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should reject agents with excessive context",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Memory Pressure › should reject agents with excessive context",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should track total spawned agents",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should track total spawned agents",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should track active vs total agents",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should track active vs total agents",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should provide resource metrics",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Tracking › should provide resource metrics",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Rate Limiting › should limit spawn rate",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Rate Limiting › should limit spawn rate",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Rate Limiting › should queue spawn requests when at capacity",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Rate Limiting › should queue spawn requests when at capacity",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle spawn with zero max agents",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle spawn with zero max agents",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle rapid spawn/destroy cycles",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle rapid spawn/destroy cycles",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle memory pressure during burst spawning",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should handle memory pressure during burst spawning",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should provide clear error messages",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should provide clear error messages",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should allow querying current agent count",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Edge Cases › should allow querying current agent count",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Cleanup › should cleanup on swarm destroy",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Cleanup › should cleanup on swarm destroy",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Cleanup › should release resources on agent kill",
+      "error": "TypeError: storage_1.SwarmRepository is not a constructor",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - SwarmRepository is not exported from storage module.",
+      "fixSuggestion": "Same fix - add SwarmRepository export"
+    },
+    {
+      "testFile": "tests/resilience/resource-limits.test.ts",
+      "testName": "Resilience: Resource Limits › Resource Cleanup › should release resources on agent kill",
+      "error": "TypeError: Cannot read properties of undefined (reading 'stop')",
+      "severity": "high",
+      "category": "bug",
+      "rootCause": "Same root cause - swarmManager is undefined due to beforeEach failure.",
+      "fixSuggestion": "Fix SwarmRepository import/export issue first"
+    }
+  ],
+  "recommendations": {
+    "immediate": [
+      {
+        "priority": 1,
+        "issue": "SwarmRepository not exported from storage module",
+        "action": "Add export to src/storage/index.ts - this affects 42 tests (75% of failures)",
+        "estimatedFixTime": "5 minutes"
+      },
+      {
+        "priority": 2,
+        "issue": "PII detector severity sorting is alphabetical not by weight",
+        "action": "Fix removeOverlapping() method in detector.ts to use numeric severity weights",
+        "estimatedFixTime": "10 minutes"
+      },
+      {
+        "priority": 3,
+        "issue": "Missing test environment configuration",
+        "action": "Set required environment variables in jest.setup.ci.ts or create test config",
+        "estimatedFixTime": "15 minutes"
+      }
+    ],
+    "shortTerm": [
+      {
+        "priority": 4,
+        "issue": "Mock runtime property naming inconsistency",
+        "action": "Align mock runtime with test helper expectations (createdAt vs spawnedAt)",
+        "estimatedFixTime": "5 minutes"
+      },
+      {
+        "priority": 5,
+        "issue": "IntegrationHarness runtime initialization failure",
+        "action": "Add error handling and diagnostics to initializeRuntimes()",
+        "estimatedFixTime": "20 minutes"
+      },
+      {
+        "priority": 6,
+        "issue": "SSN detection without separators may have regex edge case",
+        "action": "Review and test SSN regex pattern for 9-digit numbers without separators",
+        "estimatedFixTime": "30 minutes"
+      }
+    ],
+    "relatedFailures": {
+      "SwarmRepository cascade": {
+        "primaryFailure": "SwarmRepository not exported",
+        "cascadedTo": 21,
+        "description": "21 test failures are secondary effects of the primary SwarmRepository import error - fixing the export will resolve all of these"
+      },
+      "undefined swarmManager cascade": {
+        "primaryFailure": "beforeEach setup failure",
+        "cascadedTo": 21,
+        "description": "21 afterEach failures occur because swarmManager was never initialized due to beforeEach throwing"
+      }
+    }
+  },
+  "testSummary": {
+    "testSuites": {
+      "total": 140,
+      "passed": 105,
+      "failed": 13,
+      "skipped": 22
+    },
+    "tests": {
+      "total": 2896,
+      "passed": 2536,
+      "failed": 56,
+      "skipped": 304
+    },
+    "passRate": "87.6%"
+  }
+}

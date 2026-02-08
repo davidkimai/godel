@@ -6,12 +6,12 @@
  */
 
 import { describe, it, expect, beforeEach, jest, afterEach } from '@jest/globals';
-import { SwarmManager } from '../../src/core/swarm';
+import { TeamManager } from '../../src/core/team';
 import { AgentLifecycle } from '../../src/core/lifecycle';
 import { MessageBus } from '../../src/bus/index';
 import { AgentStorage } from '../../src/storage/memory';
-import { SwarmRepository } from '../../src/storage';
-import { MaxAgentsError } from '../../src/errors';
+import { TeamRepository } from '../../src/storage';
+import { AgentStatus } from '../../src/models/agent';
 
 // Mock dependencies
 jest.mock('../../src/utils/logger', () => ({
@@ -24,11 +24,11 @@ jest.mock('../../src/utils/logger', () => ({
 }));
 
 describe('Resilience: Resource Limits', () => {
-  let swarmManager: SwarmManager;
+  let teamManager: TeamManager;
   let mockAgentLifecycle: jest.Mocked<AgentLifecycle>;
   let mockMessageBus: jest.Mocked<MessageBus>;
   let mockStorage: jest.Mocked<AgentStorage>;
-  let mockSwarmRepository: jest.Mocked<SwarmRepository>;
+  let mockTeamRepository: jest.Mocked<TeamRepository>;
   let spawnCallCount: number;
   const MAX_AGENTS = 10;
 
@@ -42,7 +42,7 @@ describe('Resilience: Resource Limits', () => {
 
     mockMessageBus = new MessageBus() as jest.Mocked<MessageBus>;
     mockStorage = new AgentStorage() as jest.Mocked<AgentStorage>;
-    mockSwarmRepository = new SwarmRepository() as jest.Mocked<SwarmRepository>;
+    mockTeamRepository = new TeamRepository() as jest.Mocked<TeamRepository>;
 
     // Setup mock spawn that respects limits
     mockAgentLifecycle.spawn = jest.fn().mockImplementation(async (options) => {
@@ -77,22 +77,22 @@ describe('Resilience: Resource Limits', () => {
     mockMessageBus.publish = jest.fn().mockResolvedValue(undefined);
     mockStorage.create = jest.fn();
     mockStorage.get = jest.fn();
-    mockSwarmRepository.create = jest.fn().mockResolvedValue(undefined);
-    mockSwarmRepository.update = jest.fn().mockResolvedValue(undefined);
-    mockSwarmRepository.findById = jest.fn().mockResolvedValue(null);
+    mockTeamRepository.create = jest.fn().mockResolvedValue(undefined);
+    mockTeamRepository.update = jest.fn().mockResolvedValue(undefined);
+    mockTeamRepository.findById = jest.fn().mockResolvedValue(null);
 
-    swarmManager = new SwarmManager(
+    teamManager = new TeamManager(
       mockAgentLifecycle,
       mockMessageBus,
       mockStorage,
-      mockSwarmRepository
+      mockTeamRepository
     );
 
-    swarmManager.start();
+    teamManager.start();
   });
 
   afterEach(() => {
-    swarmManager.stop();
+    teamManager.stop();
     jest.clearAllMocks();
     spawnCallCount = 0;
   });
@@ -204,10 +204,10 @@ describe('Resilience: Resource Limits', () => {
     });
   });
 
-  describe('Swarm Agent Limits', () => {
-    it('should respect maxAgents in swarm config', async () => {
+  describe('Team Agent Limits', () => {
+    it('should respect maxAgents in team config', async () => {
       const config = {
-        name: 'limited-swarm',
+        name: 'limited-team',
         task: 'Test task',
         initialAgents: 5,
         maxAgents: 5,
@@ -228,13 +228,13 @@ describe('Resilience: Resource Limits', () => {
       // Set limit for this test
       const originalMax = MAX_AGENTS;
       
-      const swarm = await swarmManager.create(config);
-      expect(swarm.agents).toHaveLength(5);
+      const team = await teamManager.create(config);
+      expect(team.agents).toHaveLength(5);
     });
 
     it('should fail when trying to scale beyond maxAgents', async () => {
       const config = {
-        name: 'limited-swarm',
+        name: 'limited-team',
         task: 'Test task',
         initialAgents: 3,
         maxAgents: 5,
@@ -252,7 +252,7 @@ describe('Resilience: Resource Limits', () => {
         },
       };
 
-      const swarm = await swarmManager.create(config);
+      const team = await teamManager.create(config);
       
       // Mock scale to throw error when exceeding max
       mockAgentLifecycle.spawn.mockImplementation(async () => {
@@ -263,7 +263,7 @@ describe('Resilience: Resource Limits', () => {
         return {
           id: `agent-${Date.now()}`,
           label: 'Test Agent',
-          status: 'pending',
+        status: 'idle' as AgentStatus,
           model: 'kimi-k2.5',
           task: 'Test task',
           spawnedAt: new Date(),
@@ -285,16 +285,16 @@ describe('Resilience: Resource Limits', () => {
       });
 
       // Try to scale beyond max
-      await expect(swarmManager.scale(swarm.id, 10)).rejects.toThrow();
+      await expect(teamManager.scale(team.id, 10)).rejects.toThrow();
     });
 
     it('should emit event when approaching agent limit', async () => {
       const warningListener = jest.fn();
-      swarmManager.on('limit.warning', warningListener);
+      teamManager.on('limit.warning', warningListener);
 
-      // Create swarm near limit
+      // Create team near limit
       const config = {
-        name: 'near-limit-swarm',
+        name: 'near-limit-team',
         task: 'Test task',
         initialAgents: 8,
         maxAgents: 10,
@@ -312,7 +312,7 @@ describe('Resilience: Resource Limits', () => {
         },
       };
 
-      await swarmManager.create(config);
+      await teamManager.create(config);
 
       // Should emit warning (8/10 = 80%)
       // Note: This depends on implementation - may need adjustment
@@ -399,8 +399,8 @@ describe('Resilience: Resource Limits', () => {
 
   describe('Resource Tracking', () => {
     it('should track total spawned agents', async () => {
-      const swarmConfig = {
-        name: 'tracking-swarm',
+      const teamConfig = {
+        name: 'tracking-team',
         task: 'Test task',
         initialAgents: 5,
         maxAgents: 10,
@@ -418,14 +418,14 @@ describe('Resilience: Resource Limits', () => {
         },
       };
 
-      const swarm = await swarmManager.create(swarmConfig);
+      const team = await teamManager.create(teamConfig);
       
-      expect(swarm.agents).toHaveLength(5);
+      expect(team.agents).toHaveLength(5);
     });
 
     it('should track active vs total agents', async () => {
-      const swarmConfig = {
-        name: 'status-swarm',
+      const teamConfig = {
+        name: 'status-team',
         task: 'Test task',
         initialAgents: 3,
         maxAgents: 10,
@@ -443,17 +443,17 @@ describe('Resilience: Resource Limits', () => {
         },
       };
 
-      const swarm = await swarmManager.create(swarmConfig);
-      const status = swarmManager.getStatus(swarm.id);
+      const team = await teamManager.create(teamConfig);
+      const status = teamManager.getStatus(team.id);
 
       expect(status).toBeDefined();
-      // Swarm should have 3 agents as configured
-      expect(swarm.agents).toHaveLength(3);
+      // Team should have 3 agents as configured
+      expect(team.agents).toHaveLength(3);
     });
 
     it('should provide resource metrics', async () => {
-      const swarmConfig = {
-        name: 'metrics-swarm',
+      const teamConfig = {
+        name: 'metrics-team',
         task: 'Test task',
         initialAgents: 5,
         maxAgents: 10,
@@ -471,9 +471,9 @@ describe('Resilience: Resource Limits', () => {
         },
       };
 
-      await swarmManager.create(swarmConfig);
+      await teamManager.create(teamConfig);
       
-      const metrics = swarmManager.getMetrics?.() || { totalSwarms: 1 };
+      const metrics = teamManager.getMetrics?.() || { totalTeams: 1 };
       expect(metrics).toBeDefined();
     });
   });
@@ -589,9 +589,9 @@ describe('Resilience: Resource Limits', () => {
   });
 
   describe('Resource Cleanup', () => {
-    it('should cleanup on swarm destroy', async () => {
-      const swarm = await swarmManager.create({
-        name: 'cleanup-swarm',
+    it('should cleanup on team destroy', async () => {
+      const team = await teamManager.create({
+        name: 'cleanup-team',
         task: 'Test task',
         initialAgents: 5,
         maxAgents: 10,
@@ -609,10 +609,10 @@ describe('Resilience: Resource Limits', () => {
         },
       });
 
-      await swarmManager.destroy(swarm.id);
+      await teamManager.destroy(team.id);
 
-      const destroyedSwarm = swarmManager.getSwarm(swarm.id);
-      expect(destroyedSwarm?.status).toBe('destroyed');
+      const destroyedTeam = teamManager.getTeam(team.id);
+      expect(destroyedTeam?.status).toBe('destroyed');
     });
 
     it('should release resources on agent kill', async () => {

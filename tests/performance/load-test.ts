@@ -14,7 +14,7 @@ import { logger } from '../../src/utils/logger';
 
 import { AgentLifecycle, LifecycleMetrics } from '../../src/core/lifecycle';
 import { AgentEventBus } from '../../src/core/event-bus';
-import { SwarmOrchestrator, SwarmConfig } from '../../src/core/swarm-orchestrator';
+import { TeamOrchestrator, TeamConfig } from '../../src/core/team-orchestrator';
 import { AgentStorage, MemoryStore } from '../../src/storage/memory';
 import { MessageBus } from '../../src/bus/index';
 import { AgentStatus } from '../../src/models/agent';
@@ -198,7 +198,7 @@ export class LoadTestGenerator {
   private messageBus: MessageBus;
   private eventBus: AgentEventBus;
   private lifecycle: AgentLifecycle;
-  private orchestrator: SwarmOrchestrator;
+  private orchestrator: TeamOrchestrator;
   private memoryStore: MemoryStore;
   private mockOpenClaw: MockOpenClawCore;
 
@@ -227,12 +227,12 @@ export class LoadTestGenerator {
       this.messageBus,
       this.mockOpenClaw as any
     );
-    this.orchestrator = new SwarmOrchestrator(
-      this.lifecycle,
-      this.messageBus,
-      this.storage,
-      this.eventBus
-    );
+    this.orchestrator = new TeamOrchestrator({
+      agentLifecycle: this.lifecycle,
+      messageBus: this.messageBus,
+      storage: this.storage,
+      eventBus: this.eventBus
+    });
   }
 
   /**
@@ -293,25 +293,23 @@ export class LoadTestGenerator {
    * Warmup phase - create agents and let system stabilize
    */
   private async warmup(): Promise<void> {
-    // Create a small swarm for warmup
-    const warmupConfig: SwarmConfig = {
+    // Create a small team for warmup
+    const warmupConfig: TeamConfig = {
       name: `warmup-${Date.now()}`,
       task: 'warmup task',
       initialAgents: Math.min(5, this.config.agentCount),
       maxAgents: this.config.agentCount,
       strategy: 'parallel',
       model: 'test-model',
-      enableEventStreaming: this.config.enableEventStreaming,
-      enableBranching: this.config.enableBranching,
     };
 
-    const swarm = await this.orchestrator.create(warmupConfig);
+    const team = await this.orchestrator.create(warmupConfig);
 
     // Wait for warmup duration
     await this.delay(this.config.warmupMs);
 
-    // Destroy warmup swarm
-    await this.orchestrator.destroy(swarm.id, true);
+    // Destroy warmup team
+    await this.orchestrator.destroy(team.id, true);
   }
 
   /**
@@ -380,12 +378,12 @@ export class LoadTestGenerator {
   }
 
   /**
-   * Generate swarm configurations
+   * Generate team configurations
    */
-  private generateSwarmConfigs(): SwarmConfig[] {
-    // Determine swarm distribution
-    // For testing, we create swarms of varying sizes
-    const configs: SwarmConfig[] = [];
+  private generateTeamConfigs(): TeamConfig[] {
+    // Determine team distribution
+    // For testing, we create teams of varying sizes
+    const configs: TeamConfig[] = [];
     let remainingAgents = this.config.agentCount;
 
     while (remainingAgents > 0) {
@@ -401,8 +399,6 @@ export class LoadTestGenerator {
         maxAgents: swarmSize * 2,
         strategy: ['parallel', 'pipeline', 'map-reduce'][Math.floor(Math.random() * 3)] as any,
         model: 'test-model',
-        enableEventStreaming: this.config.enableEventStreaming,
-        enableBranching: this.config.enableBranching,
       });
 
       remainingAgents -= swarmSize;

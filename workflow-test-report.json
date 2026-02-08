@@ -1,0 +1,221 @@
+{
+  "summary": {
+    "testsPassed": 156,
+    "testsFailed": 0,
+    "coverage": "60.64% (engine.ts), 56.96% (overall workflow)",
+    "testFiles": 7,
+    "totalScenarios": 12,
+    "executionDate": "2026-02-07",
+    "engineVersion": "2.0.0"
+  },
+  "scenarios": [
+    {
+      "name": "Linear workflow (3 nodes)",
+      "status": "pass",
+      "details": "Executed 3 nodes sequentially with proper edge traversal. All nodes completed in order (step1 → step2 → step3).",
+      "duration": 152,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "DAG with branches (condition nodes)",
+      "status": "pass",
+      "details": "Conditional branching works correctly. True branch (premium) executes when condition matches, false branch (standard) executes otherwise. Variable substitution in conditions functional.",
+      "duration": 202,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Parallel execution (3 branches)",
+      "status": "pass",
+      "details": "Parallel node executes all 3 branches concurrently. waitFor: 'all' strategy properly waits for all branches to complete. Results collected successfully.",
+      "duration": 201,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Sub-workflow nesting (2 levels)",
+      "status": "pass",
+      "details": "Parent workflow successfully invokes child workflow via sub-workflow node. Input mapping works, waitForCompletion functions correctly. Both workflows complete independently.",
+      "duration": 302,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Error handling with retries",
+      "status": "pass",
+      "details": "Failed tasks trigger retry logic with configurable backoff. Task eventually fails after exhausting retry attempts. Status transitions: RUNNING → FAILED correctly.",
+      "duration": 301,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Retry success after initial failure",
+      "status": "pass",
+      "details": "Tasks that fail initially but succeed on retry are handled correctly. Status transitions: RUNNING → RETRYING → COMPLETED.",
+      "duration": 201,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Variable substitution in parameters",
+      "status": "pass",
+      "details": "${variable} syntax correctly substitutes values in task parameters. Multiple variables in single string work. Default values applied when inputs not provided.",
+      "duration": 52,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Nested variable path substitution",
+      "status": "pass",
+      "details": "Dot-notation paths like ${config.database.host} resolve correctly from nested object structures. Missing paths return undefined gracefully.",
+      "duration": 52,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Cycle detection (should reject)",
+      "status": "pass",
+      "details": "Cyclic workflows (a → b → c → a) are detected during registration and rejected with clear error message. DFS-based cycle detection working correctly.",
+      "duration": 0,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Empty workflow handling",
+      "status": "pass",
+      "details": "Workflows with no nodes are rejected during registration with descriptive error message.",
+      "duration": 0,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Missing variable handling",
+      "status": "pass",
+      "details": "Undefined variables in substitution patterns are preserved as literals (${missing} remains ${missing}). No runtime errors thrown.",
+      "duration": 52,
+      "testFile": "workflow-deep.test.ts"
+    },
+    {
+      "name": "Delay node execution",
+      "status": "pass",
+      "details": "Delay nodes pause execution for specified duration. Duration parameter respected. Node completes after delay period.",
+      "duration": 201,
+      "testFile": "workflow-deep.test.ts"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "medium",
+      "description": "Engine treats 'retries' config as total attempts instead of additional retry attempts. With retries: 2, users expect 3 calls (1 initial + 2 retries), but engine performs 2 calls total.",
+      "location": "WorkflowEngine.getMaxAttempts() in src/loop/workflow/engine.ts",
+      "fix": "Consider changing getMaxAttempts() to return (config.retries || 0) + 1 to match common 'retries' semantics where it means additional attempts after initial failure",
+      "workaround": "Users should set retries to desired_total_attempts - 1"
+    },
+    {
+      "severity": "low",
+      "description": "Sub-workflow polling uses fixed 100ms interval which may cause unnecessary CPU usage for long-running sub-workflows",
+      "location": "WorkflowEngine.waitForSubWorkflow()",
+      "fix": "Implement exponential backoff for polling or use event-based completion notifications",
+      "workaround": "Current behavior is functional but not optimal for resource usage"
+    },
+    {
+      "severity": "low",
+      "description": "Expression evaluation uses eval() which has security implications if user-controlled data reaches condition expressions",
+      "location": "WorkflowEngine.evaluateExpression()",
+      "fix": "Replace eval() with a safer expression parser like mathjs or custom expression evaluator",
+      "workaround": "Sanitize all user inputs before including in workflow definitions"
+    },
+    {
+      "severity": "low",
+      "description": "Parallel node execution may have race conditions when multiple parallel nodes exist in same workflow",
+      "location": "WorkflowEngine.executeParallelNode()",
+      "fix": "Add proper synchronization mechanisms for parallel branch execution",
+      "workaround": "Avoid complex parallel node configurations until fixed"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "Testing",
+      "description": "Add comprehensive integration tests for sub-workflows with error propagation scenarios",
+      "rationale": "Current tests cover basic sub-workflow execution but edge cases like parent failure during child execution are not tested"
+    },
+    {
+      "priority": "high",
+      "category": "Feature",
+      "description": "Implement workflow persistence for crash recovery",
+      "rationale": "Currently workflow state is in-memory only. System restart loses all active workflow instances."
+    },
+    {
+      "priority": "medium",
+      "category": "Observability",
+      "description": "Add metrics collection for performance monitoring (execution time per node, queue depth, retry counts)",
+      "rationale": "No visibility into workflow performance characteristics or bottlenecks"
+    },
+    {
+      "priority": "medium",
+      "category": "Feature",
+      "description": "Implement workflow versioning for backward compatibility",
+      "rationale": "Workflow definitions may evolve over time; need ability to run old instances with original definition"
+    },
+    {
+      "priority": "medium",
+      "category": "Security",
+      "description": "Add input validation middleware for workflow definitions",
+      "rationale": "Currently no validation of parameter types or value ranges before execution"
+    },
+    {
+      "priority": "low",
+      "category": "Performance",
+      "description": "Optimize DAG traversal for large workflows (100+ nodes)",
+      "rationale": "Current O(N*E) complexity may become bottleneck for complex workflows"
+    },
+    {
+      "priority": "low",
+      "category": "UX",
+      "description": "Add workflow visualization export (Mermaid, DOT format)",
+      "rationale": "Debugging complex workflows is difficult without visual representation"
+    }
+  ],
+  "testCoverage": {
+    "engine.ts": {
+      "statements": "60.64%",
+      "branches": "38%",
+      "functions": "56.66%",
+      "lines": "62.41%",
+      "uncovered": [
+        "Pause/resume functionality (lines 180-196)",
+        "Cancel functionality (lines 248)",
+        "Sub-workflow error propagation (lines 281-282)",
+        "Edge condition evaluation (lines 320-329)",
+        "Merge node reduce strategy (lines 347-384)"
+      ]
+    },
+    "types.ts": {
+      "statements": "100%",
+      "branches": "100%",
+      "functions": "100%",
+      "lines": "100%",
+      "note": "Type definitions only, fully covered"
+    },
+    "templates.ts": {
+      "statements": "85%+",
+      "note": "Template creation functions tested via integration tests"
+    }
+  },
+  "edgeCasesTested": [
+    "Empty workflow registration",
+    "Missing variable substitution",
+    "Cycle detection (a→b→c→a)",
+    "Self-referencing edges",
+    "Missing node references in edges",
+    "Parallel node with waitFor: 'any'",
+    "Parallel node with numeric waitFor",
+    "Condition node with missing parent result",
+    "Delay node with 'until' timestamp",
+    "Required variable validation",
+    "Workflow with no start nodes",
+    "onFailure: 'continue' behavior"
+  ],
+  "performanceMetrics": {
+    "linearWorkflow3Nodes": "~150ms",
+    "conditionalBranches": "~200ms",
+    "parallel3Branches": "~200ms",
+    "subWorkflow2Levels": "~300ms",
+    "retryWithDelay": "~300ms",
+    "variableSubstitution": "~50ms",
+    "cycleDetection": "<1ms",
+    "notes": "All timings include test overhead and mock delays"
+  }
+}
