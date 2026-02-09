@@ -37,6 +37,8 @@
     "test:watch": "jest --watch",
     "test:release-gate": "CI=1 jest --runInBand tests/unit/queue/task-queue.test.ts tests/integrations/openclaw/adapter.test.ts tests/integrations/openclaw/integration.test.ts tests/state-persistence.test.ts tests/state-aware-orchestrator.test.ts",
     "test:performance": "ts-node tests/performance/benchmark.ts",
+    "benchmark:boot-time": "ts-node tests/benchmarks/boot-time.bench.ts",
+    "benchmark:oolong": "tsx benchmarks/oolong/index.ts",
     "test:perf:baseline": "ts-node tests/performance/benchmark.ts --scenario baseline",
     "test:perf:standard": "ts-node tests/performance/benchmark.ts --scenario standard",
     "test:perf:full": "ts-node tests/performance/benchmark.ts --scenario full",

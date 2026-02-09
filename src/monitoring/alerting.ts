@@ -1,884 +1,471 @@
 import { EventEmitter } from 'events';
 
-/**
- * Alert severity levels
- */
-type AlertSeverity = 'critical' | 'warning' | 'info';
-
-/**
- * Alert status
- */
-type AlertStatus = 'firing' | 'resolved' | 'acknowledged';
-
-/**
- * Alert rule configuration
- */
-interface AlertRule {
+export interface AlertRule {
   id: string;
   name: string;
-  description: string;
-  severity: AlertSeverity;
   condition: AlertCondition;
-  duration: number; // Duration in seconds the condition must be true before firing
-  labels: Record<string, string>;
-  annotations: Record<string, string>;
+  severity: 'critical' | 'warning' | 'info';
+  channels: string[];
   enabled: boolean;
+  cooldownMs: number;
+  description?: string;
 }
 
-/**
- * Alert condition interface
- */
-interface AlertCondition {
+export interface AlertCondition {
   metric: string;
-  operator: '>' | '<' | '>=' | '<=' | '==' | '!=';
+  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte' | 'neq';
   threshold: number;
-  teamId?: string;
-  runtimeId?: string;
+  duration?: number;
 }
 
-/**
- * Alert instance
- */
-interface Alert {
+export interface Alert {
   id: string;
   ruleId: string;
   ruleName: string;
-  severity: AlertSeverity;
-  status: AlertStatus;
-  labels: Record<string, string>;
-  annotations: Record<string, string>;
+  severity: AlertRule['severity'];
+  message: string;
   value: number;
-  startedAt: Date;
-  resolvedAt?: Date;
-  acknowledgedAt?: Date;
-  acknowledgedBy?: string;
-  fingerprint: string; // Deduplication fingerprint
+  threshold: number;
+  timestamp: Date;
+  acknowledged: boolean;
+  resolved: boolean;
 }
 
-/**
- * Webhook configuration
- */
-interface WebhookConfig {
-  id: string;
-  name: string;
+export interface SlackWebhookConfig {
+  type: 'slack';
+  webhookUrl: string;
+  channel?: string;
+  username?: string;
+  iconEmoji?: string;
+}
+
+export interface PagerDutyConfig {
+  type: 'pagerduty';
+  integrationKey: string;
+  severity: 'critical' | 'error' | 'warning' | 'info';
+}
+
+export interface WebhookConfig {
+  type: 'webhook';
   url: string;
-  method: 'POST' | 'PUT';
   headers?: Record<string, string>;
-  timeout?: number;
-  retryAttempts?: number;
-  retryDelay?: number;
-  enabled: boolean;
+  method?: 'POST' | 'PUT';
 }
 
-/**
- * Alert routing configuration
- */
-interface AlertRoute {
-  id: string;
-  name: string;
-  matchLabels: Record<string, string>;
-  matchSeverity?: AlertSeverity[];
-  webhookIds: string[];
-  enabled: boolean;
+export type NotificationChannel = SlackWebhookConfig | PagerDutyConfig | WebhookConfig;
+
+export interface AlertingConfig {
+  channels: Map<string, NotificationChannel>;
+  rules: AlertRule[];
+  defaultCooldownMs?: number;
 }
 
-/**
- * Alert manager configuration
- */
-interface AlertManagerConfig {
-  evaluationIntervalMs?: number;
-  alertRetentionHours?: number;
-  deduplicationWindowMs?: number;
-  maxAlertsPerRule?: number;
-  throttleIntervalMs?: number;
-  webhooks?: WebhookConfig[];
-  routes?: AlertRoute[];
-  rules?: AlertRule[];
-}
-
-/**
- * Metrics provider interface (for querying metrics)
- */
-interface MetricsProvider {
-  query(metric: string, labels?: Record<string, string>): Promise<number[]>;
-}
-
-/**
- * AlertManager - Comprehensive alerting system for Godel VM monitoring
- * 
- * Features:
- * - Configurable alert rules for health degradation and resource exhaustion
- * - Webhook integrations (Slack, PagerDuty)
- * - Alert deduplication and throttling
- * - Alert routing based on severity and labels
- */
-export class AlertManager extends EventEmitter {
-  private config: Required<AlertManagerConfig>;
+export class AlertingManager extends EventEmitter {
   private rules: Map<string, AlertRule> = new Map();
+  private channels: Map<string, NotificationChannel> = new Map();
   private activeAlerts: Map<string, Alert> = new Map();
+  private lastAlertTime: Map<string, Date> = new Map();
+  private defaultCooldownMs: number;
+  private metrics: Map<string, number> = new Map();
   private alertHistory: Alert[] = [];
-  private webhooks: Map<string, WebhookConfig> = new Map();
-  private routes: Map<string, AlertRoute> = new Map();
-  private evaluationTimer?: ReturnType<typeof setInterval>;
-  private metricsProvider?: MetricsProvider;
-  private lastAlertTime: Map<string, number> = new Map(); // For throttling
+  private maxHistorySize = 1000;
 
-  constructor(config: AlertManagerConfig = {}) {
+  constructor(config?: Partial<AlertingConfig>) {
     super();
+    this.defaultCooldownMs = config?.defaultCooldownMs || 300000; // 5 minutes
     
-    this.config = {
-      evaluationIntervalMs: config.evaluationIntervalMs ?? 30000,
-      alertRetentionHours: config.alertRetentionHours ?? 720, // 30 days
-      deduplicationWindowMs: config.deduplicationWindowMs ?? 300000, // 5 minutes
-      maxAlertsPerRule: config.maxAlertsPerRule ?? 100,
-      throttleIntervalMs: config.throttleIntervalMs ?? 300000, // 5 minutes
-      webhooks: config.webhooks ?? [],
-      routes: config.routes ?? [],
-      rules: config.rules ?? [],
-    };
-
-    // Initialize default rules
-    this.initializeDefaultRules();
+    if (config?.channels) {
+      for (const [id, channel] of config.channels) {
+        this.channels.set(id, channel);
+      }
+    }
     
-    // Load configurations
-    this.loadWebhooks();
-    this.loadRoutes();
-    this.loadRules();
+    if (config?.rules) {
+      for (const rule of config.rules) {
+        this.rules.set(rule.id, rule);
+      }
+    }
+
+    this.registerDefaultRules();
   }
 
-  /**
-   * Initialize default alert rules
-   */
-  private initializeDefaultRules(): void {
-    const defaultRules: AlertRule[] = [
-      // Health degradation alerts
-      {
-        id: 'health-check-failed',
-        name: 'VM Health Check Failed',
-        description: 'VM has failed health checks multiple times',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_runtime_health_check_failures',
-          operator: '>=',
-          threshold: 3,
-        },
-        duration: 60,
-        labels: { category: 'health' },
-        annotations: {
-          summary: 'VM {{ $labels.runtime_id }} health check failed',
-          description: 'VM has failed {{ $value }} health checks in the last 5 minutes',
-          runbook_url: 'https://docs.godel.io/runbooks/health-check-failed',
-        },
-        enabled: true,
+  private registerDefaultRules(): void {
+    this.addRule({
+      id: 'spawn-latency-critical',
+      name: 'VM Spawn Latency Critical',
+      description: 'VM spawn latency exceeds 100ms',
+      condition: {
+        metric: 'spawn_latency_ms',
+        operator: 'gt',
+        threshold: 100,
+        duration: 60000, // 1 minute
       },
-      {
-        id: 'vm-crash-loop',
-        name: 'VM Crash Loop Detected',
-        description: 'VM is restarting frequently (crash loop)',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_runtime_restarts',
-          operator: '>=',
-          threshold: 5,
-        },
-        duration: 300,
-        labels: { category: 'health' },
-        annotations: {
-          summary: 'VM {{ $labels.runtime_id }} is in crash loop',
-          description: 'VM has restarted {{ $value }} times in the last 5 minutes',
-          runbook_url: 'https://docs.godel.io/runbooks/crash-loop',
-        },
-        enabled: true,
-      },
+      severity: 'critical',
+      channels: ['slack', 'pagerduty'],
+      enabled: true,
+      cooldownMs: 300000,
+    });
 
-      // Resource exhaustion alerts
-      {
-        id: 'high-cpu-usage',
-        name: 'High CPU Usage',
-        description: 'VM CPU usage is above 90%',
-        severity: 'warning',
-        condition: {
-          metric: 'godel_runtime_cpu_usage_percent',
-          operator: '>',
-          threshold: 90,
-        },
-        duration: 300,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'High CPU usage on VM {{ $labels.runtime_id }}',
-          description: 'CPU usage is {{ $value }}% for more than 5 minutes',
-        },
-        enabled: true,
+    this.addRule({
+      id: 'pool-low-availability',
+      name: 'Pool Low Availability',
+      description: 'Ready VM pool below minimum threshold',
+      condition: {
+        metric: 'pool_ready_vms',
+        operator: 'lt',
+        threshold: 5,
+        duration: 120000, // 2 minutes
       },
-      {
-        id: 'critical-cpu-usage',
-        name: 'Critical CPU Usage',
-        description: 'VM CPU usage is above 95%',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_runtime_cpu_usage_percent',
-          operator: '>',
-          threshold: 95,
-        },
-        duration: 120,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'Critical CPU usage on VM {{ $labels.runtime_id }}',
-          description: 'CPU usage is {{ $value }}% for more than 2 minutes',
-        },
-        enabled: true,
-      },
-      {
-        id: 'high-memory-usage',
-        name: 'High Memory Usage',
-        description: 'VM memory usage is above 85%',
-        severity: 'warning',
-        condition: {
-          metric: 'godel_runtime_memory_usage_percent',
-          operator: '>',
-          threshold: 85,
-        },
-        duration: 300,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'High memory usage on VM {{ $labels.runtime_id }}',
-          description: 'Memory usage is {{ $value }}% for more than 5 minutes',
-        },
-        enabled: true,
-      },
-      {
-        id: 'critical-memory-usage',
-        name: 'Critical Memory Usage',
-        description: 'VM memory usage is above 95%',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_runtime_memory_usage_percent',
-          operator: '>',
-          threshold: 95,
-        },
-        duration: 120,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'Critical memory usage on VM {{ $labels.runtime_id }}',
-          description: 'Memory usage is {{ $value }}% for more than 2 minutes',
-        },
-        enabled: true,
-      },
-      {
-        id: 'high-disk-usage',
-        name: 'High Disk Usage',
-        description: 'VM disk usage is above 85%',
-        severity: 'warning',
-        condition: {
-          metric: 'godel_runtime_disk_usage_percent',
-          operator: '>',
-          threshold: 85,
-        },
-        duration: 600,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'High disk usage on VM {{ $labels.runtime_id }}',
-          description: 'Disk usage is {{ $value }}% for more than 10 minutes',
-        },
-        enabled: true,
-      },
-      {
-        id: 'critical-disk-usage',
-        name: 'Critical Disk Usage',
-        description: 'VM disk usage is above 90%',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_runtime_disk_usage_percent',
-          operator: '>',
-          threshold: 90,
-        },
-        duration: 300,
-        labels: { category: 'resources' },
-        annotations: {
-          summary: 'Critical disk usage on VM {{ $labels.runtime_id }}',
-          description: 'Disk usage is {{ $value }}% for more than 5 minutes',
-        },
-        enabled: true,
-      },
+      severity: 'warning',
+      channels: ['slack'],
+      enabled: true,
+      cooldownMs: 600000,
+    });
 
-      // Cost alerts
-      {
-        id: 'budget-80-percent',
-        name: 'Budget 80% Consumed',
-        description: 'Team has consumed 80% of their budget',
-        severity: 'warning',
-        condition: {
-          metric: 'godel_budget_consumed_percent',
-          operator: '>=',
-          threshold: 80,
-        },
-        duration: 60,
-        labels: { category: 'cost' },
-        annotations: {
-          summary: 'Team {{ $labels.team_id }} budget at 80%',
-          description: 'Budget consumption is {{ $value }}%',
-        },
-        enabled: true,
+    this.addRule({
+      id: 'snapshot-failure-rate',
+      name: 'Snapshot Failure Rate High',
+      description: 'Snapshot failure rate exceeds 10%',
+      condition: {
+        metric: 'snapshot_failure_rate',
+        operator: 'gt',
+        threshold: 0.1,
+        duration: 300000, // 5 minutes
       },
-      {
-        id: 'budget-exhausted',
-        name: 'Budget Exhausted',
-        description: 'Team has consumed 100% of their budget',
-        severity: 'critical',
-        condition: {
-          metric: 'godel_budget_consumed_percent',
-          operator: '>=',
-          threshold: 100,
-        },
-        duration: 60,
-        labels: { category: 'cost' },
-        annotations: {
-          summary: 'Team {{ $labels.team_id }} budget exhausted',
-          description: 'Budget consumption is {{ $value }}%. New VMs will be blocked.',
-        },
-        enabled: true,
-      },
-    ];
+      severity: 'warning',
+      channels: ['slack'],
+      enabled: true,
+      cooldownMs: 900000,
+    });
 
-    defaultRules.forEach((rule) => {
-      this.rules.set(rule.id, rule);
+    this.addRule({
+      id: 'memory-usage-critical',
+      name: 'Memory Usage Critical',
+      description: 'VM memory usage exceeds 90%',
+      condition: {
+        metric: 'vm_memory_usage_percent',
+        operator: 'gt',
+        threshold: 90,
+        duration: 180000, // 3 minutes
+      },
+      severity: 'critical',
+      channels: ['slack', 'pagerduty'],
+      enabled: true,
+      cooldownMs: 300000,
+    });
+
+    this.addRule({
+      id: 'fork-operation-failures',
+      name: 'Fork Operation Failures',
+      description: 'Fork operation failure rate exceeds 5%',
+      condition: {
+        metric: 'fork_failure_rate',
+        operator: 'gt',
+        threshold: 0.05,
+        duration: 180000, // 3 minutes
+      },
+      severity: 'warning',
+      channels: ['slack'],
+      enabled: true,
+      cooldownMs: 600000,
     });
   }
 
-  /**
-   * Load webhooks from configuration
-   */
-  private loadWebhooks(): void {
-    this.config.webhooks.forEach((webhook) => {
-      this.webhooks.set(webhook.id, {
-        ...webhook,
-        timeout: webhook.timeout ?? 30000,
-        retryAttempts: webhook.retryAttempts ?? 3,
-        retryDelay: webhook.retryDelay ?? 1000,
-      });
-    });
-
-    // Add default Slack webhook if not configured
-    if (!this.webhooks.has('slack')) {
-      this.webhooks.set('slack', {
-        id: 'slack',
-        name: 'Slack Notifications',
-        url: process.env['SLACK_WEBHOOK_URL'] ?? 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000,
-        retryAttempts: 3,
-        retryDelay: 1000,
-        enabled: false, // Disabled until configured
-      });
-    }
-
-    // Add default PagerDuty webhook if not configured
-    if (!this.webhooks.has('pagerduty')) {
-      this.webhooks.set('pagerduty', {
-        id: 'pagerduty',
-        name: 'PagerDuty Integration',
-        url: process.env['PAGERDUTY_INTEGRATION_KEY'] ?? 'https://events.pagerduty.com/v2/enqueue',
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000,
-        retryAttempts: 3,
-        retryDelay: 1000,
-        enabled: false, // Disabled until configured
-      });
-    }
+  addRule(rule: AlertRule): void {
+    this.rules.set(rule.id, rule);
+    this.emit('rule:added', { rule });
   }
 
-  /**
-   * Load routes from configuration
-   */
-  private loadRoutes(): void {
-    this.config.routes.forEach((route) => {
-      this.routes.set(route.id, route);
-    });
-
-    // Add default routes if not configured
-    if (!this.routes.has('critical')) {
-      this.routes.set('critical', {
-        id: 'critical',
-        name: 'Critical Alerts',
-        matchLabels: {},
-        matchSeverity: ['critical'],
-        webhookIds: ['slack', 'pagerduty'],
-        enabled: true,
-      });
+  removeRule(ruleId: string): boolean {
+    const removed = this.rules.delete(ruleId);
+    if (removed) {
+      this.emit('rule:removed', { ruleId });
     }
-
-    if (!this.routes.has('warning')) {
-      this.routes.set('warning', {
-        id: 'warning',
-        name: 'Warning Alerts',
-        matchLabels: {},
-        matchSeverity: ['warning'],
-        webhookIds: ['slack'],
-        enabled: true,
-      });
-    }
+    return removed;
   }
 
-  /**
-   * Load custom rules from configuration
-   */
-  private loadRules(): void {
-    this.config.rules.forEach((rule) => {
-      this.rules.set(rule.id, rule);
-    });
+  addChannel(id: string, channel: NotificationChannel): void {
+    this.channels.set(id, channel);
+    this.emit('channel:added', { id, channel });
   }
 
-  /**
-   * Set the metrics provider for querying metric values
-   */
-  public setMetricsProvider(provider: MetricsProvider): void {
-    this.metricsProvider = provider;
-  }
-
-  /**
-   * Start the alert manager evaluation loop
-   */
-  public start(): void {
-    if (this.evaluationTimer) {
-      return;
+  removeChannel(id: string): boolean {
+    const removed = this.channels.delete(id);
+    if (removed) {
+      this.emit('channel:removed', { id });
     }
-
-    this.evaluationTimer = setInterval(() => {
-      this.evaluateRules();
-    }, this.config.evaluationIntervalMs);
-
-    console.log('[AlertManager] Started evaluation loop');
+    return removed;
   }
 
-  /**
-   * Stop the alert manager
-   */
-  public stop(): void {
-    if (this.evaluationTimer) {
-      clearInterval(this.evaluationTimer);
-      this.evaluationTimer = undefined;
-    }
-    console.log('[AlertManager] Stopped');
+  recordMetric(name: string, value: number): void {
+    this.metrics.set(name, value);
+    this.evaluateRules(name, value);
   }
 
-  /**
-   * Evaluate all alert rules
-   */
-  private async evaluateRules(): Promise<void> {
-    if (!this.metricsProvider) {
-      console.warn('[AlertManager] No metrics provider configured');
-      return;
-    }
-
+  private evaluateRules(metricName: string, value: number): void {
     for (const rule of this.rules.values()) {
       if (!rule.enabled) continue;
+      if (rule.condition.metric !== metricName) continue;
 
-      try {
-        await this.evaluateRule(rule);
-      } catch (error) {
-        console.error(`[AlertManager] Error evaluating rule ${rule.id}:`, error);
-      }
-    }
+      const triggered = this.checkCondition(rule.condition, value);
+      const alertId = `${rule.id}:${metricName}`;
 
-    // Clean up old alerts
-    this.cleanupOldAlerts();
-  }
+      if (triggered) {
+        const lastAlert = this.lastAlertTime.get(rule.id);
+        const cooldown = rule.cooldownMs || this.defaultCooldownMs;
 
-  /**
-   * Evaluate a single alert rule
-   */
-  private async evaluateRule(rule: AlertRule): Promise<void> {
-    const values = await this.metricsProvider.query(rule.condition.metric, {
-      ...(rule.condition.teamId && { team_id: rule.condition.teamId }),
-      ...(rule.condition.runtimeId && { runtime_id: rule.condition.runtimeId }),
-    });
-
-    for (const value of values) {
-      const isFiring = this.checkCondition(rule.condition, value);
-      const fingerprint = this.generateFingerprint(rule, value);
-      const existingAlert = this.activeAlerts.get(fingerprint);
-
-      if (isFiring && !existingAlert) {
-        // New alert firing
-        const alert = this.createAlert(rule, value, fingerprint);
-        this.activeAlerts.set(fingerprint, alert);
-        await this.sendAlert(alert);
-        this.emit('alert:firing', alert);
-      } else if (!isFiring && existingAlert) {
-        // Alert resolved
-        existingAlert.status = 'resolved';
-        existingAlert.resolvedAt = new Date();
-        this.activeAlerts.delete(fingerprint);
-        this.alertHistory.push(existingAlert);
-        await this.sendResolved(existingAlert);
-        this.emit('alert:resolved', existingAlert);
+        if (!lastAlert || Date.now() - lastAlert.getTime() > cooldown) {
+          this.triggerAlert(rule, value, alertId);
+        }
+      } else {
+        this.resolveAlert(alertId);
       }
     }
   }
 
-  /**
-   * Check if a condition is met
-   */
   private checkCondition(condition: AlertCondition, value: number): boolean {
     switch (condition.operator) {
-      case '>':
-        return value > condition.threshold;
-      case '<':
-        return value < condition.threshold;
-      case '>=':
-        return value >= condition.threshold;
-      case '<=':
-        return value <= condition.threshold;
-      case '==':
-        return value === condition.threshold;
-      case '!=':
-        return value !== condition.threshold;
-      default:
-        return false;
+      case 'gt': return value > condition.threshold;
+      case 'lt': return value < condition.threshold;
+      case 'eq': return value === condition.threshold;
+      case 'gte': return value >= condition.threshold;
+      case 'lte': return value <= condition.threshold;
+      case 'neq': return value !== condition.threshold;
+      default: return false;
     }
   }
 
-  /**
-   * Generate a unique fingerprint for an alert
-   */
-  private generateFingerprint(rule: AlertRule, value: number): string {
-    const data = `${rule.id}:${rule.condition.metric}:${value}`;
-    return Buffer.from(data).toString('base64');
-  }
-
-  /**
-   * Create a new alert instance
-   */
-  private createAlert(rule: AlertRule, value: number, fingerprint: string): Alert {
-    return {
-      id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  private async triggerAlert(rule: AlertRule, value: number, alertId: string): Promise<void> {
+    const alert: Alert = {
+      id: alertId,
       ruleId: rule.id,
       ruleName: rule.name,
       severity: rule.severity,
-      status: 'firing',
-      labels: { ...rule.labels },
-      annotations: { ...rule.annotations },
+      message: `${rule.name}: ${rule.condition.metric} is ${value} (threshold: ${rule.condition.threshold})`,
       value,
-      startedAt: new Date(),
-      fingerprint,
+      threshold: rule.condition.threshold,
+      timestamp: new Date(),
+      acknowledged: false,
+      resolved: false,
     };
+
+    this.activeAlerts.set(alertId, alert);
+    this.lastAlertTime.set(rule.id, alert.timestamp);
+    this.alertHistory.push(alert);
+
+    // Trim history if needed
+    if (this.alertHistory.length > this.maxHistorySize) {
+      this.alertHistory = this.alertHistory.slice(-this.maxHistorySize);
+    }
+
+    this.emit('alert:triggered', { alert });
+
+    // Send notifications
+    for (const channelId of rule.channels) {
+      await this.sendNotification(channelId, alert);
+    }
   }
 
-  /**
-   * Send alert to configured webhooks
-   */
-  private async sendAlert(alert: Alert): Promise<void> {
-    // Check throttling
-    const lastSent = this.lastAlertTime.get(alert.ruleId);
-    if (lastSent && Date.now() - lastSent < this.config.throttleIntervalMs) {
-      console.log(`[AlertManager] Alert ${alert.ruleId} throttled`);
+  private resolveAlert(alertId: string): void {
+    const alert = this.activeAlerts.get(alertId);
+    if (alert && !alert.resolved) {
+      alert.resolved = true;
+      this.activeAlerts.delete(alertId);
+      this.emit('alert:resolved', { alert });
+    }
+  }
+
+  private async sendNotification(channelId: string, alert: Alert): Promise<void> {
+    const channel = this.channels.get(channelId);
+    if (!channel) {
+      console.warn(`Channel ${channelId} not found`);
       return;
     }
 
-    // Find matching routes
-    const matchingRoutes = Array.from(this.routes.values()).filter((route) =>
-      this.routeMatches(route, alert)
-    );
-
-    // Send to all matching webhooks
-    for (const route of matchingRoutes) {
-      for (const webhookId of route.webhookIds) {
-        const webhook = this.webhooks.get(webhookId);
-        if (webhook?.enabled) {
-          await this.sendWebhook(webhook, alert);
-        }
+    try {
+      switch (channel.type) {
+        case 'slack':
+          await this.sendSlackNotification(channel, alert);
+          break;
+        case 'pagerduty':
+          await this.sendPagerDutyNotification(channel, alert);
+          break;
+        case 'webhook':
+          await this.sendWebhookNotification(channel, alert);
+          break;
       }
-    }
-
-    this.lastAlertTime.set(alert.ruleId, Date.now());
-  }
-
-  /**
-   * Check if a route matches an alert
-   */
-  private routeMatches(route: AlertRoute, alert: Alert): boolean {
-    if (!route.enabled) return false;
-
-    // Check severity match
-    if (route.matchSeverity && !route.matchSeverity.includes(alert.severity)) {
-      return false;
-    }
-
-    // Check label matches
-    for (const [key, value] of Object.entries(route.matchLabels)) {
-      if (alert.labels[key] !== value) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Send alert to a webhook
-   */
-  private async sendWebhook(webhook: WebhookConfig, alert: Alert): Promise<void> {
-    const payload = this.formatWebhookPayload(webhook, alert);
-
-    for (let attempt = 1; attempt <= (webhook.retryAttempts ?? 1); attempt++) {
-      try {
-        const response = await fetch(webhook.url, {
-          method: webhook.method,
-          headers: webhook.headers,
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(webhook.timeout ?? 30000),
-        });
-
-        if (response.ok) {
-          console.log(`[AlertManager] Sent alert to ${webhook.name}`);
-          return;
-        }
-
-        throw new Error(`HTTP ${response.status}`);
-      } catch (error) {
-        console.error(`[AlertManager] Webhook ${webhook.name} attempt ${attempt} failed:`, error);
-        
-        if (attempt < (webhook.retryAttempts ?? 1)) {
-          await this.delay(webhook.retryDelay ?? 1000);
-        }
-      }
+      this.emit('notification:sent', { channelId, alert });
+    } catch (error) {
+      console.error(`Failed to send notification to ${channelId}:`, error);
+      this.emit('notification:failed', { channelId, alert, error });
     }
   }
 
-  /**
-   * Format alert payload for different webhook types
-   */
-  private formatWebhookPayload(webhook: WebhookConfig, alert: Alert): Record<string, unknown> {
-    if (webhook.id === 'slack') {
-      return this.formatSlackPayload(alert);
-    } else if (webhook.id === 'pagerduty') {
-      return this.formatPagerDutyPayload(alert);
-    }
-
-    // Generic payload
-    return {
-      alert: {
-        id: alert.id,
-        rule: alert.ruleName,
-        severity: alert.severity,
-        status: alert.status,
-        value: alert.value,
-        startedAt: alert.startedAt,
-        labels: alert.labels,
-        annotations: alert.annotations,
-      },
-    };
-  }
-
-  /**
-   * Format alert for Slack webhook
-   */
-  private formatSlackPayload(alert: Alert): Record<string, unknown> {
-    const colorMap: Record<AlertSeverity, string> = {
+  private async sendSlackNotification(config: SlackWebhookConfig, alert: Alert): Promise<void> {
+    const colorMap = {
       critical: '#FF0000',
       warning: '#FFA500',
       info: '#00FF00',
     };
 
-    return {
-      attachments: [
-        {
-          color: colorMap[alert.severity],
-          title: `🚨 ${alert.ruleName}`,
-          text: alert.annotations['description'] || alert.annotations['summary'],
-          fields: [
-            {
-              title: 'Severity',
-              value: alert.severity.toUpperCase(),
-              short: true,
-            },
-            {
-              title: 'Value',
-              value: alert.value.toString(),
-              short: true,
-            },
-            {
-              title: 'Started',
-              value: alert.startedAt.toISOString(),
-              short: true,
-            },
-          ],
-          footer: 'Godel AlertManager',
-          ts: Math.floor(Date.now() / 1000),
-        },
-      ],
+    const payload = {
+      channel: config.channel,
+      username: config.username || 'RLM Alerts',
+      icon_emoji: config.iconEmoji || ':warning:',
+      attachments: [{
+        color: colorMap[alert.severity],
+        title: alert.ruleName,
+        text: alert.message,
+        fields: [
+          { title: 'Severity', value: alert.severity.toUpperCase(), short: true },
+          { title: 'Value', value: String(alert.value), short: true },
+          { title: 'Threshold', value: String(alert.threshold), short: true },
+          { title: 'Time', value: alert.timestamp.toISOString(), short: true },
+        ],
+        footer: 'RLM Hypervisor',
+        ts: Math.floor(alert.timestamp.getTime() / 1000),
+      }],
     };
+
+    const response = await fetch(config.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Slack notification failed: ${response.statusText}`);
+    }
   }
 
-  /**
-   * Format alert for PagerDuty webhook
-   */
-  private formatPagerDutyPayload(alert: Alert): Record<string, unknown> {
-    const severityMap: Record<AlertSeverity, string> = {
-      critical: 'critical',
-      warning: 'warning',
-      info: 'info',
-    };
-
-    return {
-      routing_key: process.env['PAGERDUTY_INTEGRATION_KEY'] ?? '',
-      event_action: 'trigger',
-      dedup_key: alert.fingerprint,
+  private async sendPagerDutyNotification(config: PagerDutyConfig, alert: Alert): Promise<void> {
+    const payload = {
+      routing_key: config.integrationKey,
+      event_action: alert.resolved ? 'resolve' : 'trigger',
+      dedup_key: alert.id,
       payload: {
-        summary: alert.annotations['summary'] || alert.ruleName,
-        severity: severityMap[alert.severity],
-        source: 'godel-alertmanager',
-        component: alert.labels['category'] || 'unknown',
+        summary: alert.message,
+        severity: config.severity || alert.severity,
+        source: 'rlm-hypervisor',
         custom_details: {
-          rule: alert.ruleName,
+          rule_name: alert.ruleName,
+          rule_id: alert.ruleId,
           value: alert.value,
-          labels: alert.labels,
-          description: alert.annotations['description'],
+          threshold: alert.threshold,
         },
       },
     };
-  }
 
-  /**
-   * Send resolved notification
-   */
-  private async sendResolved(alert: Alert): Promise<void> {
-    // Similar to sendAlert but for resolved state
-    console.log(`[AlertManager] Alert ${alert.id} resolved`);
-  }
-
-  /**
-   * Cleanup old alerts from history
-   */
-  private cleanupOldAlerts(): void {
-    const cutoff = new Date();
-    cutoff.setHours(cutoff.getHours() - this.config.alertRetentionHours);
-
-    this.alertHistory = this.alertHistory.filter(
-      (alert) => alert.startedAt > cutoff
-    );
-  }
-
-  /**
-   * Acknowledge an alert
-   */
-  public acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
-    const alert = this.activeAlerts.get(alertId);
-    if (!alert) return false;
-
-    alert.status = 'acknowledged';
-    alert.acknowledgedAt = new Date();
-    alert.acknowledgedBy = acknowledgedBy;
-
-    this.emit('alert:acknowledged', alert);
-    return true;
-  }
-
-  /**
-   * Silence an alert rule
-   */
-  public silenceRule(ruleId: string, durationMinutes: number): boolean {
-    const rule = this.rules.get(ruleId);
-    if (!rule) return false;
-
-    rule.enabled = false;
-    
-    setTimeout(() => {
-      rule.enabled = true;
-      console.log(`[AlertManager] Rule ${ruleId} unsilenced`);
-    }, durationMinutes * 60 * 1000);
-
-    return true;
-  }
-
-  /**
-   * Get active alerts
-   */
-  public getActiveAlerts(filters?: {
-    severity?: AlertSeverity;
-    ruleId?: string;
-  }): Alert[] {
-    let alerts = Array.from(this.activeAlerts.values());
-
-    if (filters?.severity) {
-      alerts = alerts.filter((a) => a.severity === filters.severity);
-    }
-
-    if (filters?.ruleId) {
-      alerts = alerts.filter((a) => a.ruleId === filters.ruleId);
-    }
-
-    return alerts;
-  }
-
-  /**
-   * Get alert history
-   */
-  public getAlertHistory(limit = 100): Alert[] {
-    return this.alertHistory
-      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime())
-      .slice(0, limit);
-  }
-
-  /**
-   * Add or update an alert rule
-   */
-  public addRule(rule: AlertRule): void {
-    this.rules.set(rule.id, rule);
-  }
-
-  /**
-   * Remove an alert rule
-   */
-  public removeRule(ruleId: string): boolean {
-    return this.rules.delete(ruleId);
-  }
-
-  /**
-   * Add a webhook configuration
-   */
-  public addWebhook(webhook: WebhookConfig): void {
-    this.webhooks.set(webhook.id, {
-      ...webhook,
-      timeout: webhook.timeout ?? 30000,
-      retryAttempts: webhook.retryAttempts ?? 3,
-      retryDelay: webhook.retryDelay ?? 1000,
+    const response = await fetch('https://events.pagerduty.com/v2/enqueue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      throw new Error(`PagerDuty notification failed: ${response.statusText}`);
+    }
   }
 
-  /**
-   * Update alert manager configuration
-   */
-  public updateConfig(config: Partial<AlertManagerConfig>): void {
-    Object.assign(this.config, config);
+  private async sendWebhookNotification(config: WebhookConfig, alert: Alert): Promise<void> {
+    const payload = {
+      id: alert.id,
+      ruleId: alert.ruleId,
+      ruleName: alert.ruleName,
+      severity: alert.severity,
+      message: alert.message,
+      value: alert.value,
+      threshold: alert.threshold,
+      timestamp: alert.timestamp.toISOString(),
+      resolved: alert.resolved,
+    };
+
+    const response = await fetch(config.url, {
+      method: config.method || 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...config.headers,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook notification failed: ${response.statusText}`);
+    }
   }
 
-  /**
-   * Get current configuration
-   */
-  public getConfig(): AlertManagerConfig {
-    return { ...this.config };
+  acknowledgeAlert(alertId: string): boolean {
+    const alert = this.activeAlerts.get(alertId);
+    if (alert) {
+      alert.acknowledged = true;
+      this.emit('alert:acknowledged', { alert });
+      return true;
+    }
+    return false;
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  getActiveAlerts(): Alert[] {
+    return Array.from(this.activeAlerts.values());
+  }
+
+  getAlertHistory(limit = 100): Alert[] {
+    return this.alertHistory.slice(-limit);
+  }
+
+  getRules(): AlertRule[] {
+    return Array.from(this.rules.values());
+  }
+
+  getChannels(): Array<{ id: string; config: NotificationChannel }> {
+    return Array.from(this.channels.entries()).map(([id, config]) => ({ id, config }));
+  }
+
+  enableRule(ruleId: string): boolean {
+    const rule = this.rules.get(ruleId);
+    if (rule) {
+      rule.enabled = true;
+      this.emit('rule:enabled', { ruleId });
+      return true;
+    }
+    return false;
+  }
+
+  disableRule(ruleId: string): boolean {
+    const rule = this.rules.get(ruleId);
+    if (rule) {
+      rule.enabled = false;
+      this.emit('rule:disabled', { ruleId });
+      return true;
+    }
+    return false;
+  }
+
+  getMetrics(): Map<string, number> {
+    return new Map(this.metrics);
+  }
+
+  clearAlertHistory(): void {
+    this.alertHistory = [];
+    this.emit('history:cleared');
+  }
+
+  getStats(): {
+    totalRules: number;
+    activeAlerts: number;
+    totalChannels: number;
+    historySize: number;
+  } {
+    return {
+      totalRules: this.rules.size,
+      activeAlerts: this.activeAlerts.size,
+      totalChannels: this.channels.size,
+      historySize: this.alertHistory.length,
+    };
   }
 }
 
-// Export types
-export type {
-  AlertSeverity,
-  AlertStatus,
-  AlertRule,
-  AlertCondition,
-  Alert,
-  WebhookConfig,
-  AlertRoute,
-  AlertManagerConfig,
-  MetricsProvider,
-};
+export function createAlertingManager(config?: Partial<AlertingConfig>): AlertingManager {
+  return new AlertingManager(config);
+}
 
-// Default export
-export default AlertManager;
+export default AlertingManager;

@@ -11,8 +11,18 @@ import { Pool } from 'pg';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
+
+// Logger with fallback
+let logger = {
+  info: (msg: string) => console.log(msg),
+  error: (msg: string) => console.error(msg),
+  warn: (msg: string) => console.warn(msg),
+};
+
+export function setRollbackLogger(newLogger: typeof logger) {
+  logger = newLogger;
+}
 
 // ============================================================================
 // Types & Interfaces

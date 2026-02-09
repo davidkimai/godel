@@ -6,4 +6,8 @@
  * @module core/runtime/kata
  */
 
-export * from './file-sync';
+export * from './health-monitor';
+export * from './spawn-optimizer';
+export * from './snapshot-manager';
+export * from './quota-system';
+export * from './fork-manager';

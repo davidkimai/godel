@@ -135,7 +135,7 @@ describe('OpenClaw-Godel Integration', () => {
           status: 'running' as const,
           model: 'claude-3',
           task: 'test',
-          teamId: 'team-test-123';
+          teamId: 'team-test-123',
           metadata: {},
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -154,7 +154,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'running' as const,
             model: 'claude-3',
             task: 'test',
-            teamId: 'team-test-123';
+            teamId: 'team-test-123',
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -171,7 +171,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'running' as const,
             model: 'claude-3',
             task: 'test',
-            teamId: 'team-test-123';
+            teamId: 'team-test-123',
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -188,7 +188,7 @@ describe('OpenClaw-Godel Integration', () => {
             status: 'completed' as const,
             model: 'claude-3',
             task: 'test',
-            teamId: 'team-test-123';
+            teamId: 'team-test-123',
             metadata: {},
             createdAt: new Date(),
             updatedAt: new Date(),

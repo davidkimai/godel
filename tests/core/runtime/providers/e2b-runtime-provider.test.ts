@@ -9,7 +9,7 @@
  * @since 2026-02-08
  */
 
-import { E2BRuntimeProvider, E2BRuntimeProviderConfig } from '../../../src/core/runtime/providers/e2b-runtime-provider';
+import { E2BRuntimeProvider, E2BRuntimeProviderConfig } from '../../../../src/core/runtime/providers/e2b-runtime-provider';
 import {
   SpawnConfig,
   RuntimeState,
@@ -19,7 +19,7 @@ import {
   ExecutionError,
   TimeoutError,
   ResourceExhaustedError,
-} from '../../../src/core/runtime/runtime-provider';
+} from '../../../../src/core/runtime/runtime-provider';
 
 // ============================================================================
 // Test Configuration

@@ -1,537 +1,259 @@
 /**
- * CostTracker - Per-agent cost tracking with real-time calculation
- * 
- * Tracks costs for agent runtime usage across all runtime providers.
- * Integrates with E2B, Kata, and Worktree providers for accurate
- * per-second billing.
- * 
- * @module @godel/core/billing/cost-tracker
- * @version 1.0.0
- * @since 2026-02-08
- * @see SPEC-002 Section 5.1
+ * Agent_7: Cost Tracker
+ * Per-agent cost tracking with real-time monitoring
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'eventemitter3';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Cost rates by runtime type
- */
-export interface CostRates {
-  /** E2B cost per hour */
-  e2b: number;
-  /** Kata cost per hour */
-  kata: number;
-  /** Worktree cost per hour (usually 0) */
-  worktree: number;
-}
-
-/**
- * Configuration for CostTracker
- */
-export interface CostTrackerConfig {
-  /** Cost rates per runtime type (in USD per hour) */
-  rates?: Partial<CostRates>;
-  /** Enable real-time cost calculation */
-  realTimeCalculation?: boolean;
-  /** Cost update interval in milliseconds */
-  updateInterval?: number;
-  /** Callback when cost threshold is reached */
-  onThresholdReached?: (agentId: string, cost: number, threshold: number) => void;
-  /** Default cost threshold for alerts */
-  defaultThreshold?: number;
-}
-
-/**
- * Agent cost record
- */
-export interface AgentCost {
-  /** Unique agent identifier */
+export interface CostEntry {
+  id: string;
   agentId: string;
-  /** Runtime type used */
-  runtimeType: 'e2b' | 'kata' | 'worktree';
-  /** Runtime ID */
-  runtimeId: string;
-  /** Session start time */
-  startTime: Date;
-  /** Session end time (if ended) */
-  endTime?: Date;
-  /** Total runtime in milliseconds */
-  duration: number;
-  /** Current calculated cost in USD */
-  cost: number;
-  /** Cost rate used (USD per hour) */
-  rate: number;
-  /** Team ID for grouping */
-  teamId?: string;
-  /** User ID for attribution */
-  userId?: string;
-  /** Additional metadata */
-  metadata?: Record<string, unknown>;
+  provider: string;
+  resourceType: 'compute' | 'storage' | 'network' | 'other';
+  amount: number;
+  unit: string;
+  timestamp: Date;
+  sessionId?: string;
+  metadata?: Record<string, any>;
 }
 
-/**
- * Team cost summary
- */
-export interface TeamCostSummary {
-  /** Team identifier */
-  teamId: string;
-  /** Total cost for team */
+export interface AgentCostSummary {
+  agentId: string;
   totalCost: number;
-  /** Number of agents */
-  agentCount: number;
-  /** Cost by runtime type */
-  byRuntime: Record<'e2b' | 'kata' | 'worktree', number>;
-  /** Active vs completed sessions */
-  activeSessions: number;
-  completedSessions: number;
+  byResource: Record<string, number>;
+  byProvider: Record<string, number>;
+  sessionCount: number;
+  averageSessionCost: number;
+  lastActivity: Date;
 }
 
-/**
- * Cost report
- */
-export interface CostReport {
-  /** Report generation time */
-  generatedAt: Date;
-  /** Total cost across all agents */
-  totalCost: number;
-  /** Total runtime in hours */
-  totalHours: number;
-  /** Cost by team */
-  byTeam: TeamCostSummary[];
-  /** Cost by runtime type */
-  byRuntime: Record<'e2b' | 'kata' | 'worktree', number>;
-  /** Active sessions count */
-  activeSessions: number;
-  /** Completed sessions count */
-  completedSessions: number;
+export interface CostAlert {
+  type: 'warning' | 'critical';
+  agentId: string;
+  message: string;
+  currentCost: number;
+  threshold: number;
+  timestamp: Date;
 }
-
-// ============================================================================
-// CostTracker Implementation
-// ============================================================================
 
 export class CostTracker extends EventEmitter {
-  private rates: CostRates;
-  private realTimeCalculation: boolean;
-  private updateInterval: number;
-  private defaultThreshold: number;
-  private activeSessions: Map<string, AgentCost> = new Map();
-  private completedSessions: AgentCost[] = [];
-  private updateTimer?: NodeJS.Timeout;
-  private thresholds: Map<string, number> = new Map();
-  private onThresholdReached?: (agentId: string, cost: number, threshold: number) => void;
+  private entries: CostEntry[] = [];
+  private agentSummaries: Map<string, AgentCostSummary> = new Map();
+  private sessionCosts: Map<string, number> = new Map();
+  private readonly MAX_ENTRIES = 10000;
 
-  constructor(config: CostTrackerConfig = {}) {
+  constructor() {
     super();
+  }
 
-    this.rates = {
-      e2b: config.rates?.e2b ?? 0.50,      // $0.50/hour default for E2B
-      kata: config.rates?.kata ?? 0.10,    // $0.10/hour default for Kata
-      worktree: config.rates?.worktree ?? 0, // Free for worktree
+  record(entry: Omit<CostEntry, 'id' | 'timestamp'>): CostEntry {
+    const fullEntry: CostEntry = {
+      ...entry,
+      id: `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date()
     };
 
-    this.realTimeCalculation = config.realTimeCalculation ?? true;
-    this.updateInterval = config.updateInterval ?? 5000; // 5 seconds
-    this.defaultThreshold = config.defaultThreshold ?? 10; // $10 default threshold
-    this.onThresholdReached = config.onThresholdReached;
-
-    if (this.realTimeCalculation) {
-      this.startRealTimeUpdates();
-    }
-  }
-
-  /**
-   * Start tracking a new agent session
-   */
-  startTracking(
-    agentId: string,
-    runtimeType: 'e2b' | 'kata' | 'worktree',
-    runtimeId: string,
-    options?: {
-      teamId?: string;
-      userId?: string;
-      threshold?: number;
-      metadata?: Record<string, unknown>;
-    }
-  ): AgentCost {
-    const existing = this.activeSessions.get(agentId);
-    if (existing) {
-      // Stop existing tracking first
-      this.stopTracking(agentId);
+    this.entries.push(fullEntry);
+    
+    // Maintain max entries limit
+    if (this.entries.length > this.MAX_ENTRIES) {
+      this.entries.shift();
     }
 
-    const session: AgentCost = {
-      agentId,
-      runtimeType,
-      runtimeId,
-      startTime: new Date(),
-      duration: 0,
-      cost: 0,
-      rate: this.rates[runtimeType],
-      teamId: options?.teamId,
-      userId: options?.userId,
-      metadata: options?.metadata,
-    };
-
-    this.activeSessions.set(agentId, session);
-
-    // Set threshold if provided
-    if (options?.threshold !== undefined) {
-      this.thresholds.set(agentId, options.threshold);
+    this.updateAgentSummary(fullEntry);
+    
+    if (fullEntry.sessionId) {
+      this.updateSessionCost(fullEntry);
     }
 
-    this.emit('sessionStarted', session);
-
-    return session;
+    this.emit('cost:recorded', fullEntry);
+    return fullEntry;
   }
 
-  /**
-   * Stop tracking an agent session
-   */
-  stopTracking(agentId: string): AgentCost | null {
-    const session = this.activeSessions.get(agentId);
-    if (!session) {
-      return null;
+  private updateAgentSummary(entry: CostEntry): void {
+    let summary = this.agentSummaries.get(entry.agentId);
+    
+    if (!summary) {
+      summary = {
+        agentId: entry.agentId,
+        totalCost: 0,
+        byResource: {},
+        byProvider: {},
+        sessionCount: 0,
+        averageSessionCost: 0,
+        lastActivity: entry.timestamp
+      };
+      this.agentSummaries.set(entry.agentId, summary);
     }
 
-    session.endTime = new Date();
-    session.duration = session.endTime.getTime() - session.startTime.getTime();
-    session.cost = this.calculateCost(session.duration, session.rate);
-
-    this.activeSessions.delete(agentId);
-    this.thresholds.delete(agentId);
-    this.completedSessions.push(session);
-
-    this.emit('sessionEnded', session);
-
-    return session;
+    summary.totalCost += entry.amount;
+    summary.byResource[entry.resourceType] = (summary.byResource[entry.resourceType] || 0) + entry.amount;
+    summary.byProvider[entry.provider] = (summary.byProvider[entry.provider] || 0) + entry.amount;
+    summary.lastActivity = entry.timestamp;
   }
 
-  /**
-   * Get current cost for an active agent
-   */
-  getCurrentCost(agentId: string): number {
-    const session = this.activeSessions.get(agentId);
-    if (!session) {
-      return 0;
-    }
-
-    const duration = Date.now() - session.startTime.getTime();
-    return this.calculateCost(duration, session.rate);
+  private updateSessionCost(entry: CostEntry): void {
+    if (!entry.sessionId) return;
+    
+    const currentCost = this.sessionCosts.get(entry.sessionId) || 0;
+    this.sessionCosts.set(entry.sessionId, currentCost + entry.amount);
   }
 
-  /**
-   * Get cost summary for an agent
-   */
-  getAgentCost(agentId: string): AgentCost | null {
-    // Check active sessions
-    const active = this.activeSessions.get(agentId);
-    if (active) {
-      // Calculate current cost
-      const updated = { ...active };
-      updated.duration = Date.now() - active.startTime.getTime();
-      updated.cost = this.calculateCost(updated.duration, active.rate);
-      return updated;
-    }
-
-    // Check completed sessions
-    const completed = this.completedSessions.find(s => s.agentId === agentId);
-    return completed || null;
-  }
-
-  /**
-   * Get all costs for a team
-   */
-  getTeamCosts(teamId: string): TeamCostSummary {
-    const teamSessions = [
-      ...Array.from(this.activeSessions.values()).filter(s => s.teamId === teamId),
-      ...this.completedSessions.filter(s => s.teamId === teamId),
-    ];
-
-    const byRuntime = {
-      e2b: 0,
-      kata: 0,
-      worktree: 0,
-    };
-
-    let totalCost = 0;
-    let activeCount = 0;
-    let completedCount = 0;
-
-    for (const session of teamSessions) {
-      const cost = session.endTime 
-        ? session.cost 
-        : this.calculateCost(Date.now() - session.startTime.getTime(), session.rate);
-      
-      byRuntime[session.runtimeType] += cost;
-      totalCost += cost;
-
-      if (session.endTime) {
-        completedCount++;
-      } else {
-        activeCount++;
-      }
-    }
-
-    return {
-      teamId,
-      totalCost,
-      agentCount: teamSessions.length,
-      byRuntime,
-      activeSessions: activeCount,
-      completedSessions: completedCount,
-    };
-  }
-
-  /**
-   * Generate comprehensive cost report
-   */
-  generateReport(): CostReport {
-    const allSessions = [
-      ...Array.from(this.activeSessions.values()).map(s => ({
-        ...s,
-        cost: this.calculateCost(Date.now() - s.startTime.getTime(), s.rate),
-        duration: Date.now() - s.startTime.getTime(),
-      })),
-      ...this.completedSessions,
-    ];
-
-    const byRuntime = {
-      e2b: 0,
-      kata: 0,
-      worktree: 0,
-    };
-
-    const byTeamMap = new Map<string, TeamCostSummary>();
-    let totalCost = 0;
-    let totalDuration = 0;
-
-    for (const session of allSessions) {
-      const cost = session.cost;
-      const duration = session.duration;
-
-      byRuntime[session.runtimeType] += cost;
-      totalCost += cost;
-      totalDuration += duration;
-
-      // Aggregate by team
-      const teamId = session.teamId || 'default';
-      const existing = byTeamMap.get(teamId);
-      
-      if (existing) {
-        existing.totalCost += cost;
-        existing.agentCount++;
-        existing.byRuntime[session.runtimeType] += cost;
-        if (session.endTime) {
-          existing.completedSessions++;
-        } else {
-          existing.activeSessions++;
-        }
-      } else {
-        byTeamMap.set(teamId, {
-          teamId,
-          totalCost: cost,
-          agentCount: 1,
-          byRuntime: {
-            e2b: session.runtimeType === 'e2b' ? cost : 0,
-            kata: session.runtimeType === 'kata' ? cost : 0,
-            worktree: session.runtimeType === 'worktree' ? cost : 0,
-          },
-          activeSessions: session.endTime ? 0 : 1,
-          completedSessions: session.endTime ? 1 : 0,
-        });
-      }
-    }
-
-    return {
-      generatedAt: new Date(),
-      totalCost,
-      totalHours: totalDuration / (1000 * 60 * 60),
-      byTeam: Array.from(byTeamMap.values()),
-      byRuntime,
-      activeSessions: this.activeSessions.size,
-      completedSessions: this.completedSessions.length,
-    };
-  }
-
-  /**
-   * Update cost rates
-   */
-  updateRates(rates: Partial<CostRates>): void {
-    this.rates = { ...this.rates, ...rates };
-    this.emit('ratesUpdated', this.rates);
-  }
-
-  /**
-   * Get current rates
-   */
-  getRates(): CostRates {
-    return { ...this.rates };
-  }
-
-  /**
-   * Set cost threshold for an agent
-   */
-  setThreshold(agentId: string, threshold: number): void {
-    this.thresholds.set(agentId, threshold);
-  }
-
-  /**
-   * Get cost threshold for an agent
-   */
-  getThreshold(agentId: string): number {
-    return this.thresholds.get(agentId) ?? this.defaultThreshold;
-  }
-
-  /**
-   * Check if agent has exceeded threshold
-   */
-  isThresholdExceeded(agentId: string): boolean {
-    const threshold = this.getThreshold(agentId);
-    const cost = this.getCurrentCost(agentId);
-    return cost >= threshold;
-  }
-
-  /**
-   * Get all active sessions
-   */
-  getActiveSessions(): AgentCost[] {
-    return Array.from(this.activeSessions.values()).map(s => ({
-      ...s,
-      duration: Date.now() - s.startTime.getTime(),
-      cost: this.calculateCost(Date.now() - s.startTime.getTime(), s.rate),
-    }));
-  }
-
-  /**
-   * Get all completed sessions
-   */
-  getCompletedSessions(): AgentCost[] {
-    return [...this.completedSessions];
-  }
-
-  /**
-   * Reset all tracking data
-   */
-  reset(): void {
-    this.activeSessions.clear();
-    this.completedSessions = [];
-    this.thresholds.clear();
-    this.emit('reset');
-  }
-
-  /**
-   * Stop real-time updates
-   */
-  stop(): void {
-    if (this.updateTimer) {
-      clearInterval(this.updateTimer);
-      this.updateTimer = undefined;
-    }
-  }
-
-  /**
-   * Resume real-time updates
-   */
-  resume(): void {
-    if (this.realTimeCalculation && !this.updateTimer) {
-      this.startRealTimeUpdates();
-    }
-  }
-
-  // ============================================================================
-  // Private Methods
-  // ============================================================================
-
-  /**
-   * Calculate cost from duration and rate
-   */
-  private calculateCost(durationMs: number, ratePerHour: number): number {
+  trackCompute(agentId: string, provider: string, durationMs: number, ratePerHour: number, sessionId?: string): CostEntry {
     const hours = durationMs / (1000 * 60 * 60);
-    return hours * ratePerHour;
+    const cost = hours * ratePerHour;
+
+    return this.record({
+      agentId,
+      provider,
+      resourceType: 'compute',
+      amount: cost,
+      unit: 'USD',
+      sessionId,
+      metadata: { durationMs, ratePerHour }
+    });
   }
 
-  /**
-   * Start real-time cost updates
-   */
-  private startRealTimeUpdates(): void {
-    this.updateTimer = setInterval(() => {
-      for (const [agentId, session] of this.activeSessions) {
-        const cost = this.getCurrentCost(agentId);
-        const threshold = this.getThreshold(agentId);
+  trackStorage(agentId: string, provider: string, bytesUsed: number, ratePerGBMonth: number, sessionId?: string): CostEntry {
+    const gb = bytesUsed / (1024 * 1024 * 1024);
+    const cost = gb * ratePerGBMonth;
 
-        // Check threshold
-        if (cost >= threshold * 0.8 && cost < threshold) {
-          this.emit('thresholdWarning', {
-            agentId,
-            cost,
-            threshold,
-            percent: (cost / threshold) * 100,
-          });
-        }
-
-        if (cost >= threshold) {
-          this.emit('thresholdExceeded', {
-            agentId,
-            cost,
-            threshold,
-          });
-
-          if (this.onThresholdReached) {
-            this.onThresholdReached(agentId, cost, threshold);
-          }
-        }
-
-        // Emit cost update
-        this.emit('costUpdated', {
-          agentId,
-          cost,
-          duration: Date.now() - session.startTime.getTime(),
-        });
-      }
-    }, this.updateInterval);
+    return this.record({
+      agentId,
+      provider,
+      resourceType: 'storage',
+      amount: cost,
+      unit: 'USD',
+      sessionId,
+      metadata: { bytesUsed, ratePerGBMonth }
+    });
   }
-}
 
-// ============================================================================
-// Singleton Instance
-// ============================================================================
+  trackNetwork(agentId: string, provider: string, bytesTransferred: number, ratePerGB: number, sessionId?: string): CostEntry {
+    const gb = bytesTransferred / (1024 * 1024 * 1024);
+    const cost = gb * ratePerGB;
 
-let globalCostTracker: CostTracker | null = null;
-
-/**
- * Get or create the global CostTracker instance
- */
-export function getGlobalCostTracker(config?: CostTrackerConfig): CostTracker {
-  if (!globalCostTracker) {
-    globalCostTracker = new CostTracker(config);
+    return this.record({
+      agentId,
+      provider,
+      resourceType: 'network',
+      amount: cost,
+      unit: 'USD',
+      sessionId,
+      metadata: { bytesTransferred, ratePerGB }
+    });
   }
-  return globalCostTracker;
-}
 
-/**
- * Initialize the global CostTracker
- */
-export function initializeGlobalCostTracker(config: CostTrackerConfig): CostTracker {
-  if (globalCostTracker) {
-    globalCostTracker.stop();
+  getAgentSummary(agentId: string): AgentCostSummary | undefined {
+    return this.agentSummaries.get(agentId);
   }
-  globalCostTracker = new CostTracker(config);
-  return globalCostTracker;
-}
 
-/**
- * Reset the global CostTracker
- */
-export function resetGlobalCostTracker(): void {
-  if (globalCostTracker) {
-    globalCostTracker.stop();
-    globalCostTracker.reset();
-    globalCostTracker = null;
+  getAllSummaries(): AgentCostSummary[] {
+    return Array.from(this.agentSummaries.values());
+  }
+
+  getSessionCost(sessionId: string): number {
+    return this.sessionCosts.get(sessionId) || 0;
+  }
+
+  getTotalCost(): number {
+    return this.entries.reduce((sum, entry) => sum + entry.amount, 0);
+  }
+
+  getCostByAgent(): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const [agentId, summary] of this.agentSummaries) {
+      result[agentId] = summary.totalCost;
+    }
+    return result;
+  }
+
+  getCostByResource(): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const entry of this.entries) {
+      result[entry.resourceType] = (result[entry.resourceType] || 0) + entry.amount;
+    }
+    return result;
+  }
+
+  getCostByProvider(): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const entry of this.entries) {
+      result[entry.provider] = (result[entry.provider] || 0) + entry.amount;
+    }
+    return result;
+  }
+
+  getEntries(filters?: {
+    agentId?: string;
+    provider?: string;
+    resourceType?: string;
+    startTime?: Date;
+    endTime?: Date;
+  }): CostEntry[] {
+    return this.entries.filter(entry => {
+      if (filters?.agentId && entry.agentId !== filters.agentId) return false;
+      if (filters?.provider && entry.provider !== filters.provider) return false;
+      if (filters?.resourceType && entry.resourceType !== filters.resourceType) return false;
+      if (filters?.startTime && entry.timestamp < filters.startTime) return false;
+      if (filters?.endTime && entry.timestamp > filters.endTime) return false;
+      return true;
+    });
+  }
+
+  getTopAgents(limit: number = 10): AgentCostSummary[] {
+    return this.getAllSummaries()
+      .sort((a, b) => b.totalCost - a.totalCost)
+      .slice(0, limit);
+  }
+
+  getDailyCosts(): Record<string, number> {
+    const result: Record<string, number> = {};
+    
+    for (const entry of this.entries) {
+      const date = entry.timestamp.toISOString().split('T')[0];
+      result[date] = (result[date] || 0) + entry.amount;
+    }
+    
+    return result;
+  }
+
+  checkBudget(agentId: string, budget: number): { withinBudget: boolean; remaining: number; percentage: number } {
+    const summary = this.agentSummaries.get(agentId);
+    const spent = summary?.totalCost || 0;
+    const remaining = budget - spent;
+    const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+
+    return {
+      withinBudget: spent <= budget,
+      remaining,
+      percentage
+    };
+  }
+
+  reset(): void {
+    this.entries = [];
+    this.agentSummaries.clear();
+    this.sessionCosts.clear();
+    this.emit('cost:reset');
+  }
+
+  export(): CostEntry[] {
+    return [...this.entries];
+  }
+
+  import(entries: CostEntry[]): void {
+    for (const entry of entries) {
+      this.record({
+        agentId: entry.agentId,
+        provider: entry.provider,
+        resourceType: entry.resourceType,
+        amount: entry.amount,
+        unit: entry.unit,
+        sessionId: entry.sessionId,
+        metadata: entry.metadata
+      });
+    }
   }
 }
 

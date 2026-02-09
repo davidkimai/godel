@@ -1,605 +1,274 @@
 /**
- * BudgetEnforcer - Budget enforcement with alerts and hard stops
- * 
- * Enforces budget limits across teams and agents:
- * - 80% threshold: Warning alerts
- * - 100% threshold: Hard stop (terminate runtime)
- * 
- * Integrates with CostTracker for real-time monitoring.
- * 
- * @module @godel/core/billing/budget-enforcer
- * @version 1.0.0
- * @since 2026-02-08
- * @see SPEC-002 Section 5.2
+ * Agent_8: Budget Enforcer
+ * Enforces budget limits: 80% alerts, 100% stop
  */
 
-import { EventEmitter } from 'events';
-import { CostTracker, AgentCost, CostReport } from './cost-tracker';
+import { EventEmitter } from 'eventemitter3';
+import CostTracker, { CostAlert } from './cost-tracker';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * Budget configuration
- */
 export interface BudgetConfig {
-  /** Team budgets by team ID */
-  teamBudgets?: Record<string, number>;
-  /** Agent budgets by agent ID */
-  agentBudgets?: Record<string, number>;
-  /** Default budget for teams without explicit budget */
-  defaultTeamBudget?: number;
-  /** Default budget for agents without explicit budget */
-  defaultAgentBudget?: number;
-  /** Warning threshold (0-1, default 0.8 = 80%) */
-  warningThreshold?: number;
-  /** Hard stop threshold (0-1, default 1.0 = 100%) */
-  stopThreshold?: number;
-  /** Enable automatic runtime termination on budget exceeded */
-  autoStop?: boolean;
-  /** Callback for budget warnings */
-  onWarning?: (context: BudgetAlertContext) => void;
-  /** Callback for budget exceeded */
-  onExceeded?: (context: BudgetAlertContext) => void;
-  /** Callback for runtime stopped */
-  onStopped?: (context: StopContext) => void;
-}
-
-/**
- * Budget alert context
- */
-export interface BudgetAlertContext {
-  /** Team ID (if team budget) */
-  teamId?: string;
-  /** Agent ID (if agent budget) */
-  agentId?: string;
-  /** Current cost */
-  currentCost: number;
-  /** Budget limit */
-  budget: number;
-  /** Percentage used (0-100) */
-  percentUsed: number;
-  /** Alert type */
-  type: 'warning' | 'critical';
-}
-
-/**
- * Stop context
- */
-export interface StopContext {
-  /** Agent ID */
   agentId: string;
-  /** Runtime ID */
-  runtimeId: string;
-  /** Reason for stopping */
-  reason: string;
-  /** Final cost */
-  finalCost: number;
-  /** Budget that was exceeded */
-  budget: number;
+  monthlyBudget: number;
+  alertThresholds: number[]; // Percentages (e.g., [50, 80, 95])
+  hardStopAt: number; // Percentage to stop execution
+  resetDay?: number; // Day of month to reset (1-31)
 }
 
-/**
- * Budget status
- */
 export interface BudgetStatus {
-  /** Team or agent ID */
-  id: string;
-  /** Budget type */
-  type: 'team' | 'agent';
-  /** Budget limit */
+  agentId: string;
   budget: number;
-  /** Current cost */
-  currentCost: number;
-  /** Remaining budget */
+  spent: number;
   remaining: number;
-  /** Percentage used (0-100) */
-  percentUsed: number;
-  /** Status */
-  status: 'ok' | 'warning' | 'exceeded';
+  percentage: number;
+  status: 'healthy' | 'warning' | 'critical' | 'exceeded';
+  lastAlert?: Date;
+  nextReset?: Date;
 }
 
-/**
- * Enforcement action
- */
-export type EnforcementAction = 'none' | 'warn' | 'stop';
-
-// ============================================================================
-// BudgetEnforcer Implementation
-// ============================================================================
+export interface EnforcementAction {
+  type: 'alert' | 'throttle' | 'block';
+  agentId: string;
+  reason: string;
+  timestamp: Date;
+  allowed: boolean;
+}
 
 export class BudgetEnforcer extends EventEmitter {
+  private budgets: Map<string, BudgetConfig> = new Map();
   private costTracker: CostTracker;
-  private teamBudgets: Map<string, number> = new Map();
-  private agentBudgets: Map<string, number> = new Map();
-  private defaultTeamBudget: number;
-  private defaultAgentBudget: number;
-  private warningThreshold: number;
-  private stopThreshold: number;
-  private autoStop: boolean;
-  private onWarning?: (context: BudgetAlertContext) => void;
-  private onExceeded?: (context: BudgetAlertContext) => void;
-  private onStopped?: (context: StopContext) => void;
-  private warningSent: Set<string> = new Set();
-  private exceededSent: Set<string> = new Set();
-  private stoppedRuntimes: Set<string> = new Set();
-  private checkInterval?: NodeJS.Timeout;
+  private lastAlerts: Map<string, number> = new Map();
+  private blockedAgents: Set<string> = new Set();
+  private alertCooldownMs: number = 3600000; // 1 hour between same alerts
 
-  constructor(costTracker: CostTracker, config: BudgetConfig = {}) {
+  constructor(costTracker: CostTracker) {
     super();
-
     this.costTracker = costTracker;
-    this.defaultTeamBudget = config.defaultTeamBudget ?? 100; // $100 default
-    this.defaultAgentBudget = config.defaultAgentBudget ?? 10; // $10 default
-    this.warningThreshold = config.warningThreshold ?? 0.8; // 80%
-    this.stopThreshold = config.stopThreshold ?? 1.0; // 100%
-    this.autoStop = config.autoStop ?? true;
-    this.onWarning = config.onWarning;
-    this.onExceeded = config.onExceeded;
-    this.onStopped = config.onStopped;
-
-    // Initialize budgets
-    if (config.teamBudgets) {
-      Object.entries(config.teamBudgets).forEach(([teamId, budget]) => {
-        this.teamBudgets.set(teamId, budget);
-      });
-    }
-
-    if (config.agentBudgets) {
-      Object.entries(config.agentBudgets).forEach(([agentId, budget]) => {
-        this.agentBudgets.set(agentId, budget);
-      });
-    }
-
-    // Listen to cost tracker events
-    this.setupEventListeners();
-
-    // Start periodic checks
-    this.startPeriodicChecks();
+    this.setupCostListener();
   }
 
-  /**
-   * Set budget for a team
-   */
-  setTeamBudget(teamId: string, budget: number): void {
-    this.teamBudgets.set(teamId, budget);
-    this.emit('budgetSet', { type: 'team', id: teamId, budget });
+  private setupCostListener(): void {
+    this.costTracker.on('cost:recorded', (entry) => {
+      this.checkBudget(entry.agentId);
+    });
   }
 
-  /**
-   * Get budget for a team
-   */
-  getTeamBudget(teamId: string): number {
-    return this.teamBudgets.get(teamId) ?? this.defaultTeamBudget;
-  }
-
-  /**
-   * Set budget for an agent
-   */
-  setAgentBudget(agentId: string, budget: number): void {
-    this.agentBudgets.set(agentId, budget);
-    this.costTracker.setThreshold(agentId, budget);
-    this.emit('budgetSet', { type: 'agent', id: agentId, budget });
-  }
-
-  /**
-   * Get budget for an agent
-   */
-  getAgentBudget(agentId: string): number {
-    return this.agentBudgets.get(agentId) ?? this.defaultAgentBudget;
-  }
-
-  /**
-   * Get budget status for a team
-   */
-  getTeamBudgetStatus(teamId: string): BudgetStatus {
-    const budget = this.getTeamBudget(teamId);
-    const teamCosts = this.costTracker.getTeamCosts(teamId);
-    const currentCost = teamCosts.totalCost;
-    const percentUsed = budget > 0 ? (currentCost / budget) * 100 : 0;
-
-    let status: 'ok' | 'warning' | 'exceeded' = 'ok';
-    if (percentUsed >= this.stopThreshold * 100) {
-      status = 'exceeded';
-    } else if (percentUsed >= this.warningThreshold * 100) {
-      status = 'warning';
-    }
-
-    return {
-      id: teamId,
-      type: 'team',
-      budget,
-      currentCost,
-      remaining: Math.max(0, budget - currentCost),
-      percentUsed,
-      status,
-    };
-  }
-
-  /**
-   * Get budget status for an agent
-   */
-  getAgentBudgetStatus(agentId: string): BudgetStatus {
-    const budget = this.getAgentBudget(agentId);
-    const agentCost = this.costTracker.getAgentCost(agentId);
-    const currentCost = agentCost?.cost ?? 0;
-    const percentUsed = budget > 0 ? (currentCost / budget) * 100 : 0;
-
-    let status: 'ok' | 'warning' | 'exceeded' = 'ok';
-    if (percentUsed >= this.stopThreshold * 100) {
-      status = 'exceeded';
-    } else if (percentUsed >= this.warningThreshold * 100) {
-      status = 'warning';
-    }
-
-    return {
-      id: agentId,
-      type: 'agent',
-      budget,
-      currentCost,
-      remaining: Math.max(0, budget - currentCost),
-      percentUsed,
-      status,
-    };
-  }
-
-  /**
-   * Check if enforcement action is needed
-   */
-  checkEnforcement(agentId: string): { action: EnforcementAction; context?: BudgetAlertContext } {
-    const agentStatus = this.getAgentBudgetStatus(agentId);
-    const agentCost = this.costTracker.getAgentCost(agentId);
-
-    // Check agent budget first
-    if (agentStatus.status === 'exceeded') {
-      const context: BudgetAlertContext = {
-        agentId,
-        currentCost: agentStatus.currentCost,
-        budget: agentStatus.budget,
-        percentUsed: agentStatus.percentUsed,
-        type: 'critical',
-      };
-      return { action: 'stop', context };
-    }
-
-    if (agentStatus.status === 'warning') {
-      const context: BudgetAlertContext = {
-        agentId,
-        currentCost: agentStatus.currentCost,
-        budget: agentStatus.budget,
-        percentUsed: agentStatus.percentUsed,
-        type: 'warning',
-      };
-      return { action: 'warn', context };
-    }
-
-    // Check team budget
-    if (agentCost?.teamId) {
-      const teamStatus = this.getTeamBudgetStatus(agentCost.teamId);
-      
-      if (teamStatus.status === 'exceeded') {
-        const context: BudgetAlertContext = {
-          teamId: agentCost.teamId,
-          agentId,
-          currentCost: teamStatus.currentCost,
-          budget: teamStatus.budget,
-          percentUsed: teamStatus.percentUsed,
-          type: 'critical',
-        };
-        return { action: 'stop', context };
-      }
-
-      if (teamStatus.status === 'warning') {
-        const context: BudgetAlertContext = {
-          teamId: agentCost.teamId,
-          agentId,
-          currentCost: teamStatus.currentCost,
-          budget: teamStatus.budget,
-          percentUsed: teamStatus.percentUsed,
-          type: 'warning',
-        };
-        return { action: 'warn', context };
-      }
-    }
-
-    return { action: 'none' };
-  }
-
-  /**
-   * Register a runtime for enforcement
-   */
-  registerRuntime(agentId: string, runtimeId: string, teamId?: string): void {
-    // Set up cost tracking if not already tracking
-    const existing = this.costTracker.getAgentCost(agentId);
-    if (!existing) {
-      // Determine runtime type from runtimeId prefix
-      let runtimeType: 'e2b' | 'kata' | 'worktree' = 'worktree';
-      if (runtimeId.startsWith('e2b-')) runtimeType = 'e2b';
-      else if (runtimeId.startsWith('kata-')) runtimeType = 'kata';
-
-      this.costTracker.startTracking(agentId, runtimeType, runtimeId, {
-        teamId,
-        threshold: this.getAgentBudget(agentId),
-      });
-    }
-
-    // Set team budget if provided
-    if (teamId && !this.teamBudgets.has(teamId)) {
-      this.teamBudgets.set(teamId, this.defaultTeamBudget);
-    }
-  }
-
-  /**
-   * Stop a runtime due to budget exceeded
-   */
-  async stopRuntime(agentId: string, reason: string): Promise<void> {
-    if (this.stoppedRuntimes.has(agentId)) {
-      return; // Already stopped
-    }
-
-    const agentCost = this.costTracker.getAgentCost(agentId);
-    if (!agentCost) {
-      return;
-    }
-
-    this.stoppedRuntimes.add(agentId);
-
-    // Stop cost tracking
-    this.costTracker.stopTracking(agentId);
-
-    const context: StopContext = {
-      agentId,
-      runtimeId: agentCost.runtimeId,
-      reason,
-      finalCost: agentCost.cost,
-      budget: this.getAgentBudget(agentId),
-    };
-
-    this.emit('runtimeStopped', context);
-
-    if (this.onStopped) {
-      this.onStopped(context);
-    }
-  }
-
-  /**
-   * Get all budget statuses
-   */
-  getAllBudgetStatuses(): { teams: BudgetStatus[]; agents: BudgetStatus[] } {
-    // Get unique team IDs
-    const teamIds = new Set<string>();
-    const allSessions = [
-      ...this.costTracker.getActiveSessions(),
-      ...this.costTracker.getCompletedSessions(),
-    ];
+  setBudget(config: BudgetConfig): void {
+    // Sort thresholds ascending
+    config.alertThresholds = [...config.alertThresholds].sort((a, b) => a - b);
     
-    allSessions.forEach(s => {
-      if (s.teamId) teamIds.add(s.teamId);
-    });
-
-    // Add teams with explicit budgets
-    this.teamBudgets.forEach((_, teamId) => teamIds.add(teamId));
-
-    // Get team statuses
-    const teams = Array.from(teamIds).map(id => this.getTeamBudgetStatus(id));
-
-    // Get agent statuses
-    const agentIds = new Set<string>();
-    allSessions.forEach(s => agentIds.add(s.agentId));
-    this.agentBudgets.forEach((_, agentId) => agentIds.add(agentId));
-
-    const agents = Array.from(agentIds).map(id => this.getAgentBudgetStatus(id));
-
-    return { teams, agents };
+    this.budgets.set(config.agentId, config);
+    this.emit('budget:set', { agentId: config.agentId, budget: config.monthlyBudget });
+    
+    // Initial check
+    this.checkBudget(config.agentId);
   }
 
-  /**
-   * Generate budget report
-   */
-  generateReport(): {
-    budgets: { teams: BudgetStatus[]; agents: BudgetStatus[] };
-    costReport: CostReport;
-    violations: Array<{ id: string; type: 'team' | 'agent'; exceededBy: number }>;
+  getBudget(agentId: string): BudgetConfig | undefined {
+    return this.budgets.get(agentId);
+  }
+
+  removeBudget(agentId: string): boolean {
+    const removed = this.budgets.delete(agentId);
+    if (removed) {
+      this.blockedAgents.delete(agentId);
+      this.emit('budget:removed', { agentId });
+    }
+    return removed;
+  }
+
+  checkBudget(agentId: string): BudgetStatus {
+    const config = this.budgets.get(agentId);
+    if (!config) {
+      return {
+        agentId,
+        budget: 0,
+        spent: 0,
+        remaining: 0,
+        percentage: 0,
+        status: 'healthy'
+      };
+    }
+
+    const summary = this.costTracker.getAgentSummary(agentId);
+    const spent = summary?.totalCost || 0;
+    const remaining = config.monthlyBudget - spent;
+    const percentage = config.monthlyBudget > 0 ? (spent / config.monthlyBudget) * 100 : 0;
+
+    let status: BudgetStatus['status'] = 'healthy';
+    
+    if (percentage >= 100) {
+      status = 'exceeded';
+    } else if (percentage >= 80) {
+      status = 'critical';
+    } else if (percentage >= 50) {
+      status = 'warning';
+    }
+
+    // Check if we should send alert
+    const thresholdHit = config.alertThresholds.find(t => percentage >= t && !this.hasAlertedRecently(agentId, t));
+    if (thresholdHit !== undefined) {
+      this.sendAlert(agentId, thresholdHit, spent, config.monthlyBudget);
+    }
+
+    // Check if we should block
+    if (percentage >= config.hardStopAt) {
+      this.blockAgent(agentId, percentage);
+    }
+
+    const budgetStatus: BudgetStatus = {
+      agentId,
+      budget: config.monthlyBudget,
+      spent,
+      remaining,
+      percentage,
+      status,
+      lastAlert: this.getLastAlertTime(agentId),
+      nextReset: this.calculateNextReset(config)
+    };
+
+    this.emit('budget:status', budgetStatus);
+    return budgetStatus;
+  }
+
+  canExecute(agentId: string): EnforcementAction {
+    if (this.blockedAgents.has(agentId)) {
+      const status = this.checkBudget(agentId);
+      return {
+        type: 'block',
+        agentId,
+        reason: `Budget exceeded: ${status.percentage.toFixed(1)}% of limit`,
+        timestamp: new Date(),
+        allowed: false
+      };
+    }
+
+    const config = this.budgets.get(agentId);
+    if (!config) {
+      return {
+        type: 'alert',
+        agentId,
+        reason: 'No budget configured',
+        timestamp: new Date(),
+        allowed: true
+      };
+    }
+
+    const status = this.checkBudget(agentId);
+    
+    if (status.percentage >= 95) {
+      return {
+        type: 'throttle',
+        agentId,
+        reason: `Budget critical: ${status.percentage.toFixed(1)}% of limit`,
+        timestamp: new Date(),
+        allowed: true
+      };
+    }
+
+    return {
+      type: 'alert',
+      agentId,
+      reason: 'Within budget',
+      timestamp: new Date(),
+      allowed: true
+    };
+  }
+
+  private hasAlertedRecently(agentId: string, threshold: number): boolean {
+    const key = `${agentId}-${threshold}`;
+    const lastAlert = this.lastAlerts.get(key);
+    if (!lastAlert) return false;
+    return Date.now() - lastAlert < this.alertCooldownMs;
+  }
+
+  private sendAlert(agentId: string, threshold: number, spent: number, budget: number): void {
+    const key = `${agentId}-${threshold}`;
+    this.lastAlerts.set(key, Date.now());
+
+    const alert: CostAlert = {
+      type: threshold >= 100 ? 'critical' : 'warning',
+      agentId,
+      message: `Budget threshold reached: ${threshold}% ($${spent.toFixed(2)} / $${budget.toFixed(2)})`,
+      currentCost: spent,
+      threshold: budget * (threshold / 100),
+      timestamp: new Date()
+    };
+
+    this.emit('budget:alert', alert);
+  }
+
+  private getLastAlertTime(agentId: string): Date | undefined {
+    let lastTime = 0;
+    for (const [key, time] of this.lastAlerts) {
+      if (key.startsWith(`${agentId}-`)) {
+        lastTime = Math.max(lastTime, time);
+      }
+    }
+    return lastTime > 0 ? new Date(lastTime) : undefined;
+  }
+
+  private blockAgent(agentId: string, percentage: number): void {
+    if (!this.blockedAgents.has(agentId)) {
+      this.blockedAgents.add(agentId);
+      this.emit('budget:blocked', { agentId, percentage });
+    }
+  }
+
+  unblockAgent(agentId: string): void {
+    if (this.blockedAgents.has(agentId)) {
+      this.blockedAgents.delete(agentId);
+      this.emit('budget:unblocked', { agentId });
+    }
+  }
+
+  isBlocked(agentId: string): boolean {
+    return this.blockedAgents.has(agentId);
+  }
+
+  private calculateNextReset(config: BudgetConfig): Date {
+    const now = new Date();
+    const resetDay = config.resetDay || 1;
+    
+    let nextReset = new Date(now.getFullYear(), now.getMonth(), resetDay);
+    if (nextReset <= now) {
+      nextReset = new Date(now.getFullYear(), now.getMonth() + 1, resetDay);
+    }
+    
+    return nextReset;
+  }
+
+  getAllStatuses(): BudgetStatus[] {
+    return Array.from(this.budgets.keys()).map(agentId => this.checkBudget(agentId));
+  }
+
+  reset(agentId: string): void {
+    // Clear alerts for this agent
+    for (const key of this.lastAlerts.keys()) {
+      if (key.startsWith(`${agentId}-`)) {
+        this.lastAlerts.delete(key);
+      }
+    }
+    
+    this.blockedAgents.delete(agentId);
+    this.emit('budget:reset', { agentId });
+  }
+
+  getSummary(): {
+    totalBudgets: number;
+    totalAllocated: number;
+    totalSpent: number;
+    blockedCount: number;
+    criticalCount: number;
   } {
-    const budgets = this.getAllBudgetStatuses();
-    const costReport = this.costTracker.generateReport();
-
-    const violations: Array<{ id: string; type: 'team' | 'agent'; exceededBy: number }> = [];
-
-    // Find team violations
-    budgets.teams.forEach(team => {
-      if (team.status === 'exceeded') {
-        violations.push({
-          id: team.id,
-          type: 'team',
-          exceededBy: team.currentCost - team.budget,
-        });
-      }
-    });
-
-    // Find agent violations
-    budgets.agents.forEach(agent => {
-      if (agent.status === 'exceeded') {
-        violations.push({
-          id: agent.id,
-          type: 'agent',
-          exceededBy: agent.currentCost - agent.budget,
-        });
-      }
-    });
-
-    return { budgets, costReport, violations };
-  }
-
-  /**
-   * Reset all budgets and state
-   */
-  reset(): void {
-    this.teamBudgets.clear();
-    this.agentBudgets.clear();
-    this.warningSent.clear();
-    this.exceededSent.clear();
-    this.stoppedRuntimes.clear();
-    this.emit('reset');
-  }
-
-  /**
-   * Dispose of the enforcer
-   */
-  dispose(): void {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = undefined;
-    }
-    this.removeAllListeners();
-  }
-
-  // ============================================================================
-  // Private Methods
-  // ============================================================================
-
-  /**
-   * Set up event listeners for cost tracker
-   */
-  private setupEventListeners(): void {
-    // Listen for cost updates
-    this.costTracker.on('costUpdated', ({ agentId, cost }) => {
-      this.checkAndEnforce(agentId);
-    });
-
-    // Listen for threshold warnings from cost tracker
-    this.costTracker.on('thresholdWarning', ({ agentId, cost, threshold }) => {
-      const context: BudgetAlertContext = {
-        agentId,
-        currentCost: cost,
-        budget: threshold,
-        percentUsed: (cost / threshold) * 100,
-        type: 'warning',
-      };
-
-      if (!this.warningSent.has(agentId)) {
-        this.warningSent.add(agentId);
-        this.emit('warning', context);
-
-        if (this.onWarning) {
-          this.onWarning(context);
-        }
-      }
-    });
-
-    // Listen for threshold exceeded
-    this.costTracker.on('thresholdExceeded', ({ agentId, cost, threshold }) => {
-      const context: BudgetAlertContext = {
-        agentId,
-        currentCost: cost,
-        budget: threshold,
-        percentUsed: (cost / threshold) * 100,
-        type: 'critical',
-      };
-
-      if (!this.exceededSent.has(agentId)) {
-        this.exceededSent.add(agentId);
-        this.emit('exceeded', context);
-
-        if (this.onExceeded) {
-          this.onExceeded(context);
-        }
-
-        // Auto-stop if enabled
-        if (this.autoStop) {
-          this.stopRuntime(agentId, 'Budget exceeded');
-        }
-      }
-    });
-  }
-
-  /**
-   * Check and enforce budget for an agent
-   */
-  private checkAndEnforce(agentId: string): void {
-    const { action, context } = this.checkEnforcement(agentId);
-
-    if (action === 'warn' && context) {
-      if (!this.warningSent.has(agentId)) {
-        this.warningSent.add(agentId);
-        this.emit('warning', context);
-
-        if (this.onWarning) {
-          this.onWarning(context);
-        }
-      }
-    } else if (action === 'stop' && context) {
-      if (!this.exceededSent.has(agentId)) {
-        this.exceededSent.add(agentId);
-        this.emit('exceeded', context);
-
-        if (this.onExceeded) {
-          this.onExceeded(context);
-        }
-
-        if (this.autoStop) {
-          this.stopRuntime(agentId, 'Budget exceeded');
-        }
-      }
-    }
-  }
-
-  /**
-   * Start periodic budget checks
-   */
-  private startPeriodicChecks(): void {
-    this.checkInterval = setInterval(() => {
-      // Check all active agents
-      const activeSessions = this.costTracker.getActiveSessions();
-      
-      for (const session of activeSessions) {
-        this.checkAndEnforce(session.agentId);
-      }
-    }, 5000); // Check every 5 seconds
-  }
-}
-
-// ============================================================================
-// Singleton Instance
-// ============================================================================
-
-let globalBudgetEnforcer: BudgetEnforcer | null = null;
-
-/**
- * Get or create the global BudgetEnforcer instance
- */
-export function getGlobalBudgetEnforcer(
-  costTracker: CostTracker,
-  config?: BudgetConfig
-): BudgetEnforcer {
-  if (!globalBudgetEnforcer) {
-    globalBudgetEnforcer = new BudgetEnforcer(costTracker, config);
-  }
-  return globalBudgetEnforcer;
-}
-
-/**
- * Initialize the global BudgetEnforcer
- */
-export function initializeGlobalBudgetEnforcer(
-  costTracker: CostTracker,
-  config: BudgetConfig
-): BudgetEnforcer {
-  if (globalBudgetEnforcer) {
-    globalBudgetEnforcer.dispose();
-  }
-  globalBudgetEnforcer = new BudgetEnforcer(costTracker, config);
-  return globalBudgetEnforcer;
-}
-
-/**
- * Reset the global BudgetEnforcer
- */
-export function resetGlobalBudgetEnforcer(): void {
-  if (globalBudgetEnforcer) {
-    globalBudgetEnforcer.dispose();
-    globalBudgetEnforcer = null;
+    const statuses = this.getAllStatuses();
+    
+    return {
+      totalBudgets: statuses.length,
+      totalAllocated: statuses.reduce((sum, s) => sum + s.budget, 0),
+      totalSpent: statuses.reduce((sum, s) => sum + s.spent, 0),
+      blockedCount: this.blockedAgents.size,
+      criticalCount: statuses.filter(s => s.status === 'critical' || s.status === 'exceeded').length
+    };
   }
 }
 

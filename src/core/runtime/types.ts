@@ -497,7 +497,7 @@ export interface ProviderConfig {
   /** Provider capabilities */
   capabilities: RuntimeCapabilities;
   /** Default configuration */
-  defaults: Partial<SpawnConfig>;
+  defaults?: Partial<SpawnConfig>;
   /** Provider-specific settings */
   settings?: Record<string, unknown>;
 }

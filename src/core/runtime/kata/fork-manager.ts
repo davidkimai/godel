@@ -1,594 +1,576 @@
 import { EventEmitter } from 'events';
-import { createHash } from 'crypto';
 
-/**
- * Fork configuration options
- */
-interface ForkOptions {
-  parentSnapshotId: string;
-  newRuntimeId?: string;
-  teamId?: string;
+export interface ForkConfig {
+  sourceVmId: string;
+  targetVmId: string;
+  cowEnabled?: boolean;
+  memorySnapshot?: boolean;
+  networkIsolation?: boolean;
+  resourceLimits?: ResourceLimits;
   labels?: Record<string, string>;
-  memoryLimit?: number;
-  copyOnWrite?: boolean;
 }
 
-/**
- * Fork result
- */
-interface ForkResult {
+export interface ResourceLimits {
+  maxCpus?: number;
+  maxMemoryMb?: number;
+  maxDiskGb?: number;
+  maxNetworkMbps?: number;
+}
+
+export interface ForkResult {
   success: boolean;
-  forkId: string;
-  runtimeId: string;
-  parentSnapshotId: string;
-  forkTimeMs: number;
-  memoryOverheadBytes: number;
-  error?: string;
+  sourceVmId: string;
+  targetVmId: string;
+  durationMs: number;
+  cowEnabled: boolean;
+  diskShared: boolean;
+  memorySnapshot?: boolean;
+  error?: ForkError;
+  warnings?: string[];
 }
 
-/**
- * Branch information
- */
-interface Branch {
-  forkId: string;
-  runtimeId: string;
-  parentSnapshotId: string;
-  parentForkId?: string;
+export interface ForkMetadata {
+  id: string;
+  sourceVmId: string;
+  targetVmId: string;
   createdAt: Date;
-  children: string[];
-  depth: number;
-  labels: Record<string, string>;
-  status: 'active' | 'terminated' | 'error';
-}
-
-/**
- * Branch tree structure
- */
-interface BranchTree {
-  rootSnapshotId: string;
-  branches: Map<string, Branch>;
-  totalForks: number;
-  maxDepth: number;
-}
-
-/**
- * Fork metadata for storage
- */
-interface ForkMetadata {
-  forkId: string;
-  parentSnapshotId: string;
-  parentForkId?: string;
-  createdAt: string;
-  copyOnWrite: boolean;
-  memoryPages: number;
+  cowEnabled: boolean;
+  diskLayerPath?: string;
+  memorySnapshotPath?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'merged';
   labels: Record<string, string>;
 }
 
-/**
- * Copy-on-write page tracking
- */
-interface CopyOnWriteState {
-  forkId: string;
-  parentSnapshotId: string;
-  sharedPages: Set<string>;
-  modifiedPages: Set<string>;
-  pageReferences: Map<string, number>; // pageId -> reference count
-}
-
-/**
- * ForkManager - Efficient VM forking with copy-on-write and branch management
- * 
- * Features:
- * - Fork VM from snapshot using copy-on-write (<50ms target)
- * - Branch management with parent-child tracking
- * - Memory-efficient lazy page allocation
- * - Support for 100+ concurrent forks
- */
-export class ForkManager extends EventEmitter {
-  private branches: Map<string, Branch> = new Map();
-  private cowStates: Map<string, CopyOnWriteState> = new Map();
-  private forkMetadata: Map<string, ForkMetadata> = new Map();
-  private branchTrees: Map<string, BranchTree> = new Map();
-  private runtimeProvider: RuntimeProvider;
-  private maxBranchesPerSnapshot: number;
-  private pageSize: number = 4096; // 4KB pages
-
+export class ForkError extends Error {
   constructor(
-    runtimeProvider: RuntimeProvider,
-    maxBranchesPerSnapshot: number = 100
+    message: string,
+    public code: string,
+    public sourceVmId: string,
+    public recoverable: boolean = false
   ) {
-    super();
-    this.runtimeProvider = runtimeProvider;
-    this.maxBranchesPerSnapshot = maxBranchesPerSnapshot;
+    super(message);
+    this.name = 'ForkError';
   }
+}
 
-  /**
-   * Fork a VM from a snapshot
-   * Target: <50ms fork time
-   */
-  public async forkFromSnapshot(options: ForkOptions): Promise<ForkResult> {
+export class SourceVMNotFoundError extends ForkError {
+  constructor(sourceVmId: string) {
+    super(
+      `Source VM ${sourceVmId} not found`,
+      'SOURCE_VM_NOT_FOUND',
+      sourceVmId,
+      false
+    );
+  }
+}
+
+export class ForkInProgressError extends ForkError {
+  constructor(sourceVmId: string) {
+    super(
+      `Fork operation already in progress for VM ${sourceVmId}`,
+      'FORK_IN_PROGRESS',
+      sourceVmId,
+      true
+    );
+  }
+}
+
+export class ForkLimitExceededError extends ForkError {
+  constructor(sourceVmId: string, limit: number) {
+    super(
+      `Fork limit exceeded for VM ${sourceVmId}. Maximum: ${limit}`,
+      'FORK_LIMIT_EXCEEDED',
+      sourceVmId,
+      false
+    );
+  }
+}
+
+interface ActiveFork {
+  id: string;
+  config: ForkConfig;
+  startTime: Date;
+  abortController: AbortController;
+}
+
+export class ForkManager extends EventEmitter {
+  private forks: Map<string, ForkMetadata> = new Map();
+  private activeForks: Map<string, ActiveFork> = new Map();
+  private sourceForks: Map<string, Set<string>> = new Map(); // sourceVM -> forkIds
+  private maxForksPerVM = 10;
+  private maxConcurrentForks = 5;
+
+  async forkVM(config: ForkConfig): Promise<ForkResult> {
     const startTime = Date.now();
     const forkId = `fork-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const runtimeId = options.newRuntimeId || `vm-${Date.now()}`;
+    const warnings: string[] = [];
 
     try {
-      // Validate we haven't exceeded branch limit
-      const existingBranches = this.getBranchesForSnapshot(options.parentSnapshotId);
-      if (existingBranches.length >= this.maxBranchesPerSnapshot) {
-        throw new Error(
-          `Maximum branches (${this.maxBranchesPerSnapshot}) reached for snapshot ${options.parentSnapshotId}`
+      // Validate fork configuration
+      this.validateForkConfig(config);
+
+      // Check for concurrent fork operations
+      if (this.activeForks.has(config.sourceVmId)) {
+        throw new ForkInProgressError(config.sourceVmId);
+      }
+
+      // Check fork limit
+      const existingForks = this.sourceForks.get(config.sourceVmId) || new Set();
+      if (existingForks.size >= this.maxForksPerVM) {
+        throw new ForkLimitExceededError(config.sourceVmId, this.maxForksPerVM);
+      }
+
+      // Check global concurrent fork limit
+      if (this.activeForks.size >= this.maxConcurrentForks) {
+        throw new ForkError(
+          'Maximum concurrent fork operations reached',
+          'CONCURRENT_FORK_LIMIT',
+          config.sourceVmId,
+          true
         );
       }
 
-      // Create copy-on-write state (fast - just metadata)
-      const cowState = this.initializeCOWState(forkId, options.parentSnapshotId);
-      this.cowStates.set(forkId, cowState);
+      const abortController = new AbortController();
+      const activeFork: ActiveFork = {
+        id: forkId,
+        config,
+        startTime: new Date(),
+        abortController,
+      };
+      this.activeForks.set(config.sourceVmId, activeFork);
 
-      // Create fork metadata
+      this.emit('fork:started', {
+        forkId,
+        sourceVmId: config.sourceVmId,
+        targetVmId: config.targetVmId,
+        timestamp: new Date(),
+      });
+
       const metadata: ForkMetadata = {
-        forkId,
-        parentSnapshotId: options.parentSnapshotId,
-        createdAt: new Date().toISOString(),
-        copyOnWrite: options.copyOnWrite !== false,
-        memoryPages: 0,
-        labels: options.labels || {},
-      };
-      this.forkMetadata.set(forkId, metadata);
-
-      // Create the branch record
-      const branch: Branch = {
-        forkId,
-        runtimeId,
-        parentSnapshotId: options.parentSnapshotId,
+        id: forkId,
+        sourceVmId: config.sourceVmId,
+        targetVmId: config.targetVmId,
         createdAt: new Date(),
-        children: [],
-        depth: 1,
-        labels: options.labels || {},
-        status: 'active',
+        cowEnabled: config.cowEnabled ?? true,
+        status: 'in_progress',
+        labels: config.labels || {},
       };
+      this.forks.set(forkId, metadata);
 
-      // Find parent branch if exists
-      const parentBranch = this.findParentBranch(options.parentSnapshotId);
-      if (parentBranch) {
-        branch.parentForkId = parentBranch.forkId;
-        branch.depth = parentBranch.depth + 1;
-        parentBranch.children.push(forkId);
-      }
+      try {
+        // Step 1: Create copy-on-write disk layer
+        const diskLayerPath = await this.createCowDiskLayer(
+          config.sourceVmId,
+          config.targetVmId,
+          config.cowEnabled ?? true,
+          abortController.signal
+        );
+        metadata.diskLayerPath = diskLayerPath;
 
-      this.branches.set(forkId, branch);
-
-      // Initialize or update branch tree
-      this.updateBranchTree(options.parentSnapshotId, branch);
-
-      // Create the actual VM (lazy initialization)
-      await this.createVMWithCOW(runtimeId, options);
-
-      const forkTimeMs = Date.now() - startTime;
-      const memoryOverheadBytes = this.calculateMemoryOverhead(cowState);
-
-      const result: ForkResult = {
-        success: true,
-        forkId,
-        runtimeId,
-        parentSnapshotId: options.parentSnapshotId,
-        forkTimeMs,
-        memoryOverheadBytes,
-      };
-
-      this.emit('fork:created', result);
-
-      return result;
-    } catch (error) {
-      const result: ForkResult = {
-        success: false,
-        forkId,
-        runtimeId,
-        parentSnapshotId: options.parentSnapshotId,
-        forkTimeMs: Date.now() - startTime,
-        memoryOverheadBytes: 0,
-        error: `Fork failed: ${error}`,
-      };
-
-      this.emit('fork:failed', result);
-      return result;
-    }
-  }
-
-  /**
-   * Initialize copy-on-write state
-   */
-  private initializeCOWState(forkId: string, parentSnapshotId: string): CopyOnWriteState {
-    return {
-      forkId,
-      parentSnapshotId,
-      sharedPages: new Set(),
-      modifiedPages: new Set(),
-      pageReferences: new Map(),
-    };
-  }
-
-  /**
-   * Create VM with copy-on-write setup
-   */
-  private async createVMWithCOW(
-    runtimeId: string,
-    options: ForkOptions
-  ): Promise<void> {
-    // Create VM with minimal initial resources
-    // Pages are allocated lazily on first write
-    await this.runtimeProvider.create({
-      runtimeId,
-      image: 'godel-agent-base',
-      resources: {
-        cpu: 1,
-        memory: `${(options.memoryLimit || 512) / 1024}Gi`,
-      },
-      volumes: [
-        {
-          source: `snapshot://${options.parentSnapshotId}`,
-          destination: '/mnt/parent',
-          readOnly: true,
-        },
-      ],
-    });
-
-    // Setup copy-on-write layer
-    await this.setupCOWLayer(runtimeId, options.parentSnapshotId);
-  }
-
-  /**
-   * Setup copy-on-write layer for the VM
-   */
-  private async setupCOWLayer(runtimeId: string, parentSnapshotId: string): Promise<void> {
-    // In production, this would:
-    // 1. Mount the parent snapshot as read-only
-    // 2. Create an overlay filesystem for writes
-    // 3. Track page modifications
-
-    // Simulate COW setup time (should be <10ms)
-    await this.delay(5);
-
-    this.emit('cow:initialized', { runtimeId, parentSnapshotId });
-  }
-
-  /**
-   * Handle page write (copy-on-write trigger)
-   */
-  public async handlePageWrite(forkId: string, pageId: string): Promise<void> {
-    const cowState = this.cowStates.get(forkId);
-    if (!cowState) return;
-
-    // If page is already modified, no action needed
-    if (cowState.modifiedPages.has(pageId)) return;
-
-    // Check if page is shared with parent
-    if (cowState.sharedPages.has(pageId)) {
-      // Decrement parent's reference count
-      const refCount = cowState.pageReferences.get(pageId) || 0;
-      if (refCount > 1) {
-        cowState.pageReferences.set(pageId, refCount - 1);
-      } else {
-        cowState.pageReferences.delete(pageId);
-        cowState.sharedPages.delete(pageId);
-      }
-    }
-
-    // Mark page as modified (now owned exclusively)
-    cowState.modifiedPages.add(pageId);
-
-    this.emit('cow:page-copied', { forkId, pageId });
-  }
-
-  /**
-   * Get fork statistics
-   */
-  public getForkStats(forkId: string): ForkStats | undefined {
-    const metadata = this.forkMetadata.get(forkId);
-    const cowState = this.cowStates.get(forkId);
-    const branch = this.branches.get(forkId);
-
-    if (!metadata || !cowState || !branch) return undefined;
-
-    return {
-      forkId,
-      runtimeId: branch.runtimeId,
-      parentSnapshotId: metadata.parentSnapshotId,
-      createdAt: new Date(metadata.createdAt),
-      sharedPages: cowState.sharedPages.size,
-      modifiedPages: cowState.modifiedPages.size,
-      memoryOverheadBytes: this.calculateMemoryOverhead(cowState),
-      depth: branch.depth,
-      childrenCount: branch.children.length,
-    };
-  }
-
-  /**
-   * Calculate memory overhead for a fork
-   */
-  private calculateMemoryOverhead(cowState: CopyOnWriteState): number {
-    // Modified pages are copied (full size)
-    // Shared pages have minimal overhead (just reference tracking)
-    const modifiedBytes = cowState.modifiedPages.size * this.pageSize;
-    const sharedOverhead = cowState.sharedPages.size * 8; // 8 bytes per reference
-
-    return modifiedBytes + sharedOverhead;
-  }
-
-  /**
-   * Get branch tree for a root snapshot
-   */
-  public getBranchTree(rootSnapshotId: string): BranchTree | undefined {
-    return this.branchTrees.get(rootSnapshotId);
-  }
-
-  /**
-   * Get all branches for a snapshot
-   */
-  public getBranchesForSnapshot(snapshotId: string): Branch[] {
-    return Array.from(this.branches.values()).filter(
-      (b) => b.parentSnapshotId === snapshotId
-    );
-  }
-
-  /**
-   * Get branch lineage (ancestors)
-   */
-  public getBranchLineage(forkId: string): Branch[] {
-    const lineage: Branch[] = [];
-    let current = this.branches.get(forkId);
-
-    while (current?.parentForkId) {
-      const parent = this.branches.get(current.parentForkId);
-      if (parent) {
-        lineage.unshift(parent);
-        current = parent;
-      } else {
-        break;
-      }
-    }
-
-    return lineage;
-  }
-
-  /**
-   * Get branch descendants (children, grandchildren, etc.)
-   */
-  public getBranchDescendants(forkId: string): Branch[] {
-    const descendants: Branch[] = [];
-    const branch = this.branches.get(forkId);
-
-    if (!branch) return descendants;
-
-    const queue = [...branch.children];
-
-    while (queue.length > 0) {
-      const childId = queue.shift()!;
-      const child = this.branches.get(childId);
-
-      if (child) {
-        descendants.push(child);
-        queue.push(...child.children);
-      }
-    }
-
-    return descendants;
-  }
-
-  /**
-   * Terminate a fork and cleanup resources
-   */
-  public async terminateFork(forkId: string): Promise<boolean> {
-    const branch = this.branches.get(forkId);
-    if (!branch) return false;
-
-    try {
-      // Mark as terminated
-      branch.status = 'terminated';
-
-      // Cleanup COW state
-      const cowState = this.cowStates.get(forkId);
-      if (cowState) {
-        await this.cleanupCOWState(cowState);
-        this.cowStates.delete(forkId);
-      }
-
-      // Remove from parent's children
-      if (branch.parentForkId) {
-        const parent = this.branches.get(branch.parentForkId);
-        if (parent) {
-          parent.children = parent.children.filter((id) => id !== forkId);
+        // Step 2: Memory snapshot if enabled
+        let memorySnapshotPath: string | undefined;
+        if (config.memorySnapshot) {
+          memorySnapshotPath = await this.createMemorySnapshot(
+            config.sourceVmId,
+            config.targetVmId,
+            abortController.signal
+          );
+          metadata.memorySnapshotPath = memorySnapshotPath;
+        } else {
+          warnings.push('Memory snapshot not enabled, VM will cold boot');
         }
+
+        // Step 3: Setup network isolation
+        if (config.networkIsolation) {
+          await this.setupNetworkIsolation(config.targetVmId, abortController.signal);
+        }
+
+        // Step 4: Apply resource limits
+        if (config.resourceLimits) {
+          await this.applyResourceLimits(config.targetVmId, config.resourceLimits, abortController.signal);
+        }
+
+        // Step 5: Finalize fork
+        await this.finalizeFork(metadata, abortController.signal);
+
+        metadata.status = 'completed';
+        existingForks.add(forkId);
+        this.sourceForks.set(config.sourceVmId, existingForks);
+
+        const durationMs = Date.now() - startTime;
+
+        this.emit('fork:completed', {
+          forkId,
+          sourceVmId: config.sourceVmId,
+          targetVmId: config.targetVmId,
+          durationMs,
+        });
+
+        return {
+          success: true,
+          sourceVmId: config.sourceVmId,
+          targetVmId: config.targetVmId,
+          durationMs,
+          cowEnabled: metadata.cowEnabled,
+          diskShared: metadata.cowEnabled,
+          memorySnapshot: config.memorySnapshot,
+          warnings: warnings.length > 0 ? warnings : undefined,
+        };
+      } catch (error) {
+        metadata.status = 'failed';
+        await this.cleanupFailedFork(metadata);
+        throw error;
+      } finally {
+        this.activeForks.delete(config.sourceVmId);
       }
-
-      this.emit('fork:terminated', { forkId, runtimeId: branch.runtimeId });
-
-      return true;
     } catch (error) {
-      branch.status = 'error';
-      this.emit('fork:termination-failed', { forkId, error });
-      return false;
+      const durationMs = Date.now() - startTime;
+
+      this.emit('fork:failed', {
+        forkId,
+        sourceVmId: config.sourceVmId,
+        targetVmId: config.targetVmId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        durationMs,
+      });
+
+      return {
+        success: false,
+        sourceVmId: config.sourceVmId,
+        targetVmId: config.targetVmId,
+        durationMs,
+        cowEnabled: config.cowEnabled ?? false,
+        diskShared: false,
+        error: error instanceof ForkError
+          ? error
+          : new ForkError(
+              error instanceof Error ? error.message : 'Unknown error',
+              'FORK_FAILED',
+              config.sourceVmId,
+              false
+            ),
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
     }
   }
 
-  /**
-   * Cleanup copy-on-write state
-   */
-  private async cleanupCOWState(cowState: CopyOnWriteState): Promise<void> {
-    // Decrement reference counts for shared pages
-    cowState.sharedPages.forEach((pageId) => {
-      const refCount = cowState.pageReferences.get(pageId) || 0;
-      if (refCount > 1) {
-        cowState.pageReferences.set(pageId, refCount - 1);
+  private validateForkConfig(config: ForkConfig): void {
+    if (!config.sourceVmId) {
+      throw new ForkError('Source VM ID is required', 'INVALID_CONFIG', '', false);
+    }
+    if (!config.targetVmId) {
+      throw new ForkError('Target VM ID is required', 'INVALID_CONFIG', config.sourceVmId, false);
+    }
+    if (config.sourceVmId === config.targetVmId) {
+      throw new ForkError('Source and target VM IDs must be different', 'INVALID_CONFIG', config.sourceVmId, false);
+    }
+  }
+
+  private async createCowDiskLayer(
+    sourceVmId: string,
+    targetVmId: string,
+    cowEnabled: boolean,
+    signal: AbortSignal
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new ForkError('COW disk layer creation timeout', 'COW_TIMEOUT', sourceVmId, true));
+      }, 60000); // 1 minute
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new ForkError('COW disk layer creation aborted', 'COW_ABORTED', sourceVmId, true));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      const diskLayerPath = `/var/lib/kata/forks/${targetVmId}/disk.qcow2`;
+
+      // Simulated COW layer creation
+      // In production, this would use qemu-img create -b <backing_file> -f qcow2
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new ForkError('COW disk layer creation aborted', 'COW_ABORTED', sourceVmId, true));
+          return;
+        }
+
+        resolve(diskLayerPath);
+      });
+    });
+  }
+
+  private async createMemorySnapshot(
+    sourceVmId: string,
+    targetVmId: string,
+    signal: AbortSignal
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new ForkError('Memory snapshot timeout', 'MEMORY_SNAPSHOT_TIMEOUT', sourceVmId, true));
+      }, 30000); // 30 seconds
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new ForkError('Memory snapshot aborted', 'MEMORY_SNAPSHOT_ABORTED', sourceVmId, true));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      const memoryPath = `/var/lib/kata/forks/${targetVmId}/memory.dump`;
+
+      // Simulated memory snapshot
+      // In production, this would use CRIU or similar
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new ForkError('Memory snapshot aborted', 'MEMORY_SNAPSHOT_ABORTED', sourceVmId, true));
+          return;
+        }
+
+        resolve(memoryPath);
+      });
+    });
+  }
+
+  private async setupNetworkIsolation(targetVmId: string, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Network isolation setup timeout'));
+      }, 10000);
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new Error('Network isolation setup aborted'));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      // Simulated network isolation setup
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new Error('Network isolation setup aborted'));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  private async applyResourceLimits(
+    targetVmId: string,
+    limits: ResourceLimits,
+    signal: AbortSignal
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Resource limit application timeout'));
+      }, 5000);
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new Error('Resource limit application aborted'));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      // Simulated resource limit application
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new Error('Resource limit application aborted'));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  private async finalizeFork(metadata: ForkMetadata, signal: AbortSignal): Promise<void> {
+    if (signal.aborted) {
+      throw new ForkError('Fork finalization aborted', 'FORK_ABORTED', metadata.sourceVmId, true);
+    }
+    // Finalization logic would go here
+  }
+
+  private async cleanupFailedFork(metadata: ForkMetadata): Promise<void> {
+    const fs = await import('fs/promises');
+
+    const paths = [
+      metadata.diskLayerPath,
+      metadata.memorySnapshotPath,
+    ].filter((path): path is string => path !== undefined);
+
+    for (const path of paths) {
+      try {
+        await fs.rm(path, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
       }
+    }
+
+    this.forks.delete(metadata.id);
+  }
+
+  async mergeFork(forkId: string): Promise<boolean> {
+    const metadata = this.forks.get(forkId);
+    if (!metadata) {
+      return false;
+    }
+
+    if (metadata.status !== 'completed') {
+      throw new ForkError(
+        `Cannot merge fork in ${metadata.status} status`,
+        'INVALID_MERGE_STATE',
+        metadata.sourceVmId,
+        false
+      );
+    }
+
+    this.emit('fork:merge:started', {
+      forkId,
+      sourceVmId: metadata.sourceVmId,
+      targetVmId: metadata.targetVmId,
     });
 
-    // Modified pages are freed automatically when VM terminates
-  }
-
-  /**
-   * Merge a fork back to its parent (if applicable)
-   */
-  public async mergeFork(forkId: string): Promise<boolean> {
-    const branch = this.branches.get(forkId);
-    if (!branch || !branch.parentForkId) {
-      return false;
-    }
-
     try {
-      const cowState = this.cowStates.get(forkId);
-      if (!cowState) return false;
+      // Simulated merge operation
+      // In production, this would merge COW layers back to source
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Apply modified pages to parent
-      for (const pageId of cowState.modifiedPages) {
-        await this.applyPageToParent(branch.parentForkId, pageId);
+      metadata.status = 'merged';
+
+      // Remove from source forks tracking
+      const sourceForks = this.sourceForks.get(metadata.sourceVmId);
+      if (sourceForks) {
+        sourceForks.delete(forkId);
       }
 
-      // Terminate the fork after merge
-      await this.terminateFork(forkId);
-
-      this.emit('fork:merged', { forkId, parentForkId: branch.parentForkId });
+      this.emit('fork:merge:completed', {
+        forkId,
+        sourceVmId: metadata.sourceVmId,
+        targetVmId: metadata.targetVmId,
+      });
 
       return true;
     } catch (error) {
-      this.emit('fork:merge-failed', { forkId, error });
+      this.emit('fork:merge:failed', {
+        forkId,
+        sourceVmId: metadata.sourceVmId,
+        targetVmId: metadata.targetVmId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  async deleteFork(forkId: string): Promise<boolean> {
+    const metadata = this.forks.get(forkId);
+    if (!metadata) {
       return false;
     }
-  }
 
-  /**
-   * Apply a modified page to parent
-   */
-  private async applyPageToParent(parentForkId: string, pageId: string): Promise<void> {
-    // In production, this would copy the modified page to the parent
-    await this.delay(1);
-  }
+    await this.cleanupFailedFork(metadata);
 
-  /**
-   * Find parent branch for a snapshot
-   */
-  private findParentBranch(snapshotId: string): Branch | undefined {
-    return Array.from(this.branches.values()).find(
-      (b) => b.parentSnapshotId === snapshotId
-    );
-  }
-
-  /**
-   * Update branch tree tracking
-   */
-  private updateBranchTree(rootSnapshotId: string, newBranch: Branch): void {
-    let tree = this.branchTrees.get(rootSnapshotId);
-
-    if (!tree) {
-      tree = {
-        rootSnapshotId,
-        branches: new Map(),
-        totalForks: 0,
-        maxDepth: 0,
-      };
-      this.branchTrees.set(rootSnapshotId, tree);
+    // Remove from source forks tracking
+    const sourceForks = this.sourceForks.get(metadata.sourceVmId);
+    if (sourceForks) {
+      sourceForks.delete(forkId);
     }
 
-    tree.branches.set(newBranch.forkId, newBranch);
-    tree.totalForks++;
-    tree.maxDepth = Math.max(tree.maxDepth, newBranch.depth);
+    this.emit('fork:deleted', {
+      forkId,
+      sourceVmId: metadata.sourceVmId,
+      targetVmId: metadata.targetVmId,
+    });
+
+    return true;
   }
 
-  /**
-   * Get all active forks
-   */
-  public getActiveForks(): Branch[] {
-    return Array.from(this.branches.values()).filter(
-      (b) => b.status === 'active'
-    );
+  async listForks(sourceVmId?: string): Promise<ForkMetadata[]> {
+    const forks = Array.from(this.forks.values());
+
+    if (sourceVmId) {
+      return forks.filter(f => f.sourceVmId === sourceVmId);
+    }
+
+    return forks;
   }
 
-  /**
-   * Get fork performance metrics
-   */
-  public getPerformanceMetrics(): ForkPerformanceMetrics {
-    const forks = Array.from(this.branches.values());
-    const cowStates = Array.from(this.cowStates.values());
-
-    return {
-      totalForks: forks.length,
-      activeForks: forks.filter((b) => b.status === 'active').length,
-      averageDepth: forks.reduce((sum, b) => sum + b.depth, 0) / forks.length || 0,
-      maxDepth: Math.max(...forks.map((b) => b.depth), 0),
-      totalMemoryOverhead: cowStates.reduce(
-        (sum, cow) => sum + this.calculateMemoryOverhead(cow),
-        0
-      ),
-      averageForkTimeMs: this.calculateAverageForkTime(),
-    };
+  async getFork(forkId: string): Promise<ForkMetadata | undefined> {
+    return this.forks.get(forkId);
   }
 
-  /**
-   * Calculate average fork time from recent forks
-   */
-  private calculateAverageForkTime(): number {
-    // This would track actual fork times
-    // For now, return a mock value
-    return 35; // 35ms average
+  async cancelFork(sourceVmId: string): Promise<boolean> {
+    const activeFork = this.activeForks.get(sourceVmId);
+    if (!activeFork) {
+      return false;
+    }
+
+    activeFork.abortController.abort();
+
+    this.emit('fork:cancelled', {
+      forkId: activeFork.id,
+      sourceVmId,
+      targetVmId: activeFork.config.targetVmId,
+      timestamp: new Date(),
+    });
+
+    return true;
   }
 
-  /**
-   * Utility delay function
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  async getActiveForks(): Promise<Array<Omit<ActiveFork, 'abortController'>>> {
+    return Array.from(this.activeForks.values()).map(fork => ({
+      id: fork.id,
+      config: fork.config,
+      startTime: fork.startTime,
+    }));
+  }
+
+  async getForksBySource(sourceVmId: string): Promise<ForkMetadata[]> {
+    const forkIds = this.sourceForks.get(sourceVmId) || new Set();
+    return Array.from(forkIds)
+      .map(id => this.forks.get(id))
+      .filter((fork): fork is ForkMetadata => fork !== undefined);
+  }
+
+  async cleanup(): Promise<void> {
+    // Cancel all active forks
+    const activeForkEntries = Array.from(this.activeForks.entries());
+    for (const [sourceVmId] of activeForkEntries) {
+      await this.cancelFork(sourceVmId);
+    }
+
+    // Clean up all fork metadata
+    this.forks.clear();
+    this.sourceForks.clear();
+    this.activeForks.clear();
+
+    this.removeAllListeners();
+  }
+
+  setMaxForksPerVM(limit: number): void {
+    this.maxForksPerVM = limit;
+  }
+
+  setMaxConcurrentForks(limit: number): void {
+    this.maxConcurrentForks = limit;
   }
 }
 
-/**
- * Runtime provider interface
- */
-interface RuntimeProvider {
-  create(config: {
-    runtimeId: string;
-    image: string;
-    resources: { cpu: number; memory: string };
-    volumes: Array<{ source: string; destination: string; readOnly?: boolean }>;
-  }): Promise<void>;
+export function createForkManager(): ForkManager {
+  return new ForkManager();
 }
-
-/**
- * Fork statistics
- */
-interface ForkStats {
-  forkId: string;
-  runtimeId: string;
-  parentSnapshotId: string;
-  createdAt: Date;
-  sharedPages: number;
-  modifiedPages: number;
-  memoryOverheadBytes: number;
-  depth: number;
-  childrenCount: number;
-}
-
-/**
- * Fork performance metrics
- */
-interface ForkPerformanceMetrics {
-  totalForks: number;
-  activeForks: number;
-  averageDepth: number;
-  maxDepth: number;
-  totalMemoryOverhead: number;
-  averageForkTimeMs: number;
-}
-
-// Export types
-export type {
-  ForkOptions,
-  ForkResult,
-  Branch,
-  BranchTree,
-  ForkMetadata,
-  ForkStats,
-  ForkPerformanceMetrics,
-  CopyOnWriteState,
-  RuntimeProvider,
-};
 
 export default ForkManager;

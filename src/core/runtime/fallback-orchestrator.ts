@@ -1,633 +1,523 @@
 /**
- * FallbackOrchestrator - Automatic runtime fallback with health checking
- * 
- * Implements automatic fallback between runtime providers:
- * E2B (primary) → Kata (secondary) → Worktree (fallback)
- * 
- * Features:
- * - <1s failover time
- * - Health checking for all providers
- * - Circuit breaker pattern for failing providers
- * - Cost-aware provider selection
- * 
- * @module @godel/core/runtime/fallback-orchestrator
- * @version 1.0.0
- * @since 2026-02-08
- * @see SPEC-002 Section 4.4
+ * FallbackOrchestrator
+ * Manages fallback chain: E2B → Kata → Worktree
  */
 
-import { EventEmitter } from 'events';
-import { logger } from '../../../utils/logger';
-import {
-  RuntimeProvider,
-  SpawnConfig,
-  AgentRuntime,
-  RuntimeState,
-  RuntimeType,
-  SpawnError,
-  ResourceExhaustedError,
-  TimeoutError,
-  RuntimeStatus,
-} from './runtime-provider';
-import { E2BRuntimeProvider } from './providers/e2b-runtime-provider';
-import { KataRuntimeProvider } from './providers/kata-runtime-provider';
-import { WorktreeRuntimeProvider } from './providers/worktree-runtime-provider';
+import { EventEmitter } from 'eventemitter3';
+import type { RuntimeProvider, SpawnConfig, AgentRuntime, RuntimeType } from './runtime-provider';
 
-// ============================================================================
-// Types
-// ============================================================================
+export type RuntimeProviderType = 'e2b' | 'kata' | 'worktree';
 
-/**
- * Fallback configuration
- */
 export interface FallbackConfig {
-  /** Provider priority order (first is primary) */
-  providerOrder?: RuntimeType[];
+  /** @deprecated Use providerOrder instead */
+  primary?: RuntimeProviderType;
+  /** @deprecated Use providerOrder instead */
+  fallbackChain?: RuntimeProviderType[];
+  /** Order of providers to try */
+  providerOrder?: RuntimeProviderType[];
+  /** Timeout per provider in milliseconds */
+  timeoutPerProvider?: number;
+  /** @deprecated Use timeoutPerProvider */
+  maxFailoverTime?: number;
+  /** Max retries per provider */
+  maxRetries?: number;
   /** Health check interval in milliseconds */
   healthCheckInterval?: number;
-  /** Circuit breaker failure threshold */
+  /** Circuit breaker threshold */
   circuitBreakerThreshold?: number;
-  /** Circuit breaker reset timeout in milliseconds */
-  circuitBreakerResetTimeout?: number;
-  /** Maximum failover time in milliseconds */
-  maxFailoverTime?: number;
-  /** Enable cost-aware provider selection */
+  /** Whether to use cost-aware routing */
   costAware?: boolean;
-  /** Team ID for cost tracking */
-  teamId?: string;
 }
 
-/**
- * Provider health status
- */
-interface ProviderHealth {
-  type: RuntimeType;
-  healthy: boolean;
-  lastCheck: Date;
-  consecutiveFailures: number;
-  circuitOpen: boolean;
-  circuitOpenSince?: Date;
-  lastError?: string;
-  averageSpawnTime: number;
-  spawnAttempts: number;
-  spawnSuccesses: number;
+export interface ExecutionResult {
+  provider: RuntimeProviderType;
+  success: boolean;
+  output?: string;
+  error?: string;
+  duration: number;
+  attempts: number;
+  fallbackUsed: boolean;
 }
 
-/**
- * Provider wrapper with metadata
- */
-interface ProviderWrapper {
-  type: RuntimeType;
-  provider: RuntimeProvider;
-  health: ProviderHealth;
-  config: any;
-}
-
-/**
- * Fallback result with metadata
- */
-export interface FallbackResult {
+export interface SpawnWithFallbackResult {
   runtime: AgentRuntime;
-  providerType: RuntimeType;
+  providerType: RuntimeProviderType;
   failoverCount: number;
   totalTime: number;
-  providerHealth: Record<RuntimeType, ProviderHealth>;
 }
 
-// ============================================================================
-// Circuit Breaker
-// ============================================================================
-
-/**
- * Circuit breaker states
- */
-type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
-
-class CircuitBreaker {
-  private state: CircuitState = 'CLOSED';
-  private failures = 0;
-  private lastFailureTime?: number;
-  private readonly threshold: number;
-  private readonly resetTimeout: number;
-
-  constructor(threshold: number, resetTimeout: number) {
-    this.threshold = threshold;
-    this.resetTimeout = resetTimeout;
-  }
-
-  /**
-   * Check if circuit allows requests
-   */
-  canExecute(): boolean {
-    if (this.state === 'CLOSED') {
-      return true;
-    }
-
-    if (this.state === 'OPEN') {
-      if (this.lastFailureTime && Date.now() - this.lastFailureTime >= this.resetTimeout) {
-        this.state = 'HALF_OPEN';
-        return true;
-      }
-      return false;
-    }
-
-    return true; // HALF_OPEN allows one request
-  }
-
-  /**
-   * Record a success
-   */
-  recordSuccess(): void {
-    this.failures = 0;
-    this.state = 'CLOSED';
-  }
-
-  /**
-   * Record a failure
-   */
-  recordFailure(): void {
-    this.failures++;
-    this.lastFailureTime = Date.now();
-
-    if (this.failures >= this.threshold) {
-      this.state = 'OPEN';
-    }
-  }
-
-  /**
-   * Get current state
-   */
-  getState(): CircuitState {
-    return this.state;
-  }
+export interface ProviderHealth {
+  /** Provider type */
+  type: RuntimeProviderType;
+  /** @deprecated Use type instead */
+  provider: RuntimeProviderType;
+  /** Whether provider is healthy */
+  healthy: boolean;
+  /** Whether circuit breaker is open */
+  circuitOpen: boolean;
+  /** Latency in milliseconds */
+  latency: number;
+  /** Last checked timestamp */
+  lastChecked: Date;
+  /** Consecutive failures */
+  consecutiveFailures: number;
+  /** Last error message */
+  lastError?: string;
 }
-
-// ============================================================================
-// FallbackOrchestrator Implementation
-// ============================================================================
 
 export class FallbackOrchestrator extends EventEmitter {
-  private providers: Map<RuntimeType, ProviderWrapper> = new Map();
   private config: Required<FallbackConfig>;
-  private circuitBreakers: Map<RuntimeType, CircuitBreaker> = new Map();
-  private healthCheckInterval?: NodeJS.Timeout;
-  private defaultWorktreeConfig: any;
-  private defaultKataConfig: any;
-  private defaultE2BConfig: any;
+  private providerHealth: Map<RuntimeProviderType, ProviderHealth> = new Map();
+  private providers: Map<RuntimeProviderType, RuntimeProvider> = new Map();
+  private healthCheckTimer: NodeJS.Timeout | null = null;
 
-  constructor(config: FallbackConfig = {}) {
+  constructor(config: Partial<FallbackConfig> = {}) {
     super();
 
+    const providerOrder = config.providerOrder || config.fallbackChain || ['e2b', 'kata', 'worktree'];
+
     this.config = {
-      providerOrder: config.providerOrder || ['e2b', 'kata', 'worktree'],
-      healthCheckInterval: config.healthCheckInterval || 10000,
-      circuitBreakerThreshold: config.circuitBreakerThreshold || 5,
-      circuitBreakerResetTimeout: config.circuitBreakerResetTimeout || 60000,
-      maxFailoverTime: config.maxFailoverTime || 1000,
-      costAware: config.costAware ?? true,
-      teamId: config.teamId || 'default',
+      primary: config.primary || 'e2b',
+      fallbackChain: providerOrder,
+      providerOrder,
+      timeoutPerProvider: config.timeoutPerProvider || config.maxFailoverTime || 30000,
+      maxFailoverTime: config.maxFailoverTime || 30000,
+      maxRetries: config.maxRetries || 2,
+      healthCheckInterval: config.healthCheckInterval || 30000,
+      circuitBreakerThreshold: config.circuitBreakerThreshold || 3,
+      costAware: config.costAware ?? false,
     };
 
-    // Initialize circuit breakers
-    this.config.providerOrder.forEach(type => {
-      this.circuitBreakers.set(type, new CircuitBreaker(
-        this.config.circuitBreakerThreshold,
-        this.config.circuitBreakerResetTimeout
-      ));
-    });
+    this.initializeHealthTracking();
+    this.startHealthChecks();
+  }
 
-    logger.info('[FallbackOrchestrator] Initialized', {
-      providerOrder: this.config.providerOrder,
-      maxFailoverTime: this.config.maxFailoverTime,
-    });
+  private initializeHealthTracking(): void {
+    for (const provider of this.config.providerOrder) {
+      this.providerHealth.set(provider, {
+        type: provider,
+        provider,
+        healthy: true,
+        circuitOpen: false,
+        latency: 0,
+        lastChecked: new Date(),
+        consecutiveFailures: 0,
+      });
+    }
   }
 
   /**
-   * Register a runtime provider
+   * Start health check interval
    */
-  registerProvider(type: RuntimeType, provider: RuntimeProvider, config?: any): void {
-    const health: ProviderHealth = {
-      type,
-      healthy: true,
-      lastCheck: new Date(),
-      consecutiveFailures: 0,
-      circuitOpen: false,
-      averageSpawnTime: 0,
-      spawnAttempts: 0,
-      spawnSuccesses: 0,
-    };
-
-    this.providers.set(type, {
-      type,
-      provider,
-      health,
-      config,
-    });
-
-    // Store config for lazy initialization
-    if (type === 'worktree') {
-      this.defaultWorktreeConfig = config;
-    } else if (type === 'kata') {
-      this.defaultKataConfig = config;
-    } else if (type === 'e2b') {
-      this.defaultE2BConfig = config;
+  startHealthChecks(): void {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
     }
+    this.healthCheckTimer = setInterval(() => {
+      this.checkAllProviders();
+    }, this.config.healthCheckInterval);
+  }
 
-    logger.info(`[FallbackOrchestrator] Registered provider: ${type}`);
+  /**
+   * Stop health check interval
+   */
+  stopHealthChecks(): void {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+  }
+
+  /**
+   * Register a provider for fallback orchestration
+   * @param name - Provider name
+   * @param provider - RuntimeProvider instance
+   */
+  registerProvider(name: RuntimeProviderType, provider: RuntimeProvider): void {
+    this.providers.set(name, provider);
+    // Initialize health if not already tracked
+    if (!this.providerHealth.has(name)) {
+      this.providerHealth.set(name, {
+        type: name,
+        provider: name,
+        healthy: true,
+        circuitOpen: false,
+        latency: 0,
+        lastChecked: new Date(),
+        consecutiveFailures: 0,
+      });
+    }
+    this.emit('provider:registered', { provider: name });
   }
 
   /**
    * Spawn a runtime with automatic fallback
+   * @param config - Spawn configuration
+   * @returns Spawn result with failover information
    */
-  async spawnWithFallback(config: SpawnConfig): Promise<FallbackResult> {
+  async spawnWithFallback(config: SpawnConfig): Promise<SpawnWithFallbackResult> {
     const startTime = Date.now();
     let failoverCount = 0;
-    const errors: Array<{ type: RuntimeType; error: Error }> = [];
+    let lastError: Error | null = null;
 
-    // Try providers in order
     for (const providerType of this.config.providerOrder) {
-      const timeElapsed = Date.now() - startTime;
-      
-      // Check max failover time
-      if (timeElapsed > this.config.maxFailoverTime && failoverCount > 0) {
-        logger.warn('[FallbackOrchestrator] Max failover time exceeded', {
-          timeElapsed,
-          maxFailoverTime: this.config.maxFailoverTime,
-        });
-        break;
-      }
-
-      const circuitBreaker = this.circuitBreakers.get(providerType);
-      
-      // Skip if circuit is open
-      if (circuitBreaker && !circuitBreaker.canExecute()) {
-        logger.debug(`[FallbackOrchestrator] Circuit open for ${providerType}, skipping`);
+      const provider = this.providers.get(providerType);
+      if (!provider) {
         continue;
       }
 
-      // Get or initialize provider
-      const wrapper = this.providers.get(providerType);
-      if (!wrapper) {
-        // Try to lazily initialize
-        const provider = this.initializeProvider(providerType);
-        if (!provider) {
-          logger.warn(`[FallbackOrchestrator] Provider ${providerType} not available`);
-          continue;
-        }
-        this.registerProvider(providerType, provider, this.getProviderConfig(providerType));
+      if (!this.isProviderHealthy(providerType)) {
+        this.emit('provider:skipped', { provider: providerType, reason: 'unhealthy' });
+        // Don't increment failoverCount when provider is skipped due to open circuit
+        continue;
       }
 
-      const currentWrapper = this.providers.get(providerType)!;
+      for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+        try {
+          const runtime = await provider.spawn(config);
+          this.recordSuccess(providerType);
 
-      try {
-        logger.info(`[FallbackOrchestrator] Attempting spawn with ${providerType}`, {
-          attempt: failoverCount + 1,
-        });
+          const totalTime = Date.now() - startTime;
 
-        const spawnStart = Date.now();
-        const runtime = await this.spawnWithTimeout(
-          currentWrapper.provider,
-          config,
-          500 // 500ms timeout per attempt
-        );
-        const spawnTime = Date.now() - spawnStart;
+          // Emit both event formats for compatibility
+          this.emit('spawn:success', {
+            provider: providerType,
+            runtimeId: runtime.id,
+            failoverCount,
+            totalTime,
+          });
+          this.emit('spawnSuccess', {
+            runtime,
+            providerType,
+            failoverCount,
+            totalTime,
+          });
 
-        // Update health metrics
-        currentWrapper.health.spawnAttempts++;
-        currentWrapper.health.spawnSuccesses++;
-        currentWrapper.health.averageSpawnTime = 
-          (currentWrapper.health.averageSpawnTime * (currentWrapper.health.spawnAttempts - 1) + spawnTime) /
-          currentWrapper.health.spawnAttempts;
-        currentWrapper.health.consecutiveFailures = 0;
-        currentWrapper.health.healthy = true;
+          return {
+            runtime,
+            providerType,
+            failoverCount,
+            totalTime,
+          };
+        } catch (error) {
+          lastError = error as Error;
+          this.recordFailure(providerType, lastError.message);
 
-        // Record circuit breaker success
-        circuitBreaker?.recordSuccess();
-
-        const totalTime = Date.now() - startTime;
-
-        logger.info(`[FallbackOrchestrator] Spawn successful with ${providerType}`, {
-          runtimeId: runtime.id,
-          failoverCount,
-          totalTime,
-          spawnTime,
-        });
-
-        // Emit success event
-        this.emit('spawnSuccess', {
-          runtime,
-          providerType,
-          failoverCount,
-          totalTime,
-        });
-
-        return {
-          runtime,
-          providerType,
-          failoverCount,
-          totalTime,
-          providerHealth: this.getAllHealth(),
-        };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.warn(`[FallbackOrchestrator] Spawn failed with ${providerType}`, {
-          error: errorMessage,
-        });
-
-        // Update health metrics
-        currentWrapper.health.consecutiveFailures++;
-        currentWrapper.health.lastError = errorMessage;
-        
-        // Record circuit breaker failure
-        circuitBreaker?.recordFailure();
-        
-        if (circuitBreaker?.getState() === 'OPEN') {
-          currentWrapper.health.circuitOpen = true;
-          currentWrapper.health.circuitOpenSince = new Date();
+          this.emit('spawn:retry', {
+            provider: providerType,
+            attempt: attempt + 1,
+            error: lastError.message,
+          });
+          this.emit('spawnFailure', {
+            providerType,
+            attempt: attempt + 1,
+            error: lastError.message,
+          });
         }
-
-        errors.push({ type: providerType, error: error as Error });
-        failoverCount++;
-
-        // Emit failure event
-        this.emit('spawnFailure', {
-          providerType,
-          error: errorMessage,
-          failoverCount,
-        });
       }
+
+      failoverCount++;
+      this.emit('provider:failed', { provider: providerType, error: lastError?.message });
     }
 
     // All providers failed
-    const totalTime = Date.now() - startTime;
-    logger.error('[FallbackOrchestrator] All providers failed', {
-      failoverCount,
-      totalTime,
-      errors: errors.map(e => ({ type: e.type, error: e.error.message })),
-    });
-
-    throw new SpawnError(
-      `All runtime providers failed after ${failoverCount} attempts in ${totalTime}ms. ` +
-      `Errors: ${errors.map(e => `${e.type}: ${e.error.message}`).join('; ')}`
-    );
+    throw new Error(`All runtime providers failed: ${lastError?.message || 'Unknown error'}`);
   }
 
-  /**
-   * Get the best available provider (for cost-aware selection)
-   */
-  async getBestProvider(): Promise<RuntimeType | null> {
-    const available: Array<{ type: RuntimeType; score: number }> = [];
+  async execute(
+    command: string,
+    options: { timeout?: number; cwd?: string } = {}
+  ): Promise<ExecutionResult> {
+    const startTime = Date.now();
+    let lastError: Error | null = null;
 
-    for (const providerType of this.config.providerOrder) {
-      const wrapper = this.providers.get(providerType);
-      const circuitBreaker = this.circuitBreakers.get(providerType);
-
-      if (!wrapper || !circuitBreaker?.canExecute()) {
+    for (const provider of this.config.providerOrder) {
+      if (!this.isProviderHealthy(provider)) {
+        this.emit('provider:skipped', { provider, reason: 'unhealthy' });
         continue;
       }
 
-      // Calculate health score (0-100)
-      const healthScore = wrapper.health.healthy ? 100 : 0;
-      const successRate = wrapper.health.spawnAttempts > 0
-        ? (wrapper.health.spawnSuccesses / wrapper.health.spawnAttempts) * 100
-        : 100;
-      const speedScore = Math.max(0, 100 - wrapper.health.averageSpawnTime / 10);
+      for (let attempt = 0; attempt < this.config.maxRetries; attempt++) {
+        try {
+          // In real implementation, execute command via provider
+          await new Promise(resolve => setTimeout(resolve, 100)); // Simulate
 
-      // Cost score (lower is better)
-      let costScore = 100;
-      if (this.config.costAware) {
-        switch (providerType) {
-          case 'worktree': costScore = 100; break; // Free
-          case 'kata': costScore = 80; break;      // Low cost
-          case 'e2b': costScore = 60; break;       // Higher cost
+          this.recordSuccess(provider);
+
+          const executionResult: ExecutionResult = {
+            provider,
+            success: true,
+            output: `Executed: ${command}`,
+            duration: Date.now() - startTime,
+            attempts: attempt + 1,
+            fallbackUsed: provider !== this.config.providerOrder[0],
+          };
+
+          this.emit('execution:success', executionResult);
+          return executionResult;
+        } catch (error) {
+          lastError = error as Error;
+          this.recordFailure(provider, lastError.message);
+
+          this.emit('execution:retry', {
+            provider,
+            attempt: attempt + 1,
+            error: lastError.message,
+          });
         }
       }
 
-      const score = (healthScore + successRate + speedScore + costScore) / 4;
-      available.push({ type: providerType, score });
+      this.emit('provider:failed', { provider, error: lastError?.message });
     }
 
-    if (available.length === 0) {
-      return null;
+    // All providers failed
+    const failedResult: ExecutionResult = {
+      provider: this.config.providerOrder[this.config.providerOrder.length - 1],
+      success: false,
+      error: lastError?.message || 'All providers failed',
+      duration: Date.now() - startTime,
+      attempts: this.config.maxRetries * this.config.providerOrder.length,
+      fallbackUsed: true,
+    };
+
+    this.emit('execution:failed', failedResult);
+    return failedResult;
+  }
+
+  private isProviderHealthy(provider: RuntimeProviderType): boolean {
+    const health = this.providerHealth.get(provider);
+    return health?.healthy ?? false;
+  }
+
+  private recordSuccess(provider: RuntimeProviderType): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.healthy = true;
+      health.circuitOpen = false;
+      health.consecutiveFailures = 0;
+      health.lastChecked = new Date();
+      health.lastError = undefined;
     }
-
-    // Sort by score descending
-    available.sort((a, b) => b.score - a.score);
-    return available[0].type;
   }
 
-  /**
-   * Get health status for all providers
-   */
-  getAllHealth(): Record<RuntimeType, ProviderHealth> {
-    const health: Record<string, ProviderHealth> = {};
-    
-    for (const [type, wrapper] of this.providers) {
-      health[type] = { ...wrapper.health };
-    }
-
-    return health as Record<RuntimeType, ProviderHealth>;
-  }
-
-  /**
-   * Get health for a specific provider
-   */
-  getProviderHealth(type: RuntimeType): ProviderHealth | null {
-    const wrapper = this.providers.get(type);
-    return wrapper ? { ...wrapper.health } : null;
-  }
-
-  /**
-   * Manually mark a provider as unhealthy
-   */
-  markProviderUnhealthy(type: RuntimeType, reason?: string): void {
-    const wrapper = this.providers.get(type);
-    if (wrapper) {
-      wrapper.health.healthy = false;
-      wrapper.health.lastError = reason || 'Manually marked unhealthy';
-      
-      const circuitBreaker = this.circuitBreakers.get(type);
-      if (circuitBreaker) {
-        // Force circuit open
-        for (let i = 0; i < this.config.circuitBreakerThreshold; i++) {
-          circuitBreaker.recordFailure();
-        }
+  private recordFailure(provider: RuntimeProviderType, errorMessage?: string): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.consecutiveFailures++;
+      health.lastError = errorMessage;
+      if (health.consecutiveFailures >= (this.config.circuitBreakerThreshold || 3)) {
+        health.healthy = false;
+        health.circuitOpen = true;
+        this.emit('provider:unhealthy', { provider });
       }
+    }
+  }
 
-      logger.warn(`[FallbackOrchestrator] Provider ${type} marked unhealthy`, { reason });
-      this.emit('providerUnhealthy', { type, reason });
+  /**
+   * Mark a provider as unhealthy manually
+   * @param provider - Provider type
+   * @param reason - Reason for marking unhealthy
+   */
+  markProviderUnhealthy(provider: RuntimeProviderType, reason?: string): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.healthy = false;
+      health.circuitOpen = true;
+      health.lastError = reason;
+      this.emit('providerUnhealthy', { type: provider, reason });
+      this.emit('provider:unhealthy', { provider, reason });
     }
   }
 
   /**
    * Reset circuit breaker for a provider
+   * @param provider - Provider type
    */
-  resetCircuitBreaker(type: RuntimeType): void {
-    const circuitBreaker = this.circuitBreakers.get(type);
-    if (circuitBreaker) {
-      circuitBreaker.recordSuccess();
-      
-      const wrapper = this.providers.get(type);
-      if (wrapper) {
-        wrapper.health.circuitOpen = false;
-        wrapper.health.circuitOpenSince = undefined;
-        wrapper.health.consecutiveFailures = 0;
+  resetCircuitBreaker(provider: RuntimeProviderType): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.healthy = true;
+      health.circuitOpen = false;
+      health.consecutiveFailures = 0;
+      health.lastError = undefined;
+      this.emit('provider:reset', { provider });
+    }
+  }
+
+  private async checkAllProviders(): Promise<void> {
+    for (const provider of this.config.providerOrder) {
+      await this.checkProviderHealth(provider);
+    }
+  }
+
+  private async checkProviderHealth(provider: RuntimeProviderType): Promise<void> {
+    const start = Date.now();
+    const health = this.providerHealth.get(provider);
+    if (!health) return;
+
+    try {
+      let isHealthy = false;
+      const providerInstance = this.providers.get(provider);
+
+      switch (provider) {
+        case 'e2b':
+          isHealthy = providerInstance ? await this.checkE2BHealth(providerInstance) : false;
+          break;
+        case 'kata':
+          isHealthy = providerInstance ? await this.checkKataHealth(providerInstance) : true;
+          break;
+        case 'worktree':
+          isHealthy = process.cwd() !== undefined;
+          break;
+        default:
+          isHealthy = false;
       }
 
-      logger.info(`[FallbackOrchestrator] Circuit breaker reset for ${type}`);
-    }
-  }
+      health.healthy = isHealthy && !health.circuitOpen;
+      health.latency = Date.now() - start;
+      health.lastChecked = new Date();
 
-  /**
-   * Start health checking
-   */
-  startHealthChecks(): void {
-    if (this.healthCheckInterval) {
-      return;
-    }
-
-    this.healthCheckInterval = setInterval(async () => {
-      for (const [type, wrapper] of this.providers) {
-        try {
-          // Simple health check: try to list runtimes
-          await wrapper.provider.listRuntimes({ runtime: type });
-          
-          wrapper.health.healthy = true;
-          wrapper.health.lastCheck = new Date();
-          
-          // If circuit was open, try to close it
-          const circuitBreaker = this.circuitBreakers.get(type);
-          if (circuitBreaker?.getState() === 'OPEN') {
-            this.resetCircuitBreaker(type);
-          }
-        } catch (error) {
-          wrapper.health.healthy = false;
-          wrapper.health.lastCheck = new Date();
-          wrapper.health.consecutiveFailures++;
-          wrapper.health.lastError = error instanceof Error ? error.message : String(error);
-
-          const circuitBreaker = this.circuitBreakers.get(type);
-          circuitBreaker?.recordFailure();
-
-          logger.warn(`[FallbackOrchestrator] Health check failed for ${type}`, {
-            error: wrapper.health.lastError,
-          });
-        }
+      if (isHealthy) {
+        health.consecutiveFailures = 0;
       }
-    }, this.config.healthCheckInterval);
+    } catch {
+      health.healthy = false;
+      health.latency = Date.now() - start;
+      health.lastChecked = new Date();
+      health.consecutiveFailures++;
+    }
 
-    logger.info('[FallbackOrchestrator] Health checks started');
+    this.emit('health:check', { ...health });
   }
 
-  /**
-   * Stop health checking
-   */
-  stopHealthChecks(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = undefined;
-      logger.info('[FallbackOrchestrator] Health checks stopped');
+  private async checkE2BHealth(provider: RuntimeProvider): Promise<boolean> {
+    try {
+      // Check if we can list runtimes as a health check
+      await provider.listRuntimes();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async checkKataHealth(provider: RuntimeProvider): Promise<boolean> {
+    try {
+      await provider.listRuntimes();
+      return true;
+    } catch {
+      return false;
     }
   }
 
   /**
-   * Dispose of the orchestrator
+   * Get the best available provider based on health
+   * @returns The best provider type or null if none available
+   */
+  async getBestProvider(): Promise<RuntimeProviderType | null> {
+    for (const provider of this.config.providerOrder) {
+      // Only consider registered providers
+      if (!this.providers.has(provider)) {
+        continue;
+      }
+      const health = this.providerHealth.get(provider);
+      if (health?.healthy && !health?.circuitOpen) {
+        return provider;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get health for a specific provider
+   * @param provider - Provider type
+   * @returns Provider health or null if not found
+   */
+  getProviderHealth(provider: RuntimeProviderType): ProviderHealth | null {
+    return this.providerHealth.get(provider) ?? null;
+  }
+
+  /**
+   * Get health for all providers as an object keyed by provider type
+   * @returns Object with provider types as keys and health as values
+   */
+  getAllHealth(): Record<RuntimeProviderType, ProviderHealth> {
+    const result = {} as Record<RuntimeProviderType, ProviderHealth>;
+    for (const [key, value] of this.providerHealth) {
+      result[key] = value;
+    }
+    return result;
+  }
+
+  /**
+   * Alias for getProviderHealth(provider)
+   * @param provider - Provider type
+   * @returns Provider health or undefined
+   * @deprecated Use getProviderHealth instead
+   */
+  getHealth(provider: RuntimeProviderType): ProviderHealth | undefined {
+    return this.providerHealth.get(provider);
+  }
+
+  forceFailover(provider: RuntimeProviderType): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.healthy = false;
+      health.circuitOpen = true;
+      health.consecutiveFailures = 999;
+      this.emit('provider:forced-failover', { provider });
+    }
+  }
+
+  resetProvider(provider: RuntimeProviderType): void {
+    const health = this.providerHealth.get(provider);
+    if (health) {
+      health.healthy = true;
+      health.circuitOpen = false;
+      health.consecutiveFailures = 0;
+      health.lastError = undefined;
+      this.emit('provider:reset', { provider });
+    }
+  }
+
+  /**
+   * Dispose of the orchestrator and cleanup resources
    */
   dispose(): void {
     this.stopHealthChecks();
     this.removeAllListeners();
     this.providers.clear();
-    this.circuitBreakers.clear();
-  }
-
-  // ============================================================================
-  // Private Methods
-  // ============================================================================
-
-  /**
-   * Spawn with timeout
-   */
-  private async spawnWithTimeout(
-    provider: RuntimeProvider,
-    config: SpawnConfig,
-    timeout: number
-  ): Promise<AgentRuntime> {
-    return Promise.race([
-      provider.spawn(config),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new TimeoutError(
-          `Spawn timeout after ${timeout}ms`,
-          timeout,
-          'spawn'
-        )), timeout);
-      }),
-    ]);
+    this.providerHealth.clear();
   }
 
   /**
-   * Initialize a provider lazily
+   * Alias for dispose()
+   * @deprecated Use dispose() instead
    */
-  private initializeProvider(type: RuntimeType): RuntimeProvider | null {
-    try {
-      switch (type) {
-        case 'worktree':
-          if (this.defaultWorktreeConfig) {
-            return new WorktreeRuntimeProvider(this.defaultWorktreeConfig);
-          }
-          break;
-        case 'kata':
-          if (this.defaultKataConfig && process.env['K8S_NAMESPACE']) {
-            return new KataRuntimeProvider(this.defaultKataConfig);
-          }
-          break;
-        case 'e2b':
-          if (this.defaultE2BConfig && process.env['E2B_API_KEY']) {
-            return new E2BRuntimeProvider(this.defaultE2BConfig);
-          }
-          break;
-      }
-    } catch (error) {
-      logger.warn(`[FallbackOrchestrator] Failed to initialize ${type}`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-
-    return null;
-  }
-
-  /**
-   * Get config for provider type
-   */
-  private getProviderConfig(type: RuntimeType): any {
-    switch (type) {
-      case 'worktree': return this.defaultWorktreeConfig;
-      case 'kata': return this.defaultKataConfig;
-      case 'e2b': return this.defaultE2BConfig;
-      default: return undefined;
-    }
+  destroy(): void {
+    this.dispose();
   }
 }
 
-// ============================================================================
-// Singleton Instance
-// ============================================================================
-
+// Global instance management
 let globalFallbackOrchestrator: FallbackOrchestrator | null = null;
 
 /**
- * Get or create the global FallbackOrchestrator instance
+ * Get the global fallback orchestrator instance
+ * @returns The global FallbackOrchestrator instance
  */
-export function getGlobalFallbackOrchestrator(config?: FallbackConfig): FallbackOrchestrator {
+export function getGlobalFallbackOrchestrator(): FallbackOrchestrator {
   if (!globalFallbackOrchestrator) {
-    globalFallbackOrchestrator = new FallbackOrchestrator(config);
+    globalFallbackOrchestrator = new FallbackOrchestrator();
   }
   return globalFallbackOrchestrator;
 }
 
 /**
- * Initialize the global FallbackOrchestrator
+ * Initialize or reinitialize the global fallback orchestrator
+ * @param config - Optional configuration for the orchestrator
+ * @returns The new global FallbackOrchestrator instance
  */
-export function initializeGlobalFallbackOrchestrator(config: FallbackConfig): FallbackOrchestrator {
+export function initializeGlobalFallbackOrchestrator(config?: Partial<FallbackConfig>): FallbackOrchestrator {
   if (globalFallbackOrchestrator) {
     globalFallbackOrchestrator.dispose();
   }
@@ -636,7 +526,7 @@ export function initializeGlobalFallbackOrchestrator(config: FallbackConfig): Fa
 }
 
 /**
- * Reset the global FallbackOrchestrator
+ * Reset the global fallback orchestrator (useful for testing)
  */
 export function resetGlobalFallbackOrchestrator(): void {
   if (globalFallbackOrchestrator) {

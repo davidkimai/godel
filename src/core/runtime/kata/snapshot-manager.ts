@@ -1,644 +1,1002 @@
-import { createHash } from 'crypto';
 import { EventEmitter } from 'events';
-import { promisify } from 'util';
+import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Snapshot metadata
- */
-interface SnapshotMetadata {
+export interface SnapshotConfig {
   name?: string;
-  description?: string;
   labels?: Record<string, string>;
-  teamId?: string;
-  agentId?: string;
+  annotations?: Record<string, string>;
+  expirationHours?: number;
+  compressionEnabled?: boolean;
+  includeMemory?: boolean;
 }
 
-/**
- * Snapshot data structure
- */
-interface Snapshot {
+export interface SnapshotMetadata {
   id: string;
-  runtimeId: string;
+  name: string;
   createdAt: Date;
+  updatedAt: Date;
   size: number;
-  metadata: SnapshotMetadata;
-  checksum: string;
-  state: 'creating' | 'ready' | 'corrupted' | 'restoring';
-  storagePath: string;
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+  expiresAt?: Date;
+  status: 'pending' | 'creating' | 'completed' | 'failed' | 'deleted';
+  vmId: string;
+  checkpointPath?: string;
+  diskSnapshotPath?: string;
+  parentSnapshotId?: string;
+  criuDumpPath?: string;
 }
 
-/**
- * Restore options
- */
-interface RestoreOptions {
-  runtimeId?: string; // New runtime ID for the restored VM
-  teamId?: string;
-  labels?: Record<string, string>;
-  verifyIntegrity?: boolean;
-  timeoutMs?: number;
+export interface SnapshotOptions {
+  containerdAddress?: string;
+  snapshotter?: string;
+  criuBinaryPath?: string;
+  snapshotStoragePath: string;
+  maxConcurrentSnapshots?: number;
+  defaultExpirationHours?: number;
+  compressionEnabled?: boolean;
 }
 
-/**
- * Restore result
- */
-interface RestoreResult {
+export interface SnapshotResult {
   success: boolean;
-  runtimeId?: string;
-  snapshotId: string;
+  snapshot?: SnapshotMetadata;
+  error?: SnapshotError;
   durationMs: number;
-  error?: string;
+}
+
+export class SnapshotError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public recoverable: boolean = false,
+    public details?: Record<string, any>
+  ) {
+    super(message);
+    this.name = 'SnapshotError';
+  }
+}
+
+export class ConcurrentSnapshotError extends SnapshotError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, 'CONCURRENT_SNAPSHOT', false, details);
+  }
+}
+
+export class StorageExhaustedError extends SnapshotError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, 'STORAGE_EXHAUSTED', false, details);
+  }
+}
+
+export class SnapshotCreationError extends SnapshotError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, 'SNAPSHOT_CREATION_FAILED', true, details);
+  }
+}
+
+interface ActiveSnapshot {
+  id: string;
+  vmId: string;
+  startTime: Date;
+  abortController: AbortController;
+}
+
+interface ActiveRestore {
+  id: string;
+  snapshotId: string;
+  vmId: string;
+  startTime: Date;
+  progress: RestoreProgress;
+  abortController: AbortController;
+}
+
+export interface RestoreProgress {
+  phase: 'validating' | 'restoring-disk' | 'restoring-memory' | 'restoring-checkpoint' | 'finalizing';
+  percent: number;
+  message: string;
+  timestamp: Date;
+}
+
+export interface RestoreOptions {
+  force?: boolean;
+  timeoutMs?: number;
+  verifyIntegrity?: boolean;
+  preserveExistingDisks?: boolean;
+}
+
+export interface RestoreResult {
+  success: boolean;
+  snapshotId: string;
+  vmId: string;
+  durationMs: number;
+  error?: SnapshotError;
   warnings?: string[];
 }
 
-/**
- * Restore progress callback
- */
-type RestoreProgressCallback = (progress: RestoreProgress) => void;
-
-/**
- * Restore progress
- */
-interface RestoreProgress {
-  stage: 'validating' | 'downloading' | 'extracting' | 'configuring' | 'finalizing';
-  percentComplete: number;
-  bytesProcessed: number;
-  totalBytes: number;
-  estimatedTimeRemainingMs?: number;
+export class SnapshotIntegrityError extends SnapshotError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, 'SNAPSHOT_INTEGRITY_FAILED', false, details);
+  }
 }
 
-/**
- * Concurrent restore limits
- */
-interface RestoreLimits {
-  maxConcurrentRestores: number;
-  maxBandwidthBytesPerSecond?: number;
-  maxDiskIOPerSecond?: number;
+export class RestoreInProgressError extends SnapshotError {
+  constructor(message: string, details?: Record<string, any>) {
+    super(message, 'RESTORE_IN_PROGRESS', false, details);
+  }
 }
 
-/**
- * Storage backend interface
- */
-interface StorageBackend {
-  save(snapshotId: string, data: Buffer): Promise<void>;
-  load(snapshotId: string): Promise<Buffer>;
-  delete(snapshotId: string): Promise<void>;
-  exists(snapshotId: string): Promise<boolean>;
-  getSize(snapshotId: string): Promise<number>;
+export class RestoreError extends SnapshotError {
+  constructor(message: string, recoverable: boolean = false, details?: Record<string, any>) {
+    super(message, 'RESTORE_FAILED', recoverable, details);
+  }
 }
 
-/**
- * Runtime provider interface for VM operations
- */
-interface RuntimeProvider {
-  create(config: {
-    runtimeId: string;
-    image?: string;
-    resources?: { cpu: number; memory: string };
-    volumes?: Array<{ source: string; destination: string }>;
-  }): Promise<{ runtimeId: string; state: string }>;
-  getStatus(runtimeId: string): Promise<{ state: string; healthy: boolean }>;
-}
-
-/**
- * SnapshotManager - Comprehensive snapshot management with restore capabilities
- * 
- * Features:
- * - Create VM snapshots at any point
- * - Restore agent to exact previous state
- * - Concurrent restore handling with resource limits
- * - Integrity validation (SHA256 checksums)
- * - Corruption detection and rollback
- */
 export class SnapshotManager extends EventEmitter {
-  private snapshots: Map<string, Snapshot> = new Map();
-  private activeRestores: Map<string, RestoreOperation> = new Map();
-  private restoreLimits: RestoreLimits;
-  private storage: StorageBackend;
-  private runtimeProvider: RuntimeProvider;
-  private restoreQueue: Array<QueuedRestore> = [];
+  private snapshots: Map<string, SnapshotMetadata> = new Map();
+  private activeSnapshots: Map<string, ActiveSnapshot> = new Map();
+  private activeRestores: Map<string, ActiveRestore> = new Map();
+  private options: Required<SnapshotOptions>;
+  private snapshotLocks: Map<string, Promise<void>> = new Map();
+  private restoreLocks: Map<string, Promise<void>> = new Map();
 
-  constructor(
-    storage: StorageBackend,
-    runtimeProvider: RuntimeProvider,
-    limits: Partial<RestoreLimits> = {}
-  ) {
+  constructor(options: SnapshotOptions) {
     super();
-    this.storage = storage;
-    this.runtimeProvider = runtimeProvider;
-    this.restoreLimits = {
-      maxConcurrentRestores: limits.maxConcurrentRestores ?? 5,
-      maxBandwidthBytesPerSecond: limits.maxBandwidthBytesPerSecond,
-      maxDiskIOPerSecond: limits.maxDiskIOPerSecond,
+    this.options = {
+      containerdAddress: options.containerdAddress || '/run/containerd/containerd.sock',
+      snapshotter: options.snapshotter || 'overlayfs',
+      criuBinaryPath: options.criuBinaryPath || '/usr/sbin/criu',
+      snapshotStoragePath: options.snapshotStoragePath,
+      maxConcurrentSnapshots: options.maxConcurrentSnapshots || 3,
+      defaultExpirationHours: options.defaultExpirationHours || 168, // 7 days
+      compressionEnabled: options.compressionEnabled ?? true,
     };
   }
 
-  /**
-   * Create a snapshot of a VM
-   */
-  public async createSnapshot(
-    runtimeId: string,
-    metadata: SnapshotMetadata = {}
-  ): Promise<Snapshot> {
-    const snapshotId = `snap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    const snapshot: Snapshot = {
-      id: snapshotId,
-      runtimeId,
-      createdAt: new Date(),
-      size: 0,
-      metadata,
-      checksum: '',
-      state: 'creating',
-      storagePath: `/snapshots/${snapshotId}.tar.gz`,
-    };
-
-    this.snapshots.set(snapshotId, snapshot);
-    this.emit('snapshot:creating', { snapshotId, runtimeId });
+  async createSnapshot(
+    vmId: string,
+    config: SnapshotConfig = {}
+  ): Promise<SnapshotResult> {
+    const startTime = Date.now();
 
     try {
-      // Check if VM exists first
-      const vmStatus = await this.runtimeProvider.getStatus(runtimeId);
-      if (vmStatus.state === 'not-found') {
-        throw new Error(`VM not found: ${runtimeId}`);
+      if (this.activeSnapshots.size >= this.options.maxConcurrentSnapshots) {
+        throw new ConcurrentSnapshotError(
+          `Maximum concurrent snapshots (${this.options.maxConcurrentSnapshots}) reached`,
+          { activeCount: this.activeSnapshots.size }
+        );
       }
-      
-      // Capture VM state
-      const vmData = await this.captureVMState(runtimeId);
-      
-      // Calculate checksum
-      snapshot.checksum = this.calculateChecksum(vmData);
-      snapshot.size = vmData.length;
 
-      // Store snapshot
-      await this.storage.save(snapshotId, vmData);
-      
-      snapshot.state = 'ready';
-      this.emit('snapshot:created', { snapshotId, runtimeId, size: snapshot.size });
+      if (this.activeSnapshots.has(vmId)) {
+        throw new ConcurrentSnapshotError(
+          `VM ${vmId} already has an active snapshot operation`,
+          { vmId }
+        );
+      }
 
-      return snapshot;
+      const snapshotId = uuidv4();
+      const abortController = new AbortController();
+      
+      const activeSnapshot: ActiveSnapshot = {
+        id: snapshotId,
+        vmId,
+        startTime: new Date(),
+        abortController,
+      };
+      this.activeSnapshots.set(vmId, activeSnapshot);
+
+      this.emit('snapshot:started', { snapshotId, vmId, timestamp: new Date() });
+
+      const metadata: SnapshotMetadata = {
+        id: snapshotId,
+        name: config.name || `snapshot-${snapshotId.slice(0, 8)}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        size: 0,
+        labels: config.labels || {},
+        annotations: config.annotations || {},
+        expiresAt: config.expirationHours !== undefined
+          ? new Date(Date.now() + config.expirationHours * 60 * 60 * 1000)
+          : new Date(Date.now() + this.options.defaultExpirationHours * 60 * 60 * 1000),
+        status: 'creating',
+        vmId,
+      };
+
+      this.snapshots.set(snapshotId, metadata);
+
+      try {
+        await this.checkStorageAvailability();
+
+        const [checkpointPath, diskSnapshotPath, criuDumpPath] = await Promise.all([
+          this.createContainerdCheckpoint(vmId, snapshotId, abortController.signal),
+          this.createDiskSnapshot(vmId, snapshotId, abortController.signal),
+          config.includeMemory !== false
+            ? this.createCriuDump(vmId, snapshotId, abortController.signal)
+            : Promise.resolve(undefined),
+        ]);
+
+        metadata.checkpointPath = checkpointPath;
+        metadata.diskSnapshotPath = diskSnapshotPath;
+        metadata.criuDumpPath = criuDumpPath;
+
+        const snapshotSize = await this.calculateSnapshotSize(metadata);
+        metadata.size = snapshotSize;
+        metadata.status = 'completed';
+        metadata.updatedAt = new Date();
+
+        await this.persistMetadata(metadata);
+
+        this.emit('snapshot:completed', {
+          snapshotId,
+          vmId,
+          durationMs: Date.now() - startTime,
+          size: snapshotSize,
+        });
+
+        return {
+          success: true,
+          snapshot: metadata,
+          durationMs: Date.now() - startTime,
+        };
+      } catch (error) {
+        metadata.status = 'failed';
+        metadata.updatedAt = new Date();
+        
+        await this.cleanupFailedSnapshot(metadata);
+        
+        throw error;
+      } finally {
+        this.activeSnapshots.delete(vmId);
+      }
     } catch (error) {
-      snapshot.state = 'corrupted';
-      this.emit('snapshot:failed', { snapshotId, runtimeId, error });
-      throw new SnapshotCreationError(`Failed to create snapshot: ${error}`);
-    }
-  }
-
-  /**
-   * Restore a VM from a snapshot
-   */
-  public async restoreSnapshot(
-    snapshotId: string,
-    options: RestoreOptions = {},
-    progressCallback?: RestoreProgressCallback
-  ): Promise<RestoreResult> {
-    const startTime = Date.now();
-    const snapshot = this.snapshots.get(snapshotId);
-
-    if (!snapshot) {
-      return {
-        success: false,
-        snapshotId,
-        durationMs: Date.now() - startTime,
-        error: `Snapshot ${snapshotId} not found`,
-      };
-    }
-
-    // Check if snapshot is ready
-    if (snapshot.state !== 'ready') {
-      return {
-        success: false,
-        snapshotId,
-        durationMs: Date.now() - startTime,
-        error: `Snapshot is not ready (state: ${snapshot.state})`,
-      };
-    }
-
-    // Check concurrent restore limits
-    if (this.activeRestores.size >= this.restoreLimits.maxConcurrentRestores) {
-      // Queue the restore
-      return this.queueRestore(snapshotId, options, progressCallback);
-    }
-
-    return this.executeRestore(snapshotId, options, progressCallback);
-  }
-
-  /**
-   * Execute the restore operation
-   */
-  private async executeRestore(
-    snapshotId: string,
-    options: RestoreOptions,
-    progressCallback?: RestoreProgressCallback
-  ): Promise<RestoreResult> {
-    const startTime = Date.now();
-    const snapshot = this.snapshots.get(snapshotId)!;
-    const runtimeId = options.runtimeId || `restored-${Date.now()}`;
-    const warnings: string[] = [];
-
-    const operation: RestoreOperation = {
-      snapshotId,
-      runtimeId,
-      startTime,
-      progress: {
-        stage: 'validating',
-        percentComplete: 0,
-        bytesProcessed: 0,
-        totalBytes: snapshot.size,
-      },
-    };
-
-    this.activeRestores.set(runtimeId, operation);
-    snapshot.state = 'restoring';
-
-    try {
-      // Stage 1: Validate snapshot integrity
-      this.updateProgress(operation, 'validating', 10, progressCallback);
+      const durationMs = Date.now() - startTime;
       
-      if (options.verifyIntegrity !== false) {
-        const isValid = await this.validateSnapshotIntegrity(snapshotId);
-        if (!isValid) {
-          throw new Error('Snapshot integrity check failed');
+      this.emit('snapshot:failed', {
+        vmId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        durationMs,
+      });
+
+      return {
+        success: false,
+        error: error instanceof SnapshotError
+          ? error
+          : new SnapshotCreationError(
+              error instanceof Error ? error.message : 'Unknown error',
+              { originalError: error }
+            ),
+        durationMs,
+      };
+    }
+  }
+
+  private async checkStorageAvailability(): Promise<void> {
+    try {
+      const fs = await import('fs/promises');
+      const stats = await fs.statfs(this.options.snapshotStoragePath);
+      const availableBytes = stats.bavail * stats.bsize;
+      const minRequiredBytes = 1024 * 1024 * 1024; // 1GB minimum
+
+      if (availableBytes < minRequiredBytes) {
+        throw new StorageExhaustedError(
+          `Insufficient storage space. Available: ${availableBytes} bytes, Required: ${minRequiredBytes} bytes`,
+          { availableBytes, requiredBytes: minRequiredBytes }
+        );
+      }
+    } catch (error) {
+      if (error instanceof StorageExhaustedError) {
+        throw error;
+      }
+      throw new SnapshotCreationError(
+        `Failed to check storage availability: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { originalError: error }
+      );
+    }
+  }
+
+  private async createContainerdCheckpoint(
+    vmId: string,
+    snapshotId: string,
+    signal: AbortSignal
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new SnapshotCreationError('Containerd checkpoint timeout', { vmId, snapshotId }));
+      }, 300000); // 5 minutes
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new SnapshotCreationError('Containerd checkpoint aborted', { vmId, snapshotId }));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      const checkpointPath = `${this.options.snapshotStoragePath}/checkpoints/${snapshotId}`;
+      
+      // Simulated containerd checkpoint creation
+      // In production, this would use the containerd client API
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+        
+        if (signal.aborted) {
+          reject(new SnapshotCreationError('Containerd checkpoint aborted', { vmId, snapshotId }));
+          return;
         }
-      }
-
-      // Stage 2: Download/load snapshot data
-      this.updateProgress(operation, 'downloading', 30, progressCallback);
-      const snapshotData = await this.storage.load(snapshotId);
-      operation.progress.bytesProcessed = snapshotData.length;
-
-      // Stage 3: Create new VM
-      this.updateProgress(operation, 'extracting', 50, progressCallback);
-      const vm = await this.runtimeProvider.create({
-        runtimeId,
-        image: 'godel-agent-base',
-        resources: { cpu: 1, memory: '512Mi' },
+        
+        resolve(checkpointPath);
       });
-
-      // Stage 4: Extract and configure VM
-      this.updateProgress(operation, 'configuring', 75, progressCallback);
-      await this.restoreVMState(runtimeId, snapshotData);
-
-      // Stage 5: Finalize
-      this.updateProgress(operation, 'finalizing', 100, progressCallback);
-      const status = await this.runtimeProvider.getStatus(runtimeId);
-
-      if (!status.healthy) {
-        warnings.push('VM restored but health check indicates issues');
-      }
-
-      snapshot.state = 'ready';
-      this.activeRestores.delete(runtimeId);
-
-      const result: RestoreResult = {
-        success: true,
-        runtimeId,
-        snapshotId,
-        durationMs: Date.now() - startTime,
-        warnings: warnings.length > 0 ? warnings : undefined,
-      };
-
-      this.emit('snapshot:restored', result);
-      this.processRestoreQueue();
-
-      return result;
-    } catch (error) {
-      snapshot.state = 'ready'; // Reset state
-      this.activeRestores.delete(runtimeId);
-
-      // Attempt rollback
-      await this.rollbackRestore(runtimeId);
-
-      this.processRestoreQueue();
-
-      return {
-        success: false,
-        snapshotId,
-        durationMs: Date.now() - startTime,
-        error: `Restore failed: ${error}`,
-      };
-    }
+    });
   }
 
-  /**
-   * Queue a restore operation when at capacity
-   */
-  private queueRestore(
+  private async createDiskSnapshot(
+    vmId: string,
     snapshotId: string,
-    options: RestoreOptions,
-    progressCallback?: RestoreProgressCallback
-  ): Promise<RestoreResult> {
-    return new Promise((resolve) => {
-      this.restoreQueue.push({
-        snapshotId,
-        options,
-        progressCallback,
-        resolve,
+    signal: AbortSignal
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new SnapshotCreationError('Disk snapshot timeout', { vmId, snapshotId }));
+      }, 600000); // 10 minutes
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new SnapshotCreationError('Disk snapshot aborted', { vmId, snapshotId }));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      const diskSnapshotPath = `${this.options.snapshotStoragePath}/disks/${snapshotId}.qcow2`;
+      
+      // Simulated disk snapshot creation
+      // In production, this would use qemu-img or similar
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+        
+        if (signal.aborted) {
+          reject(new SnapshotCreationError('Disk snapshot aborted', { vmId, snapshotId }));
+          return;
+        }
+        
+        resolve(diskSnapshotPath);
       });
-
-      this.emit('restore:queued', { snapshotId, queuePosition: this.restoreQueue.length });
     });
   }
 
-  /**
-   * Process the restore queue
-   */
-  private processRestoreQueue(): void {
-    while (
-      this.restoreQueue.length > 0 &&
-      this.activeRestores.size < this.restoreLimits.maxConcurrentRestores
-    ) {
-      const queued = this.restoreQueue.shift();
-      if (queued) {
-        this.executeRestore(
-          queued.snapshotId,
-          queued.options,
-          queued.progressCallback
-        ).then(queued.resolve);
-      }
-    }
-  }
+  private async createCriuDump(
+    vmId: string,
+    snapshotId: string,
+    signal: AbortSignal
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new SnapshotCreationError('CRIU dump timeout', { vmId, snapshotId }));
+      }, 300000); // 5 minutes
 
-  /**
-   * Update restore progress
-   */
-  private updateProgress(
-    operation: RestoreOperation,
-    stage: RestoreProgress['stage'],
-    percentComplete: number,
-    callback?: RestoreProgressCallback
-  ): void {
-    operation.progress = {
-      ...operation.progress,
-      stage,
-      percentComplete,
-      estimatedTimeRemainingMs: this.calculateETA(operation, percentComplete),
-    };
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new SnapshotCreationError('CRIU dump aborted', { vmId, snapshotId }));
+      };
 
-    callback?.(operation.progress);
-    this.emit('restore:progress', {
-      runtimeId: operation.runtimeId,
-      ...operation.progress,
-    });
-  }
+      signal.addEventListener('abort', onAbort);
 
-  /**
-   * Calculate estimated time remaining
-   */
-  private calculateETA(operation: RestoreOperation, percentComplete: number): number | undefined {
-    if (percentComplete === 0) return undefined;
-
-    const elapsed = Date.now() - operation.startTime;
-    const total = (elapsed / percentComplete) * 100;
-    return Math.max(0, total - elapsed);
-  }
-
-  /**
-   * Validate snapshot integrity using checksum
-   */
-  public async validateSnapshotIntegrity(snapshotId: string): Promise<boolean> {
-    const snapshot = this.snapshots.get(snapshotId);
-    if (!snapshot) return false;
-
-    try {
-      const data = await this.storage.load(snapshotId);
-      const calculatedChecksum = this.calculateChecksum(data);
+      const criuDumpPath = `${this.options.snapshotStoragePath}/criu/${snapshotId}`;
       
-      if (calculatedChecksum !== snapshot.checksum) {
-        this.emit('snapshot:corruption-detected', { snapshotId });
-        snapshot.state = 'corrupted';
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Calculate SHA256 checksum
-   */
-  private calculateChecksum(data: Buffer): string {
-    return createHash('sha256').update(data).digest('hex');
-  }
-
-  /**
-   * Capture VM state for snapshot
-   */
-  private async captureVMState(runtimeId: string): Promise<Buffer> {
-    // This would interface with the actual VM/runtime to capture state
-    // For now, return a mock buffer
-    const mockState = JSON.stringify({
-      runtimeId,
-      timestamp: Date.now(),
-      files: [],
-      environment: {},
-      processes: [],
+      // Simulated CRIU dump
+      // In production, this would execute: criu dump --images-dir <path> --tree <pid>
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+        
+        if (signal.aborted) {
+          reject(new SnapshotCreationError('CRIU dump aborted', { vmId, snapshotId }));
+          return;
+        }
+        
+        resolve(criuDumpPath);
+      });
     });
-
-    return Buffer.from(mockState);
   }
 
-  /**
-   * Restore VM state from snapshot data
-   */
-  private async restoreVMState(runtimeId: string, data: Buffer): Promise<void> {
-    // This would interface with the actual VM/runtime to restore state
-    // Parse snapshot data and apply to VM
-    const state = JSON.parse(data.toString());
+  private async calculateSnapshotSize(metadata: SnapshotMetadata): Promise<number> {
+    const fs = await import('fs/promises');
+    let totalSize = 0;
+
+    const paths = [
+      metadata.checkpointPath,
+      metadata.diskSnapshotPath,
+      metadata.criuDumpPath,
+    ].filter((path): path is string => path !== undefined);
+
+    for (const path of paths) {
+      try {
+        const stats = await fs.stat(path);
+        totalSize += stats.size;
+      } catch {
+        // Path may not exist yet, skip
+      }
+    }
+
+    return totalSize;
+  }
+
+  private async persistMetadata(metadata: SnapshotMetadata): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = require('path');
     
-    // Simulate restore work
-    await promisify(setTimeout)(100);
+    const metadataPath = path.join(
+      this.options.snapshotStoragePath,
+      'metadata',
+      `${metadata.id}.json`
+    );
 
-    this.emit('vm:state-restored', { runtimeId, originalRuntimeId: state.runtimeId });
+    await fs.mkdir(path.dirname(metadataPath), { recursive: true });
+    await fs.writeFile(
+      metadataPath,
+      JSON.stringify(metadata, null, 2),
+      'utf-8'
+    );
   }
 
-  /**
-   * Rollback a failed restore
-   */
-  private async rollbackRestore(runtimeId: string): Promise<void> {
-    try {
-      // Attempt to clean up partially created VM
-      this.emit('restore:rolling-back', { runtimeId });
-      
-      // Call the runtime provider to terminate the VM if it supports it
-      if ('terminate' in this.runtimeProvider) {
-        await (this.runtimeProvider as any).terminate(runtimeId);
-      }
-      
-      this.emit('restore:rolled-back', { runtimeId });
-    } catch (error) {
-      this.emit('restore:rollback-failed', { runtimeId, error });
-    }
-  }
+  private async cleanupFailedSnapshot(metadata: SnapshotMetadata): Promise<void> {
+    const fs = await import('fs/promises');
+    
+    const paths = [
+      metadata.checkpointPath,
+      metadata.diskSnapshotPath,
+      metadata.criuDumpPath,
+    ].filter((path): path is string => path !== undefined);
 
-  /**
-   * Delete a snapshot
-   */
-  public async deleteSnapshot(snapshotId: string): Promise<boolean> {
-    const snapshot = this.snapshots.get(snapshotId);
-    if (!snapshot) return false;
-
-    // Check if snapshot is being used in a restore
-    for (const operation of this.activeRestores.values()) {
-      if (operation.snapshotId === snapshotId) {
-        throw new Error('Cannot delete snapshot while being restored');
+    for (const path of paths) {
+      try {
+        await fs.rm(path, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
       }
     }
 
-    try {
-      await this.storage.delete(snapshotId);
-      this.snapshots.delete(snapshotId);
-      this.emit('snapshot:deleted', { snapshotId });
-      return true;
-    } catch (error) {
-      throw new SnapshotDeletionError(`Failed to delete snapshot: ${error}`);
-    }
+    this.snapshots.delete(metadata.id);
   }
 
-  /**
-   * Get snapshot by ID
-   */
-  public getSnapshot(snapshotId: string): Snapshot | undefined {
+  async listSnapshots(vmId?: string): Promise<SnapshotMetadata[]> {
+    const snapshots = Array.from(this.snapshots.values());
+    
+    if (vmId) {
+      return snapshots.filter(s => s.vmId === vmId);
+    }
+    
+    return snapshots;
+  }
+
+  async getSnapshot(snapshotId: string): Promise<SnapshotMetadata | undefined> {
     return this.snapshots.get(snapshotId);
   }
 
-  /**
-   * Get all snapshots
-   */
-  public getAllSnapshots(): Snapshot[] {
-    return Array.from(this.snapshots.values());
-  }
+  async deleteSnapshot(snapshotId: string): Promise<boolean> {
+    const metadata = this.snapshots.get(snapshotId);
+    
+    if (!metadata) {
+      return false;
+    }
 
-  /**
-   * Get snapshots for a specific runtime
-   */
-  public getSnapshotsByRuntime(runtimeId: string): Snapshot[] {
-    return Array.from(this.snapshots.values()).filter(
-      (s) => s.runtimeId === runtimeId
-    );
-  }
-
-  /**
-   * Get active restore operations
-   */
-  public getActiveRestores(): RestoreOperation[] {
-    return Array.from(this.activeRestores.values());
-  }
-
-  /**
-   * Get restore queue length
-   */
-  public getRestoreQueueLength(): number {
-    return this.restoreQueue.length;
-  }
-
-  /**
-   * Get restore statistics
-   */
-  public getStats(): SnapshotManagerStats {
-    const totalSize = Array.from(this.snapshots.values()).reduce(
-      (sum, s) => sum + s.size,
-      0
-    );
-
-    return {
-      totalSnapshots: this.snapshots.size,
-      readySnapshots: Array.from(this.snapshots.values()).filter((s) => s.state === 'ready').length,
-      corruptedSnapshots: Array.from(this.snapshots.values()).filter((s) => s.state === 'corrupted').length,
-      activeRestores: this.activeRestores.size,
-      queuedRestores: this.restoreQueue.length,
-      totalStorageBytes: totalSize,
-    };
-  }
-
-  /**
-   * Clean up corrupted snapshots
-   */
-  public async cleanupCorruptedSnapshots(): Promise<number> {
-    const corrupted = Array.from(this.snapshots.values()).filter(
-      (s) => s.state === 'corrupted'
-    );
-
-    let cleaned = 0;
-    for (const snapshot of corrupted) {
-      try {
-        await this.deleteSnapshot(snapshot.id);
-        cleaned++;
-      } catch (error) {
-        console.error(`Failed to cleanup snapshot ${snapshot.id}:`, error);
+    if (metadata.status === 'creating') {
+      const activeSnapshot = Array.from(this.activeSnapshots.values())
+        .find(s => s.id === snapshotId);
+      
+      if (activeSnapshot) {
+        activeSnapshot.abortController.abort();
       }
     }
 
-    return cleaned;
+    await this.cleanupFailedSnapshot(metadata);
+    
+    metadata.status = 'deleted';
+    metadata.updatedAt = new Date();
+    
+    this.emit('snapshot:deleted', { snapshotId, vmId: metadata.vmId });
+    
+    return true;
+  }
+
+  async getSnapshotSize(snapshotId: string): Promise<number> {
+    const metadata = this.snapshots.get(snapshotId);
+    
+    if (!metadata) {
+      throw new SnapshotError('Snapshot not found', 'SNAPSHOT_NOT_FOUND');
+    }
+
+    return metadata.size;
+  }
+
+  async applyExpirationPolicy(): Promise<{ expired: number; total: number }> {
+    const now = new Date();
+    const expired: string[] = [];
+    
+    const snapshotEntries = Array.from(this.snapshots.entries());
+    for (const [id, metadata] of snapshotEntries) {
+      if (metadata.expiresAt && metadata.expiresAt <= now && metadata.status !== 'deleted') {
+        await this.deleteSnapshot(id);
+        expired.push(id);
+      }
+    }
+    
+    return { expired: expired.length, total: this.snapshots.size };
+  }
+
+  async cancelSnapshot(vmId: string): Promise<boolean> {
+    const activeSnapshot = this.activeSnapshots.get(vmId);
+    
+    if (!activeSnapshot) {
+      return false;
+    }
+
+    activeSnapshot.abortController.abort();
+    
+    this.emit('snapshot:cancelled', {
+      snapshotId: activeSnapshot.id,
+      vmId,
+      timestamp: new Date(),
+    });
+    
+    return true;
+  }
+
+  async getActiveSnapshots(): Promise<ActiveSnapshot[]> {
+    return Array.from(this.activeSnapshots.values()).map(s => ({
+      ...s,
+      abortController: undefined as any, // Don't expose abort controller
+    }));
+  }
+
+  async cleanup(): Promise<void> {
+    const activeSnapshotEntries = Array.from(this.activeSnapshots.entries());
+    for (const [vmId] of activeSnapshotEntries) {
+      await this.cancelSnapshot(vmId);
+    }
+    
+    const activeRestoreEntries = Array.from(this.activeRestores.entries());
+    for (const [vmId] of activeRestoreEntries) {
+      await this.cancelRestore(vmId);
+    }
+    
+    this.snapshots.clear();
+    this.activeSnapshots.clear();
+    this.activeRestores.clear();
+    this.snapshotLocks.clear();
+    this.restoreLocks.clear();
+    
+    this.removeAllListeners();
+  }
+
+  async restoreSnapshot(
+    snapshotId: string,
+    targetVmId: string,
+    options: RestoreOptions = {}
+  ): Promise<RestoreResult> {
+    const startTime = Date.now();
+    const restoreId = uuidv4();
+    const warnings: string[] = [];
+
+    try {
+      // Check for concurrent restore operations on target VM
+      if (this.activeRestores.has(targetVmId)) {
+        throw new RestoreInProgressError(
+          `VM ${targetVmId} already has an active restore operation`,
+          { vmId: targetVmId }
+        );
+      }
+
+      // Check for concurrent snapshot operations on target VM
+      if (this.activeSnapshots.has(targetVmId)) {
+        throw new RestoreInProgressError(
+          `Cannot restore while snapshot operation is in progress for VM ${targetVmId}`,
+          { vmId: targetVmId }
+        );
+      }
+
+      const snapshot = this.snapshots.get(snapshotId);
+      if (!snapshot) {
+        throw new RestoreError(`Snapshot ${snapshotId} not found`, false, { snapshotId });
+      }
+
+      if (snapshot.status !== 'completed') {
+        throw new RestoreError(
+          `Snapshot ${snapshotId} is not in completed status (current: ${snapshot.status})`,
+          false,
+          { snapshotId, status: snapshot.status }
+        );
+      }
+
+      const abortController = new AbortController();
+      const progress: RestoreProgress = {
+        phase: 'validating',
+        percent: 0,
+        message: 'Starting restore validation',
+        timestamp: new Date(),
+      };
+
+      const activeRestore: ActiveRestore = {
+        id: restoreId,
+        snapshotId,
+        vmId: targetVmId,
+        startTime: new Date(),
+        progress,
+        abortController,
+      };
+      this.activeRestores.set(targetVmId, activeRestore);
+
+      this.emit('restore:started', {
+        restoreId,
+        snapshotId,
+        vmId: targetVmId,
+        timestamp: new Date(),
+      });
+
+      try {
+        // Phase 1: Validate snapshot integrity
+        this.updateProgress(activeRestore, 'validating', 10, 'Validating snapshot integrity');
+        
+        if (options.verifyIntegrity !== false) {
+          await this.validateSnapshotIntegrity(snapshot, abortController.signal);
+        }
+
+        // Phase 2: Restore disk snapshot
+        this.updateProgress(activeRestore, 'restoring-disk', 30, 'Restoring disk snapshot');
+        await this.restoreDiskSnapshot(snapshot, targetVmId, abortController.signal, options);
+
+        // Phase 3: Restore memory (CRIU) if available
+        if (snapshot.criuDumpPath) {
+          this.updateProgress(activeRestore, 'restoring-memory', 60, 'Restoring memory state');
+          await this.restoreCriuDump(snapshot, targetVmId, abortController.signal);
+        } else {
+          warnings.push('Memory state not available in snapshot');
+          this.updateProgress(activeRestore, 'restoring-memory', 60, 'Memory state not available');
+        }
+
+        // Phase 4: Restore containerd checkpoint
+        this.updateProgress(activeRestore, 'restoring-checkpoint', 80, 'Restoring container state');
+        await this.restoreContainerdCheckpoint(snapshot, targetVmId, abortController.signal);
+
+        // Phase 5: Finalize
+        this.updateProgress(activeRestore, 'finalizing', 95, 'Finalizing restore');
+        await this.finalizeRestore(snapshot, targetVmId, abortController.signal);
+
+        this.updateProgress(activeRestore, 'finalizing', 100, 'Restore completed');
+
+        this.emit('restore:completed', {
+          restoreId,
+          snapshotId,
+          vmId: targetVmId,
+          durationMs: Date.now() - startTime,
+        });
+
+        return {
+          success: true,
+          snapshotId,
+          vmId: targetVmId,
+          durationMs: Date.now() - startTime,
+          warnings: warnings.length > 0 ? warnings : undefined,
+        };
+      } catch (error) {
+        this.emit('restore:failed', {
+          restoreId,
+          snapshotId,
+          vmId: targetVmId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          durationMs: Date.now() - startTime,
+        });
+
+        throw error;
+      } finally {
+        this.activeRestores.delete(targetVmId);
+      }
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+
+      this.emit('restore:failed', {
+        restoreId,
+        snapshotId,
+        vmId: targetVmId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        durationMs,
+      });
+
+      return {
+        success: false,
+        snapshotId,
+        vmId: targetVmId,
+        durationMs,
+        error: error instanceof SnapshotError
+          ? error
+          : new RestoreError(
+              error instanceof Error ? error.message : 'Unknown error',
+              false,
+              { originalError: error }
+            ),
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
+    }
+  }
+
+  private updateProgress(
+    activeRestore: ActiveRestore,
+    phase: RestoreProgress['phase'],
+    percent: number,
+    message: string
+  ): void {
+    activeRestore.progress = {
+      phase,
+      percent,
+      message,
+      timestamp: new Date(),
+    };
+
+    this.emit('restore:progress', {
+      restoreId: activeRestore.id,
+      snapshotId: activeRestore.snapshotId,
+      vmId: activeRestore.vmId,
+      progress: activeRestore.progress,
+    });
+  }
+
+  private async validateSnapshotIntegrity(
+    snapshot: SnapshotMetadata,
+    signal: AbortSignal
+  ): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const crypto = await import('crypto');
+
+    const filesToValidate = [
+      { path: snapshot.checkpointPath, name: 'checkpoint' },
+      { path: snapshot.diskSnapshotPath, name: 'disk' },
+      { path: snapshot.criuDumpPath, name: 'criu' },
+    ].filter((f): f is { path: string; name: string } => f.path !== undefined);
+
+    for (const file of filesToValidate) {
+      if (signal.aborted) {
+        throw new RestoreError('Restore validation aborted', true);
+      }
+
+      try {
+        await fs.access(file.path);
+      } catch {
+        throw new SnapshotIntegrityError(
+          `${file.name} path does not exist: ${file.path}`,
+          { file: file.name, path: file.path }
+        );
+      }
+
+      // Check file is readable
+      try {
+        const fd = await fs.open(file.path, 'r');
+        await fd.close();
+      } catch (error) {
+        throw new SnapshotIntegrityError(
+          `${file.name} is not readable: ${file.path}`,
+          { file: file.name, path: file.path, error }
+        );
+      }
+
+      // Validate checksum if available
+      const checksumPath = `${file.path}.sha256`;
+      try {
+        await fs.access(checksumPath);
+        const expectedChecksum = await fs.readFile(checksumPath, 'utf-8');
+        const hash = crypto.createHash('sha256');
+        const fileStream = (await fs.open(file.path, 'r')).createReadStream();
+        
+        for await (const chunk of fileStream) {
+          if (signal.aborted) {
+            throw new RestoreError('Restore validation aborted', true);
+          }
+          hash.update(chunk);
+        }
+        
+        const actualChecksum = hash.digest('hex');
+        if (actualChecksum !== expectedChecksum.trim()) {
+          throw new SnapshotIntegrityError(
+            `Checksum mismatch for ${file.name}`,
+            { file: file.name, expected: expectedChecksum.trim(), actual: actualChecksum }
+          );
+        }
+      } catch (error) {
+        if (error instanceof SnapshotIntegrityError) {
+          throw error;
+        }
+        // Checksum file may not exist, skip validation
+      }
+    }
+
+    // Validate metadata integrity
+    if (!snapshot.vmId || !snapshot.id) {
+      throw new SnapshotIntegrityError(
+        'Snapshot metadata is incomplete',
+        { snapshotId: snapshot.id }
+      );
+    }
+  }
+
+  private async restoreDiskSnapshot(
+    snapshot: SnapshotMetadata,
+    targetVmId: string,
+    signal: AbortSignal,
+    options: RestoreOptions
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new RestoreError('Disk snapshot restore timeout', true, { targetVmId }));
+      }, options.timeoutMs || 600000); // 10 minutes default
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new RestoreError('Disk snapshot restore aborted', true, { targetVmId }));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      // Simulated disk snapshot restore
+      // In production, this would use qemu-img convert or similar
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new RestoreError('Disk snapshot restore aborted', true, { targetVmId }));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  private async restoreCriuDump(
+    snapshot: SnapshotMetadata,
+    targetVmId: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new RestoreError('CRIU restore timeout', true, { targetVmId }));
+      }, 300000); // 5 minutes
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new RestoreError('CRIU restore aborted', true, { targetVmId }));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      // Simulated CRIU restore
+      // In production, this would execute: criu restore --images-dir <path>
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new RestoreError('CRIU restore aborted', true, { targetVmId }));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  private async restoreContainerdCheckpoint(
+    snapshot: SnapshotMetadata,
+    targetVmId: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new RestoreError('Containerd checkpoint restore timeout', true, { targetVmId }));
+      }, 300000); // 5 minutes
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        reject(new RestoreError('Containerd checkpoint restore aborted', true, { targetVmId }));
+      };
+
+      signal.addEventListener('abort', onAbort);
+
+      // Simulated containerd checkpoint restore
+      // In production, this would use the containerd client API
+      setImmediate(() => {
+        clearTimeout(timeout);
+        signal.removeEventListener('abort', onAbort);
+
+        if (signal.aborted) {
+          reject(new RestoreError('Containerd checkpoint restore aborted', true, { targetVmId }));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  private async finalizeRestore(
+    snapshot: SnapshotMetadata,
+    targetVmId: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    if (signal.aborted) {
+      throw new RestoreError('Restore finalization aborted', true, { targetVmId });
+    }
+
+    // Update VM metadata to reflect restore
+    // In production, this would update containerd metadata
+  }
+
+  async getRestoreProgress(vmId: string): Promise<RestoreProgress | undefined> {
+    const activeRestore = this.activeRestores.get(vmId);
+    return activeRestore?.progress;
+  }
+
+  async cancelRestore(vmId: string): Promise<boolean> {
+    const activeRestore = this.activeRestores.get(vmId);
+
+    if (!activeRestore) {
+      return false;
+    }
+
+    activeRestore.abortController.abort();
+
+    this.emit('restore:cancelled', {
+      restoreId: activeRestore.id,
+      snapshotId: activeRestore.snapshotId,
+      vmId,
+      timestamp: new Date(),
+    });
+
+    return true;
+  }
+
+  async getActiveRestores(): Promise<Pick<ActiveRestore, 'id' | 'snapshotId' | 'vmId' | 'startTime' | 'progress'>[]> {
+    return Array.from(this.activeRestores.values()).map(r => ({
+      id: r.id,
+      snapshotId: r.snapshotId,
+      vmId: r.vmId,
+      startTime: r.startTime,
+      progress: r.progress,
+    }));
+  }
+
+  async waitForRestore(vmId: string, timeoutMs: number = 300000): Promise<RestoreResult> {
+    const startTime = Date.now();
+
+    return new Promise((resolve, reject) => {
+      const checkInterval = setInterval(() => {
+        const activeRestore = this.activeRestores.get(vmId);
+
+        if (!activeRestore) {
+          clearInterval(checkInterval);
+          resolve({
+            success: true,
+            snapshotId: '',
+            vmId,
+            durationMs: Date.now() - startTime,
+          });
+          return;
+        }
+
+        if (Date.now() - startTime > timeoutMs) {
+          clearInterval(checkInterval);
+          reject(new RestoreError(`Restore wait timeout for VM ${vmId}`, false));
+        }
+      }, 1000);
+
+      this.once(`restore:completed:${vmId}`, (result: RestoreResult) => {
+        clearInterval(checkInterval);
+        resolve(result);
+      });
+
+      this.once(`restore:failed:${vmId}`, (error: SnapshotError) => {
+        clearInterval(checkInterval);
+        reject(error);
+      });
+    });
   }
 }
-
-/**
- * Restore operation tracking
- */
-interface RestoreOperation {
-  snapshotId: string;
-  runtimeId: string;
-  startTime: number;
-  progress: RestoreProgress;
-}
-
-/**
- * Queued restore operation
- */
-interface QueuedRestore {
-  snapshotId: string;
-  options: RestoreOptions;
-  progressCallback?: RestoreProgressCallback;
-  resolve: (result: RestoreResult) => void;
-}
-
-/**
- * Snapshot manager statistics
- */
-interface SnapshotManagerStats {
-  totalSnapshots: number;
-  readySnapshots: number;
-  corruptedSnapshots: number;
-  activeRestores: number;
-  queuedRestores: number;
-  totalStorageBytes: number;
-}
-
-/**
- * Custom error for snapshot creation failures
- */
-class SnapshotCreationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'SnapshotCreationError';
-  }
-}
-
-/**
- * Custom error for snapshot deletion failures
- */
-class SnapshotDeletionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'SnapshotDeletionError';
-  }
-}
-
-// Export types and classes
-export type {
-  Snapshot,
-  SnapshotMetadata,
-  RestoreOptions,
-  RestoreResult,
-  RestoreProgress,
-  RestoreProgressCallback,
-  RestoreLimits,
-  StorageBackend,
-  RuntimeProvider,
-  SnapshotManagerStats,
-};
-
-export { SnapshotCreationError, SnapshotDeletionError };
-export default SnapshotManager;
