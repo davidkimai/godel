@@ -36,11 +36,13 @@ export type RuntimeState =
 /**
  * Runtime events that can be subscribed to
  */
-export type RuntimeEvent = 
+export type RuntimeEvent =
   | 'stateChange'      // Runtime state has changed
   | 'error'            // Error occurred
   | 'resourceWarning'  // Resource usage approaching limits
-  | 'healthCheck';     // Health check result
+  | 'healthCheck'      // Health check result
+  | 'executionStart'   // Execution started
+  | 'executionEnd';    // Execution ended
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION TYPES
@@ -95,19 +97,23 @@ export interface NetworkConfig {
 }
 
 /**
- * Network policy for micro-segmentation
+ * Network policy definition
  */
 export interface NetworkPolicy {
   /** Policy name */
   name: string;
-  /** Allowed ingress rules */
-  ingress?: PolicyRule[];
-  /** Allowed egress rules */
-  egress?: PolicyRule[];
+  /** Policy type */
+  type: 'ingress' | 'egress';
+  /** Allowed ports */
+  ports?: number[];
+  /** Allowed CIDR blocks */
+  cidr?: string[];
+  /** Allowed domains (for egress) */
+  domains?: string[];
 }
 
 /**
- * Network policy rule
+ * Network policy rule (legacy - kept for backward compatibility)
  */
 export interface PolicyRule {
   /** Protocol (tcp, udp, icmp) */
@@ -216,6 +222,8 @@ export interface RuntimeMetadata {
   createdAt: Date;
   /** Additional labels */
   labels?: Record<string, string>;
+  /** Snapshot ID this runtime was restored from */
+  restoredFrom?: string;
 }
 
 /**
@@ -271,15 +279,23 @@ export interface ExecutionResult {
  */
 export interface ExecutionMetadata {
   /** Command that was executed */
-  command: string;
-  /** Start timestamp */
-  startedAt: Date;
-  /** End timestamp */
-  endedAt: Date;
+  command?: string;
+  /** Arguments passed to command */
+  args?: string[];
+  /** Runtime ID */
+  runtimeId?: string;
+  /** User who executed the command */
+  user?: string;
+  /** Start time */
+  startedAt?: Date;
+  /** End time */
+  endedAt?: Date;
   /** Peak memory usage in bytes */
   peakMemory?: number;
   /** CPU time in milliseconds */
   cpuTime?: number;
+  /** Additional metadata */
+  [key: string]: unknown;
 }
 
 /**
@@ -354,6 +370,8 @@ export interface EventData {
   resourceUsage?: ResourceUsage;
   /** Health status (for healthCheck events) */
   health?: 'healthy' | 'unhealthy';
+  /** Execution metadata (for executionStart/executionEnd events) */
+  execution?: ExecutionMetadata;
   /** Additional context */
   context?: Record<string, unknown>;
 }
@@ -579,11 +597,12 @@ export interface RuntimeProvider {
   /**
    * Terminate a running runtime
    * @param runtimeId - ID of the runtime to terminate
+   * @param force - Whether to force termination even with uncommitted changes (worktree only)
    * @returns Promise resolving when termination is complete
    * @throws {NotFoundError} If runtime not found
    * @throws {TimeoutError} If termination times out
    */
-  terminate(runtimeId: string): Promise<void>;
+  terminate(runtimeId: string, force?: boolean): Promise<void>;
 
   /**
    * Get current status of a runtime
@@ -728,7 +747,14 @@ export interface RuntimeProvider {
    * @param event - Event type to subscribe to
    * @param handler - Event handler function
    */
-  on(event: RuntimeEvent, handler: EventHandler): this;
+  on(event: RuntimeEvent, handler: EventHandler): void;
+
+  /**
+   * Unsubscribe from runtime events
+   * @param event - Event type to unsubscribe from
+   * @param handler - Event handler function to remove
+   */
+  off(event: RuntimeEvent, handler: EventHandler): void;
 
   /**
    * Wait for a runtime to reach a specific state
