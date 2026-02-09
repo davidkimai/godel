@@ -1,6 +1,6 @@
 /**
  * Agent Lifecycle Manager - SPEC_v2.md Section 2.2
- * 
+ *
  * Manages agent lifecycle states, auto-recovery, and transitions.
  * States: IDLE → SPAWNING → RUNNING → COMPLETED
  *                    ↓
@@ -9,12 +9,19 @@
  *                 FAILED
  *                    ↓
  *               ESCALATED
- * 
+ *
  * RACE CONDITION FIXES v3:
  * - Mutex protection for state transitions (one mutex per agent)
  * - Prevents concurrent state changes (e.g., IDLE → RUNNING and IDLE → PAUSED)
  * - Ensures atomic state changes
  * - Uses async-mutex library for exclusive access
+ *
+ * RUNTIME PROVIDER INTEGRATION:
+ * - Uses RuntimeProvider abstraction for agent execution environments
+ * - Supports Worktree (legacy), Kata, and E2B runtimes
+ * - Runtime selection via agent config, team policy, or default
+ *
+ * @see SPEC-002 Section 4.1
  */
 
 import { logger } from '../utils/logger';
@@ -38,6 +45,18 @@ import {
   assertExists,
   safeExecute,
 } from '../errors';
+
+// RuntimeProvider imports
+import {
+  RuntimeProvider,
+  SpawnConfig,
+  AgentRuntime,
+  RuntimeType,
+} from './runtime/runtime-provider';
+import {
+  RuntimeProviderFactory,
+  RuntimeSelectionOptions,
+} from './runtime/runtime-provider-factory';
 
 // ============================================================================
 // Types
@@ -68,6 +87,10 @@ export interface AgentState {
   completedAt?: Date;
   pausedAt?: Date;
   resumedAt?: Date;
+  // RuntimeProvider integration fields
+  runtimeId?: string;
+  runtimeType?: RuntimeType;
+  runtimeProvider?: RuntimeProvider;
 }
 
 export interface RetryOptions {
@@ -79,6 +102,12 @@ export interface RetryOptions {
 
 export interface SpawnOptions extends CreateAgentOptions {
   autoStart?: boolean;
+  /** Runtime type preference (worktree, kata, e2b) */
+  runtime?: RuntimeType;
+  /** Team ID for runtime policy lookup */
+  teamId?: string;
+  /** Force specific runtime regardless of team policy */
+  forceRuntime?: boolean;
 }
 
 export interface LifecycleMetrics {
@@ -112,11 +141,21 @@ export class AgentLifecycle extends EventEmitter {
   // Global mutex for agent creation (to prevent ID collisions)
   private creationMutex: Mutex = new Mutex();
 
-  constructor(storage: AgentStorage, messageBus: MessageBus, openclaw: OpenClawCore) {
+  // RuntimeProvider integration
+  private runtimeFactory: RuntimeProviderFactory;
+
+  constructor(
+    storage: AgentStorage,
+    messageBus: MessageBus,
+    openclaw: OpenClawCore,
+    runtimeFactory?: RuntimeProviderFactory
+  ) {
     super();
     this.storage = storage;
     this.messageBus = messageBus;
     this.openclaw = openclaw;
+    // Use provided factory or get singleton instance
+    this.runtimeFactory = runtimeFactory || RuntimeProviderFactory.getInstance();
   }
   
   /**
@@ -204,6 +243,11 @@ export class AgentLifecycle extends EventEmitter {
   /**
    * Spawn a new agent
    * RACE CONDITION FIX: Protected by creationMutex to prevent ID collisions
+   *
+   * RuntimeProvider Integration:
+   * - Uses RuntimeProviderFactory to get appropriate provider
+   * - Supports runtime selection via options or team policy
+   * - Spawns agent runtime via provider.spawn()
    */
   async spawn(options: SpawnOptions): Promise<Agent> {
     if (!this.active && this.startPromise) {
@@ -219,7 +263,7 @@ export class AgentLifecycle extends EventEmitter {
     return this.creationMutex.runExclusive(async () => {
       // Create agent model
       const agent = createAgent(options);
-      
+
       // Create lifecycle state
       const state: AgentState = {
         id: agent.id,
@@ -233,11 +277,80 @@ export class AgentLifecycle extends EventEmitter {
 
       this.states.set(agent.id, state);
       this.storage.create(agent);
-      
+
       // Create the mutex for this agent immediately
       this.getMutex(agent.id);
 
-      // Spawn OpenClaw session - core primitive, always available
+      // ═══════════════════════════════════════════════════════════════════════
+      // RUNTIME PROVIDER INTEGRATION
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // Select runtime via factory
+      const runtimeOptions: RuntimeSelectionOptions = {
+        runtime: options.runtime,
+        agentId: agent.id,
+        teamId: options.teamId || agent.teamId,
+        forceRuntime: options.forceRuntime,
+      };
+
+      // Get or create runtime provider
+      const provider = this.runtimeFactory.createProviderWithOptions(runtimeOptions);
+      state.runtimeProvider = provider;
+      state.runtimeType = this.runtimeFactory.selectRuntimeType(runtimeOptions);
+
+      logger.info('[AgentLifecycle] Spawning agent runtime', {
+        agentId: agent.id,
+        runtimeType: state.runtimeType,
+        teamId: options.teamId || agent.teamId,
+      });
+
+      try {
+        // Create spawn config for RuntimeProvider
+        const spawnConfig: SpawnConfig = {
+          runtime: state.runtimeType,
+          resources: {
+            cpu: 1,
+            memory: '512Mi',
+          },
+          labels: {
+            agentId: agent.id,
+            teamId: agent.teamId || '',
+            label: agent.label,
+          },
+        };
+
+        // Spawn runtime via provider
+        const runtime = await provider.spawn(spawnConfig);
+        state.runtimeId = runtime.id;
+
+        logger.info('[AgentLifecycle] Agent runtime spawned', {
+          agentId: agent.id,
+          runtimeId: runtime.id,
+          runtimeType: runtime.runtime,
+        });
+
+        // Store runtime info in agent metadata
+        agent.metadata = {
+          ...agent.metadata,
+          runtimeId: runtime.id,
+          runtimeType: runtime.runtime,
+        };
+      } catch (error) {
+        logger.error('[AgentLifecycle] Failed to spawn agent runtime', {
+          agentId: agent.id,
+          runtimeType: state.runtimeType,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
+        // Fallback to legacy behavior if runtime spawn fails
+        state.runtimeType = 'worktree';
+        logger.warn('[AgentLifecycle] Falling back to legacy worktree mode');
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // LEGACY OPENCLAW SESSION SPAWN (maintained for backward compatibility)
+      // ═══════════════════════════════════════════════════════════════════════
+
       let sessionResult: string | undefined;
       if (this.openClawAvailable) {
         sessionResult = await safeExecute(
@@ -250,6 +363,8 @@ export class AgentLifecycle extends EventEmitter {
                 label: agent.label,
                 teamId: agent.teamId,
                 parentId: agent.parentId,
+                runtimeId: state.runtimeId,
+                runtimeType: state.runtimeType,
                 ...agent.metadata,
               },
               maxTokens: options.budgetLimit ? Math.floor(options.budgetLimit * 1000) : undefined,
@@ -274,7 +389,7 @@ export class AgentLifecycle extends EventEmitter {
         this.emit('agent.session_created', { agentId: agent.id, sessionId: sessionResult });
       }
 
-      // Publish spawn event
+      // Publish spawn event with runtime info
       this.publishAgentEvent(agent.id, 'agent.spawned', {
         agentId: agent.id,
         label: agent.label,
@@ -283,6 +398,8 @@ export class AgentLifecycle extends EventEmitter {
         teamId: agent.teamId,
         parentId: agent.parentId,
         sessionId: state.sessionId,
+        runtimeId: state.runtimeId,
+        runtimeType: state.runtimeType,
       });
 
       this.emit('agent.spawned', state);
@@ -444,6 +561,9 @@ export class AgentLifecycle extends EventEmitter {
   /**
    * Kill an agent
    * RACE CONDITION FIX: Protected by per-agent mutex
+   *
+   * RuntimeProvider Integration:
+   * - Terminates agent runtime via provider.terminate()
    */
   async kill(agentId: string, force: boolean = false): Promise<void> {
     return this.withAgentLock(agentId, async () => {
@@ -463,10 +583,25 @@ export class AgentLifecycle extends EventEmitter {
       state.completedAt = new Date();
 
       // Update storage
-      this.storage.update(agentId, { 
+      this.storage.update(agentId, {
         status: AgentStatus.KILLED,
         completedAt: state.completedAt,
       });
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // RUNTIME PROVIDER INTEGRATION - Terminate runtime
+      // ═══════════════════════════════════════════════════════════════════════
+
+      if (state.runtimeProvider && state.runtimeId) {
+        await safeExecute(
+          async () => {
+            await state.runtimeProvider!.terminate(state.runtimeId!);
+            this.emit('agent.runtime_terminated', { agentId, runtimeId: state.runtimeId });
+          },
+          undefined,
+          { logError: true, context: 'AgentLifecycle.terminateRuntime' }
+        );
+      }
 
       // Kill OpenClaw session
       if (this.openclaw.hasSession(agentId)) {
@@ -484,10 +619,11 @@ export class AgentLifecycle extends EventEmitter {
         agentId,
         force,
         sessionId: state.sessionId,
+        runtimeId: state.runtimeId,
       });
 
       this.emit('agent.killed', state);
-      
+
       // Clean up the mutex after termination
       this.cleanupMutex(agentId);
     });
@@ -696,6 +832,193 @@ export class AgentLifecycle extends EventEmitter {
     };
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // RUNTIME PROVIDER INTEGRATION METHODS
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Execute a command in an agent's runtime
+   * Uses RuntimeProvider.execute() to run commands in the agent's execution environment
+   *
+   * @param agentId - Agent ID
+   * @param command - Command to execute
+   * @param options - Execution options
+   * @returns Execution result
+   */
+  async executeInAgent(
+    agentId: string,
+    command: string,
+    options?: { timeout?: number; env?: Record<string, string>; cwd?: string }
+  ): Promise<{ exitCode: number; stdout: string; stderr: string; duration: number }> {
+    const state = this.states.get(agentId);
+    if (!state) {
+      throw new AgentNotFoundError(agentId);
+    }
+
+    if (!state.runtimeProvider || !state.runtimeId) {
+      throw new ApplicationError(
+        `Agent ${agentId} does not have an active runtime`,
+        DashErrorCode.INVALID_STATE_TRANSITION,
+        400,
+        { agentId },
+        true
+      );
+    }
+
+    if (state.lifecycleState !== 'running') {
+      throw new ApplicationError(
+        `Cannot execute in agent with state: ${state.lifecycleState}`,
+        DashErrorCode.INVALID_STATE_TRANSITION,
+        400,
+        { agentId, currentState: state.lifecycleState },
+        true
+      );
+    }
+
+    const result = await state.runtimeProvider.execute(state.runtimeId, command, options);
+
+    return {
+      exitCode: result.exitCode,
+      stdout: result.stdout,
+      stderr: result.stderr,
+      duration: result.duration,
+    };
+  }
+
+  /**
+   * Get agent runtime status
+   * Uses RuntimeProvider.getStatus() to retrieve runtime information
+   *
+   * @param agentId - Agent ID
+   * @returns Runtime status information
+   */
+  async getAgentStatus(agentId: string): Promise<{
+    runtimeId?: string;
+    runtimeType?: RuntimeType;
+    state: LifecycleState;
+    healthy?: boolean;
+    uptime: number;
+    resources?: {
+      cpu: number;
+      memory: number;
+      disk: number;
+    };
+  }> {
+    const state = this.states.get(agentId);
+    if (!state) {
+      throw new AgentNotFoundError(agentId);
+    }
+
+    let runtimeStatus;
+    if (state.runtimeProvider && state.runtimeId) {
+      try {
+        runtimeStatus = await state.runtimeProvider.getStatus(state.runtimeId);
+      } catch (error) {
+        logger.warn('[AgentLifecycle] Failed to get runtime status', {
+          agentId,
+          runtimeId: state.runtimeId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return {
+      runtimeId: state.runtimeId,
+      runtimeType: state.runtimeType,
+      state: state.lifecycleState,
+      healthy: runtimeStatus?.health,
+      uptime: runtimeStatus?.uptime || (state.startedAt ? Date.now() - state.startedAt.getTime() : 0),
+      resources: runtimeStatus?.resources ? {
+        cpu: runtimeStatus.resources.cpu,
+        memory: runtimeStatus.resources.memory,
+        disk: runtimeStatus.resources.disk,
+      } : undefined,
+    };
+  }
+
+  /**
+   * Sync files to/from agent runtime
+   * Uses RuntimeProvider.uploadDirectory() and downloadDirectory()
+   *
+   * @param agentId - Agent ID
+   * @param direction - 'upload' or 'download'
+   * @param localPath - Local filesystem path
+   * @param remotePath - Remote runtime path
+   */
+  async syncFiles(
+    agentId: string,
+    direction: 'upload' | 'download',
+    localPath: string,
+    remotePath: string
+  ): Promise<void> {
+    const state = this.states.get(agentId);
+    if (!state) {
+      throw new AgentNotFoundError(agentId);
+    }
+
+    if (!state.runtimeProvider || !state.runtimeId) {
+      throw new ApplicationError(
+        `Agent ${agentId} does not have an active runtime`,
+        DashErrorCode.INVALID_STATE_TRANSITION,
+        400,
+        { agentId },
+        true
+      );
+    }
+
+    if (direction === 'upload') {
+      await state.runtimeProvider.uploadDirectory(state.runtimeId, localPath, remotePath);
+      logger.info('[AgentLifecycle] Files uploaded to agent runtime', {
+        agentId,
+        localPath,
+        remotePath,
+      });
+    } else {
+      await state.runtimeProvider.downloadDirectory(state.runtimeId, remotePath, localPath);
+      logger.info('[AgentLifecycle] Files downloaded from agent runtime', {
+        agentId,
+        remotePath,
+        localPath,
+      });
+    }
+  }
+
+  /**
+   * Get the runtime provider for an agent
+   * @param agentId - Agent ID
+   * @returns RuntimeProvider instance or undefined
+   */
+  getAgentRuntimeProvider(agentId: string): RuntimeProvider | undefined {
+    const state = this.states.get(agentId);
+    return state?.runtimeProvider;
+  }
+
+  /**
+   * Get the runtime ID for an agent
+   * @param agentId - Agent ID
+   * @returns Runtime ID or undefined
+   */
+  getAgentRuntimeId(agentId: string): string | undefined {
+    const state = this.states.get(agentId);
+    return state?.runtimeId;
+  }
+
+  /**
+   * Set team runtime policy
+   * Delegates to RuntimeProviderFactory
+   */
+  setTeamRuntimePolicy(teamId: string, runtimeType: RuntimeType): void {
+    this.runtimeFactory.setTeamPolicy(teamId, runtimeType);
+    logger.info('[AgentLifecycle] Team runtime policy set', { teamId, runtimeType });
+  }
+
+  /**
+   * Get team runtime policy
+   */
+  getTeamRuntimePolicy(teamId: string): RuntimeType | undefined {
+    return this.runtimeFactory.getTeamPolicy(teamId);
+  }
+
   /**
    * Clean up completed/failed agents older than a threshold
    */
@@ -803,7 +1126,8 @@ let globalLifecycle: AgentLifecycle | null = null;
 export function getGlobalLifecycle(
   storage?: AgentStorage,
   messageBus?: MessageBus,
-  openclaw?: OpenClawCore
+  openclaw?: OpenClawCore,
+  runtimeFactory?: RuntimeProviderFactory
 ): AgentLifecycle {
   if (!globalLifecycle) {
     if (!storage || !messageBus) {
@@ -817,7 +1141,7 @@ export function getGlobalLifecycle(
     }
     // OpenClaw is a core primitive - get the global instance if not provided
     const openclawInstance = openclaw ?? getOpenClawCore(messageBus);
-    globalLifecycle = new AgentLifecycle(storage, messageBus, openclawInstance);
+    globalLifecycle = new AgentLifecycle(storage, messageBus, openclawInstance, runtimeFactory);
   }
   return globalLifecycle;
 }

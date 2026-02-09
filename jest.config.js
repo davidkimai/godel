@@ -6,18 +6,20 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/', '/jest\\.setup\\.(ci|test)\\.ts$/'],
   transformIgnorePatterns: [
-    '/node_modules/(?!(uuid|nanoid)/)'
+    '/node_modules/(?!(uuid|nanoid|@kubernetes/client-node)/)'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ci.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json',
+      useESM: true,
       diagnostics: {
         warnOnly: true,
         ignoreCodes: ['TS2305', 'TS2724', 'TS2352', 'TS2339', 'TS4111', 'TS1259', 'TS2353', 'TS2702'],
       },
     }],
   },
+  extensionsToTreatAsEsm: ['.ts'],
   testTimeout: 30000, // 30 seconds for integration tests
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   coverageThreshold: {
@@ -33,7 +35,8 @@ module.exports = {
     '^@godel/(.*)$': '<rootDir>/src/$1',
     '^@jtan15010/dash$': '<rootDir>/src/index.ts',
     '^@jtan15010/godel$': '<rootDir>/src/index.ts',
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '@kubernetes/client-node': '<rootDir>/node_modules/@kubernetes/client-node/dist/index.js'
   },
   modulePathIgnorePatterns: ['<rootDir>/packages/ai/'],
   forceExit: true,

@@ -151,6 +151,39 @@ export {
 } from './secrets-manager';
 
 // ============================================================================
+// Runtime Configuration
+// ============================================================================
+
+export {
+  // Zod schemas
+  RuntimeTypeSchema,
+  ResourceLimitsSchema,
+  AgentRuntimeConfigSchema,
+  TeamRuntimeConfigSchema,
+  RuntimeFeatureFlagsSchema,
+  GlobalRuntimeConfigSchema,
+  
+  // Types
+  AgentRuntimeConfig,
+  TeamRuntimeConfig,
+  RuntimeFeatureFlags,
+  GlobalRuntimeConfig,
+  
+  // Constants
+  RuntimeEnvVars,
+  defaultResourceLimits,
+  defaultFeatureFlags,
+  defaultRuntimeConfig,
+  
+  // Manager class
+  RuntimeConfigManager,
+  
+  // Functions
+  createRuntimeConfig,
+  validateRuntimeConfig,
+} from './runtime';
+
+// ============================================================================
 // Backwards Compatibility
 // ============================================================================
 

@@ -1,457 +1,677 @@
-# Godel Hypervisor Architecture Transition - Technical Specification
+# SPEC-002: Godel Hypervisor Architecture - Technical Specification
 
 **Version:** 1.0  
 **Date:** 2026-02-08  
-**Status:** Planning Phase  
-**Priority:** P0 (Strategic Architecture)  
-**Target Completion:** 2026-Q2  
+**Status:** ✅ APPROVED - Ground Truth Specification  
+**Priority:** P0 (Strategic)  
+**PRD Reference:** PRD-003-hypervisor-architecture.md  
 
 ---
 
-## Executive Summary
+## 1. Executive Summary
 
-This specification details the architectural transition of Godel from Git Worktree-based execution to a **Hypervisor Architecture** using Kata Containers with Firecracker MicroVMs. This represents a fundamental shift from "shared hosting" to "serverless containers" with full hardware virtualization, addressing critical security and isolation requirements for industrial-grade AI agent sandboxing.
+This specification defines the technical implementation for transforming Godel to a hypervisor architecture using Kata Containers with Firecracker MicroVMs. It provides detailed architecture, API contracts, implementation tasks, and verification criteria.
 
----
-
-## 1. Technology Comparison Matrix
-
-### 1.1 Sandboxing Technology Evaluation
-
-| Technology | Isolation Level | Boot Time | Security | Complexity | Docker Compatible | Recommendation |
-|------------|-----------------|-----------|----------|------------|-------------------|----------------|
-| **Kata Containers + Firecracker** | VM (MicroVM) | <100ms | Hardware-level | Medium | ✅ Yes | **PRIMARY** |
-| Raw Firecracker | VM (MicroVM) | <125ms | Hardware-level | High | ❌ No | Too complex |
-| Docker + runc | Process | <1s | Namespace-based | Low | ✅ Yes | Insufficient isolation |
-| gVisor | Process + syscall interception | 1-2s | Strong | Medium | ✅ Yes | Performance overhead |
-| Git Worktrees (Current) | Filesystem only | <100ms | Minimal | Low | N/A | **DEPRECATED** |
-| E2B (Remote) | VM (Cloud) | <2s | Hardware-level | Low | ✅ Yes | **SECONDARY** |
-
-### 1.2 Selection Rationale
-
-**Kata Containers Selected Because:**
-- ✅ Runs standard Docker images (maintains OpenClaw/Pi compatibility)
-- ✅ Automatic Firecracker VM provisioning under the hood
-- ✅ Kubernetes native (runtimeClassName integration)
-- ✅ Faster than traditional VMs (<100ms boot)
-- ✅ Stronger isolation than containers (dedicated kernel)
-- ✅ Simpler than raw Firecracker (no VM management complexity)
-
-**E2B Selected for Remote Because:**
-- ✅ Managed infrastructure (no VM maintenance)
-- ✅ Scalable to thousands of sandboxes
-- ✅ Snapshot/restore capabilities
-- ✅ Pay-per-use pricing model
+**Key Technical Decisions:**
+- **RuntimeProvider abstraction** for pluggable backends (Worktree/Kata/E2B)
+- **Kata Containers** as primary runtime (Docker compatible + VM isolation)
+- **Kubernetes integration** via runtimeClassName
+- **11-week implementation** across 4 phases
 
 ---
 
-## 2. Architecture Comparison: Current vs Target
+## 2. Architecture Overview
 
-### 2.1 Current State (Git Worktrees)
+### 2.1 High-Level Architecture
 
-| Aspect | Implementation | Limitations |
-|--------|---------------|-------------|
-| **Isolation** | Filesystem namespaces only | Processes share host kernel; vulnerable to kernel exploits |
-| **Security** | File permission-based | No hardware isolation; privileged escalation possible |
-| **Resources** | Host cgroup limits | No true memory/CPU isolation; noisy neighbor problems |
-| **Boot Time** | ~100ms (git worktree create) | Fast but insecure |
-| **Persistence** | Persistent worktrees on disk | State leakage between sessions |
-| **Scalability** | Limited by host resources | Cannot scale beyond single node |
-| **Snapshotting** | Git commits only | No runtime state capture |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Godel Control Plane                        │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              RuntimeProvider Interface                  │   │
+│  │  ┌─────────────┬──────────────┬─────────────────────┐   │   │
+│  │  │  Worktree   │    Kata      │        E2B          │   │   │
+│  │  │  Provider   │   Provider   │     Provider        │   │   │
+│  │  └─────────────┴──────────────┴─────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        │                     │                     │
+   ┌────▼─────┐        ┌──────▼──────┐       ┌─────▼──────┐
+   │ Git      │        │  Kata       │       │   E2B      │
+   │ Worktree │        │ Containers  │       │  Remote    │
+   │ (Legacy) │        │ +Firecracker│       │  Sandbox   │
+   └──────────┘        └─────────────┘       └────────────┘
+```
 
-### 2.2 Target State (Kata MicroVMs)
+### 2.2 Technology Stack
 
-| Aspect | Implementation | Benefits |
-|--------|---------------|----------|
-| **Isolation** | Hardware-virtualized MicroVM | Dedicated kernel per agent; true security boundary |
-| **Security** | VM-level + container | Kernel exploits contained; defense in depth |
-| **Resources** | VM resource limits | True memory/CPU isolation; guaranteed quotas |
-| **Boot Time** | <100ms (Firecracker) | Comparable speed with superior isolation |
-| **Persistence** | Ephemeral by default | Clean slate per session; no state leakage |
-| **Scalability** | Kubernetes-orchestrated | Scale to 1000s of agents across cluster |
-| **Snapshotting** | VM snapshot support | Resume exact agent state; fork workflows |
+| Component | Technology | Version | Purpose |
+|-----------|-----------|---------|---------|
+| **Container Runtime** | Kata Containers | 3.x | VM-based containers |
+| **VMM** | Firecracker | 1.x | MicroVMs |
+| **Orchestration** | Kubernetes | 1.25+ | Container orchestration |
+| **CNI** | Calico/Cilium | Latest | Network policies |
+| **Storage** | containerd/devmapper | Latest | VM storage |
+| **Monitoring** | Prometheus/Grafana | Latest | Observability |
+| **Language** | TypeScript | 5.x | Implementation |
 
-### 2.3 Strategic Benefits of MicroVMs
+### 2.3 Why Kata (Not Raw Firecracker)?
 
-1. **Security:** Hardware-level isolation prevents container escape attacks
-2. **Multi-tenancy:** Run untrusted agent code safely on shared infrastructure
-3. **Compliance:** Meet SOC2/ISO27001 requirements for sensitive workloads
-4. **Reliability:** Agent crashes don't affect host or other agents
-5. **Scalability:** Horizontal pod autoscaling based on agent demand
-6. **Efficiency:** Higher density than traditional VMs due to lightweight MicroVMs
+| Aspect | Raw Firecracker | Kata Containers | Winner |
+|--------|-----------------|-----------------|--------|
+| Complexity | High (custom tooling) | Low (standard K8s) | Kata ✅ |
+| Docker Support | No | Yes (standard images) | Kata ✅ |
+| K8s Integration | Manual | Native runtimeClass | Kata ✅ |
+| Operational Overhead | High | Low (standard K8s ops) | Kata ✅ |
+| Debuggability | Hard | Standard K8s tools | Kata ✅ |
+
+**Decision:** Use Kata to leverage existing Docker/K8s toolchain while gaining VM isolation.
 
 ---
 
-## 3. RuntimeProvider Abstraction Layer
+## 3. Core Interfaces
 
-### 3.1 Interface Design
+### 3.1 RuntimeProvider Interface
 
 ```typescript
-// src/core/runtime/runtime-provider.ts
-
 /**
- * RuntimeProvider - Abstraction layer for agent execution environments
- * Supports pluggable backends: Worktree (legacy), Kata (MicroVM), E2B (remote)
+ * RuntimeProvider - Abstraction for agent execution environments
+ * Supports Worktree, Kata, and E2B runtimes
  */
-
-export interface RuntimeProvider {
-  readonly name: string;
-  readonly type: 'worktree' | 'microvm' | 'remote';
+interface RuntimeProvider {
+  // Lifecycle Management
+  spawn(config: SpawnConfig): Promise<AgentRuntime>;
+  terminate(runtimeId: string): Promise<void>;
+  getStatus(runtimeId: string): Promise<RuntimeStatus>;
+  listRuntimes(filters?: RuntimeFilters): Promise<AgentRuntime[]>;
   
-  // Lifecycle
-  spawn(config: SpawnConfig): Promise<ExecutionContext>;
-  terminate(contextId: string): Promise<void>;
+  // Execution
+  execute(runtimeId: string, command: string, options?: ExecutionOptions): Promise<ExecutionResult>;
+  executeStream(runtimeId: string, command: string): AsyncIterable<ExecutionOutput>;
+  executeInteractive(runtimeId: string, command: string, stdin: ReadableStream): Promise<ExecutionResult>;
   
-  // Operations
-  execute(contextId: string, command: string): Promise<ExecutionResult>;
-  readFile(contextId: string, path: string): Promise<string>;
-  writeFile(contextId: string, path: string, content: string): Promise<void>;
+  // File Operations
+  readFile(runtimeId: string, path: string): Promise<Buffer>;
+  writeFile(runtimeId: string, path: string, data: Buffer): Promise<void>;
+  uploadDirectory(runtimeId: string, localPath: string, remotePath: string): Promise<void>;
+  downloadDirectory(runtimeId: string, remotePath: string, localPath: string): Promise<void>;
   
-  // State
-  snapshot(contextId: string): Promise<Snapshot>;
-  restore(snapshotId: string): Promise<ExecutionContext>;
+  // State Management
+  snapshot(runtimeId: string, metadata?: SnapshotMetadata): Promise<Snapshot>;
+  restore(snapshotId: string): Promise<AgentRuntime>;
+  listSnapshots(runtimeId?: string): Promise<Snapshot[]>;
+  deleteSnapshot(snapshotId: string): Promise<void>;
   
-  // Health
-  getStatus(contextId: string): Promise<RuntimeStatus>;
-}
-
-export interface SpawnConfig {
-  agentId: string;
-  image: string;           // Docker image or E2B template
-  resources: ResourceLimits;
-  environment: Record<string, string>;
-  workdir: string;
-  metadata: AgentMetadata;
-}
-
-export interface ResourceLimits {
-  cpus: number;            // CPU cores
-  memory: number;          // MB
-  disk: number;            // MB ephemeral storage
-  timeout: number;         // seconds
-}
-
-export interface ExecutionContext {
-  id: string;
-  agentId: string;
-  provider: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  endpoint?: string;       // For remote access
-  createdAt: Date;
+  // Events
+  on(event: RuntimeEvent, handler: EventHandler): void;
+  waitForState(runtimeId: string, state: RuntimeState, timeout?: number): Promise<boolean>;
 }
 ```
 
-### 3.2 Provider Implementations
+### 3.2 Supporting Types
 
 ```typescript
-// Providers to implement:
+// Configuration
+interface SpawnConfig {
+  runtime: 'worktree' | 'kata' | 'e2b';
+  image?: string;           // Docker image for Kata/E2B
+  resources: ResourceLimits;
+  network?: NetworkConfig;
+  volumes?: VolumeMount[];
+  env?: Record<string, string>;
+  labels?: Record<string, string>;
+  timeout?: number;         // Spawn timeout in seconds
+}
 
-1. WorktreeRuntimeProvider
-   - Legacy support during migration
-   - Direct filesystem operations
-   - Node.js child_process execution
+interface ResourceLimits {
+  cpu: number;              // CPU cores (fractional allowed: 0.5, 1.5, etc.)
+  memory: string;           // Memory limit (e.g., "512Mi", "2Gi")
+  disk?: string;            // Disk limit (e.g., "10Gi")
+  agents?: number;          // Max concurrent agents (for quota)
+}
 
-2. KataRuntimeProvider
-   - Kubernetes Pod with runtimeClassName: kata
-   - Containerd + Kata Containers shim
-   - Firecracker/Cloud Hypervisor backend
+interface NetworkConfig {
+  mode: 'bridge' | 'host' | 'none';
+  policies?: NetworkPolicy[];
+  dns?: string[];
+}
 
-3. E2BRuntimeProvider
-   - Remote sandbox via E2B API
-   - REST/WebSocket interface
-   - Managed infrastructure
+interface VolumeMount {
+  name: string;
+  source: string;
+  destination: string;
+  readOnly?: boolean;
+}
+
+// Runtime State
+interface AgentRuntime {
+  id: string;
+  runtime: RuntimeType;
+  state: RuntimeState;
+  resources: ResourceUsage;
+  createdAt: Date;
+  lastActiveAt: Date;
+  metadata: RuntimeMetadata;
+}
+
+type RuntimeType = 'worktree' | 'kata' | 'e2b';
+type RuntimeState = 'pending' | 'creating' | 'running' | 'paused' | 'terminating' | 'terminated' | 'error';
+
+interface ResourceUsage {
+  cpu: number;              // Current CPU usage (cores)
+  memory: number;           // Current memory usage (bytes)
+  disk: number;             // Current disk usage (bytes)
+  network: NetworkStats;
+}
+
+interface NetworkStats {
+  rxBytes: number;
+  txBytes: number;
+  rxPackets: number;
+  txPackets: number;
+}
+
+// Execution
+interface ExecutionOptions {
+  timeout?: number;
+  env?: Record<string, string>;
+  cwd?: string;
+  user?: string;
+}
+
+interface ExecutionResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  duration: number;
+  metadata: ExecutionMetadata;
+}
+
+interface ExecutionOutput {
+  type: 'stdout' | 'stderr';
+  data: string;
+  timestamp: Date;
+}
+
+// Snapshots
+interface Snapshot {
+  id: string;
+  runtimeId: string;
+  createdAt: Date;
+  size: number;
+  metadata: SnapshotMetadata;
+}
+
+interface SnapshotMetadata {
+  name?: string;
+  description?: string;
+  labels?: Record<string, string>;
+}
+
+// Events
+type RuntimeEvent = 'stateChange' | 'error' | 'resourceWarning' | 'healthCheck';
+type EventHandler = (event: RuntimeEvent, data: EventData) => void;
+```
+
+### 3.3 Error Handling
+
+```typescript
+// Error Hierarchy
+abstract class RuntimeError extends Error {
+  abstract code: string;
+  abstract retryable: boolean;
+  runtimeId?: string;
+  context?: Record<string, unknown>;
+}
+
+class SpawnError extends RuntimeError {
+  code = 'SPAWN_ERROR';
+  retryable = true;
+}
+
+class ExecutionError extends RuntimeError {
+  code = 'EXECUTION_ERROR';
+  retryable = false;
+}
+
+class ResourceExhaustedError extends RuntimeError {
+  code = 'RESOURCE_EXHAUSTED';
+  retryable = true;  // Can retry after resources freed
+}
+
+class TimeoutError extends RuntimeError {
+  code = 'TIMEOUT';
+  retryable = true;
+}
+
+class NotFoundError extends RuntimeError {
+  code = 'NOT_FOUND';
+  retryable = false;
+}
 ```
 
 ---
 
-## 4. Phased Implementation Roadmap
+## 4. Implementation Tasks
 
-### Phase 1: RuntimeProvider Abstraction (Weeks 1-2)
-**Goal:** Create pluggable backend system supporting both old and new architectures
+### 4.1 Phase 1: RuntimeProvider Abstraction (Weeks 1-2)
 
-**Entry Criteria:**
-- Current Godel codebase stable (✅ validated)
-- TypeScript compilation passing (✅ validated)
-- Test suite operational (✅ validated)
+**Entry Criteria:** PRD-003 approved, SPEC-002 approved  
+**Exit Criteria:** Interface stable, tests >95% passing
 
-**Tasks:**
+| Task ID | Task | Assigned | Dependencies | Parallel | Verification |
+|---------|------|----------|--------------|----------|--------------|
+| P1-T1 | Define RuntimeProvider interface | Agent_1 | None | ✅ | Interface compiles |
+| P1-T2 | Implement ExecutionContext types | Agent_2 | None | ✅ | TypeScript 0 errors |
+| P1-T3 | Create RuntimeProviderFactory | Agent_3 | P1-T1,2 | ❌ | Factory tests pass |
+| P1-T4 | Refactor WorktreeRuntimeProvider | Agent_4 | P1-T1 | ✅ | Backward compat tests |
+| P1-T5 | Update agent lifecycle manager | Agent_5 | P1-T4 | ❌ | All lifecycle tests pass |
+| P1-T6 | Add runtime configuration | Agent_7 | P1-T1 | ✅ | Config validation tests |
+| P1-T7 | Write abstraction tests | Agent_22 | P1-T1 | ✅ | Coverage >90% |
+| P1-T8 | Test WorktreeRuntimeProvider | Agent_23 | P1-T4 | ✅ | All existing tests pass |
+| P1-T9 | Integration tests | Agent_24 | P1-T3,6 | ❌ | E2E tests pass |
 
-| Task ID | Task | Agent Team | Dependencies | Duration |
-|---------|------|------------|--------------|----------|
-| P1-T1 | Define RuntimeProvider interface | Team Alpha | None | 2 days |
-| P1-T2 | Implement ExecutionContext types | Team Alpha | P1-T1 | 1 day |
-| P1-T3 | Create WorktreeRuntimeProvider (refactor) | Team Beta | P1-T1 | 3 days |
-| P1-T4 | Add runtime selection to config | Team Gamma | P1-T1 | 2 days |
-| P1-T5 | Update agent lifecycle manager | Team Delta | P1-T3 | 3 days |
-| P1-T6 | Write abstraction layer tests | Team Epsilon | P1-T1 | 2 days |
-| P1-T7 | Documentation and examples | Team Zeta | All | 1 day |
+**Verification:**
+```bash
+# Phase 1 Gate
+npm run typecheck    # Should pass with 0 errors
+npm test -- --coverage --testPathPattern="runtime"  # Should show >95% coverage
+```
 
-**Exit Criteria:**
-- [ ] RuntimeProvider interface defined and tested
-- [ ] Worktree execution refactored to use abstraction
-- [ ] Config supports runtime selection
-- [ ] All tests passing
-- [ ] Documentation complete
+### 4.2 Phase 2: Kata Containers Integration (Weeks 3-6)
+
+**Entry Criteria:** Phase 1 gate passed, K8s cluster with Kata available  
+**Exit Criteria:** Kata spawning <100ms, 100 VM load test passed
+
+| Task ID | Task | Assigned | Dependencies | Parallel | Verification |
+|---------|------|----------|--------------|----------|--------------|
+| P2-T1 | Implement KataRuntimeProvider | Agent_1 | P1-T9 | ✅ | VM spawn works |
+| P2-T2 | K8s client wrapper | Agent_2 | P2-T1 | ✅ | K8s API calls work |
+| P2-T3 | Resource translator | Agent_3 | P2-T1 | ✅ | Limits enforced |
+| P2-T4 | Kata Pod YAML templates | Agent_4 | P2-T1 | ✅ | Templates render |
+| P2-T5 | Namespace manager | Agent_5 | P2-T4 | ❌ | Namespaces created |
+| P2-T6 | RBAC configurations | Agent_6 | P2-T5 | ❌ | Auth works |
+| P2-T7 | Resource limits enforcement | Agent_7 | P2-T1 | ✅ | Limits enforced |
+| P2-T8 | Quota system | Agent_8 | P2-T7 | ❌ | Quotas work |
+| P2-T9 | Scheduler integration | Agent_9 | P2-T8 | ❌ | Scheduling works |
+| P2-T10 | VM spawn implementation | Agent_10 | P2-T1 | ✅ | Spawn <100ms |
+| P2-T11 | VM health checks | Agent_11 | P2-T10 | ❌ | Health checks pass |
+| P2-T12 | Graceful termination | Agent_12 | P2-T10 | ❌ | Clean shutdown |
+| P2-T13 | File sync implementation | Agent_13 | P2-T10 | ✅ | Bidirectional sync |
+| P2-T14 | Volume mount manager | Agent_14 | P2-T13 | ❌ | Mounts work |
+| P2-T15 | I/O optimization | Agent_15 | P2-T14 | ❌ | Optimized I/O |
+| P2-T16 | Health monitoring | Agent_16 | P2-T11 | ✅ | Monitoring works |
+| P2-T17 | Metrics collection | Agent_17 | P2-T16 | ❌ | Metrics collected |
+| P2-T18 | Alerting system | Agent_18 | P2-T17 | ❌ | Alerts fire |
+| P2-T19 | Snapshot creation | Agent_19 | P2-T10 | ✅ | Snapshots work |
+| P2-T20 | Snapshot restore | Agent_20 | P2-T19 | ❌ | Restore works |
+| P2-T21 | Fork from snapshot | Agent_21 | P2-T20 | ❌ | Forking works |
+| P2-T22 | Kata integration tests | Agent_22 | P2-T10 | ✅ | Tests pass |
+| P2-T23 | File sync tests | Agent_23 | P2-T13 | ✅ | Tests pass |
+| P2-T24 | Snapshot tests | Agent_24 | P2-T21 | ❌ | Tests pass |
+| P2-T25 | Boot time benchmarks | Agent_25 | P2-T10 | ✅ | <100ms validated |
+| P2-T26 | 100 VM load test | Agent_26 | P2-T25 | ❌ | Load test passes |
+| P2-T27 | Security audit | Agent_27 | P2-T26 | ❌ | Audit passes |
+
+**Verification:**
+```bash
+# Phase 2 Gate
+npm run benchmark:boot-time    # Should show <100ms P95
+npm run test:load -- --vms=100 # Should complete successfully
+npm run security:audit         # Should pass
+```
+
+### 4.3 Phase 3: E2B Integration (Weeks 7-8)
+
+**Entry Criteria:** Phase 2 gate passed, E2B API credentials configured  
+**Exit Criteria:** E2B spawning working, fallback tested, cost tracking accurate
+
+| Task ID | Task | Assigned | Dependencies | Parallel | Verification |
+|---------|------|----------|--------------|----------|--------------|
+| P3-T1 | E2BRuntimeProvider | Agent_1 | P2-T9 | ✅ | E2B spawn works |
+| P3-T2 | E2B client wrapper | Agent_2 | P3-T1 | ❌ | API calls work |
+| P3-T3 | Template manager | Agent_3 | P3-T1 | ✅ | Templates work |
+| P3-T4 | Fallback logic | Agent_4 | P3-T1 | ❌ | Fallback works |
+| P3-T5 | Cost tracking | Agent_7 | P3-T1 | ✅ | Costs tracked |
+| P3-T6 | Budget enforcement | Agent_8 | P3-T5 | ❌ | Budgets enforced |
+| P3-T7 | Usage reports | Agent_9 | P3-T6 | ❌ | Reports generated |
+| P3-T8 | E2B integration tests | Agent_22 | P3-T1 | ✅ | Tests pass |
+| P3-T9 | Fallback tests | Agent_23 | P3-T4 | ❌ | Fallback tested |
+| P3-T10 | Cost tracking tests | Agent_24 | P3-T7 | ❌ | Accuracy >95% |
+
+**Verification:**
+```bash
+# Phase 3 Gate
+npm run test:e2b              # E2B tests pass
+npm run test:fallback         # Fallback chain works
+npm run test:cost-tracking    # Cost accuracy >95%
+```
+
+### 4.4 Phase 4: Migration & Production (Weeks 9-11)
+
+**Entry Criteria:** Phase 3 gate passed, production cluster ready  
+**Exit Criteria:** 100% migrated, 99.9% uptime, 1000 VM load test, GA announced
+
+| Task ID | Task | Assigned | Dependencies | Parallel | Verification |
+|---------|------|----------|--------------|----------|--------------|
+| P4-T1 | Migration scripts | Agent_1 | P3-T10 | ✅ | Scripts work |
+| P4-T2 | Canary deployment (5%) | Agent_2 | P4-T1 | ❌ | Canary live |
+| P4-T3 | Gradual rollout (100%) | Agent_3 | P4-T2 | ❌ | 100% migrated |
+| P4-T4 | Rollback system | Agent_4 | P4-T1 | ✅ | Rollback works |
+| P4-T5 | Production monitoring | Agent_16 | P4-T2 | ✅ | Monitoring live |
+| P4-T6 | Metrics dashboards | Agent_17 | P4-T5 | ❌ | Dashboards ready |
+| P4-T7 | 1000 VM load test | Agent_25 | P4-T3 | ✅ | 1000 VMs pass |
+| P4-T8 | Chaos engineering | Agent_26 | P4-T7 | ❌ | Resilience validated |
+| P4-T9 | Final security audit | Agent_27 | P4-T8 | ❌ | Audit passes |
+| P4-T10 | API documentation | Agent_28 | P4-T1 | ✅ | Docs published |
+| P4-T11 | Migration guide | Agent_29 | P4-T3 | ❌ | Guide published |
+| P4-T12 | Runbooks | Agent_30 | P4-T5 | ❌ | Runbooks ready |
+| P4-T13 | GA announcement | Orchestrator | P4-T12 | ❌ | GA announced |
+
+**Verification:**
+```bash
+# Phase 4 Gate (Final)
+npm run test:load -- --vms=1000  # Should complete successfully
+kubectl get pods -n godel | wc -l  # Should show 1000+ pods
+kubectl top pods -n godel        # Should show healthy metrics
+# Verify 99.9% uptime from monitoring
+```
 
 ---
 
-### Phase 2: Kata Containers Integration (Weeks 3-6)
-**Goal:** Implement MicroVM-based agent execution with Kata + Firecracker
+## 5. File Structure
 
-**Entry Criteria:**
-- Phase 1 complete (RuntimeProvider abstraction)
-- Kubernetes cluster available (staging)
-- Kata Containers runtime installed
+```
+src/
+├── core/
+│   └── runtime/
+│       ├── index.ts                    # Public API exports
+│       ├── runtime-provider.ts         # Interface definition
+│       ├── types.ts                    # Type definitions
+│       ├── runtime-provider-factory.ts # Factory implementation
+│       ├── errors.ts                   # Error classes
+│       └── providers/
+│           ├── worktree-runtime-provider.ts
+│           ├── kata-runtime-provider.ts
+│           └── e2b-runtime-provider.ts
+├── kubernetes/
+│   ├── client.ts                       # K8s API client
+│   ├── namespace-manager.ts
+│   ├── resource-translator.ts
+│   └── templates/
+│       └── kata-pod.yaml
+├── storage/
+│   ├── snapshot-manager.ts
+│   └── volume-manager.ts
+├── sync/
+│   └── file-sync.ts
+├── monitoring/
+│   ├── health-monitor.ts
+│   └── metrics-collector.ts
+└── billing/
+    ├── cost-tracker.ts
+    └── budget-enforcer.ts
 
-**Tasks:**
+tests/
+├── runtime/
+│   ├── runtime-provider.test.ts
+│   ├── worktree-runtime-provider.test.ts
+│   ├── kata-runtime-provider.test.ts
+│   └── e2e.test.ts
+├── integration/
+│   └── migration.test.ts
+└── benchmarks/
+    └── boot-time.bench.ts
+```
 
-| Task ID | Task | Agent Team | Dependencies | Duration |
-|---------|------|------------|--------------|----------|
-| P2-T1 | Implement KataRuntimeProvider | Team Alpha | P1 complete | 4 days |
-| P2-T2 | Create Kata Pod templates | Team Beta | P2-T1 | 2 days |
-| P2-T3 | Implement resource limits translation | Team Gamma | P2-T1 | 2 days |
-| P2-T4 | Add VM lifecycle management | Team Delta | P2-T1 | 3 days |
-| P2-T5 | File sync (host ↔ MicroVM) | Team Epsilon | P2-T1 | 3 days |
-| P2-T6 | Health checks and monitoring | Team Zeta | P2-T4 | 2 days |
-| P2-T7 | Snapshot/restore implementation | Team Eta | P2-T1 | 4 days |
-| P2-T8 | Integration tests | Team Theta | All | 3 days |
-| P2-T9 | Performance benchmarking | Team Iota | P2-T8 | 2 days |
-| P2-T10 | Documentation | Team Kappa | All | 2 days |
+---
 
-**Exit Criteria:**
-- [ ] KataRuntimeProvider fully functional
-- [ ] Agents spawn in MicroVMs (<100ms boot)
-- [ ] File operations working across boundary
-- [ ] Snapshots create/restore working
-- [ ] Performance meets targets (<200ms P95)
+## 6. Key Implementation Details
+
+### 6.1 Kata Integration
+
+**Kata Pod Template:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: godel-agent-{{AGENT_ID}}
+  namespace: {{NAMESPACE}}
+  labels:
+    app: godel-agent
+    runtime: kata
+spec:
+  runtimeClassName: kata
+  containers:
+  - name: agent
+    image: {{IMAGE}}
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "{{MEMORY_LIMIT}}"
+        cpu: "{{CPU_LIMIT}}"
+    volumeMounts:
+    - name: context
+      mountPath: /mnt/context
+  volumes:
+  - name: context
+    persistentVolumeClaim:
+      claimName: agent-context-{{AGENT_ID}}
+```
+
+**Kata Metrics Endpoint:**
+```
+http://localhost:8090/metrics  # Kata shimv2 metrics
+```
+
+### 6.2 E2B Integration
+
+**E2B Sandbox Creation:**
+```typescript
+const sandbox = await e2b.createSandbox({
+  template: 'godel-agent-v1',
+  resources: {
+    memory: '1Gi',
+    cpu: 1
+  },
+  env: {
+    AGENT_ID: config.agentId
+  }
+});
+```
+
+**Fallback Chain:**
+```
+E2B spawn attempt
+    ↓ (if fails)
+Kata spawn attempt  
+    ↓ (if fails)
+Worktree spawn (legacy)
+    ↓ (if fails)
+Error: All runtimes exhausted
+```
+
+### 6.3 Error Handling Strategy
+
+**Retry Logic:**
+```typescript
+const retryPolicy = {
+  maxRetries: 3,
+  backoff: 'exponential',  // 1s, 2s, 4s
+  retryableErrors: [
+    'SPAWN_ERROR',
+    'RESOURCE_EXHAUSTED', 
+    'TIMEOUT'
+  ]
+};
+```
+
+**Circuit Breaker:**
+```typescript
+const circuitBreaker = {
+  failureThreshold: 5,
+  timeout: 60s,
+  halfOpenMaxCalls: 3
+};
+```
+
+---
+
+## 7. Testing Strategy
+
+### 7.1 Test Pyramid
+
+| Level | Coverage Target | Test Types |
+|-------|-----------------|------------|
+| **Unit** | 80% | Interface methods, type validation |
+| **Integration** | 95% | Provider implementations, K8s integration |
+| **E2E** | 100% | Full workflows, migration paths |
+| **Performance** | N/A | Boot time, load tests |
+| **Security** | N/A | Penetration, compliance |
+
+### 7.2 Phase Gate Criteria
+
+**Phase 1 Gate:**
+- [ ] Unit tests >80% passing
+- [ ] Integration tests >95% passing  
+- [ ] TypeScript compilation 0 errors
+- [ ] Backward compatibility maintained
+
+**Phase 2 Gate:**
+- [ ] Kata boot <100ms P95 validated
+- [ ] 100 VM load test passed
+- [ ] Security audit passed
+- [ ] File sync operational
+
+**Phase 3 Gate:**
+- [ ] E2B fallback tested
+- [ ] Cost tracking validated
 - [ ] All integration tests passing
 
----
-
-### Phase 3: E2B Remote Sandbox Integration (Weeks 7-8)
-**Goal:** Add managed remote sandbox capability for scalable workloads
-
-**Entry Criteria:**
-- Phase 2 complete (Kata integration)
-- E2B account and API keys
-- Network connectivity validated
-
-**Tasks:**
-
-| Task ID | Task | Agent Team | Dependencies | Duration |
-|---------|------|------------|--------------|----------|
-| P3-T1 | Implement E2BRuntimeProvider | Team Alpha | P2 complete | 3 days |
-| P3-T2 | E2B template management | Team Beta | P3-T1 | 2 days |
-| P3-T3 | REST/WebSocket client | Team Gamma | P3-T1 | 2 days |
-| P3-T4 | File sync (E2B ↔ Local) | Team Delta | P3-T1 | 2 days |
-| P3-T5 | Auto-scaling integration | Team Epsilon | P3-T1 | 3 days |
-| P3-T6 | Cost tracking and quotas | Team Zeta | P3-T1 | 2 days |
-| P3-T7 | Fallback logic (E2B → Kata) | Team Eta | P3-T1 | 2 days |
-| P3-T8 | Integration tests | Team Theta | All | 2 days |
-| P3-T9 | Documentation | Team Iota | All | 1 day |
-
-**Exit Criteria:**
-- [ ] E2BRuntimeProvider functional
-- [ ] Remote sandboxes spawn successfully
-- [ ] Fallback to local Kata working
-- [ ] Cost tracking operational
-- [ ] Integration tests passing
-
----
-
-### Phase 4: Migration & Validation (Weeks 9-10)
-**Goal:** Migrate existing workloads and validate production readiness
-
-**Entry Criteria:**
-- Phases 1-3 complete
-- Staging environment ready
-- Migration plan approved
-
-**Tasks:**
-
-| Task ID | Task | Agent Team | Dependencies | Duration |
-|---------|------|------------|--------------|----------|
-| P4-T1 | Migration scripts | Team Alpha | P3 complete | 2 days |
-| P4-T2 | Canary deployment | Team Beta | P4-T1 | 3 days |
-| P4-T3 | Rollback procedures | Team Gamma | P4-T1 | 2 days |
-| P4-T4 | Load testing | Team Delta | P4-T2 | 3 days |
-| P4-T5 | Security audit | Team Epsilon | P4-T2 | 3 days |
-| P4-T6 | Chaos engineering | Team Zeta | P4-T2 | 2 days |
-| P4-T7 | Production deployment | Team Eta | P4-T4, P4-T5 | 2 days |
-| P4-T8 | Post-deployment monitoring | Team Theta | P4-T7 | Ongoing |
-
-**Exit Criteria:**
-- [ ] All agents migrated to MicroVMs
-- [ ] Production traffic on new architecture
-- [ ] Monitoring dashboards operational
+**Phase 4 Gate:**
+- [ ] 1000 VM load test passed
 - [ ] 99.9% uptime maintained
-- [ ] Rollback tested and documented
+- [ ] All documentation published
+- [ ] GA announcement complete
 
----
+### 7.3 Verification Commands
 
-## 5. Agent Orchestration Structure
+```bash
+# Type checking
+npm run typecheck
 
-### 5.1 Team Assignments
+# Unit tests
+npm test -- --testPathPattern="runtime"
 
-**30 Parallel Agents Across 10 Teams:**
+# Integration tests  
+npm run test:integration
 
-| Team | Focus | Size | Agents |
-|------|-------|------|--------|
-| Team Alpha | Core RuntimeProvider | 3 | Agents 1-3 |
-| Team Beta | Kata Pod Management | 3 | Agents 4-6 |
-| Team Gamma | Resource Management | 3 | Agents 7-9 |
-| Team Delta | VM Lifecycle | 3 | Agents 10-12 |
-| Team Epsilon | File Sync & I/O | 3 | Agents 13-15 |
-| Team Zeta | Monitoring & Health | 3 | Agents 16-18 |
-| Team Eta | Snapshots & State | 3 | Agents 19-21 |
-| Team Theta | Testing & QA | 3 | Agents 22-24 |
-| Team Iota | Performance & Benchmarks | 3 | Agents 25-27 |
-| Team Kappa | Documentation & Integration | 3 | Agents 28-30 |
+# Boot time benchmark
+npm run benchmark:boot-time
 
-### 5.2 Communication Protocol
+# Load test
+npm run test:load -- --vms=1000 --duration=300
 
-**Inter-Team Coordination:**
-- Daily standups via shared docs
-- PRD/Spec updates in real-time
-- Blockers escalated immediately to orchestrator
-- Code review required from at least 2 teams
+# Security audit
+npm run security:audit
 
-**Dependency Management:**
-```
-P1-T1 (Interface) → All P1 tasks
-P1 complete → All P2 tasks
-P2-T1 (KataProvider) → P2-T2, P2-T3, etc.
-P2 complete → All P3 tasks
-P3 complete → All P4 tasks
+# E2E tests
+npm run test:e2e
 ```
 
 ---
 
-## 6. Error Handling & Remediation
+## 8. Deployment Architecture
 
-### 6.1 Agent Failure Procedures
+### 8.1 Kubernetes Resources
 
-**Scenario 1: Task Implementation Failure**
-1. Agent reports failure with logs
-2. Orchestrator reviews within 2 hours
-3. If fixable: Agent retries with updated spec
-4. If architectural: Escalate to PRD review
-5. Reassign to different agent team if needed
+```yaml
+# RuntimeClass for Kata
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: kata
+handler: kata
+overhead:
+  podFixed:
+    memory: "128Mi"
+    cpu: "100m"
 
-**Scenario 2: Ambiguous Requirements**
-1. Agent uses /interview skill to query orchestrator
-2. PRD updated with clarified requirements
-3. All teams notified of changes
-4. Implementation continues with updated spec
+# Namespace per team
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: godel-team-{{TEAM_ID}}
+  labels:
+    godel.io/team: {{TEAM_ID}}
+    godel.io/quota: enabled
 
-**Scenario 3: Performance Regression**
-1. Benchmark tests detect regression
-2. Root cause analysis by Team Iota
-3. Optimization or architecture adjustment
-4. Re-benchmark before proceeding
-
-### 6.2 Rollback Procedures
-
-**At Any Phase:**
-1. Halt current phase execution
-2. Preserve work-in-progress
-3. Assess rollback vs. fix-forward
-4. If rollback: Revert to last known good state
-5. If fix-forward: Assign hotfix team
-6. Update timeline and notify stakeholders
-
----
-
-## 7. Interview Skill Usage for PRD/Spec
-
-### 7.1 When to Use /interview
-
-**Trigger Conditions:**
-- Requirements unclear or conflicting
-- New feature scope needs definition
-- Technical approach requires validation
-- Stakeholder input needed
-
-### 7.2 PRD Generation Workflow
-
-```
-1. Orchestrator identifies need for PRD
-2. Spawn agent with /interview skill
-3. Agent interviews orchestrator about:
-   - Problem statement
-   - Success criteria
-   - Constraints and assumptions
-   - Stakeholder requirements
-4. Agent drafts PRD
-5. Orchestrator reviews and approves
-6. PRD becomes ground truth for all teams
+# ResourceQuota per team
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: godel-quota-{{TEAM_ID}}
+  namespace: godel-team-{{TEAM_ID}}
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "100"
 ```
 
-### 7.3 Spec Generation Workflow
+### 8.2 Monitoring Stack
 
+**Prometheus Metrics:**
+```yaml
+# VM metrics
+- godel_runtime_boot_duration_seconds
+- godel_runtime_execution_duration_seconds
+- godel_runtime_memory_usage_bytes
+- godel_runtime_cpu_usage_cores
+- godel_runtime_disk_usage_bytes
+- godel_runtime_network_rx_bytes
+- godel_runtime_network_tx_bytes
+
+# Cost metrics
+- godel_cost_per_agent_dollars
+- godel_cost_per_team_dollars
+- godel_budget_remaining_percent
 ```
-1. Approved PRD triggers spec creation
-2. Technical lead agent creates SPEC
-3. Peer review by 2+ other teams
-4. Iterate based on feedback
-5. Final approval by orchestrator
-6. Spec becomes implementation contract
-```
+
+**Grafana Dashboards:**
+- VM Performance Dashboard
+- Cost Attribution Dashboard  
+- Migration Progress Dashboard
+- Error Rate Dashboard
 
 ---
 
-## 8. Success Criteria
+## 9. Approval
 
-### 8.1 Technical Metrics
+**This SPEC is approved for implementation:**
 
-| Metric | Target | Validation |
-|--------|--------|------------|
-| MicroVM Boot Time | <100ms | Benchmark tests |
-| Agent Spawn Latency | <200ms P95 | Load tests |
-| Isolation Level | VM-level | Security audit |
-| Resource Overhead | <10% vs containers | Benchmarks |
-| Snapshot Time | <1s | Integration tests |
-| Concurrent Agents | 1000+ | Load tests |
-
-### 8.2 Business Metrics
-
-| Metric | Target | Validation |
-|--------|--------|------------|
-| Migration Completion | 100% | Production metrics |
-| Uptime During Migration | 99.9% | Monitoring |
-| Security Incidents | 0 | Security audit |
-| Cost Per Agent | <2x previous | Cost analysis |
-| Developer Satisfaction | >4.0/5.0 | Survey |
+| Role | Name | Signature | Date |
+|------|------|-----------|------|
+| Tech Lead | Senior Infrastructure Engineer | _______________ | 2026-02-08 |
+| Architect | API Designer | _______________ | 2026-02-08 |
+| QA Lead | Quality Assurance | _______________ | 2026-02-08 |
 
 ---
 
-## 9. Risk Assessment
+## 10. Related Documents
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Kata runtime instability | Medium | High | Fallback to gVisor |
-| Performance regression | Medium | High | Extensive benchmarking |
-| Migration data loss | Low | Critical | Backup + rollback plan |
-| Network latency (E2B) | Medium | Medium | Local Kata fallback |
-| VM escape vulnerability | Low | Critical | Security audit + patching |
-| Resource exhaustion | Medium | High | Auto-scaling + limits |
+- **PRD-003:** Product requirements and business justification
+- **30-AGENT-ORCHESTRATION-PLAN.md:** Detailed agent assignments and timeline
+- **runtime-provider-api-design.md:** API interface specification
+- **testing-strategy-hypervisor-migration.md:** QA approach
 
 ---
 
-## 10. Timeline Summary
-
-| Phase | Duration | Start | End | Key Deliverable |
-|-------|----------|-------|-----|-----------------|
-| Phase 0 | 1 week | Week 0 | Week 1 | PRD + SPEC approved |
-| Phase 1 | 2 weeks | Week 1 | Week 3 | RuntimeProvider abstraction |
-| Phase 2 | 4 weeks | Week 3 | Week 7 | Kata integration |
-| Phase 3 | 2 weeks | Week 7 | Week 9 | E2B integration |
-| Phase 4 | 2 weeks | Week 9 | Week 11 | Production migration |
-| **Total** | **11 weeks** | | | **Hypervisor Architecture GA** |
-
----
-
-**Orchestrator:** Senior Engineer & Architecture Lead  
-**Next Step:** Execute Phase 0 - PRD development with /interview skill
-
-**Status:** 🟡 READY FOR ORCHESTRATION
+**Status:** ✅ **APPROVED FOR IMPLEMENTATION**  
+**Next Step:** Proceed to 30-agent orchestration (Phase 1)

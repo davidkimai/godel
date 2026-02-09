@@ -186,7 +186,7 @@ export function instrumentAgentLifecycle(lifecycle: AgentLifecycle): AgentLifecy
   // Override spawn
   lifecycle.spawn = async (options) => {
     return instrumentAgentSpawn(
-      { id: 'pending', ...options } as Agent,
+      { id: 'pending', ...options } as unknown as Agent,
       () => originalSpawn(options)
     );
   };

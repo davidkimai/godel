@@ -203,6 +203,9 @@ export class WorktreeManager extends EventEmitter implements IWorktreeManager {
   /** Cleanup interval handle */
   private cleanupInterval?: NodeJS.Timeout;
 
+  /** Counter for unique worktree/branch naming */
+  private worktreeCounter = 0;
+
   /**
    * Creates a new WorktreeManager instance.
    *
@@ -328,14 +331,16 @@ export class WorktreeManager extends EventEmitter implements IWorktreeManager {
 
       // Step 2: Generate unique worktree ID
       const timestamp = Date.now();
-      const worktreeId = `${WORKTREE_ID_PREFIX}-${config.sessionId.slice(0, 8)}-${timestamp}`;
+      const counter = ++this.worktreeCounter;
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const worktreeId = `${WORKTREE_ID_PREFIX}-${config.sessionId.slice(0, 8)}-${timestamp}-${counter}-${randomSuffix}`;
 
       // Step 3: Determine worktree path
       const repoName = basename(config.repository);
       const worktreePath = join(this.basePath, `${repoName}-godel`, worktreeId);
 
-      // Step 4: Create branch name
-      const branchName = `${BRANCH_PREFIX}-${config.sessionId.slice(0, 8)}`;
+      // Step 4: Create branch name (use timestamp, counter and random suffix for uniqueness)
+      const branchName = `${BRANCH_PREFIX}-${timestamp}-${counter}-${randomSuffix}`;
 
       // Step 5: Create parent directory
       this.ensureDirectoryExists(dirname(worktreePath));
@@ -354,14 +359,12 @@ export class WorktreeManager extends EventEmitter implements IWorktreeManager {
         );
       }
 
-      // Step 7: Execute git worktree add
+      // Step 7: Execute git worktree add (branch already exists from Step 6, don't use -b)
       const gitResult = await this.executeGitCommand(config.repository, [
         'worktree',
         'add',
-        '-b',
-        branchName,
         worktreePath,
-        config.baseBranch,
+        branchName,
       ]);
 
       if (!gitResult.success) {

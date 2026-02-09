@@ -316,6 +316,15 @@ export * from './federation';
  */
 export * from './roles';
 
+/**
+ * Runtime - RuntimeProvider Abstraction Layer
+ *
+ * Provides type definitions and interfaces for the RuntimeProvider abstraction
+ * supporting Worktree, Kata, and E2B runtime environments.
+ * @see SPEC-002
+ */
+export * as runtime from './runtime';
+
 // =============================================================================
 // Constants
 // =============================================================================
