@@ -152,19 +152,23 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
 
   constructor(config: WorktreeRuntimeProviderConfig) {
     super();
-    this.config = {
-      defaultBranch: 'main',
-      packageManager: 'npm',
-      shareDependencies: true,
-      maxWorktrees: 100,
-      ...config,
-    };
 
     // Derive baseWorktreePath from repositoryPath for backward compatibility
     const basePath = config.baseWorktreePath || config.repositoryPath;
     if (!basePath) {
       throw new Error('Either baseWorktreePath or repositoryPath must be provided');
     }
+
+    this.config = {
+      defaultBranch: 'main',
+      packageManager: 'npm',
+      shareDependencies: true,
+      maxWorktrees: 100,
+      baseWorktreePath: basePath,
+      ...config,
+    };
+
+    // Ensure baseWorktreePath is always set
     this.config.baseWorktreePath = basePath;
 
     // Initialize or get global worktree manager
@@ -199,7 +203,7 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
     logger.info('[WorktreeRuntimeProvider] Spawning worktree runtime', {
       runtimeId,
       agentId,
-      repositoryPath: this.config.repositoryPath || this.config.baseWorktreePath,
+      repositoryPath: this.config.baseWorktreePath,
     });
 
     try {
@@ -210,9 +214,10 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
       });
 
       // Create worktree configuration
+      // baseWorktreePath is guaranteed to be set in constructor
       const worktreeConfig: WorktreeConfig = {
-        repository: this.config.repositoryPath || this.config.baseWorktreePath,
-        baseBranch: this.config.defaultBranch!,
+        repository: this.config.baseWorktreePath!,
+        baseBranch: this.config.defaultBranch || 'main',
         sessionId: runtimeId,
         dependencies: {
           shared: this.config.shareDependencies ? ['node_modules', '.venv'] : [],
@@ -288,9 +293,9 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
   }
 
   /**
-   * Terminate a running runtime
+   * Terminate a runtime and clean up its worktree
    */
-  async terminate(runtimeId: string): Promise<void> {
+  async terminate(runtimeId: string, force?: boolean): Promise<void> {
     const runtimeState = this.runtimes.get(runtimeId);
     if (!runtimeState) {
       throw new NotFoundError(`Runtime not found: ${runtimeId}`, 'runtime', runtimeId);
@@ -299,6 +304,7 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
     logger.info('[WorktreeRuntimeProvider] Terminating worktree runtime', {
       runtimeId,
       worktreeId: runtimeState.worktree.id,
+      force,
     });
 
     // Update state
@@ -309,7 +315,7 @@ export class WorktreeRuntimeProvider extends EventEmitter implements RuntimeProv
       // Remove the worktree
       const cleanupOptions: CleanupOptions = {
         removeBranch: false,
-        force: false,
+        force: force ?? false,
         preserveChanges: false,
       };
 

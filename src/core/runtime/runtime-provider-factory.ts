@@ -615,28 +615,30 @@ export class RuntimeProviderFactory {
     // Format: GODEL_RUNTIME_TEAM_TEAMID_KEY=value
     const teamRegex = new RegExp(`^${prefix}TEAM_(.+?)_(.+)$`);
     for (const [key, value] of Object.entries(process.env)) {
-      const match = key?.match(teamRegex);
-      if (match) {
-        const [, teamId, configKey] = match;
-        if (!this.teamOverrides[teamId]) {
-          this.teamOverrides[teamId] = {};
-        }
-        this.setNestedValue(this.teamOverrides[teamId], configKey.toLowerCase(), value);
+      if (!value || !key) continue;
+      const match = key.match(teamRegex);
+      const teamId = match?.[1];
+      const configKey = match?.[2];
+      if (!teamId || !configKey) continue;
+      if (!this.teamOverrides[teamId]) {
+        this.teamOverrides[teamId] = {};
       }
+      this.setNestedValue(this.teamOverrides[teamId], configKey.toLowerCase(), value);
     }
 
     // Load agent overrides from environment
     // Format: GODEL_RUNTIME_AGENT_AGENTID_KEY=value
     const agentRegex = new RegExp(`^${prefix}AGENT_(.+?)_(.+)$`);
     for (const [key, value] of Object.entries(process.env)) {
-      const match = key?.match(agentRegex);
-      if (match) {
-        const [, agentId, configKey] = match;
-        if (!this.agentOverrides[agentId]) {
-          this.agentOverrides[agentId] = {};
-        }
-        this.setNestedValue(this.agentOverrides[agentId], configKey.toLowerCase(), value);
+      if (!value || !key) continue;
+      const match = key.match(agentRegex);
+      const agentId = match?.[1];
+      const configKey = match?.[2];
+      if (!agentId || !configKey) continue;
+      if (!this.agentOverrides[agentId]) {
+        this.agentOverrides[agentId] = {};
       }
+      this.setNestedValue(this.agentOverrides[agentId], configKey.toLowerCase(), value);
     }
 
     if (this.config.debug) {

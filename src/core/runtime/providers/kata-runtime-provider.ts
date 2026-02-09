@@ -103,6 +103,54 @@ interface KataSnapshotInfo {
   snapshotterRef?: string;
 }
 
+/**
+ * Kubernetes API error structure from @kubernetes/client-node
+ * This represents the shape of errors returned by the K8s API
+ */
+interface K8sApiError {
+  statusCode: number;
+  message?: string;
+  body?: unknown;
+}
+
+/**
+ * Type guard to check if an error is a Kubernetes API error
+ * Uses proper type narrowing to ensure runtime safety
+ */
+function isK8sApiError(error: unknown): error is K8sApiError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const err = error as Record<string, unknown>;
+
+  // Check for required statusCode property with proper type
+  if (!('statusCode' in err) || typeof err.statusCode !== 'number') {
+    return false;
+  }
+
+  // Validate optional properties if they exist
+  if ('message' in err && typeof err.message !== 'string') {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Safely extract error message from a K8s API error
+ */
+function getK8sErrorMessage(error: K8sApiError): string {
+  return error.message ?? 'Unknown error';
+}
+
+/**
+ * Safely extract status code from an unknown error
+ */
+function getK8sStatusCode(error: K8sApiError): number {
+  return error.statusCode;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // KATA RUNTIME PROVIDER IMPLEMENTATION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -299,11 +347,11 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
         throw error;
       }
 
-      if (error && typeof error === 'object' && 'statusCode' in error) {
+      if (isK8sApiError(error)) {
         throw new SpawnError(
-          `K8s API error: ${(error as Error).message} (status: ${(error as { statusCode: number }).statusCode})`,
+          `K8s API error: ${getK8sErrorMessage(error)} (status: ${getK8sStatusCode(error)})`,
           runtimeId,
-          { k8sError: (error as { body: unknown }).body }
+          { k8sError: error.body }
         );
       }
 
@@ -317,7 +365,7 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
   /**
    * Terminate a running runtime
    */
-  async terminate(runtimeId: string): Promise<void> {
+  async terminate(runtimeId: string, _force?: boolean): Promise<void> {
     const runtimeState = this.runtimes.get(runtimeId);
     if (!runtimeState) {
       throw new NotFoundError(`Runtime not found: ${runtimeId}`, 'runtime', runtimeId);
@@ -357,11 +405,11 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
         error: error instanceof Error ? error.message : String(error),
       });
 
-      if (error && typeof error === 'object' && 'statusCode' in error) {
+      if (isK8sApiError(error)) {
         throw new ExecutionError(
-          `K8s API error during termination: ${(error as Error).message}`,
+          `K8s API error during termination: ${getK8sErrorMessage(error)}`,
           runtimeId,
-          (error as { statusCode: number }).statusCode
+          getK8sStatusCode(error)
         );
       }
 
@@ -425,7 +473,7 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
         error: pod.status?.containerStatuses?.[0]?.state?.terminated?.message,
       };
     } catch (error) {
-      if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode: number }).statusCode === 404) {
+      if (isK8sApiError(error) && getK8sStatusCode(error) === 404) {
         // Pod doesn't exist anymore
         runtimeState.state = 'terminated';
         this.runtimes.delete(runtimeId);
@@ -837,11 +885,11 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
 
       return Buffer.from(result.stdout);
     } catch (error) {
-      if (error && typeof error === 'object' && 'statusCode' in error) {
+      if (isK8sApiError(error)) {
         throw new SpawnError(
-          `K8s API error: ${(error as Error).message} (status: ${(error as { statusCode: number }).statusCode})`,
+          `K8s API error: ${getK8sErrorMessage(error)} (status: ${getK8sStatusCode(error)})`,
           runtimeId,
-          { k8sError: (error as { body: unknown }).body }
+          { k8sError: error.body }
         );
       }
       throw new ExecutionError(
@@ -1376,7 +1424,7 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
           return false;
         }
       } catch (error) {
-        if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode: number }).statusCode === 404) {
+        if (isK8sApiError(error) && getK8sStatusCode(error) === 404) {
           // Pod doesn't exist yet, keep waiting
         } else {
           throw error;
@@ -1402,7 +1450,7 @@ export class KataRuntimeProvider extends EventEmitter implements RuntimeProvider
         propagationPolicy: 'Foreground'
       });
     } catch (error) {
-      if (error && typeof error === 'object' && 'statusCode' in error && (error as { statusCode: number }).statusCode === 404) {
+      if (isK8sApiError(error) && getK8sStatusCode(error) === 404) {
         // Pod already deleted, that's fine
         return;
       }
