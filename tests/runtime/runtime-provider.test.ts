@@ -564,6 +564,7 @@ class MockRuntimeProvider implements RuntimeProvider {
       lastActiveAt: now,
       metadata: {
         type: 'kata',
+        createdAt: now,
         restoredFrom: snapshotId,
       },
     };
@@ -1405,6 +1406,52 @@ describe('RuntimeProvider Interface', () => {
     });
   });
 
+  describe('off()', () => {
+    it('should unsubscribe from events', async () => {
+      const handler = jest.fn();
+      provider.on('stateChange', handler);
+
+      // Verify handler is called
+      await provider.spawn({ runtime: 'worktree', resources: { cpu: 1, memory: '512Mi' } });
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      // Unsubscribe
+      provider.off('stateChange', handler);
+
+      // Handler should not be called again
+      handler.mockClear();
+      await provider.spawn({ runtime: 'worktree', resources: { cpu: 1, memory: '512Mi' } });
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('should only remove specified handler', async () => {
+      const handler1 = jest.fn();
+      const handler2 = jest.fn();
+      provider.on('stateChange', handler1);
+      provider.on('stateChange', handler2);
+
+      // Remove only handler1
+      provider.off('stateChange', handler1);
+
+      // Only handler2 should be called
+      await provider.spawn({ runtime: 'worktree', resources: { cpu: 1, memory: '512Mi' } });
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle removing non-existent handler gracefully', () => {
+      const handler = jest.fn();
+      // Should not throw when removing handler that was never added
+      expect(() => provider.off('stateChange', handler)).not.toThrow();
+    });
+
+    it('should handle removing handler from event with no subscribers', () => {
+      const handler = jest.fn();
+      // Should not throw when event has no subscribers
+      expect(() => provider.off('error', handler)).not.toThrow();
+    });
+  });
+
   describe('event emission', () => {
     it('should emit stateChange event on spawn', async () => {
       const handler = jest.fn();
@@ -1413,7 +1460,7 @@ describe('RuntimeProvider Interface', () => {
       await provider.spawn({ runtime: 'worktree', resources: { cpu: 1, memory: '512Mi' } });
 
       expect(handler).toHaveBeenCalled();
-      const [, data] = handler.mock.calls[0];
+      const [, data] = handler.mock.calls[0] as [RuntimeEvent, EventData];
       expect(data.previousState).toBe('pending');
       expect(data.currentState).toBe('running');
     });
@@ -1428,7 +1475,7 @@ describe('RuntimeProvider Interface', () => {
       await provider.terminate(runtime.id);
 
       expect(handler).toHaveBeenCalled();
-      const [, data] = handler.mock.calls[0];
+      const [, data] = handler.mock.calls[0] as [RuntimeEvent, EventData];
       expect(data.previousState).toBe('running');
       expect(data.currentState).toBe('terminated');
     });

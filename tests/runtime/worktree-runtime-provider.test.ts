@@ -195,7 +195,7 @@ describe('WorktreeRuntimeProvider', () => {
     // Clean up any runtimes created during test
     for (const runtimeId of createdRuntimes) {
       try {
-        await provider.terminate(runtimeId);
+        await provider.terminate(runtimeId, true);
       } catch {
         // Ignore cleanup errors
       }
@@ -281,7 +281,7 @@ describe('WorktreeRuntimeProvider', () => {
 
     it('should have correct capabilities', () => {
       expect(provider.capabilities).toBeDefined();
-      expect(provider.capabilities.snapshots).toBe(false); // Worktrees don't support snapshots
+      expect(provider.capabilities.snapshots).toBe(true); // Git-based snapshots supported
       expect(provider.capabilities.streaming).toBe(true);
       expect(provider.capabilities.interactive).toBe(true);
       expect(provider.capabilities.fileOperations).toBe(true);
@@ -569,7 +569,7 @@ describe('WorktreeRuntimeProvider', () => {
   // ============================================================================
 
   describe('State Management (Snapshots)', () => {
-    it('should throw error when creating snapshots (not supported)', async () => {
+    it('should create snapshots successfully', async () => {
       const config: SpawnConfig = {
         runtime: 'worktree',
         resources: { cpu: 1, memory: '512Mi' },
@@ -578,14 +578,18 @@ describe('WorktreeRuntimeProvider', () => {
       const runtime = await provider.spawn(config);
       createdRuntimes.push(runtime.id);
 
-      await expect(provider.snapshot(runtime.id, { name: 'test' })).rejects.toThrow('not supported');
+      const snapshot = await provider.snapshot(runtime.id, { name: 'test' });
+      expect(snapshot).toBeDefined();
+      expect(snapshot.id).toBeDefined();
+      expect(snapshot.runtimeId).toBe(runtime.id);
+      expect(snapshot.metadata.name).toBe('test');
     }, TEST_TIMEOUT);
 
-    it('should throw error when restoring snapshots (not supported)', async () => {
-      await expect(provider.restore('snapshot-id')).rejects.toThrow('not supported');
+    it('should throw error when restoring non-existent snapshot', async () => {
+      await expect(provider.restore('non-existent-snapshot-id')).rejects.toThrow('Snapshot not found');
     });
 
-    it('should return empty array for listSnapshots', async () => {
+    it('should return empty array for listSnapshots when no snapshots exist', async () => {
       const config: SpawnConfig = {
         runtime: 'worktree',
         resources: { cpu: 1, memory: '512Mi' },
@@ -598,8 +602,8 @@ describe('WorktreeRuntimeProvider', () => {
       expect(snapshots).toEqual([]);
     }, TEST_TIMEOUT);
 
-    it('should throw error when deleting snapshots (not supported)', async () => {
-      await expect(provider.deleteSnapshot('snapshot-id')).rejects.toThrow('not supported');
+    it('should throw error when deleting non-existent snapshot', async () => {
+      await expect(provider.deleteSnapshot('non-existent-snapshot-id')).rejects.toThrow('Snapshot not found');
     });
   });
 
@@ -975,7 +979,7 @@ describe('WorktreeRuntimeProvider Regression Tests', () => {
   afterEach(async () => {
     for (const runtimeId of createdRuntimes) {
       try {
-        await provider.terminate(runtimeId);
+        await provider.terminate(runtimeId, true);
       } catch {
         // Ignore cleanup errors
       }
