@@ -11,6 +11,7 @@
  */
 
 import { startServer } from './src/api/server-factory';
+import './scripts/ensure-project-root';
 
 async function main() {
   try {

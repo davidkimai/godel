@@ -11,6 +11,7 @@
  */
 
 const { startServer } = require('./dist/api/server-factory');
+require('./scripts/ensure-project-root');
 
 async function main() {
   try {
