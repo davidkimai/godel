@@ -13,6 +13,10 @@ logs/
 temp/
 .clawhub/
 .claude-worktrees/
+_worktree_recovery/
+.home_relocation_conflicts/
+_home_relocation_conflicts/
+.worktrees/
 .dash/orchestrator-state.json
 .dash/orchestrator.pid
 
