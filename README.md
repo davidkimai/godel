@@ -1,8 +1,8 @@
-# Godel - OpenClaw Agent Orchestration Platform
+# Godel
 
 <div align="center">
 
-**Production-grade meta-orchestration for 10-50+ concurrent AI agent sessions**
+**Kubernetes for Agents** - **Built on [Pi](https://github.com/badlogic/pi-mono) and [OpenClaw](https://github.com/openclaw/openclaw)** - for operating 10-50+ concurrent AI agent sessions with reliability.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
@@ -15,7 +15,7 @@
 
 ## What is Godel?
 
-Godel is a **production-grade meta-orchestration control plane** designed to manage 10-50+ concurrent OpenClaw/Pi agent sessions with enterprise reliability, observability, and operational efficiency. Godel operates as the central nervous system for AI agent teams, providing unified task dispatch, priority queue management, session federation, and comprehensive lifecycle orchestration across heterogeneous agent instances.
+Godel is designed to be the **Kubernetes for Agents**: a control plane for running 10-50+ concurrent agent sessions with reliability, observability, and operational efficiency. **Built on [Pi](https://github.com/badlogic/pi-mono) and [OpenClaw](https://github.com/openclaw/openclaw)**, it provides unified task dispatch, priority queue management, session federation, and lifecycle orchestration across heterogeneous agent instances.
 
 ### The Intent-Based Interface
 
@@ -42,7 +42,7 @@ Godel automatically:
 ## Key Features
 
 ### Multi-Provider Orchestration
-- **Pi Integration First-Class**: Native support for Pi multi-provider CLI (15+ providers)
+- **Pi Integration First-Class**: Native support for [Pi](https://github.com/badlogic/pi-mono) multi-provider runtime capabilities (15+ providers)
 - **Model Routing**: Cost-optimized, capability-matched, and latency-optimized routing
 - **Fallback Chains**: Automatic failover between providers (Anthropic, OpenAI, Google)
 - **Unified API**: Single interface for Claude, GPT-4, Gemini, and more
@@ -71,7 +71,7 @@ Specialized roles for coordinated multi-agent workflows:
 | **Monitor** | System health and alerting | query_metrics, check_health, alert |
 
 ### Federation Architecture
-- **Multi-Instance Management**: Route across 10-50+ OpenClaw instances
+- **Multi-Instance Management**: Route across 10-50+ [OpenClaw](https://github.com/openclaw/openclaw) instances
 - **Health-Aware Routing**: Automatic failover to healthy instances
 - **Session Affinity**: Keep related sessions on the same instance
 - **Capacity Management**: Backpressure and load balancing
@@ -85,7 +85,9 @@ Specialized roles for coordinated multi-agent workflows:
 
 ---
 
-## Architecture
+## Architecture (Built on Pi and OpenClaw)
+
+As the **Kubernetes for Agents**, Godel's control plane coordinates [Pi](https://github.com/badlogic/pi-mono)-powered execution and [OpenClaw](https://github.com/openclaw/openclaw)-based agent infrastructure into a single operational layer.
 
 ```mermaid
 graph TB
@@ -218,9 +220,9 @@ npm run dev
 
 ---
 
-## Pi Runtime
+## Pi Runtime (Built on Pi)
 
-Godel supports Pi (pi-mono) as a first-class runtime for agent execution.
+Godel uses [Pi](https://github.com/badlogic/pi-mono) as a first-class runtime for agent execution.
 
 ### Quick Start
 
@@ -662,8 +664,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - Built with TypeScript, Fastify, PostgreSQL, and Redis
-- Pi integration powered by [@mariozechner/pi-coding-agent](https://github.com/mariozechner/pi-coding-agent)
-- Inspired by [OpenClaw](https://github.com/openclaw/openclaw)
+- **Kubernetes for Agents**, built on [Pi](https://github.com/badlogic/pi-mono) and [OpenClaw](https://github.com/openclaw/openclaw)
 - Tree-structured sessions inspired by Pi CLI
 
 ---
