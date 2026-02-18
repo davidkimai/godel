@@ -1,7 +1,7 @@
 # Operationalizing SB 53 Through Hypervisor Agent Containment
 
 **Document Type:** Technical Design Specification / System Architecture & Threat Model  
-**Repository Reference Implementation:** Godel (https://github.com/davidkimai/godel)  
+**Repository Reference Implementation:** Godel (`/Users/jasontang/clawd/External/godel`)  
 **Version:** 0.1 (Writing Sample)  
 **Date:** 2026-02-14  
 
